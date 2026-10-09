@@ -87,9 +87,9 @@ class TestRegisterPlatformHandlerAPI:
         """Factories for platform A never appear in platform B's list."""
         mgr, ctx = _make_ctx()
         ctx.register_platform_handler("discord", lambda n, a: None)
-        ctx.register_platform_handler("matrix", lambda n, a: None)
+        ctx.register_platform_handler("teams", lambda n, a: None)
         assert len(mgr.get_platform_handler_factories("discord")) == 1
-        assert len(mgr.get_platform_handler_factories("matrix")) == 1
+        assert len(mgr.get_platform_handler_factories("teams")) == 1
         assert mgr.get_platform_handler_factories("slack") == []
 
     def test_multiple_plugins_each_recorded(self):

@@ -64,8 +64,8 @@ def test_purge_identity_refuses_a_same_name_profile_created_after_the_delete(pro
     scope = str(profile_env / ".hermes" / "sessions")
     db = SessionDB(profile_env / ".hermes" / "state.db")
     db.save_gateway_routing_entry(
-        "agent:gone:feishu:dm:chatA",
-        json.dumps({"session_key": "agent:gone:feishu:dm:chatA"}), scope=scope)
+        "agent:gone:telegram:dm:chatA",
+        json.dumps({"session_key": "agent:gone:telegram:dm:chatA"}), scope=scope)
     db.close()
 
     with pytest.raises(SystemExit) as exc:
@@ -76,6 +76,6 @@ def test_purge_identity_refuses_a_same_name_profile_created_after_the_delete(pro
     try:
         # The recreated profile still owns its routing key.
         assert set(check.load_gateway_routing_entries(scope=scope)) == {
-            "agent:gone:feishu:dm:chatA"}
+            "agent:gone:telegram:dm:chatA"}
     finally:
         check.close()

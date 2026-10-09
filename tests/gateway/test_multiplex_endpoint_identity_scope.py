@@ -18,21 +18,13 @@ from gateway.config import PlatformConfig
 from tests.gateway._plugin_adapter_loader import load_plugin_adapter
 
 DEFAULT_ENV = {
-    "MATRIX_HOMESERVER": "https://default.matrix.example", "MATRIX_USER_ID": "@default:example",
-    "MATRIX_DEVICE_ID": "DEFAULTDEV", "MATRIX_ACCESS_TOKEN": "default-matrix-token",
     "TEAMS_CLIENT_ID": "default-client-id", "TEAMS_TENANT_ID": "default-tenant",
     "TEAMS_CLIENT_SECRET": "default-teams-secret", "TEAMS_HOME_CHANNEL": "default-conv",
-    "DINGTALK_CLIENT_ID": "default-ding-id", "DINGTALK_CLIENT_SECRET": "default-ding-secret",
-    "DINGTALK_WEBHOOK_URL": "https://oapi.dingtalk.com/robot/send?access_token=DEFAULT",
     "TELEGRAM_WEBHOOK_URL": "https://default.example/tg",
 }
 SECONDARY = {
-    "MATRIX_HOMESERVER": "https://bot2.matrix.example", "MATRIX_USER_ID": "@bot2:example",
-    "MATRIX_DEVICE_ID": "BOT2DEV", "MATRIX_ACCESS_TOKEN": "bot2-matrix-token",
     "TEAMS_CLIENT_ID": "bot2-client-id", "TEAMS_TENANT_ID": "bot2-tenant",
     "TEAMS_CLIENT_SECRET": "bot2-teams-secret", "TEAMS_HOME_CHANNEL": "bot2-conv",
-    "DINGTALK_CLIENT_ID": "bot2-ding-id", "DINGTALK_CLIENT_SECRET": "bot2-ding-secret",
-    "DINGTALK_WEBHOOK_URL": "https://oapi.dingtalk.com/robot/send?access_token=BOT2",
     "TELEGRAM_WEBHOOK_URL": "https://bot2.example/tg",
 }
 
@@ -49,41 +41,6 @@ def secondary_scope(monkeypatch):
     ss.set_multiplex_active(False)
 
 
-def test_matrix_homeserver_identity_follow_the_scoped_token(secondary_scope):
-    from plugins.platforms.matrix.adapter import MatrixAdapter
-
-    adapter = MatrixAdapter(PlatformConfig(enabled=True))
-    assert adapter._access_token == SECONDARY["MATRIX_ACCESS_TOKEN"]
-    assert (adapter._homeserver, adapter._user_id, adapter._device_id) == (
-        SECONDARY["MATRIX_HOMESERVER"], SECONDARY["MATRIX_USER_ID"], SECONDARY["MATRIX_DEVICE_ID"])
-
-
-@pytest.mark.asyncio
-async def test_matrix_standalone_send_posts_scoped_token_to_scoped_homeserver(secondary_scope, monkeypatch):
-    import aiohttp
-    from plugins.platforms.matrix import adapter as mx
-
-    seen = {}
-
-    class _Resp:
-        status = 200
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): return False
-        async def json(self): return {"event_id": "$x"}
-        async def text(self): return ""
-
-    class _Sess:
-        def __init__(self, *a, **k): pass
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): return False
-        def put(self, url, **kw): seen["url"] = url; seen["headers"] = kw.get("headers", {}); return _Resp()
-
-    monkeypatch.setattr(aiohttp, "ClientSession", _Sess)
-    await mx._standalone_send(PlatformConfig(enabled=True), "!room:example", "hi")
-    assert seen["url"].startswith(SECONDARY["MATRIX_HOMESERVER"] + "/")
-    assert DEFAULT_ENV["MATRIX_HOMESERVER"] not in seen["url"]
-
-
 def test_teams_credentials_pair_scoped_secret_with_scoped_app_identity(secondary_scope):
     teams = load_plugin_adapter("teams")
     assert teams._credentials(PlatformConfig(enabled=True)) == (
@@ -97,35 +54,6 @@ def test_teams_env_enablement_seeds_scoped_identity_and_home_channel(secondary_s
     seed = teams._env_enablement()
     assert seed["client_id"] == SECONDARY["TEAMS_CLIENT_ID"]
     assert seed["home_channel"]["chat_id"] == SECONDARY["TEAMS_HOME_CHANNEL"]
-
-
-def test_dingtalk_client_id_follows_the_scoped_secret(secondary_scope):
-    from plugins.platforms.dingtalk.adapter import _credentials
-
-    assert _credentials(None) == (SECONDARY["DINGTALK_CLIENT_ID"], SECONDARY["DINGTALK_CLIENT_SECRET"])
-
-
-@pytest.mark.asyncio
-async def test_dingtalk_standalone_send_posts_to_scoped_robot_webhook(secondary_scope, monkeypatch):
-    import httpx
-    from plugins.platforms.dingtalk import adapter as ding
-
-    posted = []
-
-    class _Resp:
-        def raise_for_status(self): pass
-        def json(self): return {"errcode": 0}
-
-    class _Client:
-        def __init__(self, *a, **k): pass
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): return False
-        async def post(self, url, **kw): posted.append(url); return _Resp()
-
-    monkeypatch.setattr(httpx, "AsyncClient", _Client)
-    result = await ding._standalone_send(PlatformConfig(enabled=True), "c", "hi")
-    assert result.get("success") is True
-    assert posted == [SECONDARY["DINGTALK_WEBHOOK_URL"]]
 
 
 @pytest.mark.asyncio

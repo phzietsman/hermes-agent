@@ -10,7 +10,7 @@ Hermes Agent 自动将每次对话保存为一个 session。Session 支持对话
 
 ## Session 的工作原理
 
-每次对话——无论来自 CLI、Telegram、Discord、Slack、WhatsApp、Signal、Matrix、Teams 还是其他任何消息平台——都会以完整消息历史的形式存储为一个 session。Session 记录在：
+每次对话——无论来自 CLI、Telegram、Discord、Slack、WhatsApp、Teams 还是其他任何消息平台——都会以完整消息历史的形式存储为一个 session。Session 记录在：
 
 1. **SQLite 数据库**（`~/.hermes/state.db`）——包含 FTS5 全文搜索的结构化 session 元数据，以及完整消息历史
 
@@ -54,18 +54,7 @@ Hermes 存储 session 历史以便恢复对话，但不会在每次对话时重�
 | `discord` | Discord 服务器/私信 |
 | `slack` | Slack 工作区 |
 | `whatsapp` | WhatsApp 消息 |
-| `signal` | Signal 消息 |
-| `matrix` | Matrix 房间和私信 |
-| `mattermost` | Mattermost 频道 |
 | `email` | 电子邮件（IMAP/SMTP） |
-| `sms` | 通过 Twilio 的短信 |
-| `dingtalk` | 钉钉消息 |
-| `feishu` | 飞书/Lark 消息 |
-| `wecom` | 企业微信 |
-| `weixin` | 微信（个人版） |
-| `bluebubbles` | 通过 BlueBubbles macOS 服务器的 Apple iMessage |
-| `qqbot` | QQ Bot（腾讯 QQ）通过官方 API v2 |
-| `homeassistant` | Home Assistant 事件（插件） |
 | `webhook` | 传入 webhook |
 | `api-server` | API 服务器请求 |
 | `acp` | ACP 编辑器集成 |
@@ -162,8 +151,7 @@ Session ID 格式为 `YYYYMMDD_HHMMSS_<hex>`——CLI/TUI session 使用 6 位�
    - **Telegram** — 开启新的论坛话题（如果在聊天中启用了 Bot API 9.4+ Topics 模式则为私信话题，或论坛超级群组话题）。
    - **Discord** — 在主文字频道下创建 1440 分钟自动归档的线程。
    - **Slack** — 发布一条种子消息并使用其 `ts` 作为线程锚点。
-   - **Matrix** — 发布一条种子消息并使用其事件 id 作为线程根（`m.thread` 关系）。
-   - **WhatsApp / Signal / SMS** — 无原生线程，回退到直接使用主频道。
+   - **WhatsApp** — 无原生线程，回退到直接使用主频道。
 4. Gateway 将目标键重新绑定到你现有的 CLI session id，然后伪造一个合成用户轮次，要求 agent 确认并总结。回复会出现在新线程中。
 5. Gateway 确认成功后，CLI 打印 `/resume` 提示并干净退出：
 
@@ -182,7 +170,7 @@ Session ID 格式为 `YYYYMMDD_HHMMSS_<hex>`——CLI/TUI session 使用 6 位�
 - 线程创建失败（权限不足、话题模式未开启）→ 直接回退到主频道并仍然完成切换；没有线程隔离，但切换本身有效。
 - `adapter.send` 失败（速率限制、临时 API 错误）→ 切换标记为失败并附带原因；行被清除以便重试。
 
-**值得注意的限制：** 对于无线程能力的多用户群组主频道平台，合成轮次以私信风格 session 为键。这对自私信主频道（典型设置）有效，但对真正的共享群聊并不理想。线程支持覆盖 Telegram / Discord / Slack / Matrix——这是最常见的情况——因此大多数设置不会遇到此问题。
+**值得注意的限制：** 对于无线程能力的多用户群组主频道平台，合成轮次以私信风格 session 为键。这对自私信主频道（典型设置）有效，但对真正的共享群聊并不理想。线程支持覆盖 Telegram / Discord / Slack——这是最常见的情况——因此大多数设置不会遇到此问题。
 
 ## Session 命名 {#session-naming}
 

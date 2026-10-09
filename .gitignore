@@ -240,7 +240,6 @@ docs/superpowers/*
 /webhook_subscriptions.json
 /channel_directory.json
 /channel_aliases.json
-/feishu_comment_pairing.json
 /memories/
 /profiles/
 /credentials/

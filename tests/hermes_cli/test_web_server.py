@@ -1575,8 +1575,8 @@ CONFIG_SCHEMA = ProviderConfigSchema(
 
         Regression: Platform("<plugin id>") caches a pseudo-member in the enum;
         the catalog iterated the enum FIRST and claimed the id with no plugin
-        metadata, so bundled plugin platforms (irc, ntfy, photon, …) rendered
-        as nameless "Irc"/"Ntfy" cards with empty descriptions.
+        metadata, so bundled plugin platforms (teams, …) rendered
+        as nameless "Teams" cards with empty descriptions.
         """
         from gateway.config import Platform
         from gateway.platform_registry import PlatformEntry, platform_registry

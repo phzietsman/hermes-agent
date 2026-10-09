@@ -227,18 +227,18 @@ class TestFormatDirectoryForDisplay:
         """A configured platform with zero discovered channels is shown with
         a hint instead of being hidden entirely."""
         result = format_directory_for_display({
-            "simplex": [],
+            "email": [],
             "telegram": [{"id": "1", "name": "home", "type": "dm"}],
         })
-        assert "Simplex:" in result
+        assert "Email:" in result
         assert "telegram:home" in result
 
     def test_explicit_platforms_override_disk(self, tmp_path):
         with patch("gateway.channel_directory.DIRECTORY_PATH", tmp_path / "nope.json"):
             result = format_directory_for_display(
-                {"irc": [{"id": "#chan", "name": "#chan", "type": "channel"}]}
+                {"slack": [{"id": "#chan", "name": "#chan", "type": "channel"}]}
             )
-        assert "irc:#chan" in result
+        assert "slack:#chan" in result
 
 
 class TestLookupChannelType:

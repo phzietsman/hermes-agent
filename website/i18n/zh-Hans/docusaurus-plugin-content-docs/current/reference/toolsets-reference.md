@@ -60,8 +60,6 @@ hermes tools                            # curses UI to enable/disable per platfo
 | `delegation` | `delegate_task` | 生成隔离的子 agent 实例以并行执行工作。 |
 | `discord` | `discord` | 核心 Discord 文本/嵌入/私信操作（仅限 gateway）。在 `hermes-discord` 工具集上激活。 |
 | `discord_admin` | `discord_admin` | Discord 管理操作（封禁、角色变更、频道管理）。在 `hermes-discord` 工具集上激活；需要 bot 持有相关 Discord 权限。 |
-| `feishu_doc` | `feishu_doc_read` | 读取飞书/Lark 文档内容。由飞书文档评论智能回复处理器使用。 |
-| `feishu_drive` | `feishu_drive_add_comment`, `feishu_drive_list_comments`, `feishu_drive_list_comment_replies`, `feishu_drive_reply_comment` | 飞书/Lark 云盘评论操作。仅限评论 agent 使用；不在 `hermes-cli` 或其他消息工具集上暴露。 |
 | `file` | `patch`, `read_file`, `search_files`, `write_file` | 文件读取、写入、搜索和编辑。 |
 | `computer_use` | `computer_use` | 通过 cua-driver 进行后台 macOS 桌面控制——不抢占光标/焦点。适用于任何支持工具调用的模型。仅限 macOS；需要 `cua-driver` 在 `$PATH` 中。 |
 | `image_gen` | `image_generate` | 通过 FAL.ai 进行文本生成图像（支持可选的 OpenAI / xAI 后端）。 |
@@ -81,7 +79,6 @@ hermes tools                            # curses UI to enable/disable per platfo
 | `video` | `video_analyze` | 视频分析与理解工具（需手动启用，不在默认工具集中——通过 `--toolsets` 显式添加）。 |
 | `web` | `web_extract`, `web_search` | 网页搜索和页面内容提取。 |
 | `x_search` | `x_search` | 通过 xAI 内置的 `x_search` Responses 工具搜索 X（Twitter）帖子和话题。默认关闭；通过 `hermes tools` 启用。仅在配置了 xAI 凭据（SuperGrok OAuth 或 `XAI_API_KEY`）时注册 schema。 |
-| `yuanbao` | `yb_query_group_info`, `yb_query_group_members`, `yb_search_sticker`, `yb_send_dm`, `yb_send_sticker` | 元宝私信/群组操作和表情包搜索。仅在 `hermes-yuanbao` 上注册。 |
 
 ## 平台工具集
 
@@ -97,23 +94,12 @@ hermes tools                            # curses UI to enable/disable per platfo
 | `hermes-discord` | 在 `hermes-cli` 基础上添加了 `discord` 和 `discord_admin`。 |
 | `hermes-slack` | 与 `hermes-cli` 相同。 |
 | `hermes-whatsapp` | 与 `hermes-cli` 相同。 |
-| `hermes-signal` | 与 `hermes-cli` 相同。 |
 | `hermes-matrix` | 与 `hermes-cli` 相同。 |
 | `hermes-mattermost` | 与 `hermes-cli` 相同。 |
 | `hermes-email` | 与 `hermes-cli` 相同。 |
-| `hermes-sms` | 与 `hermes-cli` 相同。 |
-| `hermes-bluebubbles` | 与 `hermes-cli` 相同。 |
-| `hermes-dingtalk` | 与 `hermes-cli` 相同。 |
-| `hermes-feishu` | 添加了五个 `feishu_doc_*` / `feishu_drive_*` 工具（仅由文档评论处理器使用，不用于常规聊天适配器）。 |
-| `hermes-qqbot` | 与 `hermes-cli` 相同。 |
-| `hermes-wecom` | 与 `hermes-cli` 相同。 |
-| `hermes-wecom-callback` | 与 `hermes-cli` 相同。 |
-| `hermes-weixin` | 与 `hermes-cli` 相同。 |
-| `hermes-yuanbao` | 在 `hermes-cli` 基础上添加了五个 `yb_*` 工具（私信/群组/表情包）。 |
 | `hermes-webhook` | 与 `hermes-cli` 相同。 |
 | `hermes-gateway` | 内部 gateway 编排器工具集——所有 `hermes-<platform>` 工具集的并集；当 gateway 需要接受任意消息来源时使用。 |
 
-由插件提供的平台会获得一个隐式的 `hermes-<platform>` 工具集，且不属于 `hermes-gateway`。例如，安装插件目录中的 `homeassistant` 插件后，`hermes-homeassistant` 仍可解析，但它已不再是内置工具集。
 
 ## 动态工具集
 

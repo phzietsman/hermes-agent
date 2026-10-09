@@ -649,7 +649,7 @@ def test_package_schema_matches_the_skill_contract():
         ("", "unknown"),
         ("file", "file"),
         ("browser-cdp", "browser"),
-        ("feishu_doc", "communication"),
+        ("discord", "communication"),
         ("mcp-github", "mcp"),
         ("private_plugin", "other"),
     ],

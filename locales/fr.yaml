@@ -364,10 +364,6 @@ gateway:
   resume:
     db_unavailable: "Base de données des sessions indisponible."
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}. Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room. Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ /resume Matrix bloqué : cette session nommée n'a aucun salon d'origine enregistré, Hermes ne la reprendra donc pas par défaut dans le salon actuel. Utilisez `/resume --cross-room {name}` si vous souhaitez volontairement franchir les limites du salon."
-    matrix_blocked_other_room: "⚠️ /resume Matrix bloqué : cette session appartient à un autre salon Matrix ({room}). Utilisez `/resume --cross-room {name}` si vous souhaitez volontairement la reprendre ici."
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**. Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ /resume bloqué : '**{name}**' appartient à un autre utilisateur ou à une autre discussion. Vous ne pouvez reprendre que les sessions de cette discussion."
     no_named_sessions: "Aucune session nommée trouvée.\nUtilisez `/title Ma session` pour nommer la session actuelle, puis `/resume Ma session` pour y revenir plus tard."
     all_requires_admin: "_Remarque : `--all` (liste inter-discussions) nécessite un administrateur configuré ; seules les sessions de cette discussion sont affichées._"
@@ -463,12 +459,6 @@ gateway:
     hint_all: "Utilisez /context all pour les coûts par skill et par ensemble d'outils."
   status:
     header: "📊 **État de Hermes Gateway**"
-    matrix_scope_header: "**Portée Matrix :**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**ID de session :** `{session_id}`"
     title: "**Titre :** {title}"
     created: "**Créé :** {timestamp}"
@@ -763,7 +753,6 @@ gateway:
     answered: "✅ réponse : {response}"
     cancelled: "↩️ Clarification annulée — votre message sera traité comme une suite de la conversation."
     expired: "⏳ Cette demande a expiré — veuillez envoyer une nouvelle requête."
-    native_stream_placeholder: "💬 En attente de votre choix..."
     skip_hint: 'Répondez « skip » pour passer cette question.'
   errors:
     rate_limited: "⏱️ Le service de modèle IA limite le débit des requêtes. Patientez un instant, puis utilisez /retry."
@@ -1153,9 +1142,6 @@ platform:
     approved: "✅ Approuvé."
     denied: "❌ Refusé."
     approval_expired: "⌛ Approbation expirée — la commande n'a pas été exécutée (délai dépassé ou déjà résolue ailleurs)."
-  yuanbao:
-    slow_response_notice: "Cette tâche est un peu complexe — je m'en occupe encore, merci de patienter..."
-    owner_command_denied: "⚠️ {command} n'est disponible que pour le créateur en mode discussion privée"
   shared:
     truncated_suffix: |2-
 
@@ -1171,12 +1157,6 @@ platform:
       video_failed: "⚠️ Impossible d'envoyer la vidéo jointe."
       file_failed: "⚠️ Impossible d'envoyer le fichier joint ({name})."
       attachment_failed: "⚠️ Impossible d'envoyer la pièce jointe."
-  weixin:
-    voice_as_attachment: "[message vocal en pièce jointe]"
-  signal:
-    batch_pacing_notice: "(D'autres images arrivent — pause d'environ {wait} pour respecter la limite de débit de Signal, lot {batch}/{total}.)"
-    wait_seconds: "{count}s"
-    wait_minutes: "{count} min"
   api_server:
     provider_auth_failed: "Échec de l'authentification auprès du fournisseur"
     provider_rate_limited: "Fournisseur limité en débit"
@@ -1545,121 +1525,6 @@ platform:
       running: "Exécution de `/{command}`…"
     handoff:
       seed: ":thread: Passation Hermes — *{name}*"
-  matrix:
-    handoff:
-      default_name: "Session Hermes"
-    media:
-      image_download_failed: "Je n'ai pas pu télécharger l'image et l'envoyer sur Matrix. L'URL source n'est pas affichée car elle peut contenir des tokens privés."
-    approval:
-      typed_hint_once: "Répondez `!approve` pour exécuter une fois, ou `!deny` pour annuler."
-      typed_hint_session: "Répondez `!approve session` pour approuver ce motif pour la session, `!approve` pour exécuter une fois, ou `!deny` pour annuler."
-      typed_hint_always: "Répondez `!approve session` pour approuver ce motif pour la session, `!approve always` pour l'approuver définitivement, `!approve` pour exécuter une fois, ou `!deny` pour annuler."
-      legend_intro: "Vous pouvez aussi cliquer sur une réaction pour approuver :"
-      legend_once: "✅ = approuver une fois"
-      legend_session: "🌀 = approuver pour cette session"
-      legend_always: "♾️ = toujours approuver"
-      legend_deny: "❎ = refuser"
-      invalid_reaction: "Cette réaction n'est pas valide pour cette demande d'approbation."
-      expired: "Cette demande d'approbation a expiré. Relancez la commande si vous souhaitez toujours l'approuver."
-    picker:
-      no_models: "Aucun modèle authentifié n'est disponible pour cette session."
-      title: "⚙ **Configuration du modèle**"
-      current_model: "Modèle actuel : `{model}`"
-      provider: "Fournisseur : {provider}"
-      react_model: "Réagissez pour choisir un modèle :"
-      react_choice: "Réagissez pour choisir."
-      current_suffix: "{label} ← actuel"
-      invalid_model_reaction: "Cette réaction ne correspond à aucun des modèles proposés."
-      invalid_choice_reaction: "Cette réaction ne correspond à aucun des choix proposés."
-      verb_switch_model: "changer de modèle"
-      verb_apply_selection: "appliquer la sélection"
-      failed: "Impossible de {action} : {error}"
-    reaction:
-      unauthorized: "Seul un utilisateur Matrix autorisé peut utiliser ces contrôles."
-      not_requester: "Seul l'utilisateur à l'origine de cette action peut utiliser ces contrôles."
-  feishu:
-    approval:
-      action_session: "Session"
-      action_always: "Toujours"
-      resolved_once: "Approuvé une fois"
-      resolved_session: "Approuvé pour la session"
-      resolved_always: "Approuvé définitivement"
-      resolved_deny: "Refusé"
-      resolved_fallback: "Résolu"
-      resolved_by_user: "{icon} **{label}** par {user}"
-    update_prompt:
-      title: "☤ La mise à jour attend votre réponse"
-      default_hint: |2-
-
-
-        Par défaut : `{default}`
-      answer_yes: "✓ Oui"
-      answer_no: "✗ Non"
-      word_yes: "Oui"
-      word_no: "Non"
-      answered_title: "{icon} Réponse à la question de mise à jour : {answer}"
-      answered_by: "Réponse de **{user}**"
-    media:
-      gif_downgraded: "[GIF converti en fichier]"
-      gif_downgraded_caption: |-
-        [GIF converti en fichier]
-        {caption}
-  google_chat:
-    clarify:
-      other_button: "Autre / saisir une réponse"
-      header: "Question"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes réfléchit…"
-      interrupted: "(interrompu)"
-      no_reply: "(aucune réponse)"
-    attachment_fallback:
-      header: "⚠️ Je n'ai pas pu joindre **{filename}**."
-      explain: "Google Chat n'autorise les pièces jointes que si le bot dispose de votre autorisation explicite (OAuth utilisateur). Il s'agit d'un consentement unique, donné depuis ce chat."
-      activate: "**Pour l'activer :** envoyez `/setup-files` et suivez les instructions."
-      host_path: "En attendant, le fichier se trouve sur l'hôte : `{path}`"
-    setup_files:
-      not_configured: |-
-        🔧 L'envoi natif des pièces jointes n'est **pas configuré**.
-        **Étape 1 (une seule fois, sur l'hôte) :** créez des identifiants de client OAuth sur https://console.cloud.google.com/apis/credentials → *Créer des identifiants* → *ID client OAuth* → *Application de bureau*. Téléchargez le JSON. Puis, sur l'hôte, exécutez :
-        ```
-        python -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json
-        ```
-        **Étape 2 :** revenez ici et envoyez `/setup-files start`.
-      start_instructions: |-
-        1. Ouvrez cette URL dans votre navigateur et autorisez l'accès :
-        {auth_url}
-
-        2. Après avoir cliqué sur *Autoriser*, votre navigateur n'arrivera pas à charger `http://localhost:1/?...&code=...`. C'est normal.
-
-        3. Copiez l'URL complète en échec depuis la barre d'adresse du navigateur et collez-la ici sous la forme : `/setup-files <PASTE_URL>` (ou seulement la valeur `code=...`).
-
-        Astuce : cette URL contient votre autorisation d'accès — gardez-la confidentielle.
-      start_failed: "❌ Impossible de générer l'URL OAuth. Consultez les journaux du gateway et vérifiez que le fichier client_secret.json est valide."
-      exchange_failed: "❌ Échec de l'échange du token. Le code a peut-être expiré ou l'URL est malformée. Envoyez `/setup-files start` pour obtenir une nouvelle URL OAuth."
-      revoke_completed: "Révocation terminée (certaines étapes ont peut-être été ignorées)."
-      revoked: "Révoqué."
-      helper_error: "❌ Erreur : {error}"
-      revoke_error: "❌ Erreur lors de la révocation : {error}"
-      who_shared: "partagé (ancien mode)"
-      active: |-
-        ✅ L'envoi natif des pièces jointes est **actif** pour `{who}`.
-        Token : `{token_path}`
-        Envoyez `/setup-files revoke` pour le désactiver.
-      not_authorized_yet: "🔧 Les identifiants client sont enregistrés, mais vous n'avez pas encore autorisé l'accès. Envoyez `/setup-files start` pour commencer."
-      no_client_credentials: "⚠️ Aucun identifiant client enregistré pour ce profil. Envoyez `/setup-files` (sans argument) pour obtenir les instructions de configuration."
-      done_output: |-
-        ✅ Terminé.
-        ```
-        {output}
-        ```
-      authorized: "✅ Autorisé ! L'envoi natif des pièces jointes est désormais actif. Essayez de me demander de vous envoyer un PDF."
-      exchanged_not_loaded: |-
-        ⚠️ Token échangé, mais le gateway n'a pas pu charger les nouveaux identifiants en mémoire. Redémarrez le gateway et le token situé dans `{token_path}` sera pris en compte.
-        Sortie de l'assistant :
-        ```
-        {output}
-        ```
   teams:
     approval:
       resolved_once: "✅ Autorisé (une fois)"
@@ -1678,33 +1543,9 @@ platform:
       key_decisions: "Décisions clés"
       action_items: "Actions à mener"
       risks: "Risques"
-  line:
-    pending:
-      still_thinking: "🤔 Toujours en cours de réflexion. Appuyez ci-dessous pour récupérer la réponse quand elle sera prête."
-      button_label: "Voir la réponse"
-      delivered: "Déjà répondu ✅"
-      interrupted: "L'exécution a été interrompue avant la fin."
-      expired: "Cette demande a expiré — renvoyez votre message."
-    standalone:
-      attachments_not_deliverable: "[{count} pièce(s) jointe(s) générée(s) ; non transmissible(s) depuis cron]"
-  wecom:
-    media:
-      kind_image: "Image"
-      kind_video: "Vidéo"
-      kind_voice: "Message vocal"
-      file_too_large: "La taille du fichier ({size_mb} Mo) dépasse la limite de 20 Mo de WeCom et il ne peut pas être envoyé. Essayez de compresser le fichier ou de réduire sa taille."
-      voice_format_downgraded: "Le format vocal {content_type} n'est pas pris en charge (WeCom n'accepte que l'AMR) ; envoyé sous forme de fichier à la place."
-      size_downgraded: "La taille de {label} ({size_mb} Mo) dépasse la limite de {cap} ; envoyé sous forme de fichier à la place."
   email:
     image_line: "Image : {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔Réflexion"
-      done: "🥳Terminé"
-  irc:
-    quit_message: "Hermes Agent s'arrête"
-    standalone_quit: "livré"
   relay:
     confirm_approve_once: "Approuver une fois"
     confirm_always_approve: "Toujours approuver"
@@ -1769,7 +1610,7 @@ slash:
   handoff:
     description: "Transférer cette session vers une plateforme de messagerie (Telegram, Discord, etc.)"
   branch:
-    description: "Créer une branche de la session en cours (nouveau fil sur Discord/Telegram/Slack/Matrix ; --here reste ici)"
+    description: "Créer une branche de la session en cours (nouveau fil sur Discord/Telegram/Slack ; --here reste ici)"
   worktree:
     description: "Afficher, lister, créer ou nettoyer des worktrees git isolés"
   compress:
@@ -3965,10 +3806,8 @@ tips:
   t154: "/voice on active le mode vocal dans la CLI. Ctrl+B active ou désactive l'enregistrement en appuyer-pour-parler."
   t155: "Le TTS en streaming lit les phrases au fil de leur génération — pas besoin d'attendre la réponse complète."
   t156: "Les messages vocaux sur Telegram, Discord, WhatsApp et Slack sont transcrits automatiquement."
-  t157: "Hermes fonctionne sur 21 plateformes de messagerie : Telegram, Discord, Slack, WhatsApp, Signal, Matrix, IRC, Microsoft Teams, e-mail et plus."
+  t157: "Hermes fonctionne sur 21 plateformes de messagerie : Telegram, Discord, Slack, WhatsApp, Microsoft Teams, e-mail et plus."
   t158: "hermes gateway install l'installe comme service système démarré au boot."
-  t159: "DingTalk utilise le Stream Mode — aucun webhook ni URL publique nécessaire."
-  t160: "BlueBubbles apporte iMessage à Hermes via un serveur macOS local."
   t161: "Les routes webhook prennent en charge la validation HMAC, la limitation de débit et le filtrage d'événements."
   t162: "Le serveur API expose un endpoint compatible OpenAI, utilisable avec Open WebUI et LibreChat."
   t163: "Mode salon vocal Discord : le bot rejoint le salon, transcrit la parole et répond à la voix."
@@ -4139,7 +3978,6 @@ tips:
   t328: "tts.providers.<name>.type: command branche n'importe quel moteur TTS en ligne de commande grâce aux placeholders {input_path} et {output_path}."
   t329: "API_SERVER_ENABLED=true lance un point de terminaison compatible OpenAI à côté du gateway, pour Open WebUI et LibreChat."
   t330: "GATEWAY_PROXY_URL met en place une configuration scindée : les E/S des plateformes en local, le travail de l'agent délégué à un serveur API distant."
-  t331: "MATRIX_DEVICE_ID fixe un ID d'appareil stable pour l'E2EE — sans lui, les clés changent à chaque démarrage et le déchiffrement de l'historique casse."
   t332: "TELEGRAM_WEBHOOK_SECRET est obligatoire dès que TELEGRAM_WEBHOOK_URL est défini — générez-le avec openssl rand -hex 32."
   t333: "batch_runner.py --resume reconnaît les prompts déjà traités par leur texte, donc réordonner le jeu de données ne relance pas le travail terminé."
   t334: "/new démarre une nouvelle session sur place (alias /reset) — nouvel ID de session, historique vierge, la CLI reste ouverte."

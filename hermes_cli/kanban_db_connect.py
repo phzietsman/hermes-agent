@@ -894,7 +894,7 @@ _NOTIFY_SUB_COLUMNS = (
     ("notifier_profile", "notifier_profile TEXT"),
     ("delivery_mode", "delivery_mode TEXT NOT NULL DEFAULT 'notify'"),
     ("chat_type", "chat_type TEXT"),
-    # Platform-specific stable alt ID (Signal UUID, Feishu union_id, ...)
+    # Platform-specific stable alt ID
     # so an active-wake replay reconstructs the SAME ``build_session_key``
     # (which prefers ``user_id_alt``). NULL is inert.
     ("user_id_alt", "user_id_alt TEXT"),

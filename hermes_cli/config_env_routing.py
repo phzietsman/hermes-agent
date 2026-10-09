@@ -1,6 +1,6 @@
 """Which ``hermes config`` keys live in ``.env`` instead of ``config.yaml``, and their lifecycle.
 
-Platform setting keys such as ``FEISHU_HOME_CHANNEL`` had two writers: the platform setup flows and
+Platform setting keys such as ``TELEGRAM_HOME_CHANNEL`` had two writers: the platform setup flows and
 ``/sethome`` persist them to ``.env`` through ``save_env_value``, while ``hermes config set`` only
 routed credential-shaped names there and wrote every other bare name to the top level of
 ``config.yaml``. The gateway bridges top-level scalars into the environment only when ``.env`` lacks

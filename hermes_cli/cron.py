@@ -289,7 +289,7 @@ def _job_warnings(job: Dict[str, Any]) -> List[str]:
         lines.append(f"{color('⚠ The result was not delivered:', Colors.YELLOW)} "
                      f"{_short_reason(job['last_delivery_error'])}. {_delivery_fix_hint(job)}")
     # A live adapter acked the last send but returned no message_id / raw_response
-    # (Slack/Matrix/Mattermost shape): accepted as delivered, but say so here.
+    # (Slack shape): accepted as delivered, but say so here.
     if unverified := job.get("last_delivery_unverified"):
         lines.append(f"{color('⚠ Delivery UNVERIFIED:', Colors.YELLOW)} adapter acked "
                      f"{_unverified_targets(unverified)} without message_id/raw_response")

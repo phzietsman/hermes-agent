@@ -684,7 +684,7 @@ async def test_gateway_autosubscribe_roundtrips_user_id_alt_for_session_key(
     so a replayed wake rebuilds the *same* session key as the original event.
 
     ``build_session_key`` keys the participant on ``user_id_alt or user_id``
-    (Signal UUID / Feishu union_id carry the canonical participant in the alt
+    (platform-specific alternate ids carry the canonical participant in the alt
     slot). If the subscription row drops ``user_id_alt``, the replayed source
     falls back to ``user_id`` and lands in a different session — the woken turn
     answers into a parallel conversation. Drive the real handler and compare the

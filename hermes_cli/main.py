@@ -2856,12 +2856,12 @@ def _resolve_deferred_platform_cli_command(command_name: str | None) -> None:
 
     Bundled platforms are *deferred* entries (no gateway SDK imports at
     startup), so a platform's ``register_cli_command`` side effect only runs
-    on import; ``discover_plugins()`` alone leaves ``hermes photon`` failing
+    on import; ``discover_plugins()`` alone leaves a platform CLI command failing
     with ``invalid choice``. Importing just the matching platform keeps
     startup cheap.
 
     On the unknown-top-level-command slow path, ``discover_plugins()`` records the deferred loader but does
-    not import it, so the CLI registration never happens and ``hermes photon`` fails with argparse ``invalid
+    not import it, so the CLI registration never happens and a platform CLI command fails with argparse ``invalid
     choice`` (issue #54678).
     """
     if not command_name:

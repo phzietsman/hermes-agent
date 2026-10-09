@@ -311,8 +311,7 @@ class TestRoutingIntents:
         monkeypatch.setenv("DISCORD_HOME_CHANNEL", "-222")
         monkeypatch.setenv("SLACK_HOME_CHANNEL", "C333")
         # Sanity: platforms without the env var must NOT appear in the expansion.
-        monkeypatch.delenv("SIGNAL_HOME_CHANNEL", raising=False)
-        monkeypatch.delenv("MATRIX_HOME_ROOM", raising=False)
+        monkeypatch.delenv("EMAIL_HOME_ADDRESS", raising=False)
 
         targets = _resolve_delivery_targets({"deliver": "all", "origin": None})
         platforms = sorted(t["platform"] for t in targets)
@@ -320,7 +319,6 @@ class TestRoutingIntents:
         assert "telegram" in platforms
         assert "discord" in platforms
         assert "slack" in platforms
-        assert "signal" not in platforms
         assert "matrix" not in platforms
 
 class TestDeliverResultWrapping:
@@ -2050,8 +2048,8 @@ class TestCronDeliveryTargets:
     def test_lists_configured_platforms_flagging_missing_home_channel(self, monkeypatch):
         from cron.scheduler_delivery import cron_delivery_targets
 
-        self._patch_connected(monkeypatch, ["matrix", "telegram"])
-        monkeypatch.delenv("MATRIX_HOME_ROOM", raising=False)
+        self._patch_connected(monkeypatch, ["slack", "telegram"])
+        monkeypatch.delenv("SLACK_HOME_CHANNEL", raising=False)
         monkeypatch.delenv("TELEGRAM_HOME_CHANNEL", raising=False)
 
         targets = {t["id"]: t for t in cron_delivery_targets()}
@@ -2061,10 +2059,10 @@ class TestCronDeliveryTargets:
         # platform assertions to the gateway entries.
         platform_targets = {k: v for k, v in targets.items() if not k.startswith("bot-chat")}
 
-        assert set(platform_targets) == {"matrix", "telegram"}
+        assert set(platform_targets) == {"slack", "telegram"}
         # Configured but no home channel → surfaced, flagged for the UI.
-        assert platform_targets["matrix"]["home_target_set"] is False
-        assert platform_targets["matrix"]["home_env_var"] == "MATRIX_HOME_ROOM"
+        assert platform_targets["slack"]["home_target_set"] is False
+        assert platform_targets["slack"]["home_env_var"] == "SLACK_HOME_CHANNEL"
         assert platform_targets["telegram"]["home_target_set"] is False
         # Bot Chat targets need no home channel: whatever profiles exist on
         # this machine must all be listed as ready.

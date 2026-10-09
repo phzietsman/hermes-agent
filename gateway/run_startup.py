@@ -37,29 +37,6 @@ from typing import Any, Dict, Optional, Tuple
 logger = logging.getLogger("gateway.run")
 
 
-def recover_left_core_in(home: Path, *, hydrate_secrets: bool = True) -> None:
-    """Install the catalog plugin of every feature that left core (Home Assistant) *home* uses, in
-    *home*'s runtime scope (its config, secrets and allow_lazy_installs); once per process per home.
-    Blocking: call it off the event loop."""
-    from gateway.run import _profile_runtime_scope
-    from hermes_cli.left_core_migration import recover_at_startup
-    with _profile_runtime_scope(Path(home), hydrate_secrets=hydrate_secrets):
-        recover_at_startup()
-
-
-def recover_left_core_at_gateway_start() -> None:
-    """Left-core migration for the homes whose platform config the runner loads first: the launch
-    home and the default root (the multiplex primary; a named launcher is then served as a
-    secondary). Every secondary runs :func:`recover_left_core_in` before its plugins are discovered,
-    so a platform plugin it gets starts its adapter in the same gateway start."""
-    from hermes_cli.left_core_migration import recover_at_startup
-    from hermes_constants import get_default_hermes_root, get_hermes_home
-    recover_at_startup()
-    root = Path(get_default_hermes_root())
-    if root.resolve() != Path(get_hermes_home()).resolve():
-        recover_left_core_in(root)
-
-
 class GatewayStartupMixin:
     """Startup sequence, resume/restore and handoff methods for GatewayRunner."""
 
@@ -1000,12 +977,10 @@ class GatewayStartupMixin:
     # Builtin platforms whose ``<P>_ALLOWED_USERS`` / ``<P>_ALLOW_ALL_USERS`` env vars count as an
     # allowlist / open-access opt-in; plugin platforms are appended at check time.
     _ALLOWLIST_ENV_PLATFORMS = (
-        "TELEGRAM", "DISCORD", "WHATSAPP", "WHATSAPP_CLOUD", "SLACK", "SIGNAL", "EMAIL", "SMS",
-        "MATTERMOST", "MATRIX", "DINGTALK", "FEISHU", "WECOM", "WECOM_CALLBACK", "WEIXIN",
-        "BLUEBUBBLES", "QQ", "YUANBAO",
+        "TELEGRAM", "DISCORD", "WHATSAPP", "WHATSAPP_CLOUD", "SLACK", "EMAIL",
     )
     _BUILTIN_ALLOWED_USERS_VARS = tuple(f"{p}_ALLOWED_USERS" for p in _ALLOWLIST_ENV_PLATFORMS) + (
-        "SIGNAL_GROUP_ALLOWED_USERS", "TELEGRAM_GROUP_ALLOWED_USERS",
+        "TELEGRAM_GROUP_ALLOWED_USERS",
         "TELEGRAM_GROUP_ALLOWED_CHATS", "GATEWAY_ALLOWED_USERS",
     )
     _BUILTIN_ALLOW_ALL_VARS = tuple(f"{p}_ALLOW_ALL_USERS" for p in _ALLOWLIST_ENV_PLATFORMS)
@@ -1767,10 +1742,6 @@ class GatewayStartupMixin:
             chat_type = "dm" if home_chat_id.startswith("D") else "group"
             scope_for_chat = getattr(transport.adapter, "scope_id_for_chat", None)
             scope_id = home.scope_id or (scope_for_chat(home_chat_id) if callable(scope_for_chat) else None)
-        if platform == Platform.MATRIX:
-            # Matrix likewise keys an in-thread reply on the ROOM's type (#112918); the adapter's
-            # get_chat_info reports "dm"/"group" for the home room.
-            chat_type = "dm" if await self._handoff_home_is_dm(transport.adapter, home_chat_id) else "group"
         # Discord builds in-thread messages with ``chat_id == thread id``: key on the thread's OWN id.
         dest_source = SessionSource(
             platform=platform,
@@ -1788,17 +1759,6 @@ class GatewayStartupMixin:
             home_chat_id=home_chat_id, effective_thread_id=effective_thread_id, source=dest_source,
             handoff_config=handoff_config,
         )
-
-    @staticmethod
-    async def _handoff_home_is_dm(adapter, home_chat_id: str) -> bool:
-        """Whether the home chat is a DM by the adapter's own ``get_chat_info`` (``type: "dm"``);
-        unknown/failed → not a DM, the common handoff target."""
-        try:
-            info = await adapter.get_chat_info(home_chat_id)
-        except Exception:
-            logger.debug("Handoff: get_chat_info failed for %s", home_chat_id, exc_info=True)
-            return False
-        return isinstance(info, dict) and info.get("type") == "dm"
 
     def _handoff_session_key(self, dest, profile_name: Optional[str]) -> str:
         """Destination session_key by the adapters' own rules. Thread keys omit user_id so the next

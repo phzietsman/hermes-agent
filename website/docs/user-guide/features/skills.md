@@ -229,7 +229,7 @@ Skills can restrict themselves to specific operating systems using the `platform
 | `windows` | Windows |
 
 ```yaml
-platforms: [macos]            # macOS only (e.g., iMessage, Apple Reminders, FindMy)
+platforms: [macos]            # macOS only (e.g., Apple Reminders, FindMy)
 platforms: [macos, linux]     # macOS and Linux
 ```
 
@@ -262,7 +262,7 @@ Use it from a skill when:
 - You produce screenshots or charts the user needs as files (for editing in another tool, archiving, sharing intact).
 - The default lossy preview would obscure detail (small text, pixel-accurate diagrams, color-sensitive renders).
 
-Platforms without a separate document path (e.g. SMS) fall back to whatever attachment mechanism they have.
+Platforms without a separate document path (e.g. webhook) fall back to whatever attachment mechanism they have.
 
 ### Conditional Activation (Fallback Skills)
 

@@ -249,7 +249,7 @@ that live on one gateway.
   require internet access.
 - The session list, messaging channels, cron jobs, settings, files, and memory
   are all scoped to the active `(gateway, profile)`. Switching from a Telegram
-  gateway to a Signal gateway cannot leave the previous gateway's channel groups
+  gateway to a Discord gateway cannot leave the previous gateway's channel groups
   or sessions in the sidebar.
 - Desktop loads the local connection registry at startup, even with the status
   bar hidden, and keeps it current when gateways are saved or removed. Opening

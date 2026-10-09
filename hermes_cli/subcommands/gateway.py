@@ -22,8 +22,8 @@ def _flag(parser, *names, help, **kw):
 def _add_compat_platform_flag(parser: argparse.ArgumentParser) -> None:
     """Accept stale `gateway <verb> --platform X` docs without advertising it.
 
-    Lifecycle commands operate on the gateway process, not one adapter; Photon briefly
-    printed a per-platform start command during setup, so keep it parseable.
+    Lifecycle commands operate on the gateway process, not one adapter; keep the old
+    per-platform form parseable.
     """
     parser.add_argument("--platform", dest="platform", help=argparse.SUPPRESS)
 
@@ -37,7 +37,7 @@ def build_gateway_parser(
 ) -> None:
     """Attach the ``gateway`` and ``proxy`` subcommands to ``subparsers``."""
     gateway_parser = subparsers.add_parser("gateway", help="Messaging gateway management",
-        description="Manage the messaging gateway (Telegram, Discord, WhatsApp, Weixin, and more)")
+        description="Manage the messaging gateway (Telegram, Discord, WhatsApp, and more)")
     gateway_subparsers = gateway_parser.add_subparsers(dest="gateway_command")
 
     gateway_run = gateway_subparsers.add_parser(

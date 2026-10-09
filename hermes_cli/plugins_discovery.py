@@ -201,7 +201,7 @@ def collect_directory_manifests() -> List[PluginManifest]:
     # Excluded bundled top-level categories have their own discovery. ``platforms/`` is an ordinary category
     # dir: the recursion keys its adapters ``platforms/<dir>`` like every other category (``web/firecrawl``),
     # which is the key `hermes plugins enable/disable` and the dashboard write (#27548); the manifest name
-    # (``photon-platform``) stays an accepted alias through ``gate_manifest``.
+    # stays an accepted alias through ``gate_manifest``.
     repo_plugins = _origin.get_bundled_plugins_dir()
     logger.debug("Scanning bundled plugins: %s", repo_plugins)
     _scan("bundled (top-level)", repo_plugins, "bundled",

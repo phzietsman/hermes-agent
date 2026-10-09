@@ -72,7 +72,7 @@ def served_profile_unserved_platforms(profile: str) -> dict[str, str]:
 def served_profile_ingress_urls(profile: Optional[str] = None) -> dict[str, dict[str, str]]:
     """``{profile: {platform: url}}`` for every secondary inbound-port platform the live multiplexer
     serves on its shared listener (``<profile>:<platform>`` entries carrying ``ingress_url``). This is
-    what the user pastes into the vendor console (Twilio, LINE, Teams, ...). ``profile`` narrows the map."""
+    what the user pastes into the vendor console (LINE, Teams, ...). ``profile`` narrows the map."""
     from hermes_constants import get_default_hermes_root
     from gateway.status import read_runtime_status, shared_listener_mirror_platforms
     if live_default_gateway_pid() is None:

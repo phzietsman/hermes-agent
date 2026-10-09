@@ -145,18 +145,6 @@ class TestProxyEnvironmentDnsDelegation:
         with _resolves_to("198.18.0.23"):
             assert is_safe_url("https://example.com/file.jpg") is False
 
-    @pytest.mark.parametrize("url, expected", [
-        # the allowlisted host itself, over https
-        ("https://multimedia.nt.qq.com.cn/download?id=123", True),
-        # exception is an exact host match — subdomains stay blocked
-        ("https://sub.multimedia.nt.qq.com.cn/download?id=123", False),
-        # ... and requires https
-        ("http://multimedia.nt.qq.com.cn/download?id=123", False),
-    ])
-    def test_qq_multimedia_hostname_exception(self, url, expected):
-        with _resolves_to("198.18.0.23"):
-            assert is_safe_url(url) is expected
-
 
 class TestAsyncIsSafeUrl:
     """async_is_safe_url must match is_safe_url (runs DNS in a thread pool)."""

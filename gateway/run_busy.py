@@ -73,7 +73,7 @@ def _same_chat_key_slots(
     """``(chat_type, tail)`` when ``key`` names the SAME chat as ``prefix`` + ``chat_id``, else None.
 
     ``prefix`` is the key's fixed-shape head, ``agent:<profile>:<platform>:``. Everything after it is
-    matched as TEXT, because ids may themselves contain ``:`` (Matrix ``!room:example.org``).
+    matched as TEXT, because ids may themselves contain ``:`` (e.g. ``!room:example.org``).
     ``scope_id`` is Slack's workspace slot — ``build_session_key`` emits it there alone — and a key
     without it still names the same chat; a key carrying a DIFFERENT known scope is another
     workspace's chat. ``tail`` is ``""`` when the key ends at the chat id.
@@ -542,7 +542,7 @@ class GatewayBusySessionMixin:
             # dangerous-command approval, plain-text responses like "yes" or "approve" must be routed to the
             # approval handler instead of being steered/queued/interrupted. Slash forms (/approve, /deny)
             # already bypass to the runner at the base-adapter guard. This handles the bare-word forms
-            # (Signal/SMS users naturally type "yes" rather than "/approve"). Gating on
+            # (chat users naturally type "yes" rather than "/approve"). Gating on
             # has_blocking_approval(session_key) is the disambiguator that keeps a conversational "yes" from
             # triggering a dangerous command when no approval is actually pending (design intent — see
             # run.py "Pending exec approvals are handled by /approve and /deny" note). We reuse the
@@ -560,7 +560,7 @@ class GatewayBusySessionMixin:
                     )
                     # Synthesize "/approve [args]" / "/deny" so the slash handlers parse modifiers via
                     # event.get_command_args(). Always a literal "/": is_command()/get_command_args()
-                    # don't recognize per-platform display prefixes ("!" on Slack/Matrix).
+                    # don't recognize per-platform display prefixes ("!" on Slack).
                     event.text = f"/{_verb} {_normalized_args}".rstrip()
                     _reply = await _approval_handler(event)
                     logger.info(

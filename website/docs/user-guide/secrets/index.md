@@ -32,11 +32,11 @@ Every credential injected by a source is labelled with its origin — setup flow
 
 Two orchestrator-level knobs make one shared vault safe across [profiles](../profiles):
 
-- **`secrets.preserve_existing`** — a list of env var names whose existing `.env` / shell value always wins, even against a source with `override_existing: true`. Use it for per-profile platform secrets (e.g. `FEISHU_APP_SECRET`) that intentionally differ across profiles while everything else rotates centrally:
+- **`secrets.preserve_existing`** — a list of env var names whose existing `.env` / shell value always wins, even against a source with `override_existing: true`. Use it for per-profile platform secrets (e.g. `SLACK_BOT_TOKEN`) that intentionally differ across profiles while everything else rotates centrally:
 
   ```yaml
   secrets:
-    preserve_existing: [FEISHU_APP_SECRET, TELEGRAM_BOT_TOKEN]
+    preserve_existing: [SLACK_BOT_TOKEN, TELEGRAM_BOT_TOKEN]
   ```
 
 - **Profile aliasing** (on by default, `secrets.profile_alias: false` to disable) — when Hermes runs under a named profile, a vault secret named `FOO_<PROFILE>` (credential-shaped suffixes only: `*_API_KEY`, `*_TOKEN`, `*_SECRET`, `*_KEY`, `*_PASSWORD`) also hydrates the canonical `FOO`. Store `TELEGRAM_BOT_TOKEN_MILLA` in the shared project and the `milla` profile's adapters — which read the fixed name `TELEGRAM_BOT_TOKEN` — get the right value automatically. A var the vault supplies directly under its canonical name always beats an alias.

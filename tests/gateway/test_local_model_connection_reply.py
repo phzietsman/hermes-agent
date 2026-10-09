@@ -135,7 +135,7 @@ class TestGatewayConnectionErrorReply:
             assert reply.strip()
             assert not _claims_the_endpoint_is_down(reply), reply
 
-    @pytest.mark.parametrize("platform", [Platform.TELEGRAM, "slack", "feishu"])
+    @pytest.mark.parametrize("platform", [Platform.TELEGRAM, "slack"])
     def test_interrupted_connection_delivery_keeps_precedence_and_redaction(self, platform):
         """The new category rides the real chat path, and takes nothing from the other rows."""
         raw_reset = (

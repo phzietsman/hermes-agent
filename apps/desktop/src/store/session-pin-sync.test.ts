@@ -123,16 +123,16 @@ describe('watchSessionPins', () => {
 
 describe('watchSessionPins remote pull', () => {
   it('adopts and durably unpins a backend-only messaging pin', async () => {
-    $messagingSessions.set([row('photon-pin', { pinned: true, profile: 'messages', source: 'photon' })])
+    $messagingSessions.set([row('telegram-pin', { pinned: true, profile: 'messages', source: 'telegram' })])
     await flush()
 
-    expect($pinnedSessionIds.get()).toEqual(['photon-pin'])
+    expect($pinnedSessionIds.get()).toEqual(['telegram-pin'])
     patch.mockClear()
 
     $pinnedSessionIds.set([])
     await flush()
 
-    expect(patch).toHaveBeenCalledWith('photon-pin', false, 'messages')
+    expect(patch).toHaveBeenCalledWith('telegram-pin', false, 'messages')
   })
 
   it('adopts and durably unpins a backend-only cron pin', async () => {
@@ -153,7 +153,7 @@ describe('watchSessionPins remote pull', () => {
 
     try {
       $sessions.set([row('shared', { pinned: true, profile: 'default' })])
-      $messagingSessions.set([row('shared', { pinned: true, profile: 'work', source: 'photon' })])
+      $messagingSessions.set([row('shared', { pinned: true, profile: 'work', source: 'telegram' })])
       await flush()
       expect($pinnedSessionIds.get()).toEqual(['shared'])
       patch.mockClear()

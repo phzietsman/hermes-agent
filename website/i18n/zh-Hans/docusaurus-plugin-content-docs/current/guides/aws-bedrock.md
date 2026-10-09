@@ -133,7 +133,7 @@ hermes doctor
 
 ## Gateway（消息平台）
 
-Bedrock 可与所有 Hermes gateway 平台配合使用（Telegram、Discord、Slack、飞书等）。将 Bedrock 配置为提供商后，正常启动 gateway 即可：
+Bedrock 可与所有 Hermes gateway 平台配合使用（Telegram、Discord、Slack 等）。将 Bedrock 配置为提供商后，正常启动 gateway 即可：
 
 ```bash
 hermes gateway setup

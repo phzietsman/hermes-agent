@@ -304,23 +304,14 @@ class TurnRunner:
         return f"{emoji} {verb}" if verb_drops_preview(tool_name) else f"{emoji} {verb}{tool_verb_connector(tool_name)}{preview}"
 
     def _progress_emit(self, msg: str) -> None:
-        """Dedup consecutive identical lines (execute_code boilerplate), then route to the native
-        stream bubble when the consumer accepts tool progress, else the progress queue."""
+        """Dedup consecutive identical lines (execute_code boilerplate), then queue for the progress sender."""
         ctx = self._ctx
-        sc = self._stream_consumer()
-        native = sc is not None and getattr(sc, "accepts_tool_progress", False)
         if msg == ctx.last_progress_msg[0]:
             ctx.repeat_count[0] += 1
-            if native:
-                sc.on_tool_progress(f"{msg} (×{ctx.repeat_count[0] + 1})")
-            else:
-                ctx.progress_queue.put(("__dedup__", msg, ctx.repeat_count[0]))
+            ctx.progress_queue.put(("__dedup__", msg, ctx.repeat_count[0]))
             return
         ctx.last_progress_msg[0], ctx.repeat_count[0] = msg, 0
-        if native:
-            sc.on_tool_progress(msg)
-        else:
-            ctx.progress_queue.put(msg)
+        ctx.progress_queue.put(msg)
 
     # ── Slack-native task cards (progress-queue drain) ──────────────────────────────────────
 
@@ -717,7 +708,7 @@ class TurnRunner:
         if ctx._native_slack_task_cards and hasattr(adapter, "send_native_task_card_progress"):
             await self._send_native_task_card_progress(adapter)
             return
-        # Skip tool progress for platforms that can't edit messages (e.g. iMessage/BlueBubbles):
+        # Skip tool progress for platforms that can't edit messages (e.g. iMessage):
         # each update would be a separate bubble. getattr, not attribute access: duck-typed
         # adapters (test fakes, minimal plugins) may lack edit_message — treated as "can't edit".
         adapter_edit = getattr(type(adapter), "edit_message", None)
@@ -935,10 +926,7 @@ class TurnRunner:
                 from gateway.stream_consumer import GatewayStreamConsumer
                 adapter = self._runner._delivery_adapter_for(ctx.source)
                 if adapter:
-                    supports_incremental_stream = (
-                        getattr(adapter, "SUPPORTS_MESSAGE_EDITING", True)
-                        or bool(getattr(adapter, "SUPPORTS_NATIVE_STREAMING", False))
-                    )
+                    supports_incremental_stream = getattr(adapter, "SUPPORTS_MESSAGE_EDITING", True)
                     consumer_stream_deltas = want_stream_deltas and supports_incremental_stream
                     consumer_cfg, pause_typing_before_finalize = self._runner._build_stream_consumer_config(
                         ctx.source, scfg, adapter,
@@ -1294,8 +1282,7 @@ class TurnRunner:
             mem_notif = "on" if mem_notif else "off"
         agent.memory_notifications = str(mem_notif).lower() if mem_notif else "on"
         agent.clarify_callback = self._clarify_callback_sync
-        # Thinking between tool calls is independent of tool_progress mode (Mattermost opts in
-        # per platform so global scratch-text doesn't leak into threads).
+        # Thinking between tool calls is independent of tool_progress mode.
         agent.thinking_progress = ctx._thinking_enabled
         if ctx.mute_notification_reply:
             # Controls and operational event/step callbacks remain wired. These
@@ -1316,34 +1303,6 @@ class TurnRunner:
         ctx.tools_holder[0] = getattr(agent, "tools", None)  # transcript logging
 
     # ── blocking prompts from the agent thread (approval / clarify) ─────────────────────────
-
-    def _close_native_stream_boundary(self, reason: str, placeholder: str | None = None, reopen: bool = False) -> bool:
-        """Native-streaming platforms (e.g. WeCom): an interrupting interaction (approval or clarify
-        prompt) must finalize the current stream first, or post-interaction output keeps updating the
-        OLD bubble above the prompt. Runs on the agent thread; the consumer serializes via its queue."""
-        sc = self._stream_consumer()
-        if not (sc and getattr(sc, "_use_native_streaming", False)):
-            return True
-        cancelled_flag = None
-        try:
-            boundary = sc.close_for_approval_prompt(placeholder, reason=reason, reopen=reopen)
-            # Returns (future, cancelled_flag) or just a future.
-            if isinstance(boundary, tuple):
-                boundary, cancelled_flag = boundary
-            if not hasattr(boundary, "result"):
-                return True
-            ok = boundary.result(timeout=10)
-            if not ok:
-                logger.warning(
-                    "%s boundary failed to close stream properly — "
-                    "prompt may still appear in typing bubble", reason,
-                )
-            return bool(ok)
-        except (TimeoutError, Exception) as err:
-            if cancelled_flag is not None:
-                cancelled_flag["cancelled"] = True
-            logger.warning("%s boundary timed out or failed: %s", reason, err)
-            return False
 
     def _clarify_callback_sync(self, questions) -> dict:
         """Answer the clarify tool's questions (clarify_tool's synchronous contract): one card per
@@ -1399,9 +1358,6 @@ class TurnRunner:
             clarify_id=clarify_id, session_key=session_key, question=question, choices=choices,
             multi_select=bool(multi_select),
         )
-        # Unlike approval, clarify passes reopen=True so the continuation re-opens a native stream
-        # below the question; if the re-seed fails the consumer degrades to send() automatically.
-        self._close_native_stream_boundary("Clarify", t("gateway.clarify.native_stream_placeholder"), reopen=True)
         # Pause typing: a "thinking..." status must not obscure the prompt or block an "Other" reply
         # on platforms that disable input while typing (Slack Assistant).
         with suppress(Exception):
@@ -1437,15 +1393,7 @@ class TurnRunner:
                     retire(ctx._status_adapter, clarify_id, _clarify_expired_notice()),
                     "Clarify card retire failed to schedule")
         elif rearm:
-            # Reopen typing IMMEDIATELY, not on the LLM's first post-answer token (native streaming
-            # otherwise re-seeds lazily on the first delta: ~48s of dead air). request_reopen_seed is
-            # a no-op outside the reopen-pending native state.
-            sc = self._stream_consumer()
-            if sc is not None:
-                try:
-                    sc.request_reopen_seed()
-                except Exception:
-                    logger.debug("request_reopen_seed after clarify answer failed", exc_info=True)
+            # Reopen typing immediately, not on the LLM's first post-answer token.
             try:
                 ctx._status_adapter.resume_typing_for_chat(ctx._status_chat_id)
             except Exception:
@@ -1463,7 +1411,6 @@ class TurnRunner:
         # /approve while "is thinking..." shows. Pausing stops _keep_typing re-setting it; resumed
         # in approve/deny.
         adapter.pause_typing_for_chat(ctx._status_chat_id)
-        self._close_native_stream_boundary("Approval")
         # Redact credentials before display: the raw command string can carry secrets. Both the button and plain-text paths use this value.
         cmd = _redact_approval_command(approval_data.get("command", ""))
         desc = approval_data.get("description") or ea_default_reason_text()
@@ -1532,10 +1479,10 @@ class TurnRunner:
             except Exception as e:
                 logger.warning("Button-based approval failed, falling back to text: %s", e)
         # Plain-text prompt with the adapter's typed prefix (e.g. `!approve`): typed "/" is blocked
-        # in Slack threads and reserved by Matrix clients.
+        # in Slack threads.
         msg = _format_exec_approval_fallback(cmd, desc, getattr(adapter, "typed_command_prefix", "/"), **flags)
         try:
-            # Mark as approval prompt: WeCom routes it through the control lane and Telegram pushes it
+            # Mark as approval prompt: Telegram pushes it
             # in "important" mode (#132516). Never ``notify`` — A2A reads that as the turn-final reply.
             metadata = {**(ctx._status_thread_metadata or {}), "is_approval_prompt": True}
             fut = self._schedule(

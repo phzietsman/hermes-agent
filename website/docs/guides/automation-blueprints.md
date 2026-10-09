@@ -19,7 +19,7 @@ For parameterized blueprints with forms instead of cron syntax, see the [Automat
 | **GitHub Event** | Fires on PR opens, pushes, issues, CI results | Webhook platform (`hermes webhook subscribe`) |
 | **API Call** | External service POSTs JSON to your endpoint | Webhook platform (config.yaml routes or `hermes webhook subscribe`) |
 
-All three support delivery to Telegram, Discord, Slack, SMS, email, GitHub comments, or local files.
+All three support delivery to Telegram, Discord, Slack, email, GitHub comments, or local files.
 :::
 
 ---
@@ -570,7 +570,6 @@ Keep the outline to ~300 words. This is a starting point, not a finished post." 
 | Telegram | `--deliver telegram` | Home channel, or `telegram:CHAT_ID` for specific |
 | Discord | `--deliver discord` | Home channel, or `discord:CHANNEL_ID` |
 | Slack | `--deliver slack` | Home channel |
-| SMS | `--deliver sms:+15551234567` | Direct to phone number |
 | Specific thread | `--deliver telegram:-100123:456` | Telegram forum topic |
 
 ### Webhook Template Variables

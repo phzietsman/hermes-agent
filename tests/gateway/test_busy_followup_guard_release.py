@@ -42,7 +42,7 @@ class _Adapter(BasePlatformAdapter):
     """Concrete adapter whose final-reply send can be held open."""
 
     def __init__(self):
-        super().__init__(PlatformConfig(enabled=True, token="t"), Platform.SIGNAL)
+        super().__init__(PlatformConfig(enabled=True, token="t"), Platform.TELEGRAM)
         self.sent: list[str] = []
         self.hold_reply = None
         self.reply_held = asyncio.Event()
@@ -147,7 +147,7 @@ def _event(text: str) -> MessageEvent:
         text=text,
         message_type=MessageType.TEXT,
         source=SessionSource(
-            platform=Platform.SIGNAL,
+            platform=Platform.TELEGRAM,
             chat_id="+15550001",
             chat_type="dm",
             user_id="+15550001",
@@ -162,7 +162,7 @@ def _gateway(tmp_path, monkeypatch, route, held):
     turns = _Turns()
     runner = object.__new__(GatewayRunner)
     runner.config = GatewayConfig()
-    runner.adapters = {Platform.SIGNAL: adapter}
+    runner.adapters = {Platform.TELEGRAM: adapter}
     runner._draining = False
     runner._restart_requested = False
     runner._is_user_authorized = lambda _source: True
@@ -302,12 +302,12 @@ async def test_reconnect_during_busy_admission_runs_accepted_followup_once(
         adapter.release_reply.set()
         await asyncio.wait_for(asyncio.shield(first_turn), timeout=5)
         if swap == "before_enqueue":
-            runner._publish_primary_adapter(Platform.SIGNAL, replacement)
+            runner._publish_primary_adapter(Platform.TELEGRAM, replacement)
         held.release()
         await asyncio.wait_for(ack_entered.wait(), timeout=5)
         if swap == "after_enqueue":
             assert key in adapter._pending_messages  # accepted into the old adapter's slot
-            runner._publish_primary_adapter(Platform.SIGNAL, replacement)
+            runner._publish_primary_adapter(Platform.TELEGRAM, replacement)
         else:
             assert key in replacement._pending_messages
         ack_release.set()

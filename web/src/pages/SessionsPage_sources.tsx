@@ -18,10 +18,7 @@ export const SOURCE_CONFIG: Record<string, { icon: typeof Terminal; color: strin
     slack: { icon: MessageSquare, color: "text-[oklch(0.7_0.15_155)]" },
     whatsapp: { icon: Globe, color: "text-success" },
     whatsapp_cloud: { icon: Globe, color: "text-success" },
-    signal: { icon: MessageCircle, color: "text-success" },
-    matrix: { icon: MessageCircle, color: "text-[oklch(0.65_0.15_250)]" },
     email: { icon: MessageSquare, color: "text-[oklch(0.7_0.15_155)]" },
-    sms: { icon: MessageCircle, color: "text-success" },
     cron: { icon: Clock, color: "text-warning" },
     tool: { icon: Play, color: "text-warning" },
     oneshot: { icon: Terminal, color: "text-warning" },
@@ -81,8 +78,6 @@ export function sourceLabel(source: string): string {
       return "WhatsApp";
     case "whatsapp_cloud":
       return "WhatsApp Cloud";
-    case "sms":
-      return "SMS";
     case "cron":
       return "Cron";
     case "tool":

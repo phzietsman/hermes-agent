@@ -549,7 +549,7 @@ _URL_BARE_TOKEN_RE = re.compile(
 _JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_=-]{4,}){0,2}")
 
 # E.164 phone numbers, 7-15 digits; the lookahead rejects hex strings / identifiers.
-_SIGNAL_PHONE_RE = re.compile(r"(\+[1-9]\d{6,14})(?![A-Za-z0-9])")
+_PHONE_RE = re.compile(r"(\+[1-9]\d{6,14})(?![A-Za-z0-9])")
 
 # CDP-URL path: web URLs with a query string / with ``user:password@`` userinfo
 # (DB protocols are covered by _DB_CONNSTR_RE).
@@ -991,7 +991,7 @@ def redact_sensitive_text(text: str, *, force: bool = False, code_file: bool = F
         text = _redact_form_body(text)
 
     if "+" in text:
-        text = _SIGNAL_PHONE_RE.sub(_redact_phone, text)
+        text = _PHONE_RE.sub(_redact_phone, text)
 
     return text
 

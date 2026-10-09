@@ -65,14 +65,11 @@ Delivery targets are case-sensitive and require the correct platform to be confi
 | `discord` | `DISCORD_BOT_TOKEN` in `~/.hermes/.env` |
 | `slack` | `SLACK_BOT_TOKEN` in `~/.hermes/.env` |
 | `whatsapp` | WhatsApp gateway configured |
-| `signal` | Signal gateway configured |
-| `matrix` | Matrix homeserver configured |
 | `email` | SMTP configured in `config.yaml` |
-| `sms` | SMS provider configured |
 | `local` | Write access to `~/.hermes/cron/output/` |
 | `origin` | Delivers to the chat where the job was created |
 
-Other supported platforms include `mattermost`, `homeassistant` (plugin), `dingtalk`, `feishu`, `wecom`, `weixin`, `bluebubbles`, `qqbot`, and `webhook`. You can also target a specific chat with `platform:chat_id` syntax (e.g., `telegram:-1001234567890`).
+Other supported platforms include `webhook`. You can also target a specific chat with `platform:chat_id` syntax (e.g., `telegram:-1001234567890`).
 
 If delivery fails, the job still runs — it just won't send anywhere. Check `hermes cron list` for updated `last_error` field (if available).
 

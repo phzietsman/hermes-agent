@@ -106,7 +106,7 @@ def register(ctx):
 | 打包 skill | `ctx.register_skill(name, path)` — 命名空间为 `plugin:skill`，通过 `skill_view("plugin:skill")` 加载 |
 | 按环境变量控制 | 在 plugin.yaml 中设置 `requires_env: [API_KEY]` — 在 `hermes plugins install` 时提示输入 |
 | 通过 pip 分发 | `[project.entry-points."hermes_agent.plugins"]` |
-| 注册 gateway 平台（Discord、Telegram、IRC 等） | `ctx.register_platform(name, label, adapter_factory, check_fn, ...)` — 参见 [Adding Platform Adapters](../../developer-guide/adding-platform-adapters.md) |
+| 注册 gateway 平台（Discord、Telegram 等） | `ctx.register_platform(name, label, adapter_factory, check_fn, ...)` — 参见 [Adding Platform Adapters](../../developer-guide/adding-platform-adapters.md) |
 | 注册图像生成后端 | `ctx.register_image_gen_provider(provider)` — 参见 [Image Generation Provider Plugins](../../developer-guide/image-gen-provider-plugin.md) |
 | 注册视频生成后端 | `ctx.register_video_gen_provider(provider)` — 参见 [Video Generation Provider Plugins](../../developer-guide/video-gen-provider-plugin.md) |
 | 注册上下文压缩引擎 | `ctx.register_context_engine(engine)` — 参见 [Context Engine Plugins](../../developer-guide/context-engine-plugin.md) |

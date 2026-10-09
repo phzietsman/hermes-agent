@@ -77,7 +77,7 @@ Telegram 机器人有一个**隐私模式**，**默认启用**。这是在群组
 
 ### 观察群组消息但不自动回复
 
-对于 OpenClaw/Yuanbao 风格的群组行为，可配置 Telegram 使机器人能**看到**普通群组消息，但只在被直接触发时**响应**：
+对于 OpenClaw 风格的群组行为，可配置 Telegram 使机器人能**看到**普通群组消息，但只在被直接触发时**响应**：
 
 ```yaml
 telegram:
@@ -179,7 +179,7 @@ gateway 从 Agent 回复中提取 `MEDIA:/path/to/file` 标签，并将引用的
 | **压缩包** | `zip`, `rar`, `7z`, `tar`, `gz`, `bz2` |
 | **书籍/安装包** | `epub`, `apk`, `ipa` |
 
-此列表中的任何内容都会在支持原生附件的平台（Telegram、Discord、Signal、Slack、WhatsApp、飞书、Matrix 等）上作为原生附件投递；在不支持原生附件的平台上，会回退为链接或纯文本指示。**加粗**类别是最近几个版本新增的——如果你之前依赖模型输出 `here is the file: /path/to/report.docx`，请改用 `MEDIA:/path/to/report.docx` 以实现原生投递。
+此列表中的任何内容都会在支持原生附件的平台（Telegram、Discord、Slack、WhatsApp 等）上作为原生附件投递；在不支持原生附件的平台上，会回退为链接或纯文本指示。**加粗**类别是最近几个版本新增的——如果你之前依赖模型输出 `here is the file: /path/to/report.docx`，请改用 `MEDIA:/path/to/report.docx` 以实现原生投递。
 
 ## Webhook 模式
 

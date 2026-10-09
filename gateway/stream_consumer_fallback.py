@@ -323,7 +323,7 @@ class StreamFallbackMixin:
         if not tail.strip():
             return
         try:
-            # Interim: must never seal a native stream (see _send_commentary).
+            # Interim: must never seal the stream (see _send_commentary).
             _md = dict(self.metadata) if self.metadata else {}
             _md["_interim_send"] = True
             result = await self.adapter.send(chat_id=self.chat_id, content=tail, metadata=_md)
@@ -357,7 +357,7 @@ class StreamFallbackMixin:
             # thread_id metadata and reply_to on every commentary is spam.
             _plat = getattr(getattr(self.adapter, "platform", None), "value", None)
             _platform_name = str(_plat or getattr(self.adapter, "name", "")).lower()
-            _needs_reply_anchor = _platform_name in ("buzz", "slack", "mattermost", "feishu")
+            _needs_reply_anchor = _platform_name == "slack"
             result = await self.adapter.send(
                 chat_id=self.chat_id, content=text,
                 reply_to=self._initial_reply_to_id if _needs_reply_anchor else None, metadata=_md)
@@ -401,11 +401,6 @@ class StreamFallbackMixin:
         """Retract any streamed preview when the final reply is a bare silence marker.  Flags
         stay False so the gateway's whole-response filter owns what goes out next: "" for a
         machinery turn, the visible fallback for a human one."""
-        # A native-stream bubble isn't a deletable message — close an open one
-        # (e.g. from an eager re-seed) with an empty finalize so it doesn't hang.
-        if self._native_stream_opened:
-            await self._close_empty_native_bubble("Silence-marker native stream close failed: %s")
-
         await self._delete_previews(self._stale_preview_ids(), label="Silence-marker")
         self._preview_message_ids = set()
         self._message_id = None

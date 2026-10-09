@@ -45,7 +45,7 @@ description: "设置一个持续目标，让 Hermes 跨轮次持续工作直到�
 | `/goal resume` | 恢复循环（将轮次计数器重置为零）。 |
 | `/goal clear` | 完全删除目标。 |
 
-在 CLI 及所有 gateway 平台（Telegram、Discord、Slack、Matrix、Signal、WhatsApp、SMS、iMessage、Webhook、API server 以及 Web 控制台）上行为完全一致。
+在 CLI 及所有 gateway 平台（Telegram、Discord、Slack、WhatsApp、Webhook、API server 以及 Web 控制台）上行为完全一致。
 
 ## 目标进行中追加条件：`/subgoal`
 

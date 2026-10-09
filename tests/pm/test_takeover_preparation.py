@@ -30,8 +30,8 @@ def test_fresh_takeover_prepares_generation_and_runs_selected_python(tmp_path):
     _wheel(wheels, "takeover_dep", "1.0")
     (root / "pyproject.toml").write_text(
         '[project]\nname="takeover-fixture"\nversion="1"\nrequires-python=">=3.14"\n'
-        'dependencies=["takeover-dep==1.0"]\n[project.optional-dependencies]\nall=[]\nmatrix=[]\n'
-        '[tool.hermes.extras-platforms]\nmatrix="sys_platform == \'no-such-platform\'"\n'
+        'dependencies=["takeover-dep==1.0"]\n[project.optional-dependencies]\nall=[]\nsilk=[]\n'
+        '[tool.hermes.extras-platforms]\nsilk="sys_platform == \'no-such-platform\'"\n'
         '[tool.uv]\npackage=false\nno-index=true\n'
         f'find-links=[{json.dumps(wheels.as_posix())}]\n', encoding="utf-8")
     (root / ".git").mkdir()
@@ -45,7 +45,7 @@ def test_fresh_takeover_prepares_generation_and_runs_selected_python(tmp_path):
     # A main-era venv that carried a gated extra: the takeover interpreter
     # (-S, so no `packaging`) must still judge the gate and drop it.
     legacy_site = root / ".venv" / "lib" / "python3.11" / "site-packages"
-    for anchor in ("mautrix", "asyncpg", "aiosqlite", "markdown", "aiohttp_socks"):
+    for anchor in ("pilk",):
         (legacy_site / anchor).mkdir(parents=True)
     # Only the interpreter and private manager tool are needed by this tiny
     # application. They are real host tools; PM's worker and resolver stay real.
@@ -89,7 +89,7 @@ def test_fresh_takeover_prepares_generation_and_runs_selected_python(tmp_path):
     assert not (root / "venv").exists()
     assert Facts(store / "facts.json").get("dmgbuild") is None
     venv_fact = json.loads(next((home / "installs").glob("*/facts.json")).read_text())["packages"]["venv"]
-    assert "matrix" not in venv_fact["extras"]
+    assert "silk" not in venv_fact["extras"]
 
     # Repair restores the recorded graph; a checkout update must also advance
     # that graph to the new source inputs before normal bootstrap checks it.

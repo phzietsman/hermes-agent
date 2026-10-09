@@ -70,7 +70,7 @@ def test_edge_telegram_converts_to_opus_voice(tmp_path, monkeypatch):
     convert.assert_called_once_with(str(out))
 
 
-def test_edge_matrix_converts_to_opus_voice(tmp_path, monkeypatch):
+def test_edge_whatsapp_converts_to_opus_voice(tmp_path, monkeypatch):
     """Matrix voice bubbles need Ogg/Opus too (MSC3245, issue #14841)."""
     out = tmp_path / "speech.mp3"
     opus = tmp_path / "speech.ogg"
@@ -82,7 +82,7 @@ def test_edge_matrix_converts_to_opus_voice(tmp_path, monkeypatch):
 
     convert = Mock(side_effect=fake_convert)
 
-    monkeypatch.setenv("HERMES_SESSION_PLATFORM", "matrix")
+    monkeypatch.setenv("HERMES_SESSION_PLATFORM", "whatsapp")
     monkeypatch.setattr(tts_tool, "_load_tts_config", lambda: {"provider": "edge"})
     monkeypatch.setattr(tts_tool, "_import_edge_tts", lambda: object())
     monkeypatch.setattr(tts_tool, "_generate_edge_tts", _write_edge_output)

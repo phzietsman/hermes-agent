@@ -1,6 +1,6 @@
 """Every own-policy adapter must reach the same allow/deny verdict for the same policy inputs.
 
-The predicates used to be five hand-copied bodies (weixin, wecom, qqbot, whatsapp, yuanbao) that
+The predicates used to be five hand-copied bodies (whatsapp and whatsapp_cloud, formerly five) that
 drifted on blank principals and scoped env reads; ``OwnAccessPolicyMixin`` is the single rule.
 """
 
@@ -29,24 +29,15 @@ def _scope(secrets):
 
 def _hosts():
     """One bare instance per own-policy class, attributes set exactly as the adapters do."""
-    from gateway.platforms.qqbot.adapter import QQAdapter
-    from gateway.platforms.weixin import WeixinAdapter
     from gateway.platforms.whatsapp_cloud import WhatsAppCloudAdapter
     from gateway.platforms.whatsapp_common import WhatsAppBehaviorMixin
-    from gateway.platforms.yuanbao import AccessPolicy
-    from plugins.platforms.wecom.adapter import WeComAdapter
 
     hosts = {
-        "weixin": object.__new__(WeixinAdapter),
-        "wecom": object.__new__(WeComAdapter),
-        "qqbot": object.__new__(QQAdapter),
         "whatsapp": WhatsAppBehaviorMixin(),
         "whatsapp_cloud": object.__new__(WhatsAppCloudAdapter),
-        "yuanbao": AccessPolicy("open", [], "open", []),
     }
     hosts["whatsapp"]._dm_allowlist_source = "config"
     hosts["whatsapp_cloud"]._dm_allowlist_source = "config"
-    hosts["wecom"]._groups = {}
     return hosts
 
 
@@ -58,18 +49,16 @@ def _verdicts(host, name, dm_policy, group_policy):
         out[("dm", sender)] = host._is_dm_allowed(sender or "")
         out[("intake", sender)] = host._is_dm_intake_allowed(sender)
     for group in ("room-1", "room-2"):
-        args = (group, "alice") if name in ("wecom", "qqbot") else (group,)
-        out[("group", group)] = host._is_group_allowed(*args)
+        out[("group", group)] = host._is_group_allowed(group)
     return out
 
 
 # Per-host opt-in var (the one ``hermes gateway setup`` writes). Setting only GATEWAY_ALLOW_ALL_USERS
-# would pass with a host whose prefix is missing — that is exactly how WeCom regressed once.
-PLATFORM_OPT_IN = {"weixin": "WEIXIN_ALLOW_ALL_USERS", "wecom": "WECOM_ALLOW_ALL_USERS",
-                   "qqbot": "QQ_ALLOW_ALL_USERS", "whatsapp": "WHATSAPP_ALLOW_ALL_USERS",
-                   "whatsapp_cloud": "WHATSAPP_CLOUD_ALLOW_ALL_USERS", "yuanbao": "YUANBAO_ALLOW_ALL_USERS"}
-# Hosts whose allowlists document ``*`` (weixin/yuanbao match literally, as before).
-WILDCARD_HOSTS = ("wecom", "qqbot", "whatsapp", "whatsapp_cloud")
+# would pass with a host whose prefix is missing.
+PLATFORM_OPT_IN = {"whatsapp": "WHATSAPP_ALLOW_ALL_USERS",
+                   "whatsapp_cloud": "WHATSAPP_CLOUD_ALLOW_ALL_USERS"}
+# Hosts whose allowlists document ``*``.
+WILDCARD_HOSTS = ("whatsapp", "whatsapp_cloud")
 
 
 def _all_agree(hosts, opt_in_for, label):
@@ -79,11 +68,11 @@ def _all_agree(hosts, opt_in_for, label):
             with _scope(opt_in_for(name)):
                 table[name] = _verdicts(host, name, dm_policy, group_policy)
         for name, verdicts in table.items():
-            assert verdicts == table["weixin"], (name, dm_policy, group_policy, label)
-        expected_open = bool(opt_in_for("weixin")) and dm_policy == "open"
-        assert table["weixin"][("dm", "stranger")] is expected_open
-        assert table["weixin"][("intake", "   ")] is False  # blank principal never admitted
-        assert table["weixin"][("intake", "stranger")] is (dm_policy == "pairing" or expected_open)
+            assert verdicts == table["whatsapp"], (name, dm_policy, group_policy, label)
+        expected_open = bool(opt_in_for("whatsapp")) and dm_policy == "open"
+        assert table["whatsapp"][("dm", "stranger")] is expected_open
+        assert table["whatsapp"][("intake", "   ")] is False  # blank principal never admitted
+        assert table["whatsapp"][("intake", "stranger")] is (dm_policy == "pairing" or expected_open)
 
 
 @pytest.mark.parametrize("mode", ["none", "gateway", "platform"])
@@ -105,10 +94,9 @@ def test_wildcard_allowlist_admits_strangers_on_every_path(name):
     host = _hosts()[name]
     host._dm_policy = host._group_policy = "allowlist"
     host._allow_from, host._group_allow_from = ["*"], ["*"]
-    group_args = ("room-2", "stranger") if name in ("wecom", "qqbot") else ("room-2",)
     assert host._is_dm_allowed("stranger") is True
     assert host._is_dm_intake_allowed("stranger") is True
-    assert host._is_group_allowed(*group_args) is True
+    assert host._is_group_allowed("room-2") is True
     assert host._is_dm_intake_allowed("   ") is False
 
 
@@ -130,3 +118,23 @@ def test_platform_prefix_env_name_is_scoped_and_fail_closed(monkeypatch):
         assert Host()._is_dm_allowed("anyone") is False
     with _scope({"DEMO_ALLOW_ALL_USERS": "yes"}):
         assert Host()._is_dm_allowed("anyone") is True
+
+
+def test_default_allowlist_matching_is_exact_and_uses_the_live_dm_list(monkeypatch):
+    """A host that overrides neither ``_entry_matches`` nor ``_live_dm_allow_from`` gets exact-match
+    semantics against the construction-time lists."""
+    monkeypatch.delenv("GATEWAY_ALLOW_ALL_USERS", raising=False)
+
+    class Host(OwnAccessPolicyMixin):
+        ALLOW_ALL_ENV_PREFIX = "DEMO"
+        _dm_policy, _group_policy = "allowlist", "allowlist"
+        _allow_from, _group_allow_from = ["alice"], ["room-1"]
+
+    host = Host()
+    assert host._is_dm_allowed("alice") is True
+    assert host._is_dm_allowed("Alice") is False  # no normalization unless the host adds it
+    assert host._is_dm_allowed("bob") is False
+    assert host._is_group_allowed("room-1") is True
+    assert host._is_group_allowed("room-2") is False
+    host._allow_from = ["bob"]  # the default live list is the same attribute: later edits are honored
+    assert host._is_dm_allowed("bob") is True and host._is_dm_allowed("alice") is False

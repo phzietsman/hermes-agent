@@ -1876,15 +1876,6 @@ export const jaOverrides = {
         label: 'ホームチャンネル名',
         help: 'ログやステータス出力でのホームチャンネルの表示名。'
       },
-      BLUEBUBBLES_ALLOW_ALL_USERS: {
-        label: 'すべての iMessage ユーザーを許可',
-        help: 'true にすると BlueBubbles の許可リストをスキップします。'
-      },
-      MATTERMOST_ALLOW_ALL_USERS: { label: 'すべての Mattermost ユーザーを許可' },
-      MATTERMOST_HOME_CHANNEL: { label: 'ホームチャンネル' },
-      QQ_ALLOW_ALL_USERS: { label: 'すべての QQ ユーザーを許可' },
-      QQBOT_HOME_CHANNEL: { label: 'QQ ホームチャンネル', help: 'Cron 配信のデフォルトチャンネルまたはグループ。' },
-      QQBOT_HOME_CHANNEL_NAME: { label: 'QQ ホームチャンネル名' },
       SLACK_BOT_TOKEN: {
         label: 'Slack ボットトークン',
         help: 'Slack アプリをインストール後、OAuth & Permissions のボットトークンを使用してください。',
@@ -1898,29 +1889,6 @@ export const jaOverrides = {
       SLACK_ALLOWED_USERS: {
         label: '許可する Slack ユーザー ID',
         help: '推奨。Slack ユーザー ID（1 欄に 1 件）。'
-      },
-      MATTERMOST_URL: { label: 'サーバー URL', placeholder: 'https://mattermost.example.com' },
-      MATTERMOST_TOKEN: { label: 'ボットトークン' },
-      MATTERMOST_ALLOWED_USERS: {
-        label: '許可するユーザー ID',
-        help: '推奨。Mattermost ユーザー ID（1 欄に 1 件）。'
-      },
-      MATRIX_HOMESERVER: { label: 'ホームサーバー URL', placeholder: 'https://matrix.org' },
-      MATRIX_ACCESS_TOKEN: { label: 'アクセストークン' },
-      MATRIX_USER_ID: { label: 'ボットユーザー ID', placeholder: '@hermes:example.org' },
-      MATRIX_ALLOWED_USERS: {
-        label: '許可する Matrix ユーザー ID',
-        help: '推奨。@user:server 形式のユーザー ID（1 欄に 1 件）。'
-      },
-      SIGNAL_HTTP_URL: {
-        label: 'Signal ブリッジ URL',
-        placeholder: 'http://127.0.0.1:8080',
-        help: '実行中の signal-cli REST ブリッジの URL。'
-      },
-      SIGNAL_ACCOUNT: { label: '電話番号', help: 'signal-cli ブリッジに登録した番号。' },
-      SIGNAL_ALLOWED_USERS: {
-        label: '許可する Signal ユーザー',
-        help: '推奨。Signal 識別子（1 欄に 1 件）。'
       },
       WHATSAPP_ENABLED: {
         label: 'WhatsApp ブリッジを有効にする',

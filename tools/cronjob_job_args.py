@@ -177,7 +177,7 @@ def _mode_guidance_notes(job: Dict[str, Any], user_deliver: Optional[str]) -> Li
             parts = target.strip().split(":")
             if (
                 len(parts) == 2
-                and parts[0] not in ("bot-chat", "sms")
+                and parts[0] != "bot-chat"
                 and parts[1]
                 and not parts[1].startswith("#")):
                 notes.append(

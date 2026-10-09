@@ -154,7 +154,7 @@ hermes setup voice
 # → 选择语音转文字后端（本地 faster-whisper 免费，无需配置）
 ```
 
-之后在任何消息平台会话中（Telegram、Discord、Signal 等），发送语音消息，Hermes 将转录内容、生成回复并以合成语音回复——全部通过你的 Portal 订阅完成。
+之后在任何消息平台会话中（Telegram、Discord 等），发送语音消息，Hermes 将转录内容、生成回复并以合成语音回复——全部通过你的 Portal 订阅完成。
 
 ## 8. （可选）Cron 定时任务与常驻工作流
 

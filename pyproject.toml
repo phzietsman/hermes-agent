@@ -81,32 +81,19 @@ dependencies = [
   # Requirement and version checks must work in lean installs without
   # relying on another package to bring packaging in transitively.
   "packaging==26.0; python_version >= '3.14'",
-  # Markdown -> HTML conversion for rich message delivery (Matrix
-  # `formatted_body`, and the `send_message` tool's HTML path). Now on the
-  # DEFAULT delivery path, not matrix-specific: without it both
-  # gateway/platforms/matrix.py and tools/send_message_tool.py silently fall
-  # back to plain text, so cron/agent deliveries render raw `##`/`**`/tables
-  # in clients like Element (see #32486). Pure-Python py3-none-any wheel
-  # (~108KB, no compiled extensions, no platform constraints), so unlike the
-  # matrix extra's `mautrix`/`python-olm` it's safe to ship everywhere — keeps
-  # it out of the lazy-install path that exists only for the heavy matrix deps.
-  "Markdown==3.10.2; python_version >= '3.14'",
   # Skills Hub (GitHub App JWT auth — optional, only needed for bot identity)
   "PyJWT[crypto]==2.13.0; python_version >= '3.14'",  # PYSEC-2026-175/177/178/179
   # urllib3 2.7.0 fixes GHSA-mf9v-mfxr-j63j (decompression-bomb bypass)
   # and GHSA-qccp-gfcp-xxvc (header leak across origins).
   "urllib3>=2.7.0,<3; python_version >= '3.14'",
   # PyJWT[crypto] pulls cryptography in transitively. Pin it here as well, so
-  # that the WeCom and Weixin crypto paths cannot fall below the patched
+  # that crypto-using paths cannot fall below the patched
   # version. 50.0.0 is the floor: it fixes CVE-2026-69247, a Bleichenbacher
   # oracle in PKCS#7 EnvelopedData, and 49.0.0 fixed GHSA-m2h6-j472-rp4c,
   # where a wildcard DNS name escapes permittedSubtrees, and
   # GHSA-jwv3-5hgf-82ww, exponential path-building on duplicate self-signed
   # intermediates.
   #
-  # A pin here is not sufficient on its own. alibabacloud-tea-openapi caps
-  # cryptography<49, so [tool.uv] also holds an override. Read that comment
-  # before you move this version.
   "cryptography==50.0.1; python_version >= '3.14'",  # CVE-2026-69247, GHSA-m2h6-j472-rp4c, GHSA-jwv3-5hgf-82ww, CVE-2026-39892, CVE-2026-34073, GHSA-537c-gmf6-5ccf
   # Windows has no IANA tzdata shipped with the OS, so Python's ``zoneinfo``
   # (PEP 615) raises ``ZoneInfoNotFoundError`` for every non-UTC timezone
@@ -267,31 +254,11 @@ messaging = [
   "brotlicffi==1.2.0.2",
   "slack-bolt==1.30.0",
   "slack-sdk==3.44.1",
+  "aiohttp-socks==0.11.0",
   "qrcode==7.4.2",
 ] # aiohttp 3.14.3: prior CVEs + GHSA-cq5v-8q36-5273/GHSA-mfx4-hv73-q22v/GHSA-mq44-7p77-q5h7
 cron = [] # croniter is now a core dependency; this extra kept for back-compat
-slack = ["slack-bolt==1.30.0", "slack-sdk==3.44.1", "aiohttp==3.14.3"]
-# Matrix gateway deps. `mautrix[encryption]` pulls `python-olm`, whose
-# vendored libolm (archived 2023) cannot build on Windows or modern macOS:
-# no wheels for those targets AND the sdist fails to compile on current
-# clang/MSVC (olm/list.hh const-iterator error) and on CMake >= 4. It is
-# linux-only — gate the whole extra so `uv sync --all-extras` (the bundle
-# build) doesn't try to build python-olm on the win/darwin lanes. The
-# matrix adapter degrades gracefully without mautrix (import stubs).
-matrix = [
-  "mautrix[encryption]==0.21.1; sys_platform == 'linux'",
-  "aiosqlite==0.22.1; sys_platform == 'linux'",
-  "asyncpg==0.31.0; sys_platform == 'linux'",
-  "aiohttp-socks==0.11.0; sys_platform == 'linux'",
-  "aiohttp==3.14.3; sys_platform == 'linux'",
-] # aiohttp 3.14.3: prior CVEs + GHSA-cq5v-8q36-5273/GHSA-mfx4-hv73-q22v/GHSA-mq44-7p77-q5h7 (mautrix/aiohttp-socks only cap aiohttp<4 / >=3.10, so pin the patched floor directly)
-
-# WeCom callback-mode adapter — parses untrusted XML POST bodies from
-# WeCom-controlled callback endpoints, so we use defusedxml (drop-in
-# replacement for stdlib xml.etree.ElementTree) to block billion-laughs
-# and XXE. aiohttp/httpx are already in [messaging]; defusedxml lands
-# here to keep the dependency local to wecom_callback's threat model.
-wecom = ["defusedxml==0.7.1"]
+slack = ["slack-bolt==1.30.0", "slack-sdk==3.44.1", "aiohttp==3.14.3", "aiohttp-socks==0.11.0"]
 tts-premium = ["elevenlabs==1.59.0"]
 voice = [
   # Local STT pulls in wheel-only transitive deps (ctranslate2, onnxruntime).
@@ -350,15 +317,6 @@ wake-sherpa = [
   "pypinyin==0.55.0",
 ]
 wake-porcupine = ["pvporcupine==4.0.3"]
-# Google Chat service account push (gateway/platforms/google_chat) — pubsub
-# subscriber for the Chat API's Cloud Pub/Sub delivery.
-# grpcio (pubsub's native transitive) has no win_arm64 wheel, so win32-arm64
-# would build its sdist and fail — gate the whole extra off there like
-# faster-whisper. The adapter's pubsub import is lazy, so this just makes the
-# google-chat platform unavailable on win32-arm64.
-google-chat = [
-  "google-cloud-pubsub==2.39.2; platform_machine != 'ARM64' or sys_platform != 'win32'",
-]
 # Document extraction (read_file anydoc converter self-heal) — core already
 # bundles firecrawl-anydoc==0.2.4; the extra exists so a lean/broken install
 # can re-sync exactly the pin from core.
@@ -400,7 +358,7 @@ mcp = [
 # Backwards-compatible no-op alias. Relay is a core dependency on supported
 # wheel targets and intentionally unavailable on other platforms.
 nemo-relay = []
-sms = ["aiohttp==3.14.3"]
+whatsapp = ["aiohttp==3.14.3"] # the WhatsApp bridge client imports aiohttp
 teams = [
   "microsoft-teams-apps==2.0.13.4",
   "aiohttp==3.14.3",
@@ -444,20 +402,14 @@ termux = [
 termux-all = [
   # Best-effort "install all" profile for Termux. Same policy as [all]:
   # only includes extras that are not prepared on demand by PM.
-  # Backends like telegram/slack/dingtalk/feishu lazy-install at
+  # Backends like telegram/slack lazy-install at
   # first use, so they're no longer eager-installed here.
   "hermes-agent[termux]",
   "hermes-agent[google]",
-  "hermes-agent[sms]",
+  "hermes-agent[whatsapp]",
   "hermes-agent[web]",
   "hermes-agent[pty]",
 ]
-dingtalk = [
-  "dingtalk-stream==0.24.3",
-  "alibabacloud-dingtalk==2.2.42",
-  "qrcode==7.4.2",
-]
-feishu = ["lark-oapi==1.6.8", "qrcode==7.4.2"]
 google = [
   # Required by the google-workspace skill (Gmail, Calendar, Drive, Contacts,
   # Sheets, Docs). Declared here so PM environments and independent
@@ -505,20 +457,14 @@ all = [
   # Removed from [all] on 2026-05-12 (covered by lazy-install):
   #   anthropic, exa, firecrawl, parallel-web, fal, edge-tts,
   #   modal, daytona, vercel, messaging (telegram/discord/slack),
-  #   matrix, slack, honcho, voice (faster-whisper),
-  #   dingtalk, feishu, bedrock, tts-premium (elevenlabs)
+  #   slack, honcho, voice (faster-whisper),
+  #   bedrock, tts-premium (elevenlabs)
   #
-  # Why: the matrix extra in particular pulls `mautrix[encryption]`
-  # which depends on `python-olm`. python-olm has Linux-only wheels and
-  # no native build path on Windows or modern macOS. With matrix in
-  # [all], `uv sync --locked` on Windows tried to build it from sdist
-  # and failed on `make`. Lazy-install routes that build to first use,
-  # where the user is expected to have a toolchain available.
   "hermes-agent[cron]",
   "hermes-agent[pty]",
   "hermes-agent[mcp]",
   "hermes-agent[uvloop]",
-  "hermes-agent[sms]",
+  "hermes-agent[whatsapp]",
   "hermes-agent[acp]",
   "hermes-agent[google]",
   "hermes-agent[web]",
@@ -575,10 +521,6 @@ opt-in-extras = ["kittentts"]
 # single-authority for WHICH extra is supported WHERE.
 
 [tool.hermes.extras-platforms]
-# mautrix[encryption] → python-olm: linux-only wheels, no win/darwin build.
-matrix = "sys_platform == 'linux'"
-# grpcio (via google-cloud-pubsub) has no win_arm64 wheel.
-google-chat = "platform_machine != 'ARM64' or sys_platform != 'win32'"
 # Match the engine dependency markers so PM refuses an unsupported install.
 wake-openwakeword = "(platform_machine != 'ARM64' or sys_platform != 'win32') and (platform_machine != 'x86_64' or sys_platform != 'darwin')"
 # faster-whisper's closure is prebuilt-only: ctranslate2 has no win_arm64 wheel and onnxruntime
@@ -607,15 +549,6 @@ override-dependencies = [
   # so, we force-override this to pynacl 1.6. here.
   # remove this when we update discord.py
   "pynacl>=1.6,<1.7",
-  # alibabacloud-tea-openapi caps cryptography<49, and its latest release
-  # still does. Without this override, that cap holds cryptography at 48.0.1
-  # and its three advisories (see the cryptography pin in
-  # [project].dependencies). The package uses cryptography only to sign
-  # requests with RSA and AES, and that API did not break in 49 or 50.
-  # Keep this exact version equal to the direct dependency. uv overrides
-  # replace that requirement too, not only the vendor's upper bound.
-  # Remove this line when alibabacloud-tea-openapi lifts the cap.
-  "cryptography==50.0.1",
   # misaki[en] (pulled by [kittentts]) lists spacy-curated-transformers.
   # The newest release that fits spacy 3.8 (2.x needs thinc 9), 0.3.1, caps
   # Python below 3.14, so PM's `uv pip check` rejects the venv. Nothing
@@ -630,11 +563,11 @@ exclude-newer = "14 days"
 # aiohttp, cryptography: same shape — the advisory fixes are newer than the
 # 14-day window, so the resolver cannot see them without an exception.
 #
-# defusedxml, python-olm, unpaddedbase64: the OPPOSITE shape (#80387, #79434,
+# defusedxml: the OPPOSITE shape (#80387, #79434,
 # #78227 family). These are ancient, effectively frozen releases (2021-2023)
 # whose upload dates are frequently absent from mirror indexes and stale uv
 # HTTP caches. uv treats a missing upload date as "newer than the cutoff" and
-# excludes the package, bricking [youtube]/[wecom]/[matrix] resolution
+# excludes the package, bricking [youtube] resolution
 # ("there are no versions of defusedxml"). Exempting them carries zero aging
 # risk — their newest releases are years old — and unbricks resolvers that
 # cannot see upload dates.
@@ -672,19 +605,12 @@ exclude-newer = "14 days"
 # (Termux/Android) it must build from sdist, and the isolated build
 # environment resolves under the same cutoff ("Failed to resolve
 # requirements from build-system.requires ... maturin>=1.9,<2").
-#
-# google-cloud-pubsub: same exact-pin shape (==2.39.2, google-chat adapter).
-# The pin bump WAS the review; exclude-newer only filters it because the
-# 14-day window is younger than the reviewed release.
 
 [tool.uv.exclude-newer-package]
 agent-client-protocol = false
 aiohttp = false
 aiohttp-socks = false
-aiosqlite = false
-alibabacloud-dingtalk = false
 anthropic = false
-asyncpg = false
 azure-identity = false
 boto3 = false
 brotlicffi = false
@@ -697,7 +623,6 @@ daytona = false
 ddgs = "2026-08-26T21:52:34Z"
 debugpy = false
 defusedxml = false
-dingtalk-stream = false
 discord-py = false
 edge-tts = false
 elevenlabs = false
@@ -712,7 +637,6 @@ google-api-python-client = false
 google-auth = false
 google-auth-httplib2 = false
 google-auth-oauthlib = false
-google-cloud-pubsub = false
 h2 = false
 httplib2 = false
 httpx = false
@@ -720,10 +644,7 @@ httpx2 = false
 huggingface_hub = false
 jinja2 = false
 langfuse = "2026-09-09T16:01:26Z"
-lark-oapi = false
-markdown = false
 maturin = false
-mautrix = false
 mcp = false
 microsoft-teams-apps = false
 mistralai = false
@@ -749,7 +670,6 @@ pytest = false
 pytest-asyncio = false
 python-dotenv = false
 python-multipart = false
-python-olm = false
 python-telegram-bot = false
 pyyaml = false
 qrcode = false
@@ -773,7 +693,6 @@ starlette = false
 tenacity = false
 ty = false
 tzdata = false
-unpaddedbase64 = false
 uvicorn = false
 vercel = false
 websockets = false
@@ -929,4 +848,3 @@ select = ["PLW1514", "ASYNC210", "ASYNC220", "ASYNC221", "ASYNC251", "TID251"]
 "hermes_cli/web_routers/profiles.py" = ["ASYNC220", "ASYNC221"]
 # Legacy blocking spawn sites in platform adapters, pending their own fixes.
 "plugins/platforms/whatsapp/adapter.py" = ["ASYNC220", "ASYNC221"]
-"plugins/platforms/photon/adapter.py" = ["ASYNC220"]

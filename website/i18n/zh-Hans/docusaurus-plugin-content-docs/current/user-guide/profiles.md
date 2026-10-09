@@ -185,7 +185,7 @@ nano ~/.hermes/profiles/assistant/.env
 
 ### 安全性：token 锁
 
-如果两个 profile 意外使用了相同的 bot token，第二个 gateway 将被阻止并显示明确的错误信息，指出冲突的 profile。支持 Telegram、Discord、Slack、WhatsApp 和 Signal。
+如果两个 profile 意外使用了相同的 bot token，第二个 gateway 将被阻止并显示明确的错误信息，指出冲突的 profile。支持 Telegram、Discord、Slack 和 WhatsApp。
 
 ### 持久化服务
 

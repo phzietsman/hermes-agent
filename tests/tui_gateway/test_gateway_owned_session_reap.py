@@ -18,8 +18,8 @@ from tui_gateway.server import _is_gateway_owned_source, _teardown_session
 
 class TestIsGatewayOwnedSource:
     def test_builtin_gateway_platforms_are_owned(self):
-        for src in ("telegram", "discord", "whatsapp", "slack", "signal",
-                    "matrix", "mattermost", "bluebubbles", "sms", "email"):
+        for src in ("telegram", "discord", "whatsapp", "slack",
+                    "email"):
             assert _is_gateway_owned_source(src) is True, src
 
 

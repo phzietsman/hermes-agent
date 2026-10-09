@@ -332,10 +332,6 @@ gateway:
   resume:
     db_unavailable: "Session database not available."
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}.\nUse quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room.\nUse `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Matrix /resume blocked: this named session has no recorded room origin, so Hermes will not resume it inside the current room by default. Use `/resume --cross-room {name}` if you intentionally want to cross room boundaries."
-    matrix_blocked_other_room: "⚠️ Matrix /resume blocked: that session belongs to a different Matrix room ({room}). Use `/resume --cross-room {name}` if you intentionally want to resume it here."
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**.\nFuture messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ /resume blocked: '**{name}**' belongs to a different user or chat. You can only resume sessions from this chat."
     no_named_sessions: "No named sessions found.\nUse `/title My Session` to name your current session, then `/resume My Session` to return to it later."
     all_requires_admin: "_Note: `--all` (cross-chat listing) requires a configured admin; showing this chat's sessions only._"
@@ -427,12 +423,6 @@ gateway:
     hint_all: "Use /context all for per-skill and per-toolset costs."
   status:
     header: "📊 **Hermes Gateway Status**"
-    matrix_scope_header: "**Matrix scope:**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**Session ID:** `{session_id}`"
     title: "**Title:** {title}"
     created: "**Created:** {timestamp}"
@@ -661,7 +651,6 @@ gateway:
     answered: "✅ answered: {response}"
     cancelled: "↩️ Clarification cancelled — your message will be handled as a follow-up."
     expired: "⏳ This prompt expired — please send a new request."
-    native_stream_placeholder: "💬 Waiting for your choice..."
     skip_hint: 'Reply "skip" to skip this question.'
 
   errors:
@@ -1007,9 +996,6 @@ platform:
     approved: "✅ Approved."
     denied: "❌ Denied."
     approval_expired: "⌛ Approval expired — command was not run (already timed out or resolved elsewhere)."
-  yuanbao:
-    slow_response_notice: "This task is a bit involved — still working on it, please hang on..."
-    owner_command_denied: "⚠️ {command} is only available to the creator in private chat mode"
   shared:
     truncated_suffix: "\n...(truncated)"
     unknown: "unknown"
@@ -1024,12 +1010,6 @@ platform:
       file_failed: "⚠️ Couldn't deliver the file attachment ({name})."
       attachment_failed: "⚠️ Couldn't deliver the attachment."
 
-  weixin:
-    voice_as_attachment: "[voice message as attachment]"
-  signal:
-    batch_pacing_notice: "(More images coming — pausing ~{wait} for Signal rate limit, batch {batch}/{total}.)"
-    wait_seconds: "{count}s"
-    wait_minutes: "{count} min"
   api_server:
     provider_auth_failed: "Provider authentication failed"
     provider_rate_limited: "Provider rate-limited"
@@ -1384,95 +1364,6 @@ platform:
     handoff:
       seed: ":thread: Hermes handoff — *{name}*"
 
-  matrix:
-    handoff:
-      default_name: "Hermes session"
-    media:
-      image_download_failed: "I couldn't download and upload the image to Matrix. The source URL was not shown because it may contain private tokens."
-    approval:
-      typed_hint_once: "Reply `!approve` to execute once, or `!deny` to cancel."
-      typed_hint_session: "Reply `!approve session` to approve this pattern for the session, `!approve` to execute once, or `!deny` to cancel."
-      typed_hint_always: "Reply `!approve session` to approve this pattern for the session, `!approve always` to approve permanently, `!approve` to execute once, or `!deny` to cancel."
-      legend_intro: "You can also click the reaction to approve:"
-      legend_once: "✅ = approve once"
-      legend_session: "🌀 = approve for this session"
-      legend_always: "♾️ = approve always"
-      legend_deny: "❎ = deny"
-      invalid_reaction: "That reaction is not valid for this approval prompt."
-      expired: "This approval prompt has expired. Run the command again if you still want to approve it."
-    picker:
-      no_models: "No authenticated models are available for this session."
-      title: "⚙ **Model Configuration**"
-      current_model: "Current model: `{model}`"
-      provider: "Provider: {provider}"
-      react_model: "React to choose a model:"
-      react_choice: "React to choose."
-      current_suffix: "{label} ← current"
-      invalid_model_reaction: "That reaction is not one of the available model choices."
-      invalid_choice_reaction: "That reaction is not one of the available choices."
-      verb_switch_model: "switch model"
-      verb_apply_selection: "apply selection"
-      failed: "Failed to {action}: {error}"
-    reaction:
-      unauthorized: "Only an authorized Matrix user can use these controls."
-      not_requester: "Only the user who requested this action can use these controls."
-
-  feishu:
-    approval:
-      # Feishu keeps shorter button words than the shared card (emoji prefixes are added in code).
-      action_session: "Session"
-      action_always: "Always"
-      resolved_once: "Approved once"
-      resolved_session: "Approved for session"
-      resolved_always: "Approved permanently"
-      resolved_deny: "Denied"
-      resolved_fallback: "Resolved"
-      resolved_by_user: "{icon} **{label}** by {user}"
-    update_prompt:
-      title: "☤ Update Needs Your Input"
-      default_hint: "\n\nDefault: `{default}`"
-      answer_yes: "✓ Yes"
-      answer_no: "✗ No"
-      word_yes: "Yes"
-      word_no: "No"
-      answered_title: "{icon} Update prompt answered: {answer}"
-      answered_by: "Answered by **{user}**"
-    media:
-      gif_downgraded: "[GIF downgraded to file]"
-      gif_downgraded_caption: "[GIF downgraded to file]\n{caption}"
-
-  google_chat:
-    clarify:
-      other_button: "Other / type answer"
-      header: "Question"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes is thinking…"
-      interrupted: "(interrupted)"
-      no_reply: "(no reply)"
-    attachment_fallback:
-      # Shipped in Spanish before i18n; es.yaml keeps that original text.
-      header: "⚠️ I couldn't attach **{filename}**."
-      explain: "Google Chat only allows file attachments when the bot has your explicit permission (user OAuth). It's a one-time consent done from this chat."
-      activate: "**To enable it:** send `/setup-files` and follow the instructions."
-      host_path: "Meanwhile the file is on the host: `{path}`"
-    setup_files:
-      not_configured: "🔧 Native attachment delivery is **not configured**.\n**Step 1 (one-time, on the host):** create OAuth client credentials at https://console.cloud.google.com/apis/credentials → *Create credentials* → *OAuth client ID* → *Desktop app*. Download the JSON. Then on the host run:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**Step 2:** come back here and send `/setup-files start`."
-      start_instructions: "1. Open this URL in your browser and authorize:\n{auth_url}\n\n2. After clicking *Allow*, your browser will fail to load `http://localhost:1/?...&code=...`. That's expected.\n\n3. Copy the entire failed URL from the browser's URL bar and paste it back here as: `/setup-files <PASTE_URL>` (or just the `code=...` value).\n\nTip: the URL contains your access grant — keep it private."
-      start_failed: "❌ Couldn't generate the OAuth URL. Check the gateway logs and verify the client_secret.json is valid."
-      exchange_failed: "❌ Token exchange failed. The code may have expired or the URL is malformed. Send `/setup-files start` to get a fresh OAuth URL."
-      revoke_completed: "Revoke completed (some steps may have been skipped)."
-      revoked: "Revoked."
-      helper_error: "❌ Error: {error}"
-      revoke_error: "❌ Error revoking: {error}"
-      who_shared: "shared (legacy)"
-      active: "✅ Native attachment delivery is **active** for `{who}`.\nToken: `{token_path}`\nSend `/setup-files revoke` to disable."
-      not_authorized_yet: "🔧 Client credentials are stored but you haven't authorized yet. Send `/setup-files start` to begin."
-      no_client_credentials: "⚠️ No client credentials stored for this profile. Send `/setup-files` (no args) for setup instructions."
-      done_output: "✅ Done.\n```\n{output}\n```"
-      authorized: "✅ Authorized! Native attachment delivery is now active. Try asking me to send you a PDF."
-      exchanged_not_loaded: "⚠️ Token exchanged but the gateway couldn't load the new credentials in-memory. Restart the gateway and the token at `{token_path}` will be picked up.\nHelper output:\n```\n{output}\n```"
-
   teams:
     approval:
       resolved_once: "✅ Allowed (once)"
@@ -1492,38 +1383,9 @@ platform:
       action_items: "Action items"
       risks: "Risks"
 
-  line:
-    pending:
-      still_thinking: "🤔 Still thinking. Tap below to fetch the answer when it's ready."
-      button_label: "Get answer"
-      delivered: "Already replied ✅"
-      interrupted: "Run was interrupted before completion."
-      expired: "That request has expired — send your message again."
-    standalone:
-      attachments_not_deliverable: "[{count} attachment(s) generated; not deliverable from cron]"
-
-  wecom:
-    media:
-      # Shipped in Chinese before i18n; zh.yaml keeps that original text.
-      kind_image: "Image"
-      kind_video: "Video"
-      kind_voice: "Voice message"
-      file_too_large: "File size {size_mb}MB exceeds WeCom's 20MB limit and cannot be sent. Try compressing the file or reducing its size."
-      voice_format_downgraded: "Voice format {content_type} is not supported (WeCom only accepts AMR); sent as a file instead."
-      size_downgraded: "{label} size {size_mb}MB exceeds the {cap} limit; sent as a file instead."
-
   email:
     image_line: "Image: {url}"
     standalone_subject: "Hermes Agent"
-
-  dingtalk:
-    emotion:
-      thinking: "🤔Thinking"
-      done: "🥳Done"
-
-  irc:
-    quit_message: "Hermes Agent shutting down"
-    standalone_quit: "delivered"
 
   relay:
     confirm_approve_once: "Approve Once"
@@ -1589,7 +1451,7 @@ slash:
   handoff:
     description: "Hand off this session to a messaging platform (Telegram, Discord, etc.)"
   branch:
-    description: "Branch the current session (new thread on Discord/Telegram/Slack/Matrix; --here stays here)"
+    description: "Branch the current session (new thread on Discord/Telegram/Slack; --here stays here)"
   worktree:
     description: "Show, list, create, or prune isolated git worktrees"
   compress:
@@ -3755,10 +3617,8 @@ tips:
   t154: "/voice on enables voice mode in the CLI. Ctrl+B toggles push-to-talk recording."
   t155: "Streaming TTS plays sentences as they generate — you don't wait for the full response."
   t156: "Voice messages on Telegram, Discord, WhatsApp, and Slack are auto-transcribed."
-  t157: "Hermes runs on 21 messaging platforms: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, IRC, Microsoft Teams, email, and more."
+  t157: "Hermes runs on multiple messaging platforms: Telegram, Discord, Slack, WhatsApp, Microsoft Teams, email, and more."
   t158: "hermes gateway install sets it up as a system service that starts on boot."
-  t159: "DingTalk uses Stream Mode — no webhooks or public URL needed."
-  t160: "BlueBubbles brings iMessage to Hermes via a local macOS server."
   t161: "Webhook routes support HMAC validation, rate limiting, and event filtering."
   t162: "The API server exposes an OpenAI-compatible endpoint compatible with Open WebUI and LibreChat."
   t163: "Discord voice channel mode: the bot joins VC, transcribes speech, and talks back."
@@ -3929,7 +3789,6 @@ tips:
   t328: "tts.providers.<name>.type: command wires any CLI TTS engine with {input_path} and {output_path} placeholders."
   t329: "API_SERVER_ENABLED=true runs an OpenAI-compatible endpoint alongside the gateway for Open WebUI and LibreChat."
   t330: "GATEWAY_PROXY_URL runs a split setup: platform I/O locally, agent work delegated to a remote API server."
-  t331: "MATRIX_DEVICE_ID pins a stable device ID for E2EE — without it, keys rotate every start and historic decrypt breaks."
   t332: "TELEGRAM_WEBHOOK_SECRET is required whenever TELEGRAM_WEBHOOK_URL is set — generate with openssl rand -hex 32."
   t333: "batch_runner.py --resume content-matches completed prompts by text so dataset reorders don't re-run finished work."
   t334: "/new starts a fresh session in place (alias /reset) — fresh session ID, clean history, CLI stays open."

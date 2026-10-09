@@ -380,7 +380,7 @@ class GatewayNotificationsMixin:
                 else self._thread_metadata_for_source(event.source, self._reply_anchor_for_event(event))
             )
             chat_id = event.source.chat_id
-            # Images go out as one batch (e.g. Signal's multi-attachment RPC) unless [[as_document]].
+            # Images go out as one batch unless [[as_document]].
             def _is_photo(media_path: str, is_voice: bool) -> bool:
                 ext = Path(media_path).suffix.lower()
                 return ext in _IMAGE_EXTS and not is_voice and not force_document_attachments

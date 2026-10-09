@@ -51,11 +51,11 @@ BARRIER = 1.0
 @pytest.fixture()
 def tracker(tmp_path, monkeypatch):
     """A tracker whose state file lives in an isolated directory."""
-    path = tmp_path / "matrix_threads.json"
+    path = tmp_path / "slack_threads.json"
     monkeypatch.setattr(
         ThreadParticipationTracker, "_state_path", lambda self: path, raising=True
     )
-    obj = ThreadParticipationTracker("matrix")
+    obj = ThreadParticipationTracker("slack")
     obj.state_path = path  # convenience for assertions
     return obj
 

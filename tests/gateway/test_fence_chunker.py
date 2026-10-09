@@ -1,7 +1,7 @@
 """Invariant tests for the shared fence-aware markdown chunker core.
 
 The core lives in ``gateway.platforms.helpers`` and was extracted from the
-Yuanbao ``MarkdownProcessor`` (the richest of the four formerly duplicated
+former Yuanbao ``MarkdownProcessor`` (the richest of the four formerly duplicated
 implementations).  These tests assert the core's *contract* (invariants),
 not exact snapshots, so they survive internal tweaks that preserve behavior.
 """
@@ -10,7 +10,6 @@ import pytest
 
 from gateway.platforms.helpers import (
     balance_fences_across_chunks,
-    greedy_pack_blocks,
     infer_block_separator,
     merge_streaming_fences,
     split_at_paragraph_boundary,
@@ -49,7 +48,7 @@ MIXED = (
 SAMPLES = [LONG_PARAS, FENCED, UNCLOSED, TABLE, CJK, MIXED, "x" * 500]
 
 
-# ── split_text_fence_aware (paragraph mode: yuanbao-derived) ─────────────────
+# ── split_text_fence_aware (paragraph mode) ─────────────────
 
 
 @pytest.mark.parametrize("text", SAMPLES)
@@ -127,19 +126,6 @@ def test_balance_closes_and_reopens():
     assert out[1].startswith("```go\n")
     assert all(not text_has_unclosed_fence(c) for c in out)
 
-
-# ── greedy_pack_blocks ───────────────────────────────────────────────────────
-
-
-def test_greedy_pack_overflow_callback():
-    calls = []
-
-    def overflow(block):
-        calls.append(block)
-        return [block[:50], block[50:]]
-
-    packed = greedy_pack_blocks(["x" * 120], 60, overflow=overflow)
-    assert calls and packed == ["x" * 50, "x" * 70]
 
 
 # ── canonical table-row splitter delegation ──────────────────────────────────

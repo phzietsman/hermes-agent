@@ -212,15 +212,14 @@ class GatewayProfileReconcileMixin:
 
     def _live_resource_claims(self, active: str) -> Dict[tuple, str]:
         """Startup's ``claimed`` map rebuilt from what is live now: primary claims plus every connected
-        secondary's credential/listener, so a hot-added profile reusing a token is parked, never a
+        secondary's credential, so a hot-added profile reusing a token is parked, never a
         second poller."""
         claimed = self._primary_resource_claims(active)
         for profile_name, adapters in (getattr(self, "_profile_adapters", None) or {}).items():
             for platform, adapter in list(adapters.items()):
-                for claim in (self._adapter_credential_claim(platform, adapter),
-                              self._adapter_listener_claim(platform, adapter)):
-                    if claim is not None:
-                        claimed[claim] = profile_name
+                claim = self._adapter_credential_claim(platform, adapter)
+                if claim is not None:
+                    claimed[claim] = profile_name
         return claimed
 
     async def _after_profiles_added(self, profile_homes) -> None:

@@ -8,7 +8,7 @@ in ``_async_profile_runtime_scope`` before authorization runs. Until this
 fix, ``_make_profile_busy_session_handler`` (the busy path) stamped
 ``source.profile`` but never entered that scope, so ``_is_user_authorized``
 fell through to ``os.environ`` and read the wrong profile's
-``FEISHU_ALLOWED_USERS``.
+``TELEGRAM_ALLOWED_USERS``.
 """
 from pathlib import Path
 
@@ -25,12 +25,12 @@ def mux_home(tmp_path, monkeypatch):
 
     home = tmp_path / "hh"
     (home / "profiles" / "secondary").mkdir(parents=True)
-    (home / ".env").write_text("FEISHU_ALLOWED_USERS=primary-user\n")
+    (home / ".env").write_text("TELEGRAM_ALLOWED_USERS=primary-user\n")
     (home / "profiles" / "secondary" / ".env").write_text(
-        "FEISHU_ALLOWED_USERS=secondary-user\n"
+        "TELEGRAM_ALLOWED_USERS=secondary-user\n"
     )
     monkeypatch.setenv("HERMES_HOME", str(home))
-    for key in ("FEISHU_ALLOWED_USERS", "GATEWAY_ALLOW_ALL_USERS", "GATEWAY_ALLOWED_USERS"):
+    for key in ("TELEGRAM_ALLOWED_USERS", "GATEWAY_ALLOW_ALL_USERS", "GATEWAY_ALLOWED_USERS"):
         monkeypatch.delenv(key, raising=False)
     prev = secret_scope.is_multiplex_active()
     secret_scope.set_multiplex_active(True)
@@ -43,7 +43,7 @@ def _runner(home):
 
     runner = object.__new__(GatewayRunner)
     runner.config = GatewayConfig(multiplex_profiles=True)
-    runner.config.platforms = {Platform.FEISHU: PlatformConfig(enabled=True, extra={})}
+    runner.config.platforms = {Platform.TELEGRAM: PlatformConfig(enabled=True, extra={})}
     runner.pairing_store = PairingStore(profile="default")
     runner.pairing_stores = {"default": runner.pairing_store}
     runner._profile_adapters = {"secondary": {}}
@@ -51,11 +51,11 @@ def _runner(home):
     return runner
 
 
-def _feishu_event(user_id):
+def _telegram_event(user_id):
     from gateway.platforms.base import MessageEvent, MessageType
 
     source = SessionSource(
-        platform=Platform.FEISHU,
+        platform=Platform.TELEGRAM,
         user_id=user_id,
         user_name=user_id,
         chat_id="oc_dm",
@@ -81,8 +81,8 @@ async def test_busy_handler_authorizes_against_secondary_profile_allowlist(mux_h
 
     handler = runner._make_profile_busy_session_handler("secondary")
 
-    authorized_event = _feishu_event("secondary-user")
+    authorized_event = _telegram_event("secondary-user")
     assert await handler(authorized_event, "sk") is True
 
-    intruder_event = _feishu_event("primary-user")
+    intruder_event = _telegram_event("primary-user")
     assert await handler(intruder_event, "sk") is False

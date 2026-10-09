@@ -7,7 +7,7 @@ description: How the agent ships generated charts, PDFs, spreadsheets, and other
 # Deliverable Mode
 
 When Hermes Agent runs inside a messaging gateway (Slack, Discord, Telegram,
-WhatsApp, Signal, etc.), it can deliver generated files directly into the
+WhatsApp, etc.), it can deliver generated files directly into the
 chat — not as paths the user has to copy, but as native attachments.
 
 A chart shows up as an inline image. A PDF report shows up as a file

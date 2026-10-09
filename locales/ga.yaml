@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "Níl bunachar sonraí na seisiún ar fáil."
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}. Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room. Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Cuireadh cosc ar /resume Matrix: níl aon bhunús seomra taifeadta ag an seisiún ainmnithe seo, mar sin ní atosóidh Hermes é laistigh den seomra reatha de réir réamhshocraithe. Úsáid `/resume --cross-room {name}` más mian leat d'aon ghnó teorainneacha seomraí a thrasnú."
-    matrix_blocked_other_room: "⚠️ Cuireadh cosc ar /resume Matrix: baineann an seisiún sin le seomra Matrix eile ({room}). Úsáid `/resume --cross-room {name}` más mian leat d'aon ghnó é a atosú anseo."
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**. Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ Cuireadh cosc ar /resume: baineann '**{name}**' le húsáideoir nó comhrá eile. Ní féidir leat ach seisiúin ón gcomhrá seo a atosú."
     no_named_sessions: "Níor aimsíodh aon seisiún ainmnithe.\nÚsáid `/title M'Ainm Seisiúin` chun do sheisiún reatha a ainmniú, ansin `/resume M'Ainm Seisiúin` chun filleadh air níos déanaí."
     all_requires_admin: "_Nóta: teastaíonn riarthóir cumraithe le `--all` (liostú traschomhrá); ní thaispeántar ach seisiúin an chomhrá seo._"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "Úsáid /context all le haghaidh costas de réir scile agus de réir tacar uirlisí."
   status:
     header: "📊 **Stádas Hermes Gateway**"
-    matrix_scope_header: "**Scóip Matrix:**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**ID Seisiúin:** `{session_id}`"
     title: "**Teideal:** {title}"
     created: "**Cruthaithe:** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ freagraithe: {response}"
     cancelled: "↩️ Soiléiriú cealaithe — láimhseálfar do theachtaireacht mar theachtaireacht leantach."
     expired: "⏳ Tá an leid seo imithe in éag — seol iarratas nua le do thoil."
-    native_stream_placeholder: "💬 Ag fanacht le do rogha..."
     skip_hint: 'Freagair "skip" chun an cheist seo a scipeáil.'
   errors:
     rate_limited: "⏱️ Tá seirbhís na samhla AI ag teorannú ráta na n-iarratas. Fan nóiméad, ansin úsáid /retry."
@@ -962,9 +951,6 @@ platform:
     approved: "✅ Ceadaithe."
     denied: "❌ Diúltaithe."
     approval_expired: "⌛ Tá an cead imithe in éag — níor ritheadh an t-ordú (chuaigh sé thar am cheana nó réitíodh é in áit eile)."
-  yuanbao:
-    slow_response_notice: "Tá an tasc seo beagán casta — táim fós ag obair air, fan go fóill le do thoil..."
-    owner_command_denied: "⚠️ Níl {command} ar fáil ach don chruthaitheoir i mód comhrá phríobháidigh"
   shared:
     truncated_suffix: "\n...(giorraithe)"
     unknown: "anaithnid"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ Níorbh fhéidir an ceangaltán físe a sheachadadh."
       file_failed: "⚠️ Níorbh fhéidir an ceangaltán comhaid a sheachadadh ({name})."
       attachment_failed: "⚠️ Níorbh fhéidir an ceangaltán a sheachadadh."
-  weixin:
-    voice_as_attachment: "[teachtaireacht ghutha mar cheangaltán]"
-  signal:
-    batch_pacing_notice: "(Tuilleadh íomhánna ag teacht — ag stad ~{wait} de bharr teorainn ráta Signal, baisc {batch}/{total}.)"
-    wait_seconds: "{count}s"
-    wait_minutes: "{count} nóim"
   api_server:
     provider_auth_failed: "Theip ar fhíordheimhniú an tsoláthraí"
     provider_rate_limited: "Soláthraí faoi theorainn ráta"
@@ -1324,90 +1304,6 @@ platform:
       running: "Ag rith `/{command}`…"
     handoff:
       seed: ":thread: Aistriú Hermes — *{name}*"
-  matrix:
-    handoff:
-      default_name: "Seisiún Hermes"
-    media:
-      image_download_failed: "Níorbh fhéidir liom an íomhá a íoslódáil agus a uaslódáil go Matrix. Níor taispeánadh an URL foinseach mar go bhféadfadh tokens príobháideacha a bheith ann."
-    approval:
-      typed_hint_once: "Freagair le `!approve` chun é a rith uair amháin, nó `!deny` chun cealú."
-      typed_hint_session: "Freagair le `!approve session` chun an patrún seo a cheadú don seisiún, `!approve` chun é a rith uair amháin, nó `!deny` chun cealú."
-      typed_hint_always: "Freagair le `!approve session` chun an patrún seo a cheadú don seisiún, `!approve always` chun é a cheadú go buan, `!approve` chun é a rith uair amháin, nó `!deny` chun cealú."
-      legend_intro: "Is féidir leat cliceáil ar an bhfrithghníomh chun ceadú freisin:"
-      legend_once: "✅ = ceadaigh uair amháin"
-      legend_session: "🌀 = ceadaigh don seisiún seo"
-      legend_always: "♾️ = ceadaigh i gcónaí"
-      legend_deny: "❎ = diúltaigh"
-      invalid_reaction: "Níl an frithghníomh sin bailí don leid cheada seo."
-      expired: "Tá an leid cheada seo imithe in éag. Rith an t-ordú arís má tá tú fós ag iarraidh é a cheadú."
-    picker:
-      no_models: "Níl aon samhail fhíordheimhnithe ar fáil don seisiún seo."
-      title: "⚙ **Cumraíocht Samhla**"
-      current_model: "Samhail reatha: `{model}`"
-      provider: "Soláthraí: {provider}"
-      react_model: "Frithghníomhaigh chun samhail a roghnú:"
-      react_choice: "Frithghníomhaigh chun roghnú."
-      current_suffix: "{label} ← reatha"
-      invalid_model_reaction: "Ní hé an frithghníomh sin ceann de na roghanna samhla atá ar fáil."
-      invalid_choice_reaction: "Ní hé an frithghníomh sin ceann de na roghanna atá ar fáil."
-      verb_switch_model: "an tsamhail a athrú"
-      verb_apply_selection: "an rogha a chur i bhfeidhm"
-      failed: "Theip ar {action}: {error}"
-    reaction:
-      unauthorized: "Ní féidir ach le húsáideoir Matrix údaraithe na rialtáin seo a úsáid."
-      not_requester: "Ní féidir ach leis an úsáideoir a d'iarr an gníomh seo na rialtáin seo a úsáid."
-  feishu:
-    approval:
-      action_session: "Seisiún"
-      action_always: "I gcónaí"
-      resolved_once: "Ceadaithe uair amháin"
-      resolved_session: "Ceadaithe don seisiún"
-      resolved_always: "Ceadaithe go buan"
-      resolved_deny: "Diúltaithe"
-      resolved_fallback: "Réitithe"
-      resolved_by_user: "{icon} **{label}** ag {user}"
-    update_prompt:
-      title: "☤ Tá d'Ionchur de Dhíth ar an Nuashonrú"
-      default_hint: "\n\nRéamhshocrú: `{default}`"
-      answer_yes: "✓ Tá"
-      answer_no: "✗ Níl"
-      word_yes: "Tá"
-      word_no: "Níl"
-      answered_title: "{icon} Leid nuashonraithe freagraithe: {answer}"
-      answered_by: "Freagraithe ag **{user}**"
-    media:
-      gif_downgraded: "[GIF íosghrádaithe go comhad]"
-      gif_downgraded_caption: "[GIF íosghrádaithe go comhad]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "Eile / clóscríobh freagra"
-      header: "Ceist"
-      question: "❓ {question}"
-    typing:
-      thinking: "Tá Hermes ag smaoineamh…"
-      interrupted: "(briseadh isteach air)"
-      no_reply: "(gan freagra)"
-    attachment_fallback:
-      header: "⚠️ Níorbh fhéidir liom **{filename}** a cheangal."
-      explain: "Ní cheadaíonn Google Chat ceangaltáin chomhaid ach nuair a bhíonn do chead sainráite ag an mbot (OAuth úsáideora). Toiliú aonuaire atá ann a dhéantar ón gcomhrá seo."
-      activate: "**Chun é a chumasú:** seol `/setup-files` agus lean na treoracha."
-      host_path: "Idir an dá linn tá an comhad ar an óstríomhaire: `{path}`"
-    setup_files:
-      not_configured: "🔧 **Níl** seachadadh dúchasach ceangaltán cumraithe.\n**Céim 1 (aonuaire, ar an óstríomhaire):** cruthaigh dintiúir chliaint OAuth ag https://console.cloud.google.com/apis/credentials → *Create credentials* → *OAuth client ID* → *Desktop app*. Íoslódáil an JSON. Ansin rith ar an óstríomhaire:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**Céim 2:** tar ar ais anseo agus seol `/setup-files start`."
-      start_instructions: "1. Oscail an URL seo i do bhrabhsálaí agus údaraigh:\n{auth_url}\n\n2. Tar éis *Allow* a chliceáil, teipfidh ar do bhrabhsálaí `http://localhost:1/?...&code=...` a lódáil. Tá sin ceart.\n\n3. Cóipeáil an URL teipthe ina iomláine ó bharra URL an bhrabhsálaí agus greamaigh é ar ais anseo mar: `/setup-files <PASTE_URL>` (nó an luach `code=...` amháin).\n\nLeid: tá do dheonú rochtana san URL — coinnigh príobháideach é."
-      start_failed: "❌ Níorbh fhéidir an URL OAuth a ghiniúint. Seiceáil logaí an gateway agus deimhnigh go bhfuil an client_secret.json bailí."
-      exchange_failed: "❌ Theip ar mhalartú an token. B'fhéidir go bhfuil an cód imithe in éag nó go bhfuil an URL míchumtha. Seol `/setup-files start` chun URL OAuth úr a fháil."
-      revoke_completed: "Cúlghairm curtha i gcrích (b'fhéidir gur léimeadh thar chéimeanna áirithe)."
-      revoked: "Cúlghairthe."
-      helper_error: "❌ Earráid: {error}"
-      revoke_error: "❌ Earráid agus á chúlghairm: {error}"
-      who_shared: "roinnte (oidhreacht)"
-      active: "✅ Tá seachadadh dúchasach ceangaltán **gníomhach** do `{who}`.\nToken: `{token_path}`\nSeol `/setup-files revoke` chun é a dhíchumasú."
-      not_authorized_yet: "🔧 Tá dintiúir chliaint stóráilte ach níor údaraigh tú fós. Seol `/setup-files start` chun tosú."
-      no_client_credentials: "⚠️ Níl aon dintiúir chliaint stóráilte don phróifíl seo. Seol `/setup-files` (gan argóintí) le haghaidh treoracha suiteála."
-      done_output: "✅ Déanta.\n```\n{output}\n```"
-      authorized: "✅ Údaraithe! Tá seachadadh dúchasach ceangaltán gníomhach anois. Iarr orm PDF a sheoladh chugat mar thriail."
-      exchanged_not_loaded: "⚠️ Malartaíodh an token ach níorbh fhéidir leis an gateway na dintiúir nua a lódáil sa chuimhne. Atosaigh an gateway agus glacfar leis an token ag `{token_path}`.\nAschur an chúntóra:\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ Ceadaithe (uair amháin)"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "Príomhchinntí"
       action_items: "Míreanna gnímh"
       risks: "Rioscaí"
-  line:
-    pending:
-      still_thinking: "🤔 Fós ag smaoineamh. Tapáil thíos chun an freagra a fháil nuair a bheidh sé réidh."
-      button_label: "Faigh an freagra"
-      delivered: "Freagraithe cheana ✅"
-      interrupted: "Briseadh isteach ar an rith roimh a chríochnú."
-      expired: "Tá an t-iarratas sin imithe in éag — seol do theachtaireacht arís."
-    standalone:
-      attachments_not_deliverable: "[{count} ceangaltán ginte; ní féidir iad a sheachadadh ó cron]"
-  wecom:
-    media:
-      kind_image: "Íomhá"
-      kind_video: "Físeán"
-      kind_voice: "Teachtaireacht ghutha"
-      file_too_large: "Sáraíonn méid an chomhaid {size_mb}MB teorainn 20MB WeCom agus ní féidir é a sheoladh. Bain triail as an gcomhad a dhlúthú nó a mhéid a laghdú."
-      voice_format_downgraded: "Ní thacaítear leis an bhformáid ghutha {content_type} (ní ghlacann WeCom ach le AMR); seoladh mar chomhad ina ionad."
-      size_downgraded: "Sáraíonn méid {label} {size_mb}MB an teorainn {cap}; seoladh mar chomhad ina ionad."
   email:
     image_line: "Íomhá: {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔Ag smaoineamh"
-      done: "🥳Déanta"
-  irc:
-    quit_message: "Hermes Agent ag múchadh"
-    standalone_quit: "seachadta"
   relay:
     confirm_approve_once: "Ceadaigh uair amháin"
     confirm_always_approve: "Ceadaigh i gcónaí"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "Tabhair an seisiún seo ar láimh d'ardán teachtaireachtaí (Telegram, Discord, etc.)"
   branch:
-    description: "Brainseáil an seisiún reatha (snáithe nua ar Discord/Telegram/Slack/Matrix; fanann --here anseo)"
+    description: "Brainseáil an seisiún reatha (snáithe nua ar Discord/Telegram/Slack; fanann --here anseo)"
   worktree:
     description: "Taispeáin, liostáil, cruthaigh, nó bearr worktrees git scoite"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "Cumasaíonn /voice on mód gutha sa CLI. Scoránaíonn Ctrl+B taifeadadh brúigh-le-labhairt."
   t155: "Seinneann TTS sruthaithe abairtí fad a ghintear iad — ní fhanann tú leis an bhfreagra iomlán."
   t156: "Déantar tras-scríobh uathoibríoch ar theachtaireachtaí gutha ar Telegram, Discord, WhatsApp, agus Slack."
-  t157: "Ritheann Hermes ar 21 ardán teachtaireachtaí: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, IRC, Microsoft Teams, ríomhphost, agus tuilleadh."
+  t157: "Ritheann Hermes ar 21 ardán teachtaireachtaí: Telegram, Discord, Slack, WhatsApp, Microsoft Teams, ríomhphost, agus tuilleadh."
   t158: "Socraíonn hermes gateway install é mar sheirbhís córais a thosaíonn ag am tosaithe an ríomhaire."
-  t159: "Úsáideann DingTalk Stream Mode — ní gá webhooks ná URL poiblí."
-  t160: "Tugann BlueBubbles iMessage chuig Hermes trí fhreastalaí macOS áitiúil."
   t161: "Tacaíonn bealaí webhook le bailíochtú HMAC, teorannú ráta, agus scagadh imeachtaí."
   t162: "Nochtann an freastalaí API críochphointe atá comhoiriúnach le OpenAI agus a oibríonn le Open WebUI agus LibreChat."
   t163: "Mód cainéil gutha Discord: téann an bot isteach sa VC, tras-scríobhann sé urlabhra, agus labhraíonn sé ar ais."
@@ -3814,7 +3684,6 @@ tips:
   t328: "Nascann tts.providers.<name>.type: command inneall TTS CLI ar bith le hionadchoinneálaithe {input_path} agus {output_path}."
   t329: "Ritheann API_SERVER_ENABLED=true críochphointe atá comhoiriúnach le OpenAI taobh leis an gateway le haghaidh Open WebUI agus LibreChat."
   t330: "Ritheann GATEWAY_PROXY_URL socrú scoilte: I/A ardáin go háitiúil, obair an ghníomhaire tarmligthe chuig freastalaí API cianda."
-  t331: "Greamaíonn MATRIX_DEVICE_ID ID gléis cobhsaí le haghaidh E2EE — gan é, rothlaíonn eochracha ag gach tosú agus briseann díchriptiú na staire."
   t332: "Tá TELEGRAM_WEBHOOK_SECRET riachtanach aon uair a shocraítear TELEGRAM_WEBHOOK_URL — gin é le openssl rand -hex 32."
   t333: "Meaitseálann batch_runner.py --resume leideanna críochnaithe de réir a dtéacs ionas nach n-athritheann athordú tacair sonraí obair atá déanta."
   t334: "Tosaíonn /new seisiún úr san áit (ailias /reset) — ID seisiúin úr, stair ghlan, fanann an CLI ar oscailt."

@@ -1,7 +1,7 @@
 ---
 sidebar_position: 12
 title: "将脚本输出推送到消息平台"
-description: "使用 `hermes send` 将任意 shell 脚本、cron 任务、CI hook 或监控守护进程的文本发送到 Telegram、Discord、Slack、Signal 等平台。"
+description: "使用 `hermes send` 将任意 shell 脚本、cron 任务、CI hook 或监控守护进程的文本发送到 Telegram、Discord、Slack 等平台。"
 ---
 
 # 将脚本输出推送到消息平台
@@ -68,11 +68,11 @@ hermes send --list telegram
 | `platform:chat_id` | `telegram:-1001234567890` | 指定数字 chat / 群组 / 用户 |
 | `platform:chat_id:thread_id` | `telegram:-1001234567890:17585` | 指定线程或 Telegram 论坛话题 |
 | `platform:#channel` | `discord:#ops` | 易读的频道名称（通过频道目录解析） |
-| `platform:+E164` | `signal:+15551234567` | 以电话号码寻址的平台：Signal、SMS、WhatsApp |
+| `platform:+E164` | `signal:+15551234567` | 以电话号码寻址的平台：WhatsApp |
 
 Hermes 附带适配器的所有平台均可作为目标：
-`telegram`、`discord`、`slack`、`signal`、`sms`、`whatsapp`、`matrix`、
-`mattermost`、`feishu`、`dingtalk`、`wecom`、`weixin`、`email` 等。
+`telegram`、`discord`、`slack`、`whatsapp`、`matrix`、
+`mattermost`、`email` 等。
 
 ### 退出码
 
@@ -167,7 +167,7 @@ msg_id=$(hermes send --to discord:#ops --json "build started" \
 
 ## `hermes send` 需要 gateway 运行吗？
 
-**通常不需要。** 对于所有基于 bot token 的平台——Telegram、Discord、Slack、Signal、SMS、WhatsApp Cloud API 等——`hermes send` 直接使用 `~/.hermes/.env` 和 `~/.hermes/config.yaml` 中的凭据调用平台的 REST 接口。它是一个独立的子进程，消息投递完成后即退出。
+**通常不需要。** 对于所有基于 bot token 的平台——Telegram、Discord、Slack、WhatsApp Cloud API 等——`hermes send` 直接使用 `~/.hermes/.env` 和 `~/.hermes/config.yaml` 中的凭据调用平台的 REST 接口。它是一个独立的子进程，消息投递完成后即退出。
 
 只有依赖持久适配器连接的**插件平台**才需要运行中的 gateway（例如，某个保持长连接 WebSocket 的自定义插件）。此时你会收到明确的错误提示，指引你启动 gateway；执行 `hermes gateway start` 后重试即可。
 

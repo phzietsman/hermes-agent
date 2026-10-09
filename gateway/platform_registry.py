@@ -110,7 +110,7 @@ class PlatformEntry:
     standalone_sender_fn: Optional[Callable[..., Awaitable[dict]]] = None
     # Every inbound event is produced by the service the adapter authenticated to with its own
     # credential (an event bus, not a person), so user allowlists and pairing do not apply. Never
-    # set it for a chat platform: any sender would reach the agent. Consumer: Home Assistant.
+    # set it for a chat platform: any sender would reach the agent.
     trusted_inbound: bool = False
     # Built-in display defaults tier ("high" | "medium" | "low" | "minimal", see
     # gateway/display_config.py) used below the user's display.* overrides; "" = global defaults.

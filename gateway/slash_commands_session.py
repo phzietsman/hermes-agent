@@ -258,16 +258,8 @@ class GatewaySessionCommandsMixin:
         return next((getattr(e, "origin", None) for e in entries.values()
                      if getattr(e, "session_id", None) == session_id), None)
 
-    @staticmethod
-    def _same_matrix_room(current: SessionSource, origin: Optional[SessionSource]) -> bool:
-        # thread_id is part of the session key, so another thread of the SAME room is a DIFFERENT
-        # session; non-threaded rooms compare "" == "".
-        return (origin is not None and origin.platform == Platform.MATRIX
-                and current.platform == Platform.MATRIX and origin.chat_id == current.chat_id
-                and _sattr(current, "thread_id") == _sattr(origin, "thread_id"))
-
     def _same_origin_chat(self, current: SessionSource, origin: Optional[SessionSource]) -> bool:
-        """Platform-agnostic counterpart to ``_same_matrix_room``.  Per-participant sessions must be
+        """Whether *origin* is the caller's own chat.  Per-participant sessions must be
         participant-scoped here too, else a co-member could resume another member's live session
         (IDOR); only an explicitly shared group/thread shares."""
         if origin is None or current is None:
@@ -279,7 +271,7 @@ class GatewaySessionCommandsMixin:
             return False
         if _sattr(current, "chat_type").lower() in _DM_CHAT_TYPES:
             # An equal non-empty chat_id IS the DM key. build_session_key falls back to the
-            # participant (``user_id_alt or user_id`` — Signal/Feishu key on alt) only without a
+            # participant (``user_id_alt or user_id`` — some platforms key on alt) only without a
             # chat_id; mirror that and fail closed on a missing/different participant.
             if _sattr(current, "chat_id"):
                 return True
@@ -317,7 +309,7 @@ class GatewaySessionCommandsMixin:
         """Whether a persisted (inactive) session *row* provably belongs to *source*'s session key.
         Rows once stored only source + user_id, so the persisted chat/thread origin is compared too
         and legacy NULL rows fail closed.  The table has no user_id_alt column, so an alt-keyed
-        (Signal/Feishu) caller is never proven by user_id alone (CWE-639)."""
+        caller is never proven by user_id alone (CWE-639)."""
         caller_src = source.platform.value if source.platform else None
         row_src = row.get("source")
         caller_uid = _sattr(source, "user_id")
@@ -369,12 +361,10 @@ class GatewaySessionCommandsMixin:
 
     async def _resume_row_visible(self, source: SessionSource, row: dict, allow_all: bool) -> bool:
         """Whether a listing *row* belongs to the caller's origin (blocks cross-origin enumeration of
-        ids/previews); Matrix is room-scoped, ``--all`` needs a configured admin everywhere."""
+        ids/previews); ``--all`` needs a configured admin."""
         if allow_all and self._resume_caller_is_admin(source):
             return True
         sid = str(row.get("id") or "")
-        if source.platform == Platform.MATRIX:
-            return self._same_matrix_room(source, self._gateway_session_origin_for_id(sid))
         return await self._resume_target_allowed(source, sid, allow_override=False)
 
     # ------------------------------------------------------------------ /retry, /undo
@@ -859,15 +849,7 @@ class GatewaySessionCommandsMixin:
     async def _resume_access_denied_reply(self, source, target_id: str, name: str, allow_all: bool,
                                           allow_cross_room: bool) -> Optional[str]:
         """IDOR guard: a session id/title is a routing handle, not authority — bind /resume to the
-        caller's own room (Matrix) or platform/user/chat (other adapters)."""
-        if source.platform == Platform.MATRIX:
-            target_origin = self._gateway_session_origin_for_id(target_id)
-            if self._same_matrix_room(source, target_origin) or allow_cross_room:
-                return None
-            if target_origin is None:
-                return t("gateway.resume.matrix_blocked_no_origin", name=name)
-            return t("gateway.resume.matrix_blocked_other_room", name=name,
-                     room=target_origin.chat_name or target_origin.chat_id)
+        caller's own platform/user/chat."""
         if await self._resume_target_allowed(source, target_id, allow_override=(allow_all or allow_cross_room)):
             return None
         return t("gateway.resume.blocked_not_owner", name=name)
@@ -928,11 +910,6 @@ class GatewaySessionCommandsMixin:
             # The resume itself succeeded; only the count is missing — say so rather than "empty".
             return t("gateway.resume.resumed_no_count", title=title) + "\n" + history_unreadable()
         msg_count = len([m for m in history if m.get("role") == "user"]) if history else 0
-        if source.platform == Platform.MATRIX and allow_cross_room:
-            msg_part = t("gateway.resume.msg_count_one" if msg_count == 1 else "gateway.resume.msg_count_other",
-                         count=msg_count) if msg_count else ""
-            return t("gateway.resume.matrix_cross_room_success", title=title,
-                     room=source.chat_name or source.chat_id, msg_part=msg_part)
         if not msg_count:
             return t("gateway.resume.resumed_no_count", title=title)
         if msg_count == 1:
@@ -946,17 +923,11 @@ class GatewaySessionCommandsMixin:
         if allow_all and not self._resume_caller_is_admin(source):
             scope_note = t("gateway.resume.all_requires_admin")
         if not titled:
-            if source.platform == Platform.MATRIX and not allow_all:
-                return t("gateway.resume.matrix_no_named_sessions")
             base = t("gateway.resume.no_named_sessions")
             return f"{base}\n{scope_note}" if scope_note else base
         lines = [t("gateway.resume.list_header")]
         for idx, s in enumerate(titled[:10], start=1):
             title = s["title"]
-            if source.platform == Platform.MATRIX and allow_all:
-                origin = self._gateway_session_origin_for_id(str(s.get("id") or ""))
-                if origin:
-                    title = f"{title} — {origin.chat_name or origin.chat_id}"
             preview = s.get("preview", "")[:40]
             preview_part = t("gateway.resume.list_preview_suffix", preview=preview) if preview else ""
             lines.append(t("gateway.resume.list_item_numbered", index=idx, title=title, preview_part=preview_part))
@@ -1013,7 +984,7 @@ class GatewaySessionCommandsMixin:
     async def _handle_branch_command(self, event: MessageEvent) -> str:
         """Handle /branch [--here] [name] — fork the current session into an independent copy.
 
-        Thread-capable platforms (Discord/Telegram/Slack/Matrix) open a NEW sibling thread bound
+        Thread-capable platforms (Discord/Telegram/Slack) open a NEW sibling thread bound
         to the clone and leave this chat on the original session; ``--here`` (and every platform
         without threads) switches the current chat onto the clone instead (#66023).
         """

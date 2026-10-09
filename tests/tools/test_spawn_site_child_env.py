@@ -51,7 +51,7 @@ def test_compute_host_is_hermes_and_keeps_its_full_environment(child_env, monkey
 
 
 @pytest.mark.platforms("posix")  # the stand-in binaries are shebang scripts
-@pytest.mark.parametrize("site", ["lsp_server", "lsp_go_install", "lsp_npm_install", "raft_bridge", "buzz_cli"])
+@pytest.mark.parametrize("site", ["lsp_server", "lsp_go_install", "lsp_npm_install"])
 def test_third_party_children_never_see_hermes_credentials(child_env, monkeypatch, site):
     _plant(monkeypatch)
     # Profile home mode (the container default) re-points HOME; the CLIs whose own logins live
@@ -59,8 +59,7 @@ def test_third_party_children_never_see_hermes_credentials(child_env, monkeypatc
     monkeypatch.setenv("TERMINAL_HOME_MODE", "profile")
     (child_env / "hermes" / "home").mkdir(parents=True, exist_ok=True)
     out = child_env / "seen.json"
-    own = {"lsp_server": "LSP_OWN_SETTING", "lsp_go_install": "GOBIN", "lsp_npm_install": "PATH",
-           "raft_bridge": "RAFT_CHANNEL_TOKEN", "buzz_cli": "BUZZ_PRIVATE_KEY"}[site]
+    own = {"lsp_server": "LSP_OWN_SETTING", "lsp_go_install": "GOBIN", "lsp_npm_install": "PATH"}[site]
     probe = _probe_script(child_env / "probe", out, [*_TIER1, _PROVIDER, own, "HOME"])
 
     if site == "lsp_server":
@@ -84,23 +83,8 @@ def test_third_party_children_never_see_hermes_credentials(child_env, monkeypatc
 
         with patch.object(install, "find_node_executable", return_value=str(probe)):
             install._install_npm("probe-language-server", "probe")
-    elif site == "buzz_cli":
-        from plugins.platforms.buzz.adapter import _exec_buzz
-
-        asyncio.run(_exec_buzz(str(probe), [], relay_url="wss://relay.invalid", private_key="buzz-own"))
-    else:
-        from gateway.config import PlatformConfig
-        from plugins.platforms.raft.adapter import RaftAdapter
-
-        monkeypatch.setenv("RAFT_PROFILE", "probe")
-        config = PlatformConfig(enabled=True, extra={"bridge_token": "bridge-own", "runtime_session": "default", "port": 0})
-        adapter = RaftAdapter(config)
-        with patch("plugins.platforms.raft.adapter.shutil.which", return_value=str(probe)):
-            adapter._spawn_bridge(4321)
-        adapter._bridge_process.wait(timeout=30)
 
     seen = json.loads(out.read_text(encoding="utf-8-sig"))
     assert {k: seen[k] for k in (*_TIER1, _PROVIDER)} == dict.fromkeys((*_TIER1, _PROVIDER))
     assert seen[own]  # the child's own configuration still arrives
-    user_home = site in ("raft_bridge", "buzz_cli")
-    assert seen["HOME"] == str(child_env if user_home else child_env / "hermes" / "home")
+    assert seen["HOME"] == str(child_env / "hermes" / "home")

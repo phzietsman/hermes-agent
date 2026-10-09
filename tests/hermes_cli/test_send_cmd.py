@@ -189,7 +189,7 @@ def test_list_includes_configured_platform_without_discovered_channels(
 
     class _FakeGwConfig:
         def get_connected_platforms(self):
-            return [_FakePlatform("simplex")]
+            return [_FakePlatform("teams")]
 
     fake_gw_config = types.ModuleType("gateway.config")
     fake_gw_config.load_gateway_config = lambda: _FakeGwConfig()
@@ -212,7 +212,7 @@ def test_list_includes_configured_platform_without_discovered_channels(
     rc = send_cmd._list_targets(None, json_mode=False)
     out = capsys.readouterr().out
     assert rc == 0
-    assert "simplex" in out
+    assert "teams" in out
     assert "no channels discovered yet" in out
 
 def test_list_json_includes_configured_platform(monkeypatch, capsys):
@@ -225,7 +225,7 @@ def test_list_json_includes_configured_platform(monkeypatch, capsys):
 
     class _FakeGwConfig:
         def get_connected_platforms(self):
-            return [_FakePlatform("simplex"), _FakePlatform("local")]
+            return [_FakePlatform("teams"), _FakePlatform("local")]
 
     fake_gw_config = types.ModuleType("gateway.config")
     fake_gw_config.load_gateway_config = lambda: _FakeGwConfig()
@@ -242,7 +242,7 @@ def test_list_json_includes_configured_platform(monkeypatch, capsys):
     rc = send_cmd._list_targets(None, json_mode=True)
     payload = json.loads(capsys.readouterr().out)
     assert rc == 0
-    assert payload["platforms"]["simplex"] == []
+    assert payload["platforms"]["teams"] == []
     assert "local" not in payload["platforms"]  # infra pseudo-platform skipped
     assert payload["platforms"]["telegram"]  # discovered entries preserved
 

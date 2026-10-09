@@ -147,23 +147,23 @@ class TestMatrixStartupSecret:
 
     def test_scoped_value_wins(self, monkeypatch):
         helper = self._helper()
-        monkeypatch.setenv("MATRIX_ACCESS_TOKEN", "env-token")
+        monkeypatch.setenv("SLACK_BOT_TOKEN", "env-token")
         ss.set_multiplex_active(True)
-        with _Scope({"MATRIX_ACCESS_TOKEN": "scoped-token"}):
-            assert helper("MATRIX_ACCESS_TOKEN") == "scoped-token"
+        with _Scope({"SLACK_BOT_TOKEN": "scoped-token"}):
+            assert helper("SLACK_BOT_TOKEN") == "scoped-token"
 
     def test_scoped_miss_no_borrow(self, monkeypatch):
         helper = self._helper()
-        monkeypatch.setenv("MATRIX_ACCESS_TOKEN", "other-profile")
+        monkeypatch.setenv("SLACK_BOT_TOKEN", "other-profile")
         ss.set_multiplex_active(True)
         with _Scope({"UNRELATED": "x"}):
-            assert helper("MATRIX_ACCESS_TOKEN") == ""
+            assert helper("SLACK_BOT_TOKEN") == ""
 
     def test_unscoped_multiplex_falls_back(self, monkeypatch):
         helper = self._helper()
-        monkeypatch.setenv("MATRIX_PASSWORD", "own-env-pass")
+        monkeypatch.setenv("EMAIL_PASSWORD", "own-env-pass")
         ss.set_multiplex_active(True)
-        assert helper("MATRIX_PASSWORD") == "own-env-pass"
+        assert helper("EMAIL_PASSWORD") == "own-env-pass"
 
 # ── Cluster C: managed tool gateway token override ─────────────────────────
 

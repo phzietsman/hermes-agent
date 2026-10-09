@@ -6,7 +6,7 @@ description: "完全跳过 LLM 的经典看门狗 cron 任务——脚本按计�
 
 # 纯脚本 Cron 任务
 
-有时你已经清楚地知道要发送什么消息。你不需要 agent 来推理——你只需要一个脚本按计时器运行，并将其输出（如有）发送到 Telegram / Discord / Slack / Signal。
+有时你已经清楚地知道要发送什么消息。你不需要 agent 来推理——你只需要一个脚本按计时器运行，并将其输出（如有）发送到 Telegram / Discord / Slack。
 
 Hermes 将此称为**无 agent 模式**。这是去掉 LLM 的 cron 系统。
 
@@ -220,7 +220,7 @@ hermes cron create "30m"             # 单次：30 分钟后运行一次
 --deliver local                          # 仅保存到 ~/.hermes/cron/output/
 ```
 
-对于使用 bot token 的平台（Telegram、Discord、Slack、Signal、SMS、WhatsApp），脚本运行时无需运行中的 gateway——工具直接使用 `~/.hermes/.env` / `~/.hermes/config.yaml` 中已有的凭据调用各平台的 REST 端点。
+对于使用 bot token 的平台（Telegram、Discord、Slack、WhatsApp），脚本运行时无需运行中的 gateway——工具直接使用 `~/.hermes/.env` / `~/.hermes/config.yaml` 中已有的凭据调用各平台的 REST 端点。
 
 ## 编辑与生命周期
 

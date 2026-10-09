@@ -72,19 +72,6 @@ async def test_a_dm_without_a_chat_id_is_refused(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("platform", ["ntfy", "raft", "a2a"])
-async def test_broadcast_shaped_platforms_are_refused(monkeypatch, platform):
-    runner = _runner(monkeypatch)
-    flow = MagicMock()
-    monkeypatch.setattr(anon_auth, "run_sign_in", flow)
-
-    source = SimpleNamespace(
-        platform=SimpleNamespace(value=platform), chat_id="chat-1", chat_type="dm", user_id="user-1")
-    assert await runner._handle_login_command(SimpleNamespace(source=source)) == anon_auth.LOGIN_DM_ONLY
-    flow.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_a_private_chat_type_is_accepted(monkeypatch):
     runner = _runner(monkeypatch)
     monkeypatch.setattr(anon_auth, "run_sign_in", lambda **_kwargs: iter([anon_auth.Declined()]))

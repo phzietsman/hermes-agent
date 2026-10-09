@@ -224,7 +224,6 @@ hermes skills uninstall <skill-name>
 | [**shop**](../user-guide/skills/optional/productivity/productivity-shop.md) | Shop catalog search, checkout, order tracking, returns. |
 | [**shopify**](../user-guide/skills/optional/productivity/productivity-shopify.md) | Query Shopify Admin/Storefront GraphQL APIs via curl. |
 | [**siyuan**](../user-guide/skills/optional/productivity/productivity-siyuan.md) | Query and edit a SiYuan knowledge base via its API. |
-| [**telephony**](../user-guide/skills/optional/productivity/productivity-telephony.md) | Provision Twilio numbers, SMS/MMS, and AI outbound calls. |
 
 ## research
 
@@ -289,12 +288,6 @@ hermes skills uninstall <skill-name>
 | [**page-agent**](../user-guide/skills/optional/web-development/web-development-page-agent.md) | Embed an in-page natural-language GUI copilot in web apps. |
 | [**publish-site**](../user-guide/skills/optional/web-development/web-development-publish-site.md) | Versioned site deploys to GitHub/Cloudflare/Netlify Pages. |
 | [**scrollcraft**](../user-guide/skills/optional/web-development/web-development-scrollcraft.md) | Premium scroll-driven landing pages; scroll = timeline. |
-
-## yuanbao
-
-| Skill | Description |
-|-------|-------------|
-| [**yuanbao**](../user-guide/skills/optional/yuanbao/yuanbao-yuanbao.md) | Yuanbao (元宝) groups: @mention users, query info/members. |
 
 ---
 

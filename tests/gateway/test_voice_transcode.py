@@ -37,8 +37,8 @@ class TestVoiceRouting(unittest.TestCase):
         self.assertFalse(should_send_media_as_audio("telegram", ".wav", is_voice=False))
 
     def test_other_platforms_unchanged(self):
-        self.assertTrue(should_send_media_as_audio("feishu", ".mp3", is_voice=False))
-        self.assertFalse(should_send_media_as_audio("feishu", ".qzx7", is_voice=False))
+        self.assertTrue(should_send_media_as_audio("slack", ".mp3", is_voice=False))
+        self.assertFalse(should_send_media_as_audio("slack", ".qzx7", is_voice=False))
 
 
 class TestTranscodeEngine(unittest.TestCase):

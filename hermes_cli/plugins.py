@@ -829,8 +829,7 @@ class PluginContext:
     def register_platform_handler(self, platform: str, factory: Callable) -> None:
         """Register ``factory(native, adapter)``, invoked at ``connect()`` before/as the core handlers
         register (``adapter`` read-only). ``native``: telegram PTB ``Application``, discord
-        ``commands.Bot``, slack ``AsyncApp``, matrix client, teams ``App``, dingtalk
-        ``DingTalkStreamClient``, line aiohttp ``web.Application``, others ``None``. Keep SDK imports
+        ``commands.Bot``, slack ``AsyncApp``, teams ``App``, others ``None``. Keep SDK imports
         inside the factory; exceptions are logged and the platform still connects. Scope handlers in
         first-match dispatch tables so core flows keep working. Raises ``ValueError`` when not callable
         or platform is empty."""

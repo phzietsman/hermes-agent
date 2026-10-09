@@ -259,12 +259,6 @@ export const zhHantCommandCenter = {
         label: '主頻道名稱',
         help: '記錄和狀態輸出中顯示的主頻道名稱。'
       },
-      BLUEBUBBLES_ALLOW_ALL_USERS: { label: '允許所有 iMessage 使用者', help: '為 true 時略過 BlueBubbles 允許清單。' },
-      MATTERMOST_ALLOW_ALL_USERS: { label: '允許所有 Mattermost 使用者' },
-      MATTERMOST_HOME_CHANNEL: { label: '主頻道' },
-      QQ_ALLOW_ALL_USERS: { label: '允許所有 QQ 使用者' },
-      QQBOT_HOME_CHANNEL: { label: 'QQ 主頻道', help: 'cron 傳遞的預設頻道或群組。' },
-      QQBOT_HOME_CHANNEL_NAME: { label: 'QQ 主頻道名稱' },
       SLACK_BOT_TOKEN: {
         label: 'Slack bot Token',
         help: '安裝 Slack 應用程式後，在 OAuth & Permissions 中找到 bot Token。',
@@ -276,23 +270,6 @@ export const zhHantCommandCenter = {
         placeholder: '貼上 Slack app Token'
       },
       SLACK_ALLOWED_USERS: { label: '允許的 Slack 使用者 ID', help: '建議設定。Slack 使用者 ID（每格一個）。' },
-      MATTERMOST_URL: { label: '伺服器 URL', placeholder: 'https://mattermost.example.com' },
-      MATTERMOST_TOKEN: { label: 'Bot Token' },
-      MATTERMOST_ALLOWED_USERS: { label: '允許的使用者 ID', help: '建議設定。Mattermost 使用者 ID（每格一個）。' },
-      MATRIX_HOMESERVER: { label: 'Homeserver URL', placeholder: 'https://matrix.org' },
-      MATRIX_ACCESS_TOKEN: { label: '存取 Token' },
-      MATRIX_USER_ID: { label: 'Bot 使用者 ID', placeholder: '@hermes:example.org' },
-      MATRIX_ALLOWED_USERS: {
-        label: '允許的 Matrix 使用者 ID',
-        help: '建議設定。@user:server 格式的使用者 ID（每格一個）。'
-      },
-      SIGNAL_HTTP_URL: {
-        label: 'Signal 橋接 URL',
-        placeholder: 'http://127.0.0.1:8080',
-        help: '執行中的 signal-cli REST 橋接的 URL。'
-      },
-      SIGNAL_ACCOUNT: { label: '電話號碼', help: '在 signal-cli 橋接中註冊的號碼。' },
-      SIGNAL_ALLOWED_USERS: { label: '允許的 Signal 使用者', help: '建議設定。Signal 識別碼（每格一個）。' },
       WHATSAPP_ENABLED: {
         label: '啟用 WhatsApp 橋接',
         help: '由下方切換開關自動設定。除非確知需要，否則請勿變更。'

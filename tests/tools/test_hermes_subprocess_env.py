@@ -59,19 +59,6 @@ class TestStripByDefault:
         for var in _TIER1_SAMPLE:
             assert var not in result, f"{var} leaked (Tier-1) with inherit_credentials=False"
 
-    def test_buzz_platform_vars_stripped_by_default(self):
-        """BUZZ_* first-party platform credentials must NOT reach the
-        non-terminal spawn surface (browser / TUI host / copilot-executor),
-        even though they pass through to terminal children (issue #78026)."""
-        buzz_sample = {
-            "BUZZ_PRIVATE_KEY": "nsec1fake",
-            "BUZZ_AUTH_TAG": '["tag","data","kind","sig"]',
-            "BUZZ_RELAY_URL": "https://mycommunity.communities.buzz.xyz",
-        }
-        result = _build(buzz_sample)
-        for var in buzz_sample:
-            assert var not in result, f"{var} leaked via hermes_subprocess_env"
-
 
     def test_pythonutf8_set(self):
         result = _build()
@@ -113,14 +100,6 @@ class TestTierInvariants:
             assert not leaked, (
                 f"Tier-1 keys leaked with inherit_credentials={inherit}: {sorted(leaked)}"
             )
-
-    def test_left_core_secrets_stripped_without_their_plugin(self):
-        """A feature that left core for a catalog plugin keeps its credentials out of children even
-        when the plugin is not installed (no manifest declares them then)."""
-        from hermes_cli.left_core_migration import LEFT_CORE
-        names = {"HASS_TOKEN"} | {n for feature in LEFT_CORE for n in feature.secret_env}
-        for inherit in (False, True):
-            assert not names & set(_build({n: "secret" for n in names}, inherit_credentials=inherit))
 
     def test_tier1_covers_gateway_bot_token(self):
         assert "TELEGRAM_BOT_TOKEN" in _ALWAYS_STRIP_KEYS

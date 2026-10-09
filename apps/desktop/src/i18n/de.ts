@@ -3165,26 +3165,6 @@ export const deOverrides = {
         label: 'Name des Home-Kanals',
         help: 'Anzeigename des Home-Kanals in Logs und Status-Ausgabe.'
       },
-      BLUEBUBBLES_ALLOW_ALL_USERS: {
-        label: 'Alle iMessage-Benutzer zulassen',
-        help: 'Bei true wird die BlueBubbles-Allowlist übersprungen.'
-      },
-      MATTERMOST_ALLOW_ALL_USERS: {
-        label: 'Alle Mattermost-Benutzer zulassen'
-      },
-      MATTERMOST_HOME_CHANNEL: {
-        label: 'Home-Kanal'
-      },
-      QQ_ALLOW_ALL_USERS: {
-        label: 'Alle QQ-Benutzer zulassen'
-      },
-      QQBOT_HOME_CHANNEL: {
-        label: 'QQ-Home-Kanal',
-        help: 'Standard-Kanal oder -Gruppe für die Cron-Zustellung.'
-      },
-      QQBOT_HOME_CHANNEL_NAME: {
-        label: 'Name des QQ-Home-Kanals'
-      },
       SLACK_BOT_TOKEN: {
         label: 'Slack-Bot-Token',
         help: 'Verwenden Sie das Bot-Token aus OAuth & Permissions, nachdem Sie Ihre Slack-App installiert haben.',
@@ -3198,45 +3178,6 @@ export const deOverrides = {
       SLACK_ALLOWED_USERS: {
         label: 'Erlaubte Slack-Benutzer-IDs',
         help: 'Empfohlen. Slack-Benutzer-IDs, eine pro Feld.'
-      },
-      MATTERMOST_URL: {
-        label: 'Server-URL',
-        placeholder: 'https://mattermost.example.com'
-      },
-      MATTERMOST_TOKEN: {
-        label: 'Bot-Token'
-      },
-      MATTERMOST_ALLOWED_USERS: {
-        label: 'Erlaubte Benutzer-IDs',
-        help: 'Empfohlen. Mattermost-Benutzer-IDs, eine pro Feld.'
-      },
-      MATRIX_HOMESERVER: {
-        label: 'Homeserver-URL',
-        placeholder: 'https://matrix.org'
-      },
-      MATRIX_ACCESS_TOKEN: {
-        label: 'Zugriffs-Token'
-      },
-      MATRIX_USER_ID: {
-        label: 'Bot-Benutzer-ID',
-        placeholder: '@hermes:example.org'
-      },
-      MATRIX_ALLOWED_USERS: {
-        label: 'Erlaubte Matrix-Benutzer-IDs',
-        help: 'Empfohlen. Benutzer-IDs im Format @benutzer:server, eine pro Feld.'
-      },
-      SIGNAL_HTTP_URL: {
-        label: 'Signal-Bridge-URL',
-        placeholder: 'http://127.0.0.1:8080',
-        help: 'URL einer laufenden signal-cli-REST-Bridge.'
-      },
-      SIGNAL_ACCOUNT: {
-        label: 'Telefonnummer',
-        help: 'Die Nummer, die bei Ihrer signal-cli-Bridge registriert ist.'
-      },
-      SIGNAL_ALLOWED_USERS: {
-        label: 'Erlaubte Signal-Benutzer',
-        help: 'Empfohlen. Signal-Kennungen, eine pro Feld.'
       },
       WHATSAPP_ENABLED: {
         label: 'WhatsApp-Bridge aktivieren',

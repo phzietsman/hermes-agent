@@ -55,10 +55,10 @@ def _create_legacy_ledger_without_adapter_profile(db):
             owner_pid INTEGER, owner_started_at INTEGER, last_error TEXT
         )
     """)
-    for oid, key in (("ob_gone", "agent:gone:feishu:dm:chatA"), ("ob_keep", "agent:keepme:feishu:dm:chatB")):
+    for oid, key in (("ob_gone", "agent:gone:telegram:dm:chatA"), ("ob_keep", "agent:keepme:telegram:dm:chatB")):
         db._write_sql(
             "INSERT INTO delivery_obligations (obligation_id, session_key, platform, chat_id, "
-            "content, state, created_at, updated_at) VALUES (?, ?, 'feishu', 'c', 'hi', 'pending', 1, 1)",
+            "content, state, created_at, updated_at) VALUES (?, ?, 'telegram', 'c', 'hi', 'pending', 1, 1)",
             (oid, key))
 
 
@@ -66,12 +66,12 @@ class TestRekeyProfileState:
     def test_rekeys_session_key_namespace_and_profile_columns(self, db):
         # A session owned by the old profile, keyed in its namespace.
         db.create_session(
-            "sess_old", "feishu", session_key="agent:oldname:feishu:dm:chatA",
+            "sess_old", "telegram", session_key="agent:oldname:telegram:dm:chatA",
             profile_name="oldname", chat_id="chatA", chat_type="dm",
         )
         # An unrelated profile's session must be left untouched.
         db.create_session(
-            "sess_other", "feishu", session_key="agent:keepme:feishu:dm:chatB",
+            "sess_other", "telegram", session_key="agent:keepme:telegram:dm:chatB",
             profile_name="keepme", chat_id="chatB", chat_type="dm",
         )
 
@@ -82,31 +82,31 @@ class TestRekeyProfileState:
         # Renamed row now lives under the new namespace + owner.
         row = db._read_one(
             "SELECT session_key, profile_name FROM sessions WHERE id = ?", ("sess_old",))
-        assert row["session_key"] == "agent:newname:feishu:dm:chatA"
+        assert row["session_key"] == "agent:newname:telegram:dm:chatA"
         assert row["profile_name"] == "newname"
         # Bystander untouched.
         other = db._read_one(
             "SELECT session_key, profile_name FROM sessions WHERE id = ?", ("sess_other",))
-        assert other["session_key"] == "agent:keepme:feishu:dm:chatB"
+        assert other["session_key"] == "agent:keepme:telegram:dm:chatB"
         assert other["profile_name"] == "keepme"
 
     def test_rekeys_routing_index_key_and_embedded_profile(self, db):
         entry = {
-            "session_key": "agent:oldname:feishu:dm:chatA",
+            "session_key": "agent:oldname:telegram:dm:chatA",
             "session_id": "sess_old",
-            "origin": {"platform": "feishu", "chat_id": "chatA", "profile": "oldname"},
+            "origin": {"platform": "telegram", "chat_id": "chatA", "profile": "oldname"},
         }
         db.save_gateway_routing_entry(
-            "agent:oldname:feishu:dm:chatA", json.dumps(entry), scope="/root/sessions")
+            "agent:oldname:telegram:dm:chatA", json.dumps(entry), scope="/root/sessions")
 
         counts = db.rekey_profile_state("oldname", "newname")
         assert counts["gateway_routing"] == 1
 
         rows = db.load_gateway_routing_entries(scope="/root/sessions")
-        assert "agent:oldname:feishu:dm:chatA" not in rows
-        assert "agent:newname:feishu:dm:chatA" in rows
-        payload = json.loads(rows["agent:newname:feishu:dm:chatA"])
-        assert payload["session_key"] == "agent:newname:feishu:dm:chatA"
+        assert "agent:oldname:telegram:dm:chatA" not in rows
+        assert "agent:newname:telegram:dm:chatA" in rows
+        payload = json.loads(rows["agent:newname:telegram:dm:chatA"])
+        assert payload["session_key"] == "agent:newname:telegram:dm:chatA"
         assert payload["origin"]["profile"] == "newname"
 
     def test_rekeys_heartbeats_and_delivery_obligations(self, db, tmp_path, monkeypatch):
@@ -123,7 +123,7 @@ class TestRekeyProfileState:
                 "INSERT INTO delivery_obligations (obligation_id, session_key, platform, chat_id, "
                 "content, state, created_at, updated_at, adapter_profile) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                ("ob1", "agent:oldname:feishu:dm:chatA", "feishu", "chatA",
+                ("ob1", "agent:oldname:telegram:dm:chatA", "telegram", "chatA",
                  "hi", "pending", now, now, "oldname"),
             )
             conn.commit()
@@ -138,7 +138,7 @@ class TestRekeyProfileState:
         ob = db._read_one(
             "SELECT session_key, adapter_profile FROM delivery_obligations WHERE obligation_id = ?",
             ("ob1",))
-        assert ob["session_key"] == "agent:newname:feishu:dm:chatA"
+        assert ob["session_key"] == "agent:newname:telegram:dm:chatA"
         assert ob["adapter_profile"] == "newname"
 
     def test_underscore_in_profile_name_is_not_a_like_wildcard(self, db):
@@ -223,5 +223,5 @@ class TestRekeyProfileState:
         assert counts["delivery_obligations_session_key"] == 1
         keys = {row["obligation_id"]: row["session_key"] for row in db._read_all(
             "SELECT obligation_id, session_key FROM delivery_obligations")}
-        assert keys == {"ob_gone": "agent:newname:feishu:dm:chatA",
-                        "ob_keep": "agent:keepme:feishu:dm:chatB"}
+        assert keys == {"ob_gone": "agent:newname:telegram:dm:chatA",
+                        "ob_keep": "agent:keepme:telegram:dm:chatB"}

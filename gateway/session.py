@@ -47,7 +47,7 @@ def _is_path_unsafe(value: object, *, strict: bool = True) -> bool:
 
     Session ids become filenames, so the strict form rejects ``..``, ANY path separator, and a
     leading Windows drive letter. ``strict=False`` is for *logical* session keys, where interior
-    ``/`` is legitimate (Google Chat ``spaces/<id>/threads/<id>``): only a *leading* one is refused.
+    ``/`` is legitimate: only a *leading* one is refused.
     """
     if not value:
         return False
@@ -74,10 +74,10 @@ class SessionSource:
     user_name: Optional[str] = None
     thread_id: Optional[str] = None  # forum topics, Discord threads, etc.
     chat_topic: Optional[str] = None  # channel topic/description (Discord, Slack)
-    user_id_alt: Optional[str] = None  # platform-specific stable alt ID (Signal UUID, Feishu union_id)
-    chat_id_alt: Optional[str] = None  # Signal group internal ID
+    user_id_alt: Optional[str] = None  # platform-specific stable alt ID (platform-specific stable id)
+    chat_id_alt: Optional[str] = None  # platform-specific group internal ID
     is_bot: bool = False  # message author is a bot/webhook (Discord)
-    # Platform-neutral SCOPE discriminator (Discord guild / Slack workspace / Matrix server) driving
+    # Platform-neutral SCOPE discriminator (Discord guild / Slack workspace) driving
     # isolation. ``guild_id`` is a deprecated alias: both written, ``scope_id`` wins on read.
     scope_id: Optional[str] = None
     guild_id: Optional[str] = None
@@ -187,7 +187,7 @@ class SessionContext:
 # Platforms where user IDs can be redacted: no ``<@user_id>``-style mention
 # system that needs raw IDs (which is why Discord is excluded).
 _PII_SAFE_PLATFORMS = frozenset({
-    Platform.WHATSAPP, Platform.SIGNAL, Platform.TELEGRAM, Platform.BLUEBUBBLES,
+    Platform.WHATSAPP, Platform.TELEGRAM,
 })
 
 
@@ -349,27 +349,10 @@ def _discord_platform_notes(context: SessionContext) -> List[str]:
     return lines
 
 
-_STATIC_PLATFORM_NOTES = {
-    Platform.BLUEBUBBLES: (
-        "**Platform notes:** You are responding via iMessage. Keep responses short and "
-        "conversational — think texts, not essays. Structure longer replies as separate short "
-        "thoughts, each separated by a blank line (double newline). Each block between blank lines "
-        "will be delivered as its own iMessage bubble, so write accordingly: one idea per bubble, "
-        "1–3 sentences each. If the user needs a detailed answer, give the short version first and "
-        "offer to elaborate."
-    ),
-    Platform.YUANBAO: (
-        "**Platform notes:** You are running inside Yuanbao. To send a private (DM) message to a "
-        "user in the current group, use the yb_send_dm tool (look up the recipient by name or pass "
-        "their user_id). Your normal reply is delivered to the group you are responding in."
-    ),
-}
-
 # Platform -> extra "Platform notes" lines for the session-context prompt.
 _PLATFORM_NOTES = {
     Platform.SLACK: _slack_platform_notes,
     Platform.DISCORD: _discord_platform_notes,
-    **{p: (lambda ctx, note=note: ["", note]) for p, note in _STATIC_PLATFORM_NOTES.items()},
 }
 
 
@@ -404,20 +387,6 @@ def build_session_context_prompt(context: SessionContext, *, redact_pii: bool = 
 
     if src.chat_topic:
         lines.append(f"**Channel Topic:** {_format_untrusted_prompt_value(src.chat_topic)}")
-
-    if src.platform == Platform.MATRIX:
-        lines += [
-            "",
-            f"**Matrix Room:** {_format_untrusted_prompt_value(src.chat_name or src.chat_id)}",
-            f"**Matrix Room ID:** {_chat_label(src.chat_id)}",
-        ]
-        if src.thread_id:
-            lines.append(f"**Matrix Thread:** {_chat_label(src.thread_id)}")
-        lines.append(
-            "**Matrix room boundary:** Treat this turn as scoped to the current Matrix room/thread "
-            "only. Do not assume unresolved references are about other Matrix rooms or projects "
-            "unless the user explicitly says so."
-        )
 
     # Shared multi-user sessions: never pin one user name in the system prompt (changes per turn ->
     # busts the prompt cache); sender names are prefixed on each user message instead.

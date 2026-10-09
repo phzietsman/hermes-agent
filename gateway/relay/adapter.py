@@ -808,7 +808,7 @@ class RelayAdapter(BasePlatformAdapter):
             # is nothing at the adapter layer to preserve.
             raise RuntimeError("RelayAdapter has no transport configured")
         self._transport.set_inbound_handler(self._on_inbound)
-        # Interrupts and passthrough-plane forwards (Discord interactions, Twilio, …)
+        # Interrupts and passthrough-plane forwards (Discord interactions, …)
         # ride the SAME outbound WS — no inbound HTTP receiver, no public port.
         for setter_name, handler in (
             ("set_interrupt_inbound_handler", self.on_interrupt),
@@ -2250,8 +2250,8 @@ class RelayAdapter(BasePlatformAdapter):
     # debug), it failed silently on every single Telegram turn.
     #
     # 👍/👎 are both in Telegram's set and carry the same success/failure sense.
-    # Platforms with free-form reaction vocabularies (Slack, Discord, Matrix,
-    # Signal) keep ✅/❌, which read better and are what their users already see.
+    # Platforms with free-form reaction vocabularies (Slack, Discord)
+    # keep ✅/❌, which read better and are what their users already see.
     # Per-platform divergence here follows `_descriptor_for_chat`'s precedent:
     # platform capabilities genuinely differ, so one hardcoded set cannot serve
     # every lane a multi-platform gateway fronts.

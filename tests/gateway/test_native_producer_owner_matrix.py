@@ -32,7 +32,7 @@ def owners(request, tmp_path, monkeypatch):
         if name == "a" and mode in ("override", "null"):
             cfg = {"display": {"suppress_warning_notifications": True, "platforms": {
                 p: {"suppress_warning_notifications": False if mode == "override" else None}
-                for p in ("slack", "signal")}}}
+                for p in ("slack", "telegram")}}}
         (home / "config.yaml").write_text(json.dumps(cfg))
     def suppressed(name):
         return mode == "managed" or (mode in (True, "null") if name == "a" else not bool(mode))
@@ -77,41 +77,3 @@ async def test_slack_upload_failure_owner_scope_keeps_caption_and_result(owners,
         assert get_hermes_home() == root
     assert "upload rejected" in caplog.text
 
-
-@pytest.mark.asyncio
-async def test_signal_pacing_owner_scope_keeps_acquisition_and_upload(owners, tmp_path, monkeypatch):
-    import gateway.platforms.signal as module
-    root, suppressed = owners
-    adapter = module.SignalAdapter(PlatformConfig())
-    adapter.gateway_runner = GatewayRunner(GatewayConfig(multiplex_profiles=True))
-    scheduler = SimpleNamespace(state=lambda: {}, estimate_wait=lambda n: 120,
-        acquire=AsyncMock(), report_rpc_duration=AsyncMock())
-    monkeypatch.setattr(module, "get_scheduler", lambda: scheduler)
-    adapter._stop_typing_indicator = AsyncMock()
-    path = tmp_path / "image.png"
-    path.write_bytes(b"image")
-    adapter._resolve_image_path = AsyncMock(return_value=(str(path), None, None))
-    adapter._with_target = AsyncMock(side_effect=lambda params, chat: params)
-    uploads, warnings = [], []
-    async def rpc(method, params, **kwargs):
-        uploads.append((get_hermes_home(), params))
-        return {"timestamp": 123}
-    async def send(*args, **kwargs):
-        warnings.append(get_hermes_home())
-        return SendResult(success=True)
-    adapter._rpc, adapter.send = rpc, send
-    for name in ("a", "b", "a"):
-        source = adapter.build_source(chat_id="recipient", user_id="human")
-        source.profile = name
-        before = len(warnings)
-        with adapter._media_delivery_scope(source):
-            result = await adapter.send_multiple_images("recipient", [(path.as_uri(), "caption")])
-        assert result.success
-        assert len(warnings) - before == (0 if suppressed(name) else 1)
-        if not suppressed(name):
-            assert warnings[-1] == root / "profiles" / name
-        assert uploads[-1][0] == root / "profiles" / name
-        assert uploads[-1][1]["attachments"] == [str(path)]
-        assert get_hermes_home() == root
-    assert scheduler.acquire.await_count == 3
-    assert scheduler.report_rpc_duration.await_count == 3

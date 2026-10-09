@@ -23,7 +23,7 @@ The messaging gateway is the long-running process that connects Hermes to 20+ ex
 | `gateway/builtin_hooks/` | Extension point for always-registered hooks (none shipped) |
 | `gateway/platform_registry.py` | Adapter registry, factories, and deferred (lazy) loaders for bundled platform plugins |
 | `plugins/platforms/<name>/` | Bundled messaging adapters (most platforms: `adapter.py` + `plugin.yaml`) |
-| `gateway/platforms/` | Shared `base.py` plus legacy/direct adapters (Signal, API server, webhooks, …) |
+| `gateway/platforms/` | Shared `base.py` plus legacy/direct adapters (API server, webhooks, …) |
 
 ## Architecture Overview
 
@@ -151,25 +151,11 @@ plugins/platforms/                  # plugin-packaged adapters (one dir each)
 ├── discord/adapter.py      # Discord bot via discord.py
 ├── slack/adapter.py        # Slack Socket Mode
 ├── whatsapp/adapter.py     # WhatsApp Business Cloud API
-├── matrix/adapter.py       # Matrix via mautrix (optional E2EE)
-├── mattermost/adapter.py   # Mattermost WebSocket API
 ├── email/adapter.py        # Email via IMAP/SMTP
-├── sms/adapter.py          # SMS via Twilio
-├── dingtalk/adapter.py     # DingTalk WebSocket
-├── feishu/adapter.py       # Feishu/Lark WebSocket or webhook
-├── wecom/adapter.py        # WeCom (WeChat Work) callback
-├── line/adapter.py         # LINE Messaging API
-├── teams/adapter.py        # Microsoft Teams
-├── irc/adapter.py          # IRC (canonical scoped-lock example)
-└── …                       # google_chat, ntfy, photon, raft, simplex, …
+└── teams/adapter.py        # Microsoft Teams
 
 gateway/platforms/                  # core base + legacy direct adapters
 ├── base.py              # BasePlatformAdapter — shared logic for all platforms
-├── signal.py            # Signal via signal-cli REST API
-├── weixin.py            # Weixin (personal WeChat) via iLink Bot API
-├── bluebubbles.py       # Apple iMessage via BlueBubbles macOS server
-├── qqbot/               # QQ Bot (Tencent QQ) via Official API v2 (sub-package)
-├── yuanbao.py           # Yuanbao (Tencent) DM/group adapter
 ├── msgraph_webhook.py   # Microsoft Graph change-notification webhook (Teams, Outlook, etc.)
 ├── webhook.py           # Inbound/outbound webhook adapter
 └── api_server.py        # REST API server adapter
@@ -309,7 +295,7 @@ briefs are labelled user turns appended at a turn boundary, preserving role alte
 `desktop="settings"`, listed in `run_busy.py::_PLAIN_COMMANDS`, and handled by
 `GatewayLoginCommandsMixin` (`gateway/slash_commands_login.py`). It refuses outside a paired DM:
 `chat_type in {"dm","private"}`, a truthy `chat_id`, and a platform whose `"dm"` really is a paired
-conversation — ntfy, raft and a2a all report `chat_type="dm"` for a broadcast topic, a channel and
+conversation — broadcast-style platforms may report `chat_type="dm"` for a broadcast topic, a channel and
 an agent peer, so posting a consent link there would publish it.
 
 **It binds the whole install.** The sign-in writes the singleton `providers.nous`, so whoever

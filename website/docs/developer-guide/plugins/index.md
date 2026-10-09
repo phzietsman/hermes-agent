@@ -18,7 +18,7 @@ Hermes has several distinct pluggable interfaces — some use Python `register_*
 | A **native desktop app** extension (panes, pages, status bar, palette, themes) | [Desktop Plugin SDK](../desktop-plugin-sdk.md) |
 | A **web dashboard** extension (tabs, shell slots, themes) | [Extending the Dashboard](../../user-guide/features/extending-the-dashboard.md) |
 | An **LLM / inference backend** (new provider) | [Model Provider Plugins](../model-provider-plugin.md) |
-| A **gateway channel** (Discord/Telegram/IRC/Teams/etc.) | [Adding Platform Adapters](../adding-platform-adapters.md) |
+| A **gateway channel** (Discord/Telegram/Teams/etc.) | [Adding Platform Adapters](../adding-platform-adapters.md) |
 | A **memory backend** (Honcho/Mem0/Supermemory/etc.) | [Memory Provider Plugins](../memory-provider-plugin.md) |
 | A **context-compression engine** | [Context Engine Plugins](../context-engine-plugin.md) |
 | An **image-generation backend** | [Image Generation Provider Plugins](../image-gen-provider-plugin.md) |
@@ -1645,12 +1645,9 @@ def register(ctx):
 | `telegram` | PTB `Application` | `add_handler` — any update type, pattern-scoped callbacks |
 | `discord` | `discord.ext.commands.Bot` | `add_listener` — reactions, member events, threads, voice |
 | `slack` | `slack_bolt.AsyncApp` | `app.event()` / `app.action()` / `app.command()` |
-| `matrix` | Matrix client | event callbacks |
 | `teams` | Teams `App` | `on_message` / `on_card_action` decorators |
-| `dingtalk` | `DingTalkStreamClient` | `register_callback_handler` for other stream topics |
-| `feishu` | lark_oapi client | API calls; event routing |
-| `line`, `api_server`, `msgraph_webhook` | aiohttp `web.Application` | `router.add_get/post` — custom routes (wired before the router freezes) |
-| everything else (whatsapp, signal, irc, email, sms, ntfy, wecom, weixin, bluebubbles, yuanbao, ...) | `None` | connect-time hook; work through the `adapter` handle |
+| `api_server`, `msgraph_webhook` | aiohttp `web.Application` | `router.add_get/post` — custom routes (wired before the router freezes) |
+| everything else (whatsapp, email, ...) | `None` | connect-time hook; work through the `adapter` handle |
 
 **Runtime behavior:**
 
@@ -1823,7 +1820,7 @@ optional_env:
     password: false
 ```
 
-**Full guide:** [Adding Platform Adapters](../adding-platform-adapters.md) — complete `BasePlatformAdapter` contract, message routing, auth gating, setup wizard integration. Look at `plugins/platforms/irc/` for a stdlib-only working example.
+**Full guide:** [Adding Platform Adapters](../adding-platform-adapters.md) — complete `BasePlatformAdapter` contract, message routing, auth gating, setup wizard integration. Look at `plugins/platforms/teams/` for a stdlib-only working example.
 
 ### Memory provider plugins — add a cross-session knowledge backend
 

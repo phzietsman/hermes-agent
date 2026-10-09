@@ -152,7 +152,7 @@ describe('new activity after the seed', () => {
     $activityToasts.set(true)
     trackInboundActivity([chatting('researcher', 5000)])
     trackInboundActivity([chatting('researcher', 6000, 'same message')])
-    // A busy bridge (Feishu) re-pings the same message; last_active moved on
+    // A busy bridge re-pings the same message; last_active moved on
     // but the preview is identical — must not produce a second toast.
     trackInboundActivity([chatting('researcher', 7000, 'same message')])
 

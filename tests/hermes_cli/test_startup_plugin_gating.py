@@ -48,8 +48,8 @@ def test_deferred_platform_loader_registers_cli_command_before_parser_table():
     from hermes_cli.plugins import PluginContext, PluginManager, PluginManifest
 
     mgr = PluginManager()
-    manifest = PluginManifest(name="fake-photon-platform")
-    command_name = "fakephoton"
+    manifest = PluginManifest(name="fake-demo-platform")
+    command_name = "fakedemo"
 
     def _fake_loader():
         # Mirrors what a real platform adapter does on import: register its
@@ -80,7 +80,7 @@ def test_deferred_platform_loader_registers_cli_command_before_parser_table():
     assert command_name in mgr._cli_commands
     cmd_info = mgr._cli_commands[command_name]
     assert cmd_info["name"] == command_name
-    assert cmd_info["plugin"] == "fake-photon-platform"
+    assert cmd_info["plugin"] == "fake-demo-platform"
 
     # Same parser-table assembly main() uses after reading _cli_commands.
     parser = argparse.ArgumentParser(prog="hermes")

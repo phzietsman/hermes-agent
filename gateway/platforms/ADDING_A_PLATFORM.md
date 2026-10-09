@@ -76,8 +76,8 @@ come **first** in the bases list — `class WhatsAppAdapter(Mixin,
 BasePlatformAdapter)` — so the mixin's `format_message` overrides
 `BasePlatformAdapter`'s generic default.
 
-See `plugins/platforms/irc/`, `plugins/platforms/teams/`, and
-`plugins/platforms/google_chat/` for complete working examples, and
+See `plugins/platforms/teams/`, `plugins/platforms/slack/`, and
+`plugins/platforms/email/` for complete working examples, and
 `website/docs/developer-guide/adding-platform-adapters.md` for the full
 plugin guide with code examples and hook documentation.
 
@@ -135,7 +135,7 @@ If your platform supports interactive button/menu messages, implement these for 
 | `_send_exec_approval_prompt(prompt: ExecApprovalPrompt)` | Render a dangerous-command approval as native buttons. `send_exec_approval` is a base template method: it builds the shared text (`_format_exec_approval`, tune via the `_EA_*` class attrs) and the choice set (`prompt.actions` = `(label, choice, style)` rows, choices `once`/`session`/`always`/`deny`) — you only map those rows to widgets. Inbound dispatch routes to `tools.approval.resolve_gateway_approval`. |
 | `send_slash_confirm(chat_id, title, message, session_key, confirm_id, ...)` | Render slash-command confirmations (e.g. `/reload-mcp`) as Once/Always/Cancel buttons. Inbound dispatch routes to `tools.slash_confirm.resolve`. |
 | `send_model_picker(...)` | Interactive `/model` picker. Used by Telegram, Discord, and Slack (Socket Mode). |
-| `send_choice_picker(...)` | Flat single-level picker for finite-choice commands (`/reasoning`, `/fast`). Implemented by Telegram (inline keyboard), Discord (select menu), and Matrix (reactions). Platforms without it fall back to the text status card automatically. |
+| `send_choice_picker(...)` | Flat single-level picker for finite-choice commands (`/reasoning`, `/fast`). Implemented by Telegram (inline keyboard) and Discord (select menu). Platforms without it fall back to the text status card automatically. |
 
 See `gateway/platforms/telegram.py`, `discord.py`, and `whatsapp_cloud.py` for reference implementations. The button-callback id convention (`cl:<id>:<idx>`, `appr:<id>:<choice>`, `sc:<choice>:<id>`) is shared across adapters — match it so the gateway-side resolvers work without modification.
 
@@ -193,7 +193,7 @@ process-wide (first profile wins). Adapter-side reads use `gateway.platforms._sh
 / `extra_or_secret`.
 
 Update `get_connected_platforms()` if your platform doesn't use token/api_key
-(e.g., WhatsApp uses `enabled` flag, Signal uses `extra` dict).
+(e.g., WhatsApp uses `enabled` flag, Slack uses `extra` dict).
 
 ---
 
@@ -238,7 +238,7 @@ answers from the routed profile's secret scope under multiplex — never add an 
 
 ## 5. Session Source (`gateway/session.py`)
 
-If your platform needs extra identity fields (e.g., Signal's UUID alongside
+If your platform needs extra identity fields (e.g., a stable UUID alongside
 phone number), add them to the `SessionSource` dataclass with `Optional` defaults,
 and update `to_dict()`, `from_dict()`, and `build_source()` in base.py.
 
@@ -339,7 +339,7 @@ If your platform can't enumerate chats (most can't), add it to the
 session-based discovery list:
 
 ```python
-for plat_name in ("telegram", "whatsapp", "signal", "your_platform"):
+for plat_name in ("telegram", "whatsapp", "slack", "your_platform"):
 ```
 
 ---

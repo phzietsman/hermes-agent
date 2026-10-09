@@ -281,40 +281,11 @@ description: "Hermes Agent 使用的所有环境变量完整参考"
 | `SLACK_ALLOWED_USERS` | 逗号分隔的 Slack 用户 ID |
 | `SLACK_HOME_CHANNEL` | cron 投递的默认 Slack 频道 |
 | `SLACK_HOME_CHANNEL_NAME` | Slack 主频道的显示名称 |
-| `GOOGLE_CHAT_PROJECT_ID` | 托管 Pub/Sub 话题的 GCP 项目（回退到 `GOOGLE_CLOUD_PROJECT`） |
-| `GOOGLE_CHAT_SUBSCRIPTION_NAME` | 完整 Pub/Sub 订阅路径，`projects/{proj}/subscriptions/{sub}`（旧版别名：`GOOGLE_CHAT_SUBSCRIPTION`） |
-| `GOOGLE_CHAT_SERVICE_ACCOUNT_JSON` | Service Account JSON 文件路径，或内联 JSON（回退到 `GOOGLE_APPLICATION_CREDENTIALS`） |
-| `GOOGLE_CHAT_ALLOWED_USERS` | 允许与 bot 聊天的逗号分隔用户邮箱 |
-| `GOOGLE_CHAT_ALLOW_ALL_USERS` | 允许任意 Google Chat 用户触发 bot（仅用于开发） |
-| `GOOGLE_CHAT_HOME_CHANNEL` | cron 投递的默认空间（例如 `spaces/AAAA...`） |
-| `GOOGLE_CHAT_HOME_CHANNEL_NAME` | Google Chat 主空间的显示名称 |
-| `GOOGLE_CHAT_MAX_MESSAGES` | Pub/Sub FlowControl 最大在途消息数（默认：`1`） |
-| `GOOGLE_CHAT_MAX_BYTES` | Pub/Sub FlowControl 最大在途字节数（默认：`16777216`，16 MiB） |
-| `GOOGLE_CHAT_BOOTSTRAP_SPACES` | 启动时探测以解析 bot 自身 `users/{id}` 的逗号分隔额外空间 ID |
-| `GOOGLE_CHAT_DEBUG_RAW` | 设置任意值可在 DEBUG 级别记录脱敏的 Pub/Sub 信封（仅用于调试） |
 | `WHATSAPP_ENABLED` | 启用 WhatsApp 桥接（`true`/`false`） |
 | `WHATSAPP_MODE` | `bot`（独立号码）或 `self-chat`（给自己发消息） |
 | `WHATSAPP_ALLOWED_USERS` | 逗号分隔的手机号码（含国家代码，不含 `+`），或 `*` 允许所有发送者 |
 | `WHATSAPP_ALLOW_ALL_USERS` | 无需白名单允许所有 WhatsApp 发送者（`true`/`false`） |
 | `WHATSAPP_DEBUG` | 在桥接中记录原始消息事件以供排查（`true`/`false`） |
-| `SIGNAL_HTTP_URL` | signal-cli 守护进程 HTTP 端点（例如 `http://127.0.0.1:8080`） |
-| `SIGNAL_ACCOUNT` | E.164 格式的 bot 手机号码 |
-| `SIGNAL_ALLOWED_USERS` | 逗号分隔的 E.164 手机号码或 UUID |
-| `SIGNAL_GROUP_ALLOWED_USERS` | 逗号分隔的群组 ID，或 `*` 表示所有群组 |
-| `SIGNAL_HOME_CHANNEL_NAME` | Signal 主频道的显示名称 |
-| `SIGNAL_IGNORE_STORIES` | 忽略 Signal 故事/状态更新 |
-| `SIGNAL_ALLOW_ALL_USERS` | 无需白名单允许所有 Signal 用户 |
-| `TWILIO_ACCOUNT_SID` | Twilio Account SID（与电话技能共享） |
-| `TWILIO_AUTH_TOKEN` | Twilio Auth Token（与电话技能共享；也用于 webhook 签名验证） |
-| `TWILIO_PHONE_NUMBER` | E.164 格式的 Twilio 手机号码（与电话技能共享） |
-| `SMS_WEBHOOK_URL` | Twilio 签名验证的公共 URL——必须与 Twilio Console 中的 webhook URL 一致（必填） |
-| `SMS_WEBHOOK_PORT` | 入站 SMS 的 webhook 监听端口（默认：`8080`） |
-| `SMS_WEBHOOK_HOST` | webhook 绑定地址（默认：`0.0.0.0`） |
-| `SMS_INSECURE_NO_SIGNATURE` | 设为 `true` 可禁用 Twilio 签名验证（仅用于本地开发——不适用于生产环境） |
-| `SMS_ALLOWED_USERS` | 允许聊天的逗号分隔 E.164 手机号码 |
-| `SMS_ALLOW_ALL_USERS` | 无需白名单允许所有 SMS 发送者 |
-| `SMS_HOME_CHANNEL` | cron 任务/通知投递的手机号码 |
-| `SMS_HOME_CHANNEL_NAME` | SMS 主频道的显示名称 |
 | `EMAIL_ADDRESS` | Email gateway 适配器的邮箱地址 |
 | `EMAIL_PASSWORD` | 邮箱账户的密码或应用密码 |
 | `EMAIL_IMAP_HOST` | 邮件适配器的 IMAP 主机名 |
@@ -327,86 +298,6 @@ description: "Hermes Agent 使用的所有环境变量完整参考"
 | `EMAIL_HOME_ADDRESS_NAME` | 邮件主目标的显示名称 |
 | `EMAIL_POLL_INTERVAL` | 邮件轮询间隔（秒） |
 | `EMAIL_ALLOW_ALL_USERS` | 允许所有入站邮件发送者 |
-| `DINGTALK_CLIENT_ID` | 来自开发者门户的钉钉 bot AppKey（[open.dingtalk.com](https://open.dingtalk.com)） |
-| `DINGTALK_CLIENT_SECRET` | 来自开发者门户的钉钉 bot AppSecret |
-| `DINGTALK_ALLOWED_USERS` | 允许向 bot 发送消息的逗号分隔钉钉用户 ID |
-| `FEISHU_APP_ID` | 来自 [open.feishu.cn](https://open.feishu.cn/) 的飞书/Lark bot App ID |
-| `FEISHU_APP_SECRET` | 飞书/Lark bot App Secret |
-| `FEISHU_DOMAIN` | `feishu`（中国）或 `lark`（国际）。默认：`feishu` |
-| `FEISHU_CONNECTION_MODE` | `websocket`（推荐）或 `webhook`。默认：`websocket` |
-| `FEISHU_ENCRYPT_KEY` | webhook 模式的可选加密密钥 |
-| `FEISHU_VERIFICATION_TOKEN` | webhook 模式的可选验证 token |
-| `FEISHU_ALLOWED_USERS` | 允许向 bot 发送消息的逗号分隔飞书用户 ID |
-| `FEISHU_ALLOW_BOTS` | `none`（默认）/`mentions`/`all`——接受来自其他 bot 的入站消息。参见 [bot 间消息传递](../user-guide/messaging/feishu.md#机器人间消息传递) |
-| `FEISHU_REQUIRE_MENTION` | `true`（默认）/`false`——群组消息是否必须 @mention bot。可通过 `group_rules.<chat_id>.require_mention` 按聊天覆盖。 |
-| `FEISHU_HOME_CHANNEL` | cron 投递和通知的飞书聊天 ID |
-| `WECOM_BOT_ID` | 来自管理控制台的企业微信 AI Bot ID |
-| `WECOM_SECRET` | 企业微信 AI Bot 密钥 |
-| `WECOM_WEBSOCKET_URL` | 自定义 WebSocket URL（默认：`wss://openws.work.weixin.qq.com`） |
-| `WECOM_ALLOWED_USERS` | 允许向 bot 发送消息的逗号分隔企业微信用户 ID |
-| `WECOM_HOME_CHANNEL` | cron 投递和通知的企业微信聊天 ID |
-| `WECOM_CALLBACK_CORP_ID` | 企业微信回调自建应用的企业 Corp ID |
-| `WECOM_CALLBACK_CORP_SECRET` | 自建应用的企业密钥 |
-| `WECOM_CALLBACK_AGENT_ID` | 自建应用的 Agent ID |
-| `WECOM_CALLBACK_TOKEN` | 回调验证 token |
-| `WECOM_CALLBACK_ENCODING_AES_KEY` | 回调加密的 AES 密钥 |
-| `WECOM_CALLBACK_HOST` | 回调服务器绑定地址（默认：`0.0.0.0`） |
-| `WECOM_CALLBACK_PORT` | 回调服务器端口（默认：`8645`） |
-| `WECOM_CALLBACK_ALLOWED_USERS` | 白名单的逗号分隔用户 ID |
-| `WECOM_CALLBACK_ALLOW_ALL_USERS` | 设为 `true` 可无需白名单允许所有用户 |
-| `WEIXIN_ACCOUNT_ID` | 通过 iLink Bot API 扫码登录获取的微信账号 ID |
-| `WEIXIN_TOKEN` | 通过 iLink Bot API 扫码登录获取的微信认证 token |
-| `WEIXIN_BASE_URL` | 覆盖微信 iLink Bot API base URL（默认：`https://ilinkai.weixin.qq.com`） |
-| `WEIXIN_CDN_BASE_URL` | 覆盖媒体的微信 CDN base URL（默认：`https://novac2c.cdn.weixin.qq.com/c2c`） |
-| `WEIXIN_DM_POLICY` | 私信策略：`open`、`allowlist`、`pairing`、`disabled`（默认：`open`） |
-| `WEIXIN_GROUP_POLICY` | 群消息策略：`open`、`allowlist`、`disabled`（默认：`disabled`） |
-| `WEIXIN_ALLOWED_USERS` | 允许私信 bot 的逗号分隔微信用户 ID |
-| `WEIXIN_GROUP_ALLOWED_USERS` | 允许与 bot 互动的逗号分隔微信**群聊 ID**（非成员用户 ID）。变量名为历史遗留——期望传入群 ID。仅当 iLink 实际投递群事件时生效；扫码登录的 iLink bot 身份（`...@im.bot`）通常不接收普通微信群消息。 |
-| `WEIXIN_HOME_CHANNEL` | cron 投递和通知的微信聊天 ID |
-| `WEIXIN_HOME_CHANNEL_NAME` | 微信主频道的显示名称 |
-| `WEIXIN_ALLOW_ALL_USERS` | 无需白名单允许所有微信用户（`true`/`false`） |
-| `BLUEBUBBLES_SERVER_URL` | BlueBubbles 服务器 URL（例如 `http://192.168.1.10:1234`） |
-| `BLUEBUBBLES_PASSWORD` | BlueBubbles 服务器密码 |
-| `BLUEBUBBLES_WEBHOOK_HOST` | webhook 监听绑定地址（默认：`127.0.0.1`） |
-| `BLUEBUBBLES_WEBHOOK_PORT` | webhook 监听端口（默认：`8645`） |
-| `BLUEBUBBLES_HOME_CHANNEL` | cron/通知投递的手机/邮箱 |
-| `BLUEBUBBLES_ALLOWED_USERS` | 逗号分隔的授权用户 |
-| `BLUEBUBBLES_ALLOW_ALL_USERS` | 允许所有用户（`true`/`false`） |
-| `QQ_APP_ID` | 来自 [q.qq.com](https://q.qq.com) 的 QQ Bot App ID |
-| `QQ_CLIENT_SECRET` | 来自 [q.qq.com](https://q.qq.com) 的 QQ Bot App Secret |
-| `QQ_STT_API_KEY` | 外部 STT 回退提供商的 API 密钥（可选，当 QQ 内置 ASR 未返回文本时使用） |
-| `QQ_STT_BASE_URL` | 外部 STT 提供商的 base URL（可选） |
-| `QQ_STT_MODEL` | 外部 STT 提供商的模型名称（可选） |
-| `QQ_ALLOWED_USERS` | 允许向 bot 发送消息的逗号分隔 QQ 用户 openID |
-| `QQ_GROUP_ALLOWED_USERS` | 群 @消息访问的逗号分隔 QQ 群 ID |
-| `QQ_ALLOW_ALL_USERS` | 允许所有用户（`true`/`false`，覆盖 `QQ_ALLOWED_USERS`） |
-| `QQBOT_HOME_CHANNEL` | cron 投递和通知的 QQ 用户/群 openID |
-| `QQBOT_HOME_CHANNEL_NAME` | QQ 主频道的显示名称 |
-| `QQ_PORTAL_HOST` | 覆盖 QQ portal 主机（设为 `sandbox.q.qq.com` 可通过沙箱 gateway 路由；默认：`q.qq.com`）。 |
-| `MATTERMOST_URL` | Mattermost 服务器 URL（例如 `https://mm.example.com`） |
-| `MATTERMOST_TOKEN` | Mattermost 的 bot token 或个人访问 token |
-| `MATTERMOST_ALLOWED_USERS` | 允许向 bot 发送消息的逗号分隔 Mattermost 用户 ID |
-| `MATTERMOST_HOME_CHANNEL` | 主动消息投递（cron、通知）的频道 ID |
-| `MATTERMOST_REQUIRE_MENTION` | 在频道中要求 `@mention`（默认：`true`）。设为 `false` 可响应所有消息。 |
-| `MATTERMOST_FREE_RESPONSE_CHANNELS` | bot 无需 `@mention` 即可响应的逗号分隔频道 ID |
-| `MATTERMOST_REPLY_MODE` | 回复风格：`thread`（线程回复）或 `off`（平铺消息，默认） |
-| `MATRIX_HOMESERVER` | Matrix homeserver URL（例如 `https://matrix.org`） |
-| `MATRIX_ACCESS_TOKEN` | bot 认证的 Matrix 访问 token |
-| `MATRIX_USER_ID` | Matrix 用户 ID（例如 `@hermes:matrix.org`）——密码登录时必填，使用访问 token 时可选 |
-| `MATRIX_PASSWORD` | Matrix 密码（访问 token 的替代方案） |
-| `MATRIX_ALLOWED_USERS` | 允许向 bot 发送消息的逗号分隔 Matrix 用户 ID（例如 `@alice:matrix.org`） |
-| `MATRIX_HOME_ROOM` | 主动消息投递的房间 ID（例如 `!abc123:matrix.org`） |
-| `MATRIX_ENCRYPTION` | 启用端到端加密（`true`/`false`，默认：`false`） |
-| `MATRIX_DEVICE_ID` | 用于 E2EE 跨重启持久化的稳定 Matrix 设备 ID（例如 `HERMES_BOT`）。不设置时，E2EE 密钥每次启动都会轮换，历史房间解密将失败。 |
-| `MATRIX_REACTIONS` | 对入站消息启用处理生命周期 emoji 反应（默认：`true`）。设为 `false` 可禁用。 |
-| `MATRIX_REQUIRE_MENTION` | 在房间中要求 `@mention`（默认：`true`）。设为 `false` 可响应所有消息。 |
-| `MATRIX_FREE_RESPONSE_ROOMS` | bot 无需 `@mention` 即可响应的逗号分隔房间 ID |
-| `MATRIX_AUTO_THREAD` | 为房间消息自动创建线程（默认：`true`） |
-| `MATRIX_DM_MENTION_THREADS` | 在私聊中被 `@mention` 时创建线程（默认：`false`） |
-| `MATRIX_RECOVERY_KEY` | 设备密钥轮换后交叉签名验证的恢复密钥。推荐用于启用了交叉签名的 E2EE 设置。 |
-| `HASS_TOKEN` | Home Assistant 插件：长期访问 token（启用 HA 平台 + 工具；需要插件目录中的 `homeassistant` 插件，见 [Home Assistant](../user-guide/messaging/homeassistant.md)） |
-| `HASS_URL` | Home Assistant 插件：Home Assistant URL（默认：`http://homeassistant.local:8123`） |
-| `HASS_HOME_CHANNEL` | Home Assistant 插件：裸名 `deliver: homeassistant`（cron、webhook）的默认通知目标 |
 | `WEBHOOK_ENABLED` | 启用 webhook 平台适配器（`true`/`false`） |
 | `WEBHOOK_PORT` | 接收 webhook 的 HTTP 服务器端口（默认：`8644`） |
 | `WEBHOOK_SECRET` | webhook 签名验证的全局 HMAC 密钥（当路由未指定自己的密钥时作为回退） |
@@ -416,7 +307,7 @@ description: "Hermes Agent 使用的所有环境变量完整参考"
 | `API_SERVER_PORT` | API 服务器端口（默认：`8642`） |
 | `API_SERVER_HOST` | API 服务器主机/绑定地址（默认：`127.0.0.1`）。使用 `0.0.0.0` 开放网络访问——需要 `API_SERVER_KEY` 和严格的 `API_SERVER_CORS_ORIGINS` 白名单。 |
 | `API_SERVER_MODEL_NAME` | `/v1/models` 上公告的模型名称。默认为 profile 名称（默认 profile 为 `hermes-agent`）。适用于 Open WebUI 等前端需要每个连接使用不同模型名称的多用户场景。 |
-| `GATEWAY_PROXY_URL` | 将消息转发到的远程 Hermes API 服务器 URL（[代理模式](../user-guide/messaging/matrix.md#代理模式macos-上的-e2ee)）。设置后，gateway 仅处理平台 I/O——所有 agent 工作委托给远程服务器。也可通过 `config.yaml` 中的 `gateway.proxy_url` 配置。 |
+| `GATEWAY_PROXY_URL` | 将消息转发到的远程 Hermes API 服务器 URL（）。设置后，gateway 仅处理平台 I/O——所有 agent 工作委托给远程服务器。也可通过 `config.yaml` 中的 `gateway.proxy_url` 配置。 |
 | `GATEWAY_PROXY_KEY` | 代理模式下与远程 API 服务器认证的 Bearer token。必须与远程主机上的 `API_SERVER_KEY` 一致。 |
 | `MESSAGING_CWD` | 消息模式下终端命令的工作目录（默认：`~`） |
 | `GATEWAY_ALLOWED_USERS` | 跨所有平台允许的逗号分隔用户 ID |
@@ -459,47 +350,6 @@ Graph 事件（Teams 会议、日历、聊天等）的入站变更通知监听�
 | `TEAMS_CHANNEL_ID` | 目标频道 ID（与 `TEAMS_TEAM_ID` 配对）。 |
 | `TEAMS_CHAT_ID` | 目标 1:1 或群聊 ID（`graph` 模式下 team+channel 的替代方案）。 |
 
-### LINE Messaging API
-
-由内置 LINE 平台插件（`plugins/platforms/line/`）使用。完整设置详见 [消息 Gateway → LINE](../user-guide/messaging/line.md)。
-
-| 变量 | 描述 |
-|----------|-------------|
-| `LINE_CHANNEL_ACCESS_TOKEN` | 来自 LINE Developers Console（Messaging API 标签）的长期频道访问 token。必填。 |
-| `LINE_CHANNEL_SECRET` | 频道密钥（Basic settings 标签）；用于 HMAC-SHA256 webhook 签名验证。必填。 |
-| `LINE_HOST` | webhook 绑定主机（默认：`0.0.0.0`）。 |
-| `LINE_PORT` | webhook 绑定端口（默认：`8646`）。 |
-| `LINE_PUBLIC_URL` | 公共 HTTPS base URL（例如 `https://my-tunnel.example.com`）。发送图片/音频/视频时必填——LINE 仅接受 HTTPS 可访问的 URL。 |
-| `LINE_ALLOWED_USERS` | 允许私信 bot 的逗号分隔用户 ID（`U` 前缀）。 |
-| `LINE_ALLOWED_GROUPS` | bot 将在其中响应的逗号分隔群组 ID（`C` 前缀）。 |
-| `LINE_ALLOWED_ROOMS` | bot 将在其中响应的逗号分隔房间 ID（`R` 前缀）。 |
-| `LINE_ALLOW_ALL_USERS` | 仅用于开发的逃生舱——接受任意来源。默认：`false`。 |
-| `LINE_HOME_CHANNEL` | `deliver: line` 的 cron 任务的默认投递目标。 |
-| `LINE_SLOW_RESPONSE_THRESHOLD` | 慢速 LLM Template Buttons postback 触发前的等待秒数（默认：`45`）。设为 `0` 可禁用并始终使用 Push 回退。 |
-| `LINE_PENDING_TEXT` | 与 postback 按钮一起显示的气泡文本。 |
-| `LINE_BUTTON_LABEL` | Postback 按钮标签（默认：`Get answer`）。 |
-| `LINE_DELIVERED_TEXT` | 再次点击已投递 postback 时的回复（默认：`Already replied ✅`）。 |
-| `LINE_INTERRUPTED_TEXT` | 点击 `/stop` 孤立 postback 按钮时的回复（默认：`Run was interrupted before completion.`）。 |
-| `LINE_EXPIRED_TEXT` | 点击缓存答案已失效（过期 / 随进程状态丢失）的 postback 按钮时的回复（默认：`That request has expired — send your message again.`）。 |
-
-### ntfy（推送通知）
-
-[ntfy](https://ntfy.sh/) 是一个轻量级基于 HTTP 的推送通知服务。通过 [ntfy 移动应用](https://ntfy.sh/docs/subscribe/phone/)订阅话题，向该话题发布消息即可与 agent 交互。
-
-| 变量 | 描述 |
-|----------|-------------|
-| `NTFY_TOPIC` | 订阅的话题（入站消息）。必填。 |
-| `NTFY_SERVER_URL` | 服务器 URL（默认：`https://ntfy.sh`）。指向自托管 ntfy 以保护隐私。 |
-| `NTFY_TOKEN` | 可选认证 token。Bearer token（例如 `tk_xyz`）或 `user:pass` 用于 Basic 认证。 |
-| `NTFY_PUBLISH_TOPIC` | 出站回复的话题（默认为 `NTFY_TOPIC`）。 |
-| `NTFY_MARKDOWN` | 设为 `true` 可使用 `X-Markdown: true` 头发送回复。默认：`false`。 |
-| `NTFY_ALLOWED_USERS` | 白名单（视为用户 ID；在 ntfy 中即话题名称）。通常设为与 `NTFY_TOPIC` 相同的值。 |
-| `NTFY_ALLOW_ALL_USERS` | 仅用于开发的逃生舱——仅在访问控制的私有话题上安全。默认：`false`。 |
-| `NTFY_HOME_CHANNEL` | `deliver: ntfy` 的 cron 任务的默认投递目标。 |
-| `NTFY_HOME_CHANNEL_NAME` | 主频道的人类可读标签（默认为话题名称）。 |
-
-在使用不受信任的话题部署前，请参阅 [ntfy 消息指南](../user-guide/messaging/ntfy.md)——特别是**身份模型**部分。
-
 ### 高级消息调优
 
 用于限制出站消息批处理器的高级每平台旋钮。大多数用户无需调整；默认值已设置为在遵守各平台速率限制的同时不显得迟缓。
@@ -515,11 +365,6 @@ Graph 事件（Teams 会议、日历、聊天等）的入站变更通知监听�
 | `HERMES_TELEGRAM_DISABLE_FALLBACK_IPS` | 禁用 DNS 失败时使用的硬编码 Cloudflare 回退 IP（`true`/`false`）。 |
 | `HERMES_DISCORD_TEXT_BATCH_DELAY_SECONDS` | 刷新排队 Discord 文本块前的宽限窗口（默认：`0.6`）。 |
 | `HERMES_DISCORD_TEXT_BATCH_SPLIT_DELAY_SECONDS` | Discord 消息超过长度限制时分块之间的延迟（默认：`2.0`）。 |
-| `HERMES_MATRIX_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` | Matrix 等同于 Telegram 批处理旋钮。 |
-| `HERMES_FEISHU_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` / `_MAX_CHARS` / `_MAX_MESSAGES` | 飞书批处理器调优——延迟、分块延迟、每条消息最大字符数、每批最大消息数。 |
-| `HERMES_FEISHU_MEDIA_BATCH_DELAY_SECONDS` | 飞书媒体刷新延迟。 |
-| `HERMES_FEISHU_DEDUP_CACHE_SIZE` | 飞书 webhook 去重缓存大小（默认：`1024`）。 |
-| `HERMES_WECOM_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` | 企业微信批处理器调优。 |
 | `HERMES_VISION_DOWNLOAD_TIMEOUT` | 将图片交给视觉模型前下载的超时（秒，默认：`30`）。 |
 | `HERMES_RESTART_DRAIN_TIMEOUT` | Gateway：`/restart` 时等待活跃运行排空的秒数，超时后强制重启（默认：`900`）。 |
 | `HERMES_GATEWAY_PLATFORM_CONNECT_TIMEOUT` | gateway 启动期间每个平台的连接超时（秒）。 |

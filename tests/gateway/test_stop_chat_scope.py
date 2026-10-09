@@ -244,10 +244,10 @@ async def test_pending_sentinel_is_never_interrupted():
 async def test_stop_reaches_a_chat_whose_id_contains_a_colon():
     # Matrix ids carry ":" (`!room:example.org`), so the chat id must be matched as text after
     # the fixed-shape head — slot-splitting the key would silently disable both fallbacks.
-    room = SessionSource(platform=Platform.MATRIX, chat_type="channel", chat_id="!room:example.org",
+    room = SessionSource(platform=Platform.SLACK, chat_type="channel", chat_id="!room:example.org",
                          thread_id="$t1", user_id="@alice:example.org")
     running_key = build_session_key(room)
-    stop_source = SessionSource(platform=Platform.MATRIX, chat_type="thread",
+    stop_source = SessionSource(platform=Platform.SLACK, chat_type="thread",
                                 chat_id="!room:example.org", thread_id="$t1",
                                 user_id="@alice:example.org")
     assert build_session_key(stop_source) != running_key

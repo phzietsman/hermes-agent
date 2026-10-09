@@ -1596,19 +1596,15 @@ class GatewayTurnMixin:
     }
 
     def _hmwa_prepend_reasoning(self, agent_result, response, source, _intentional_silence):
-        """Prepend the last reasoning block when show_reasoning is on for this platform. Mattermost
-        requires an explicit per-platform opt-in (scratch text, not final-answer content)."""
+        """Prepend the last reasoning block when show_reasoning is on for this platform."""
         from gateway.run import _load_gateway_config, _platform_config_key, _resolve_gateway_display_bool
         try:
             _show_reasoning_effective = _resolve_gateway_display_bool(
                 _load_gateway_config(), _platform_config_key(source.platform), "show_reasoning",
-                default=bool(getattr(self, "_show_reasoning", False)), platform=source.platform,
-                require_platform_override_for={Platform.MATTERMOST},
+                default=bool(getattr(self, "_show_reasoning", False)),
             )
         except Exception:
-            _show_reasoning_effective = (
-                False if source.platform == Platform.MATTERMOST else getattr(self, "_show_reasoning", False)
-            )
+            _show_reasoning_effective = getattr(self, "_show_reasoning", False)
         last_reasoning = agent_result.get("last_reasoning")
         if not (_show_reasoning_effective and response and not _intentional_silence and last_reasoning):
             return response
@@ -1886,7 +1882,7 @@ class GatewayTurnMixin:
                         )
                 else:
                     # Attach the inbound platform message_id to the first user entry so platform-level
-                    # quote-resolution (e.g. Yuanbao) can find earlier @bot messages by original id.
+                    # quote-resolution can find earlier @bot messages by original id.
                     _user_msg_id_attached = False
                     for msg in new_messages:
                         if msg.get("role") == "system":
@@ -2678,16 +2674,11 @@ class GatewayTurnMixin:
         if source.platform == Platform.TELEGRAM and hasattr(adapter, "pause_typing_for_chat"):
             def _pause_typing_before_finalize(_adapter=adapter, _chat_id=source.chat_id) -> None:
                 _adapter.pause_typing_for_chat(_chat_id)
-        # Non-editing platforms (QQ, WeChat) skip streaming — the partial first message could never
-        # be updated — unless they have a native-streaming transport (WeCom msgtype "stream").
+        # Non-editing platforms skip streaming — the partial first message could never be updated.
         _adapter_supports_edit = getattr(adapter, "SUPPORTS_MESSAGE_EDITING", True)
-        _adapter_supports_native_stream = bool(getattr(adapter, "SUPPORTS_NATIVE_STREAMING", False))
-        if not _adapter_supports_edit and not _adapter_supports_native_stream and on_missing_cursor == "raise":
+        if not _adapter_supports_edit and on_missing_cursor == "raise":
             raise RuntimeError("skip streaming for non-editable platform")
         _effective_cursor = scfg.cursor if _adapter_supports_edit else ""
-        # Some Matrix clients render the cursor as tofu: stream text, no cursor.
-        if source.platform == Platform.MATRIX:
-            _effective_cursor = ""
         # Fresh-final applies to Telegram only (others edit in place cheaply).
         # Fresh-final applies to Telegram only — other platforms either edit in place cheaply (Discord,
         # Slack) or don't have the timestamp-on-edit / edit-timestamp-stays-stale problem. (Ported from
@@ -2758,8 +2749,8 @@ class GatewayTurnMixin:
     ) -> Dict[str, Any]:
         """Forward the message to a remote Hermes API server instead of running a local AIAgent.
 
-        Lets a Docker container handle Matrix E2EE while the agent runs on the host with full
-        access to local files, memory, skills, and a unified session store."""
+        Lets a Docker container front a host-run agent with full access to local files, memory,
+        skills, and a unified session store."""
         from gateway.run import _GATEWAY_PROXY_SSE_BUFFER_MAX_CHARS
         try:
             from aiohttp import ClientSession as _AioClientSession, ClientTimeout
@@ -2937,7 +2928,7 @@ class GatewayTurnMixin:
     def _run_agent_display_settings(self, source: SessionSource) -> "GatewayRunner._RunAgentDisplay":
         """Resolve per-platform display, progress, status and streaming-surface settings for a turn."""
         from gateway.run import (
-            _gateway_platform_value, _has_platform_display_override, _load_gateway_config,
+            _load_gateway_config,
             _platform_config_key,
         )
         from agent.secret_scope import get_secret
@@ -2969,18 +2960,9 @@ class GatewayTurnMixin:
         _generic_status_catalog = resolve_status_phrase_catalog(user_config, platform_key)
 
         def _display_surface_mode(
-            setting: str, *, default: bool = False,
-            require_platform_override_for: set[Any] | None = None, allow_generic: bool = False,
+            setting: str, *, default: bool = False, allow_generic: bool = False,
         ) -> str:
             """Return off|raw|generic for a gateway visibility surface."""
-            if require_platform_override_for:
-                current_platform = _gateway_platform_value(source.platform)
-                platform_only = {_gateway_platform_value(item) for item in require_platform_override_for}
-                if (
-                    current_platform in platform_only
-                    and not _has_platform_display_override(user_config, platform_key, setting)
-                ):
-                    return "off"
             value = resolve_display_setting(user_config, platform_key, setting, default)
             if isinstance(value, str) and value.strip().lower() == "generic":
                 return "generic" if allow_generic else "off"
@@ -3009,14 +2991,10 @@ class GatewayTurnMixin:
         # "log" mode: tool calls go to ~/.hermes/logs/tool_calls.log instead of the chat. Gateway-only.
         log_mode_enabled = progress_mode == "log" and not is_webhook
         # Interim assistant messages and thinking_progress are independent of tool progress (same
-        # queue). Mattermost requires a per-platform opt-in: scratch text leaks into public threads.
-        interim_assistant_messages_mode = _display_surface_mode(
-            "interim_assistant_messages", default=True, require_platform_override_for={Platform.MATTERMOST},
-        )
+        # queue).
+        interim_assistant_messages_mode = _display_surface_mode("interim_assistant_messages", default=True)
         interim_assistant_messages_enabled = not is_webhook and interim_assistant_messages_mode != "off"
-        _thinking_enabled = _display_surface_mode(
-            "thinking_progress", default=False, require_platform_override_for={Platform.MATTERMOST},
-        ) != "off"
+        _thinking_enabled = _display_surface_mode("thinking_progress", default=False) != "off"
         # Slack-native task cards need the progress queue even with text tool_progress off.
         # Slack-native task cards (#29483): when the Slack adapter's opt-in is set, tool progress renders as
         # native plan/task cards via chat.startStream — the progress queue is needed even though Slack keeps
@@ -3136,23 +3114,19 @@ class GatewayTurnMixin:
         """Resolve where progress bubbles are threaded (platform-specific).
 
         Returns ``(progress_metadata, progress_reply_to, status_thread_metadata)``; the latter is
-        for status / approval / stream sends (Feishu topics need the triggering message id via the
-        reply API, so carry it as a fallback). Slack and Buzz honour the user's reply_in_thread
+        for status / approval / stream sends (carry the triggering message id as a fallback for
+        platforms that thread via the reply API). Slack honours the user's reply_in_thread
         opt-out: never synthesise a thread for progress, or every later reply inherits it."""
         from gateway.run import _non_conversational_metadata, _resolve_progress_thread_id
-        is_buzz = str(getattr(source.platform, "value", source.platform) or "").lower() == "buzz"
         _progress_reply_in_thread = True
-        _adapter = self._delivery_adapter_for(source) if source.platform == Platform.SLACK or is_buzz else None
+        _adapter = self._delivery_adapter_for(source) if source.platform == Platform.SLACK else None
         if _adapter is not None:
             try:
-                if is_buzz:
-                    _progress_reply_in_thread = getattr(_adapter, "_reply_to_mode", "first") != "off"
-                else:
-                    # Relay lane: the adapter owns mode resolution; native lane: flat extra key.
-                    _mode_fn = getattr(_adapter, "_effective_reply_in_thread", None)
-                    _progress_reply_in_thread = bool(
-                        _mode_fn() if callable(_mode_fn) else _adapter.config.extra.get("reply_in_thread", True)
-                    )
+                # Relay lane: the adapter owns mode resolution; native lane: flat extra key.
+                _mode_fn = getattr(_adapter, "_effective_reply_in_thread", None)
+                _progress_reply_in_thread = bool(
+                    _mode_fn() if callable(_mode_fn) else _adapter.config.extra.get("reply_in_thread", True)
+                )
             except Exception:
                 _progress_reply_in_thread = True
         _progress_thread_id = _resolve_progress_thread_id(
@@ -3181,20 +3155,10 @@ class GatewayTurnMixin:
                 _progress_metadata.setdefault("slack_team_id", source.scope_id)
             if source.user_id:
                 _progress_metadata.setdefault("recipient_user_id", source.user_id)
-        # Buzz has no native thread_id: thread via reply-to unless the user opted out.
-        _progress_reply_to = (
-            event_message_id
-            if (source.platform in (Platform.FEISHU, Platform.MATTERMOST) and source.thread_id and event_message_id)
-            or (is_buzz and event_message_id and _progress_reply_in_thread)
-            or _relay_prospective_thread_id
-            else None
+        _progress_reply_to = event_message_id if _relay_prospective_thread_id else None
+        _status_thread_metadata = self._thread_metadata_for_progress(
+            source, event_message_id, _progress_thread_id, _relay_prospective_thread_id,
         )
-        if source.platform == Platform.FEISHU and source.thread_id and event_message_id:
-            _status_thread_metadata = {"thread_id": _progress_thread_id, "reply_to_message_id": event_message_id}
-        else:
-            _status_thread_metadata = self._thread_metadata_for_progress(
-                source, event_message_id, _progress_thread_id, _relay_prospective_thread_id,
-            )
         return _progress_metadata, _progress_reply_to, _status_thread_metadata
 
     async def _run_agent_write_tool_log(self, log_queue: Any) -> None:
@@ -4124,7 +4088,7 @@ class GatewayTurnMixin:
             logger.warning(
                 "Normal final-send NOT suppressed despite active stream consumer for session %s: "
                 "streamed=%s previewed=%s content_delivered=%s transformed=%s final_len=%d — "
-                "possible duplicate send (see wecom ack-timeout RCA).",
+                "possible duplicate send (stream ack-timeout race).",
                 _sk, _streamed, _previewed, _content_delivered, _transformed, len(_final),
             )
 

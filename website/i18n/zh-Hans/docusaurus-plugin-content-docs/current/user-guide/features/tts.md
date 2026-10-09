@@ -386,7 +386,7 @@ def register(ctx):
 
 ## 语音消息转录（STT）
 
-在 Telegram、Discord、WhatsApp、Slack 或 Signal 上发送的语音消息会被自动转录并作为文本注入对话。Agent 将转录内容视为普通文本。
+在 Telegram、Discord、WhatsApp 或 Slack 上发送的语音消息会被自动转录并作为文本注入对话。Agent 将转录内容视为普通文本。
 
 | 提供商 | 质量 | 费用 | API 密钥 |
 |----------|---------|------|---------| 

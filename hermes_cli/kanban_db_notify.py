@@ -81,7 +81,7 @@ def add_notify_sub(
     """Register a gateway source wanting terminal-state notifications for
     ``task_id``; idempotent on (task, platform, chat, thread).
 
-    ``user_id_alt`` (Signal UUID, Feishu union_id, ...) and ``chat_type`` are
+    ``user_id_alt`` and ``chat_type`` are
     replayed on active wake: ``build_session_key`` prefers the alt id, so
     omitting it would key the wake into a different session. ``None`` keeps an
     existing row's value. ``delivery_mode``: ``None`` leaves an existing row

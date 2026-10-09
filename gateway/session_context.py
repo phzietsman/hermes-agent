@@ -25,7 +25,7 @@ def session_context_engaged() -> bool:
 
 # --- Per-task session variables: bound by set_session_vars / cleared to "" by clear_session_vars;
 # tuple ORDER is the positional order of ``values`` in set_session_vars (zipped).
-# * SCOPE_ID: platform-neutral scope (guild / workspace / Matrix server) so async producers can
+# * SCOPE_ID: platform-neutral scope (guild / workspace) so async producers can
 #   persist a completion's full routing origin (relay egress guards need it).
 # * UI_SESSION_ID: in-process UI tab id, separate from the durable SESSION_ID, so a stale/rotated
 #   durable key is not consumed by the wrong poller.

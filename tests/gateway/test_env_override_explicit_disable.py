@@ -2,9 +2,8 @@
 in config.yaml must survive ``_apply_env_overrides`` when that platform's
 credentials are present in the environment.
 
-Before the fix, twelve credential-presence branches (weixin, whatsapp_cloud,
-email, sms, dingtalk, feishu, wecom, wecom_callback, bluebubbles,
-qqbot, yuanbao) force-set ``enabled = True`` unconditionally, while Telegram /
+Before the fix, several credential-presence branches (whatsapp_cloud,
+email, and since-removed platforms) force-set ``enabled = True`` unconditionally, while Telegram /
 Discord / Slack routed through ``_enable_from_env`` and honored the
 ``_enabled_explicit`` marker.  These tests drive the real ``load_gateway_config``
 against a temp HERMES_HOME — real YAML I/O, no mocks of the code under test.
@@ -19,10 +18,6 @@ from gateway.config import Platform, load_gateway_config
 
 # platform -> env credentials that trigger its env-enable branch
 CRED_ENV = {
-    "weixin": {
-        "WEIXIN_TOKEN": "wx_9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e",
-        "WEIXIN_ACCOUNT_ID": "acct_12345",
-    },
     "whatsapp_cloud": {
         "WHATSAPP_CLOUD_PHONE_NUMBER_ID": "1234567890",
         "WHATSAPP_CLOUD_ACCESS_TOKEN": "EAAB-test-access-token",
@@ -35,28 +30,13 @@ CRED_ENV = {
         "EMAIL_IMAP_HOST": "imap.example.com",
         "EMAIL_SMTP_HOST": "smtp.example.com",
     },
-    "sms": {"TWILIO_ACCOUNT_SID": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
-    "dingtalk": {"DINGTALK_CLIENT_ID": "ding-id", "DINGTALK_CLIENT_SECRET": "ding-secret"},
-    "feishu": {"FEISHU_APP_ID": "cli_feishu", "FEISHU_APP_SECRET": "feishu-secret"},
-    "wecom": {"WECOM_BOT_ID": "wecom-bot", "WECOM_SECRET": "wecom-secret"},
-    "wecom_callback": {
-        "WECOM_CALLBACK_CORP_ID": "corp-id",
-        "WECOM_CALLBACK_CORP_SECRET": "corp-secret",
-    },
-    "bluebubbles": {
-        "BLUEBUBBLES_SERVER_URL": "http://127.0.0.1:1234",
-        "BLUEBUBBLES_PASSWORD": "bb-password",
-    },
-    "qqbot": {"QQ_APP_ID": "qq-app", "QQ_CLIENT_SECRET": "qq-secret"},
-    "yuanbao": {"YUANBAO_APP_ID": "yb-app", "YUANBAO_APP_SECRET": "yb-secret"},
     # control: the pattern that always honored the explicit disable
     "telegram": {"TELEGRAM_BOT_TOKEN": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"},
 }
 
 _PLATFORM_ENV_PREFIXES = (
-    "TELEGRAM_", "DISCORD_", "SLACK_", "WEIXIN_", "WHATSAPP_", "HASS_", "EMAIL_",
-    "TWILIO_", "DINGTALK_", "FEISHU_", "WECOM_", "BLUEBUBBLES_", "QQ_", "QQBOT_",
-    "YUANBAO_", "GATEWAY_RELAY", "SIGNAL_", "MATTERMOST_", "MATRIX_",
+    "TELEGRAM_", "DISCORD_", "SLACK_", "WHATSAPP_", "HASS_", "EMAIL_",
+    "GATEWAY_RELAY", "MATTERMOST_", "MATRIX_",
 )
 
 def _isolate(monkeypatch, tmp_path, env):
@@ -105,17 +85,16 @@ def test_env_credentials_still_enable_without_yaml_opinion(platform, tmp_path, m
 def test_env_credentials_still_populate_extra_when_yaml_disables(tmp_path, monkeypatch):
     """The disable only gates ``enabled``; credentials are still wired through
     (mirrors the Slack/API-server contract so send-only tooling keeps working)."""
-    hermes_home = _isolate(monkeypatch, tmp_path, CRED_ENV["weixin"])
+    hermes_home = _isolate(monkeypatch, tmp_path, CRED_ENV["telegram"])
     (hermes_home / "config.yaml").write_text(
-        "platforms:\n  weixin:\n    enabled: false\n", encoding="utf-8"
+        "platforms:\n  telegram:\n    enabled: false\n", encoding="utf-8"
     )
 
     config = load_gateway_config()
 
-    cfg = config.platforms[Platform.WEIXIN]
+    cfg = config.platforms[Platform.TELEGRAM]
     assert cfg.enabled is False
-    assert cfg.token == CRED_ENV["weixin"]["WEIXIN_TOKEN"]
-    assert cfg.extra.get("account_id") == "acct_12345"
+    assert cfg.token == CRED_ENV["telegram"]["TELEGRAM_BOT_TOKEN"]
     # marker never leaks out of config load
     assert "_enabled_explicit" not in cfg.extra
 
@@ -150,16 +129,16 @@ def test_explicit_disable_with_env_credentials_warns_once(platform, tmp_path, mo
 
 @pytest.mark.usefixtures("_fresh_warn_dedup")
 def test_no_warning_when_yaml_has_no_opinion_or_is_enabled(tmp_path, monkeypatch, caplog):
-    hermes_home = _isolate(monkeypatch, tmp_path, {**CRED_ENV["weixin"], **CRED_ENV["qqbot"]})
+    hermes_home = _isolate(monkeypatch, tmp_path, {**CRED_ENV["email"], **CRED_ENV["telegram"]})
     (hermes_home / "config.yaml").write_text(
-        "platforms:\n  qqbot:\n    enabled: true\n", encoding="utf-8"
+        "platforms:\n  telegram:\n    enabled: true\n", encoding="utf-8"
     )
 
     with caplog.at_level(logging.WARNING, logger="gateway.config"):
         config = load_gateway_config()
 
-    assert config.platforms[Platform.WEIXIN].enabled is True
-    assert config.platforms[Platform.QQBOT].enabled is True
+    assert config.platforms[Platform.EMAIL].enabled is True
+    assert config.platforms[Platform.TELEGRAM].enabled is True
     assert not [r for r in caplog.records if "explicitly disabled" in r.getMessage()]
 
 @pytest.mark.usefixtures("_fresh_warn_dedup")
@@ -167,11 +146,11 @@ def test_no_warning_when_disabled_and_no_env_credentials(tmp_path, monkeypatch, 
     """The notice is about credentials being IGNORED; a plain disable is silent."""
     hermes_home = _isolate(monkeypatch, tmp_path, {})
     (hermes_home / "config.yaml").write_text(
-        "platforms:\n  weixin:\n    enabled: false\n", encoding="utf-8"
+        "platforms:\n  email:\n    enabled: false\n", encoding="utf-8"
     )
 
     with caplog.at_level(logging.WARNING, logger="gateway.config"):
         config = load_gateway_config()
 
-    assert config.platforms[Platform.WEIXIN].enabled is False
+    assert config.platforms[Platform.EMAIL].enabled is False
     assert not [r for r in caplog.records if "explicitly disabled" in r.getMessage()]

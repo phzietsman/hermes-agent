@@ -1,6 +1,6 @@
 """Every writer that seeds or first-configures config.yaml must leave each messaging platform's display defaults
 alone (#121230). The gateway loader merges no DEFAULT_CONFIG, so any written global ``display.<key>`` beats every
-platform tier (e.g. Telegram/Slack tool_progress ``off`` -> ``all``, QQBot show_reasoning ``False`` -> ``True``)."""
+platform tier (e.g. Telegram/Slack tool_progress ``off`` -> ``all``, Discord show_reasoning ``False`` -> ``True``)."""
 import os
 import shutil
 

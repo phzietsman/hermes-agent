@@ -6,7 +6,7 @@ description: "Classic watchdog cron jobs that skip the LLM entirely — a script
 
 # Script-Only Cron Jobs
 
-Sometimes you already know exactly what message you want to send. You don't need an agent to reason about it — you just need a script to run on a timer, and its output (if any) to land in Telegram / Discord / Slack / Signal.
+Sometimes you already know exactly what message you want to send. You don't need an agent to reason about it — you just need a script to run on a timer, and its output (if any) to land in Telegram / Discord / Slack.
 
 Hermes calls this **no-agent mode**. It's the cron system minus the LLM.
 
@@ -220,7 +220,7 @@ See the [cron feature reference](../user-guide/features/cron.md) for the full sy
 --deliver local                          # just save to ~/.hermes/cron/output/
 ```
 
-No running gateway is required at script-run time for bot-token platforms (Telegram, Discord, Slack, Signal, SMS, WhatsApp) — the tool calls each platform's REST endpoint directly using the credentials already in `~/.hermes/.env` / `~/.hermes/config.yaml`.
+No running gateway is required at script-run time for bot-token platforms (Telegram, Discord, Slack, WhatsApp) — the tool calls each platform's REST endpoint directly using the credentials already in `~/.hermes/.env` / `~/.hermes/config.yaml`.
 
 ## Editing and Lifecycle
 

@@ -130,7 +130,7 @@ class TestPerPlatformCapability:
         predating descriptor_for_platform) keeps the scalar behavior."""
         slack = _descriptor(supports_inchannel_continuable=True)
         adapter = self._adapter(slack, {"slack": slack})
-        assert adapter.supports_inchannel_continuable_for_platform("matrix") is True
+        assert adapter.supports_inchannel_continuable_for_platform("telegram") is True
 
 
 class TestSurfaceKnobResolution:

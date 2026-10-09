@@ -183,7 +183,7 @@ doctor 命令检查：
 
 ## Gateway（消息平台）
 
-Gemini 可与所有 Hermes gateway 平台配合使用（Telegram、Discord、Slack、WhatsApp、LINE、飞书等）。将 Gemini 配置为你的 provider，然后正常启动 gateway：
+Gemini 可与所有 Hermes gateway 平台配合使用（Telegram、Discord、Slack、WhatsApp 等）。将 Gemini 配置为你的 provider，然后正常启动 gateway：
 
 ```bash
 hermes gateway setup

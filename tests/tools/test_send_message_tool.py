@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 import sys
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,20 +16,9 @@ import pytest
 _HAS_TELEGRAM = pytest.importorskip("telegram", reason="python-telegram-bot not installed") is not None
 
 
-@pytest.fixture(autouse=True)
-def _reset_signal_scheduler():
-    """Drop the process-wide attachment scheduler so each test gets a
-    fresh token bucket."""
-    from gateway.platforms.signal_rate_limit import _reset_scheduler
-    _reset_scheduler()
-    yield
-    _reset_scheduler()
-
 from gateway.config import Platform
 from tools.send_message_tool import (
     _resolve_slack_user_target,
-    _send_matrix_via_adapter,
-    _send_signal,
     _send_telegram,
     _send_to_platform,
     send_message_tool,
@@ -274,49 +263,6 @@ def _ensure_slack_mock(monkeypatch):
 
 
 class TestSendMessageTool:
-    def test_ntfy_topic_target_is_explicit(self):
-        chat_id, thread_id, is_explicit = _parse_target_ref("ntfy", "alerts-channel")
-
-        assert chat_id == "alerts-channel"
-        assert thread_id is None
-        assert is_explicit is True
-
-    def test_ntfy_topic_target_bypasses_channel_directory(self):
-        ntfy_platform = Platform("ntfy")
-        ntfy_cfg = SimpleNamespace(enabled=True, token=None, extra={"topic": "hermes-in"})
-        config = SimpleNamespace(
-            platforms={ntfy_platform: ntfy_cfg},
-            get_home_channel=lambda _platform: None,
-        )
-
-        with patch("gateway.config.load_gateway_config", return_value=config), \
-             patch("tools.interrupt.is_interrupted", return_value=False), \
-             patch("gateway.channel_directory.resolve_channel_name", side_effect=AssertionError("should not resolve ntfy topics")), \
-             patch("model_tools._run_async", side_effect=_run_async_immediately), \
-             patch("tools.send_message_tool._send_to_platform", new=AsyncMock(return_value={"success": True})) as send_mock, \
-             patch("gateway.mirror.mirror_to_session", return_value=True):
-            result = json.loads(
-                send_message_tool(
-                    {
-                        "action": "send",
-                        "target": "ntfy:alerts-channel",
-                        "message": "done",
-                    }
-                )
-            )
-
-        assert result["success"] is True
-        send_mock.assert_awaited_once_with(
-            ntfy_platform,
-            ntfy_cfg,
-            "alerts-channel",
-            "done",
-            thread_id=None,
-            media_files=[],
-            force_document=False,
-        )
-
-
     def test_media_tag_outside_allowed_roots_is_not_sent(self, tmp_path, monkeypatch):
         # This test exercises the strict-allowlist path; force strict mode on
         # and disable recency trust so the freshly-written tmp_path file is
@@ -525,42 +471,6 @@ class TestSendToPlatformChunking:
         for call in send.await_args_list:
             assert len(call.args[2]) <= 2020  # each chunk fits the limit
 
-    def test_signal_long_message_is_chunked(self, monkeypatch):
-        """Standalone Signal sends split at the adapter's 8000-char limit.
-
-        The standalone path (hermes send / cron / MCP) speaks raw JSON-RPC via
-        _send_signal and bypasses SignalAdapter.send(), so the shared
-        truncate_message() pass in _send_to_platform must know Signal's limit
-        (regression for #67279 / #57929 — long sends were rejected whole).
-        """
-        from gateway.platforms.signal import MAX_MESSAGE_LENGTH as SIGNAL_MAX
-        import tools.send_message_tool as smt
-
-        sent = []
-
-        async def fake_send_signal(extra, chat_id, chunk, media_files=None):
-            sent.append(chunk)
-            return {"success": True, "platform": "signal", "chat_id": chat_id}
-
-        monkeypatch.setattr(smt, "_send_signal", fake_send_signal)
-
-        long_msg = "word " * ((SIGNAL_MAX // 5) + 500)  # comfortably over limit
-        result = asyncio.run(
-            _send_to_platform(
-                Platform.SIGNAL,
-                SimpleNamespace(enabled=True, token=None,
-                                extra={"http_url": "http://localhost:8080",
-                                       "account": "+15551234567"}),
-                "+15557654321", long_msg,
-            )
-        )
-        assert result["success"] is True
-        assert len(sent) >= 2, "long Signal message must be split, not sent whole"
-        assert all(len(chunk) <= SIGNAL_MAX for chunk in sent)
-        # No truncation footer — content is delivered in full across chunks
-        assert all("truncated, full output saved to" not in c for c in sent)
-
-
     def test_slack_pre_escaped_entities_not_double_escaped(self, monkeypatch):
         """Pre-escaped HTML entities survive tool-layer formatting without double-escaping."""
         _ensure_slack_mock(monkeypatch)
@@ -624,104 +534,6 @@ class TestSendToPlatformChunking:
         assert max(send_lengths) <= 4096
 
 
-
-class TestMatrixMediaLiveAdapterReuse:
-    """Verify _send_matrix_via_adapter reuses the live gateway adapter
-    when available, avoiding per-message E2EE re-init storms (#46310)."""
-
-    def test_live_adapter_skips_connect_disconnect(self, tmp_path):
-        """When a live gateway adapter exists, no connect() or disconnect()
-        should be called — the persistent E2EE session is reused."""
-        img_path = tmp_path / "photo.png"
-        img_path.write_bytes(b"\x89PNG\r\n")
-
-        calls = []
-
-        class LiveAdapter:
-            async def send(self, chat_id, message, metadata=None):
-                calls.append(("send", chat_id, message))
-                return SimpleNamespace(success=True, message_id="$text")
-
-            async def send_image_file(self, chat_id, path, metadata=None):
-                calls.append(("send_image_file", chat_id, path))
-                return SimpleNamespace(success=True, message_id="$img")
-
-        live_adapter = LiveAdapter()
-        fake_runner = SimpleNamespace(
-            adapters={Platform.MATRIX: live_adapter}
-        )
-
-        with patch(
-            "gateway.run._gateway_runner_ref",
-            return_value=fake_runner,
-        ), patch.dict(
-            sys.modules, {"plugins.platforms.matrix.adapter": SimpleNamespace()}
-        ):
-            result = asyncio.run(
-                _send_matrix_via_adapter(
-                    SimpleNamespace(enabled=True, token="tok", extra={}),
-                    "!room:example.com",
-                    "here is an image",
-                    media_files=[(str(img_path), False)],
-                )
-            )
-
-        assert result["success"] is True
-        assert result["message_id"] == "$img"
-        # Only send + send_image_file; no connect / disconnect
-        assert calls == [
-            ("send", "!room:example.com", "here is an image"),
-            ("send_image_file", "!room:example.com", str(img_path)),
-        ]
-
-    def test_live_adapter_not_available_falls_back_to_ephemeral(self, tmp_path):
-        """When _gateway_runner_ref returns None, the ephemeral adapter
-        path (connect + disconnect) is used as before."""
-        doc_path = tmp_path / "doc.pdf"
-        doc_path.write_bytes(b"%PDF-1.4")
-
-        calls = []
-
-        class EphemeralAdapter:
-            def __init__(self, _config):
-                pass
-
-            async def connect(self):
-                calls.append(("connect",))
-                return True
-
-            async def send(self, chat_id, message, metadata=None):
-                calls.append(("send", chat_id, message))
-                return SimpleNamespace(success=True, message_id="$txt")
-
-            async def send_document(self, chat_id, path, metadata=None):
-                calls.append(("send_document", chat_id, path))
-                return SimpleNamespace(success=True, message_id="$doc")
-
-            async def disconnect(self):
-                calls.append(("disconnect",))
-
-        fake_module = SimpleNamespace(MatrixAdapter=EphemeralAdapter)
-
-        with patch(
-            "gateway.run._gateway_runner_ref", return_value=None
-        ), patch.dict(sys.modules, {"plugins.platforms.matrix.adapter": fake_module}):
-            result = asyncio.run(
-                _send_matrix_via_adapter(
-                    SimpleNamespace(enabled=True, token="tok", extra={}),
-                    "!room:example.com",
-                    "report attached",
-                    media_files=[(str(doc_path), False)],
-                )
-            )
-
-        assert result["success"] is True
-        assert calls == [
-            ("connect",),
-            ("send", "!room:example.com", "report attached"),
-            ("send_document", "!room:example.com", str(doc_path)),
-            ("disconnect",),
-        ]
 
 # ---------------------------------------------------------------------------
 # HTML auto-detection in Telegram send
@@ -887,20 +699,8 @@ class TestParseTargetRef:
             ("discord", "-1001234567890:17585", "-1001234567890", "17585"),
             ("discord", "1003724596514", "1003724596514", None),
             ("discord", "  123456:789  ", "123456", "789"),
-            # Matrix: room id, room:thread-event, user MXID
-            ("matrix", "!HLOQwxYGgFPMPJUSNR:matrix.org:$thread123:matrix.org",
-             "!HLOQwxYGgFPMPJUSNR:matrix.org", "$thread123:matrix.org"),
-            ("matrix", "!HLOQwxYGgFPMPJUSNR:matrix.org",
-             "!HLOQwxYGgFPMPJUSNR:matrix.org", None),
-            ("matrix", "@hermes:matrix.org", "@hermes:matrix.org", None),
-            # Phone platforms: E.164 keeps its '+' for signal-cli; groups and
-            # bare digits also resolve.
-            ("signal", "+41791234567", "+41791234567", None),
-            ("signal", "  group:abc123  ", "group:abc123", None),
-            ("signal", "15551234567", "15551234567", None),
-            ("sms", "+15551234567", "+15551234567", None),
+            # Phone platforms: E.164 keeps its '+'.
             ("whatsapp", "+15551234567", "+15551234567", None),
-            ("photon", "+15551234567", "+15551234567", None),
             # WhatsApp native JIDs. Regression: group (@g.us) and linked-identity
             # (@lid) JIDs matched no branch and silently fell through to the
             # configured home DM instead of the requested group.
@@ -934,12 +734,10 @@ class TestParseTargetRef:
 
     def test_non_explicit_targets_fall_through_to_resolution(self):
         cases = [
-            ("matrix", "#general:matrix.org"),   # alias needs resolution
-            ("signal", "  group:  "),            # empty group id
-            ("signal", "+123"),                  # E.164 too short
-            ("signal", "+1234567890123456"),     # E.164 too long
-            ("signal", "+12abc4567890"),         # non-numeric
-            ("signal", "+"),
+            ("whatsapp", "+123"),                # E.164 too short
+            ("whatsapp", "+1234567890123456"),   # E.164 too long
+            ("whatsapp", "+12abc4567890"),       # non-numeric
+            ("whatsapp", "+"),
             ("whatsapp", "general"),             # friendly name, not a JID
             ("slack", "W123ABCDEF"),             # workspace id is not sendable
             ("slack", "c0b0qv5434g"),            # lowercase
@@ -961,9 +759,8 @@ class TestParseTargetRef:
             ("discord", "@someone"),
             ("telegram", "+15551234567"),
             ("discord", "+15551234567"),
-            ("matrix", "+15551234567"),
             ("telegram", "120363408391911677@g.us"),
-            ("signal", "149606612619433@lid"),
+            ("discord", "149606612619433@lid"),
             ("discord", "C0B0QV5434G"),
             ("telegram", "C0B0QV5434G"),
             ("telegram", "user@example.com"),
@@ -1357,129 +1154,6 @@ class TestSendDiscordForumMedia:
         # (verified by not raising from our side_effect exhaustion)
 
 
-# ---------------------------------------------------------------------------
-# _send_signal — chunking + 429 retry (mirrors gateway adapter behavior)
-# ---------------------------------------------------------------------------
-
-
-class _FakeSignalHttp:
-    """Stand-in for httpx.AsyncClient used as an async context manager.
-
-    Pops a response from the queue per `post` call. Each entry is either
-    a dict (returned from .json()) or an exception instance (raised).
-    Captures (url, payload) per call.
-    """
-
-    def __init__(self, responses):
-        self.responses = list(responses)
-        self.calls = []
-
-    def __call__(self, *_a, **_kw):
-        return self
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *_a):
-        return False
-
-    async def post(self, url, json=None):
-        self.calls.append({"url": url, "payload": json})
-        if not self.responses:
-            raise AssertionError("Unexpected extra POST")
-        item = self.responses.pop(0)
-        if isinstance(item, BaseException):
-            raise item
-        resp = SimpleNamespace(
-            raise_for_status=lambda: None,
-            json=lambda data=item: data,
-        )
-        return resp
-
-
-def _install_signal_http(monkeypatch, fake):
-    """Patch httpx.AsyncClient at the module level so the lazy import in
-    _send_signal picks it up.
-    """
-    import httpx
-    monkeypatch.setattr(httpx, "AsyncClient", fake)
-
-
-def _patch_sendmsg_sleep_and_time(monkeypatch, capture: list):
-    """Mock asyncio.sleep + time.monotonic in the signal_rate_limit
-    module so the scheduler's acquire loop sees synthetic time advancing
-    during sleep calls, and report_rpc_duration sees the same clock.
-
-    Zero-second sleeps (event-loop yields from fake HTTP posts) are
-    delegated to the real asyncio.sleep so they don't pollute the
-    capture list.
-    """
-    import asyncio as _aio
-    _real_sleep = _aio.sleep
-    offset = [0.0]
-
-    async def fake_sleep(seconds):
-        if seconds > 0:
-            capture.append(seconds)
-            offset[0] += seconds
-        else:
-            await _real_sleep(0)
-
-    monkeypatch.setattr(
-        "gateway.platforms.signal_rate_limit.asyncio.sleep", fake_sleep
-    )
-    monkeypatch.setattr(
-        "gateway.platforms.signal_rate_limit.time.monotonic", lambda: offset[0]
-    )
-
-
-class TestSendSignalChunking:
-    def test_text_only_single_rpc(self, monkeypatch):
-        fake = _FakeSignalHttp([{"result": {"timestamp": 1}}])
-        _install_signal_http(monkeypatch, fake)
-
-        result = asyncio.run(
-            _send_signal(
-                {"http_url": "http://localhost:8080", "account": "+15551234567"},
-                "+15557654321",
-                "hello",
-            )
-        )
-
-        assert result["success"] is True
-        assert result["platform"] == "signal"
-        assert result["chat_id"].endswith("4321")
-        assert len(fake.calls) == 1
-        params = fake.calls[0]["payload"]["params"]
-        assert params["message"] == "hello"
-        assert "attachments" not in params
-        assert "textStyle" not in params
-        assert "textStyles" not in params
-
-
-    def test_skipped_missing_files_reported_in_warnings(self, tmp_path, monkeypatch):
-        good = tmp_path / "ok.png"
-        good.write_bytes(b"\x89PNG" + b"\x00" * 16)
-
-        fake = _FakeSignalHttp([{"result": {"timestamp": 1}}])
-        _install_signal_http(monkeypatch, fake)
-
-        result = asyncio.run(
-            _send_signal(
-                {"http_url": "http://localhost:8080", "account": "+15551234567"},
-                "+15557654321",
-                "msg",
-                media_files=[(str(good), False), (str(tmp_path / "missing.png"), False)],
-            )
-        )
-
-        assert result["success"] is True
-        assert "warnings" in result
-        # Only the existing file made it into the RPC
-        params = fake.calls[0]["payload"]["params"]
-        assert len(params["attachments"]) == 1
-
-
 # ── _send_via_adapter standalone fallback ────────────────────────────────
 
 
@@ -1512,38 +1186,6 @@ class TestSendViaAdapterStandaloneFallback:
             check_fn=lambda: True,
             standalone_sender_fn=send_fn,
         )
-
-    @pytest.mark.asyncio
-    async def test_live_ntfy_adapter_receives_explicit_publish_topic(self, monkeypatch):
-        from tools.send_message_tool import _send_via_adapter
-
-        platform = Platform("ntfy")
-        recorded = {}
-
-        class Adapter:
-            async def send(self, *, chat_id, content, metadata=None):
-                recorded["chat_id"] = chat_id
-                recorded["content"] = content
-                recorded["metadata"] = metadata
-                return SimpleNamespace(success=True, message_id="ntfy-id")
-
-        runner = SimpleNamespace(adapters={platform: Adapter()})
-        fake_gateway_run = ModuleType("gateway.run")
-        fake_gateway_run._gateway_runner_ref = lambda: runner
-        monkeypatch.setitem(sys.modules, "gateway.run", fake_gateway_run)
-
-        result = await _send_via_adapter(
-            platform,
-            SimpleNamespace(extra={"publish_topic": "configured-topic"}),
-            "alerts-channel",
-            "done",
-        )
-
-        assert result == {"success": True, "message_id": "ntfy-id"}
-        assert recorded["chat_id"] == "alerts-channel"
-        assert recorded["content"] == "done"
-        assert recorded["metadata"] == {"publish_topic": "alerts-channel"}
-
 
     @pytest.mark.asyncio
     async def test_standalone_sender_fn_raises_is_caught_and_formatted(self, monkeypatch):

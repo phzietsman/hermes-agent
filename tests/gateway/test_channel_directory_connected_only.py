@@ -28,7 +28,7 @@ def test_does_not_resurrect_disconnected_platforms_from_session_history(tmp_path
     plats = directory["platforms"]
     assert "telegram" in plats
     # Disconnected platforms must not appear via session discovery.
-    for stale in ("whatsapp", "signal", "matrix"):
+    for stale in ("whatsapp", "slack", "discord"):
         assert stale not in plats, f"{stale} resurrected from session history"
     assert set(calls) <= {"telegram"}
 

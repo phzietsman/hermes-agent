@@ -555,7 +555,7 @@ class TestNamedConnectFailures:
     @pytest.mark.parametrize("aiohttp_module, lazy_allowed, cause, retryable", [
         (None, False, "lazy installs are disabled", False),
         # Installed but this process could not adopt it: final would exit the gateway 78 instead of restarting.
-        (None, True, "sms installed; restart Hermes to activate it", True),
+        (None, True, "whatsapp installed; restart Hermes to activate it", True),
         (types.ModuleType("aiohttp"), True, "incomplete install", False),  # a shadowing aiohttp.py has no __path__
     ])
     async def test_missing_aiohttp_is_named_and_final_only_when_pm_cannot_install(

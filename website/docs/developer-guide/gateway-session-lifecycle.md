@@ -43,10 +43,10 @@ incoming `MessageEvent` and used for routing, isolation, and context injection.
 | `user_name` | `Optional[str]` | `None` | Display name of the message author. Injected into system prompt. |
 | `thread_id` | `Optional[str]` | `None` | Forum topic / Discord thread / Slack thread identifier. Differentiates threaded conversations. |
 | `chat_topic` | `Optional[str]` | `None` | Channel topic or description (Discord channel topic, Slack channel purpose). |
-| `user_id_alt` | `Optional[str]` | `None` | Platform-specific stable alternative ID (Signal UUID, Feishu union_id). Used when `user_id` is ephemeral. |
-| `chat_id_alt` | `Optional[str]` | `None` | Signal group internal ID — maps a Signal group V2 identifier to its canonical form. |
+| `user_id_alt` | `Optional[str]` | `None` | Platform-specific stable alternative ID (e.g. a stable UUID). Used when `user_id` is ephemeral. |
+| `chat_id_alt` | `Optional[str]` | `None` | Alternate chat ID for platforms with a separate internal group identifier. |
 | `is_bot` | `bool` | `False` | True when the message author is a bot or webhook (Discord bots). |
-| `guild_id` | `Optional[str]` | `None` | Discord guild / Slack workspace / Matrix server scope identifier. |
+| `guild_id` | `Optional[str]` | `None` | Discord guild / Slack workspace scope identifier. |
 | `parent_chat_id` | `Optional[str]` | `None` | Parent channel when `chat_id` refers to a thread. |
 | `message_id` | `Optional[str]` | `None` | ID of the triggering message. Used for pin/reply/react operations and Discord ID injection (the injected `[Triggering message id: …]` note rides the API-bound message only; the persisted user row keeps the authored text). |
 | `role_authorized` | `bool` | `False` | True when adapter granted access via a platform role (not individual user ID). |

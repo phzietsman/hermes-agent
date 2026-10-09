@@ -366,7 +366,7 @@ class TestSessionStoreSwitchSession:
         store._loaded = True
 
         source = SessionSource(
-            platform=Platform.FEISHU,
+            platform=Platform.TELEGRAM,
             chat_id="chat-1",
             chat_type="dm",
             user_id="user-1",
@@ -376,7 +376,7 @@ class TestSessionStoreSwitchSession:
         current_session_id = current_entry.session_id
 
         target_session_id = "old_session_abc"
-        db.create_session(target_session_id, source="feishu", user_id="user-1")
+        db.create_session(target_session_id, source="telegram", user_id="user-1")
         db.end_session(target_session_id, end_reason="user_exit")
         assert db.get_session(target_session_id)["ended_at"] is not None
 
@@ -396,7 +396,7 @@ class TestSessionStoreSwitchSession:
         with patch("gateway.session.SessionStore._ensure_loaded"):
             store = SessionStore(sessions_dir=tmp_path / "sessions", config=GatewayConfig())
         store._loaded = True
-        source = SessionSource(platform=Platform.FEISHU, chat_id="chat-2", chat_type="dm", user_id="user-2")
+        source = SessionSource(platform=Platform.TELEGRAM, chat_id="chat-2", chat_type="dm", user_id="user-2")
         entry = store.get_or_create_session(source)
 
         assert store.switch_session(entry.session_key, "target", expected_session_id="someone-else") is None
@@ -469,7 +469,7 @@ class TestSessionStoreLookup:
 
     def test_returns_active_entry_for_persisted_session_id(self, store):
         source = SessionSource(
-            platform=Platform.MATRIX,
+            platform=Platform.SLACK,
             chat_id="!room:example.org",
             chat_type="group",
             user_id="@alice:example.org",
@@ -906,11 +906,11 @@ class TestSessionEntryFromDictTraversalValidation:
             SessionEntry.from_dict(self._entry(session_id="good/../bad"))
 
 
-class TestSessionEntryFromDictGoogleChatKeyAccepted:
-    """Regression: from_dict must accept Google Chat session_keys with interior '/'.
+class TestSessionEntryFromDictInteriorSlashKeyAccepted:
+    """Regression: from_dict must accept session_keys with interior '/'.
 
-    Google Chat resource names are ``spaces/<id>`` and ``spaces/<id>/threads/<id>``,
-    so the routing key ``agent:main:google_chat:<chat_type>:spaces/<id>[:<thread>]``
+    Some platforms' resource names are ``spaces/<id>`` and ``spaces/<id>/threads/<id>``,
+    so the routing key ``agent:main:teams:<chat_type>:spaces/<id>[:<thread>]``
     legitimately contains ``/``. ``session_key`` is a *logical* routing key, never
     a filesystem path, so the strict CWE-22 guard from ``_is_path_unsafe`` is
     over-broad here. Only ``session_id`` (the value used as a filename) needs the
@@ -928,12 +928,12 @@ class TestSessionEntryFromDictGoogleChatKeyAccepted:
     def _entry(self, **overrides):
         return {**self.BASE, **overrides}
 
-    def test_google_chat_group_key_accepted(self):
+    def test_interior_slash_group_key_accepted(self):
         from gateway.session import SessionEntry
         entry = SessionEntry.from_dict(self._entry(
-            session_key="agent:main:google_chat:group:spaces/AAAAEVvy5RY",
+            session_key="agent:main:teams:group:spaces/AAAAEVvy5RY",
         ))
-        assert entry.session_key == "agent:main:google_chat:group:spaces/AAAAEVvy5RY"
+        assert entry.session_key == "agent:main:teams:group:spaces/AAAAEVvy5RY"
 
 
 class TestSessionEntryFromDictSessionKeyTraversalStillRejected:

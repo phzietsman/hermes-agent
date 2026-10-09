@@ -302,7 +302,6 @@ _UPDATE_DEPENDENCIES = (
     "pm/install.py",  # also sealed()/lazy_installs_allowed(): every update's default-tool install
     "hermes_cli/desktop_build_lock.py",
     "hermes_cli/memory_provider_migration.py",
-    "hermes_cli/left_core_migration.py",  # source_build migrates plugins that left core
     "hermes_cli/web_build_limits.py",  # source_build caps the dashboard Node build
     "hermes_cli/desktop_console.py",
     "hermes_cli/bundled_app.py",

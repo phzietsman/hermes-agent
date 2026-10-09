@@ -3174,26 +3174,6 @@ export const frOverrides = {
         label: "Nom du canal d'accueil",
         help: "Nom d'affichage pour le canal d'accueil dans les journaux et la sortie d'état."
       },
-      BLUEBUBBLES_ALLOW_ALL_USERS: {
-        label: 'Autoriser tous les utilisateurs iMessage',
-        help: "Quand vrai, ignorez la liste d'autorisation BlueBubbles."
-      },
-      MATTERMOST_ALLOW_ALL_USERS: {
-        label: 'Autoriser tous les utilisateurs Mattermost'
-      },
-      MATTERMOST_HOME_CHANNEL: {
-        label: "Canal d'accueil"
-      },
-      QQ_ALLOW_ALL_USERS: {
-        label: 'Autoriser tous les utilisateurs QQ'
-      },
-      QQBOT_HOME_CHANNEL: {
-        label: "Canal d'accueil QQ",
-        help: 'Canal ou groupe par défaut pour la livraison cron.'
-      },
-      QQBOT_HOME_CHANNEL_NAME: {
-        label: "Nom du canal d'accueil QQ"
-      },
       SLACK_BOT_TOKEN: {
         label: 'Jeton du bot Slack',
         help: 'Utilisez le jeton du bot depuis OAuth & Permissions après avoir installé votre application Slack.',
@@ -3207,45 +3187,6 @@ export const frOverrides = {
       SLACK_ALLOWED_USERS: {
         label: "IDs d'utilisateurs Slack autorisés",
         help: "Recommandé. IDs d'utilisateurs Slack (un par case)."
-      },
-      MATTERMOST_URL: {
-        label: 'URL du serveur',
-        placeholder: 'https://mattermost.example.com'
-      },
-      MATTERMOST_TOKEN: {
-        label: 'Jeton du bot'
-      },
-      MATTERMOST_ALLOWED_USERS: {
-        label: "IDs d'utilisateurs autorisés",
-        help: "Recommandé. IDs d'utilisateurs Mattermost (un par case)."
-      },
-      MATRIX_HOMESERVER: {
-        label: 'URL du homeserver',
-        placeholder: 'https://matrix.org'
-      },
-      MATRIX_ACCESS_TOKEN: {
-        label: "Jeton d'accès"
-      },
-      MATRIX_USER_ID: {
-        label: "ID d'utilisateur du bot",
-        placeholder: '@hermes:example.org'
-      },
-      MATRIX_ALLOWED_USERS: {
-        label: "IDs d'utilisateurs Matrix autorisés",
-        help: "Recommandé. IDs d'utilisateurs (un par case) au format @utilisateur:serveur."
-      },
-      SIGNAL_HTTP_URL: {
-        label: 'URL du pont Signal',
-        placeholder: 'http://127.0.0.1:8080',
-        help: "URL d'un pont REST signal-cli en cours d'exécution."
-      },
-      SIGNAL_ACCOUNT: {
-        label: 'Numéro de téléphone',
-        help: 'Le numéro enregistré avec votre pont signal-cli.'
-      },
-      SIGNAL_ALLOWED_USERS: {
-        label: 'Utilisateurs Signal autorisés',
-        help: 'Recommandé. Identifiants Signal (un par case).'
       },
       WHATSAPP_ENABLED: {
         label: 'Activer le pont WhatsApp',

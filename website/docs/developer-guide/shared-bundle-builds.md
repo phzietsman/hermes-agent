@@ -256,8 +256,7 @@ paths used by s6 and the privilege-drop shim.
 
 The Docker frontend stage owns npm dependencies and compilation. The runtime
 stage copies only the frontend products and the locked TypeScript package for
-runtime linting. Node/npm and Photon's separately installed sidecar dependencies
-remain runtime inputs. Python dependency preparation precedes the application
+runtime linting. Node/npm remain runtime inputs. Python dependency preparation precedes the application
 source copy. Actual cache-hit and layer-size claims require build evidence.
 
 Nix retains `importNpmLock`, uv2nix, platform overrides, and store references.
@@ -331,7 +330,7 @@ consumers. They are not interchangeable cleanup targets.
   (without the application) under the job workdir; desktop's wheel cache is
   `CACHE/python/build`. That environment does not enter the shipped runtime.
 - Frontend `node_modules` is a provider input, not a frontend product.
-  Docker's runtime TypeScript and Photon selections are separate exceptions.
+  Docker's runtime TypeScript selection is a separate exception.
 
 The native cache behavior is in `scripts/bundles/native.py`.
 Removing all caches from a payload can break offline environment reconstruction.
