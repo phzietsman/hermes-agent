@@ -79,8 +79,8 @@ def test_default_profile_keeps_its_flat_adapters_when_rekeyed(served_root):
     the multiplexer rung and must come back unchanged too (#123869)."""
     from gateway.status import profile_platforms_from_multiplexer, resolve_gateway_liveness
     standalone = {"gateway_state": "running", "served_profiles": [],
-                  "platforms": {"feishu": {"state": "connected"}}}
-    assert profile_platforms_from_multiplexer(standalone, "default") == {"feishu": {"state": "connected"}}
+                  "platforms": {"telegram": {"state": "connected"}}}
+    assert profile_platforms_from_multiplexer(standalone, "default") == {"telegram": {"state": "connected"}}
     alpha = served_root / "profiles" / "alpha"
     live = resolve_gateway_liveness(profile_dir=alpha, health_probe=None, use_cache=False)
     plats = profile_platforms_from_multiplexer(live.runtime, "default")

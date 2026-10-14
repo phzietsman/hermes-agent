@@ -50,9 +50,7 @@ _PROFILE_REJECTED = object()
 _UNPARSEABLE = object()
 
 _BUILTIN_DELIVER_PLATFORMS = {
-    "telegram", "discord", "slack", "signal", "sms", "whatsapp", "matrix", "mattermost",
-    "email", "dingtalk", "feishu", "wecom", "wecom_callback", "weixin",
-    "bluebubbles", "qqbot", "yuanbao"}
+    "telegram", "discord", "slack", "whatsapp", "email"}
 
 # ``None`` → aiohttp binds BOTH address families. "0.0.0.0" is IPv4-only (unreachable on IPv6-only
 # networks such as Fly.io 6PN); "::" becomes IPv6-only where the kernel sets IPV6_V6ONLY=1, breaking
@@ -270,7 +268,7 @@ class WebhookAdapter(BasePlatformAdapter):
         # /p/<profile>/ routes the event to that profile (honored only under gateway.multiplex_profiles).
         app.router.add_post("/p/{profile}/webhooks/{route_name}", self._handle_webhook)
         # Without an api_server listener this port is the shared listener: forward a secondary's
-        # inbound-port platforms (Twilio, LINE, Teams, ...) registered in shared-listener mode.
+        # inbound-port platforms (LINE, Teams, ...) registered in shared-listener mode.
         app.router.add_route("*", "/p/{profile}/{tail:.*}", self._handle_profile_ingress)
         self._runner = web.AppRunner(app)
         await self._runner.setup()

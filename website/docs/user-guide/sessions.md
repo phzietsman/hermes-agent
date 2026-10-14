@@ -12,7 +12,7 @@ Hermes Agent automatically saves every conversation as a session. Sessions enabl
 
 ## How Sessions Work
 
-Every conversation — whether from the CLI, Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Teams, or any other messaging platform — is stored as a session with full message history. Sessions are tracked in:
+Every conversation — whether from the CLI, Telegram, Discord, Slack, WhatsApp, Teams, or any other messaging platform — is stored as a session with full message history. Sessions are tracked in:
 
 1. **SQLite database** (`~/.hermes/state.db`) — structured session metadata with FTS5 full-text search, plus full message history
 
@@ -83,18 +83,7 @@ Each session is tagged with its source platform:
 | `discord` | Discord server/DM |
 | `slack` | Slack workspace |
 | `whatsapp` | WhatsApp messenger |
-| `signal` | Signal messenger |
-| `matrix` | Matrix rooms and DMs |
-| `mattermost` | Mattermost channels |
 | `email` | Email (IMAP/SMTP) |
-| `sms` | SMS via Twilio |
-| `dingtalk` | DingTalk messenger |
-| `feishu` | Feishu/Lark messenger |
-| `wecom` | WeCom (WeChat Work) |
-| `weixin` | Weixin (personal WeChat) |
-| `bluebubbles` | Apple iMessage via BlueBubbles macOS server |
-| `qqbot` | QQ Bot (Tencent QQ) via Official API v2 |
-| `homeassistant` | Home Assistant events (plugin) |
 | `webhook` | Incoming webhooks |
 | `api-server` | API server requests |
 | `acp` | ACP editor integration |
@@ -239,8 +228,7 @@ What happens:
    - **Telegram** — opens a new forum topic (DM topics if the bot owner has enabled Threaded Mode via BotFather, or a forum supergroup topic).
    - **Discord** — creates a 1440-min auto-archive thread under the home text channel.
    - **Slack** — posts a seed message and uses its `ts` as the thread anchor.
-   - **Matrix** — posts a seed message and uses its event id as the thread root (`m.thread` relation).
-   - **WhatsApp / Signal / SMS** — no native threads, falls back to the home channel directly.
+   - **WhatsApp** — no native threads, falls back to the home channel directly.
 4. The gateway re-binds the destination key to your existing CLI session id, then forges a synthetic user turn asking the agent to confirm and summarize. The reply lands in the new thread.
 5. When the gateway acknowledges success, the CLI prints a `/resume` hint and exits cleanly:
 
@@ -260,7 +248,7 @@ What happens:
 - Thread creation fails (permissions, topics-mode off) → falls back to the home channel directly and still completes; no thread isolation but the handoff itself works.
 - `adapter.send` fails (rate limit, transient API error) → handoff marked failed with the reason; the row clears so you can retry.
 
-**Limitation worth knowing:** for non-thread-capable platforms with multi-user group home channels, the synthetic turn keys as a DM-style session. This works for self-DM home channels (the typical setup) but isn't ideal for genuinely shared group chats. Threading covers Telegram / Discord / Slack / Matrix — by far the common case — so most setups never hit this.
+**Limitation worth knowing:** for non-thread-capable platforms with multi-user group home channels, the synthetic turn keys as a DM-style session. This works for self-DM home channels (the typical setup) but isn't ideal for genuinely shared group chats. Threading covers Telegram / Discord / Slack — by far the common case — so most setups never hit this.
 
 ## Session Naming
 

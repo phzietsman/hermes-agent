@@ -237,7 +237,7 @@ Open WebUI 在首次启动后会将 OpenAI 兼容连接设置持久化到其自�
 
 ### 1. 创建 profiles 并配置 API 服务器
 
-`API_SERVER_*` 是环境变量，而非 YAML 配置键，因此请将它们写入每个 profile 的 `.env`。选择默认平台范围之外的端口（`8644` 是 webhook 适配器，`8645` 是 wecom-callback，`8646` 是 msgraph-webhook），例如 `8650+`：
+`API_SERVER_*` 是环境变量，而非 YAML 配置键，因此请将它们写入每个 profile 的 `.env`。选择默认平台范围之外的端口（`8644` 是 webhook 适配器，`8646` 是 msgraph-webhook），例如 `8650+`：
 
 ```bash
 hermes profile create alice

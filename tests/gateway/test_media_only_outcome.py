@@ -28,7 +28,7 @@ class _MediaOutcomeAdapter(BasePlatformAdapter):
     the turn outcome via the production ``on_processing_complete`` hook."""
 
     def __init__(self, *, image_ok: bool = True):
-        super().__init__(PlatformConfig(enabled=True, token="fake-token"), Platform.SIGNAL)
+        super().__init__(PlatformConfig(enabled=True, token="fake-token"), Platform.TELEGRAM)
         self._image_ok = image_ok
         self.outcomes: list = []
         self.images_sent: list = []
@@ -79,7 +79,7 @@ def _make_event() -> MessageEvent:
     return MessageEvent(
         text="send the photo",
         message_type=MessageType.TEXT,
-        source=SessionSource(platform=Platform.SIGNAL, chat_id="111", chat_type="dm"),
+        source=SessionSource(platform=Platform.TELEGRAM, chat_id="111", chat_type="dm"),
         message_id="m1",
     )
 

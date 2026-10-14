@@ -1018,10 +1018,10 @@ def test_named_profile_action_isolates_parent_env_and_loads_target_env(monkeypat
             "DISCORD_BOT_TOKEN=default-discord",
             "API_SERVER_ENABLED=true",
             "API_SERVER_KEY=default-api-server",
-            "BLUEBUBBLES_SERVER_URL=http://127.0.0.1:1234",
-            "BLUEBUBBLES_PASSWORD=default-bluebubbles",
-            "NTFY_TOPIC=default-topic",
-            "NTFY_TOKEN=default-ntfy",
+            "EMAIL_IMAP_HOST=http://127.0.0.1:1234",
+            "SLACK_BOT_TOKEN=default-slack",
+            "TEAMS_TENANT_ID=default-topic",
+            "EMAIL_PASSWORD=default-email-pass",
             "OPENAI_API_KEY=default-openai",
             "ZAI_API_KEY=default-zai",
             # Locally named routing credentials must be isolated too, even without a secret suffix.
@@ -1040,10 +1040,10 @@ def test_named_profile_action_isolates_parent_env_and_loads_target_env(monkeypat
         "DISCORD_BOT_TOKEN": "default-discord",
         "API_SERVER_ENABLED": "true",
         "API_SERVER_KEY": "default-api-server",
-        "BLUEBUBBLES_SERVER_URL": "http://127.0.0.1:1234",
-        "BLUEBUBBLES_PASSWORD": "default-bluebubbles",
-        "NTFY_TOPIC": "default-topic",
-        "NTFY_TOKEN": "default-ntfy",
+        "EMAIL_IMAP_HOST": "http://127.0.0.1:1234",
+        "SLACK_BOT_TOKEN": "default-slack",
+        "TEAMS_TENANT_ID": "default-topic",
+        "EMAIL_PASSWORD": "default-email-pass",
         "OPENAI_API_KEY": "default-openai",
         "ZAI_API_KEY": "default-zai",
         "A2A_AUTH_MINI": "default-a2a-auth",
@@ -1083,8 +1083,8 @@ def test_named_profile_action_isolates_parent_env_and_loads_target_env(monkeypat
     assert child_env["HERMES_NONINTERACTIVE"] == "1"
     assert child_env["PROFILE_ENV_TEST_BENIGN"] == "keep-me"
     for leaked_key in (
-        "DISCORD_BOT_TOKEN", "API_SERVER_ENABLED", "API_SERVER_KEY", "BLUEBUBBLES_SERVER_URL",
-        "BLUEBUBBLES_PASSWORD", "NTFY_TOPIC", "NTFY_TOKEN", "OPENAI_API_KEY", "ZAI_API_KEY",
+        "DISCORD_BOT_TOKEN", "API_SERVER_ENABLED", "API_SERVER_KEY", "EMAIL_IMAP_HOST",
+        "SLACK_BOT_TOKEN", "TEAMS_TENANT_ID", "EMAIL_PASSWORD", "OPENAI_API_KEY", "ZAI_API_KEY",
         "A2A_AUTH_MINI", "EXTERNAL_PROFILE_AUTH", "HERMES_ACP_AUTH_METHOD",
     ):
         assert leaked_key not in child_env, leaked_key
@@ -1100,8 +1100,8 @@ def test_named_profile_action_isolates_parent_env_and_loads_target_env(monkeypat
             "from hermes_cli.env_loader import load_hermes_dotenv; "
             "load_hermes_dotenv(hermes_home=os.environ['HERMES_HOME']); "
             "keys=['A2A_PORT','OPENAI_API_KEY','TARGET_ONLY_TOKEN','DISCORD_BOT_TOKEN',"
-            "'API_SERVER_ENABLED','API_SERVER_KEY','BLUEBUBBLES_SERVER_URL','BLUEBUBBLES_PASSWORD',"
-            "'NTFY_TOPIC','NTFY_TOKEN','ZAI_API_KEY','A2A_AUTH_MINI','EXTERNAL_PROFILE_AUTH']; "
+            "'API_SERVER_ENABLED','API_SERVER_KEY','EMAIL_IMAP_HOST','SLACK_BOT_TOKEN',"
+            "'TEAMS_TENANT_ID','EMAIL_PASSWORD','ZAI_API_KEY','A2A_AUTH_MINI','EXTERNAL_PROFILE_AUTH']; "
             "print(json.dumps({key: os.environ.get(key) for key in keys}))",
         ],
         cwd=Path(ws.PROJECT_ROOT), env=child_env, check=True, capture_output=True, text=True,
@@ -1114,10 +1114,10 @@ def test_named_profile_action_isolates_parent_env_and_loads_target_env(monkeypat
         "DISCORD_BOT_TOKEN": None,
         "API_SERVER_ENABLED": None,
         "API_SERVER_KEY": None,
-        "BLUEBUBBLES_SERVER_URL": None,
-        "BLUEBUBBLES_PASSWORD": None,
-        "NTFY_TOPIC": None,
-        "NTFY_TOKEN": None,
+        "EMAIL_IMAP_HOST": None,
+        "SLACK_BOT_TOKEN": None,
+        "TEAMS_TENANT_ID": None,
+        "EMAIL_PASSWORD": None,
         "ZAI_API_KEY": None,
         "A2A_AUTH_MINI": None,
         "EXTERNAL_PROFILE_AUTH": None,

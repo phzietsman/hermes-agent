@@ -1,7 +1,6 @@
 """Shared mime↔extension dispatch for inbound (downloaded) platform media.
 
-Adapters historically hand-rolled divergent mime→extension maps on purpose (BlueBubbles
-coerces ``image/heic`` to ``.jpg`` for vision tools; WhatsApp Cloud pins ``audio/ogg`` to
+Adapters historically hand-rolled divergent mime→extension maps on purpose (WhatsApp Cloud pins ``audio/ogg`` to
 ``.ogg`` for the STT extension whitelist). This module owns the agreed-upon union tables
 plus lookup helpers taking per-adapter ``overrides`` (and ``use_defaults``/``use_mimetypes``
 toggles) so each adapter's historical output stays byte-identical —
@@ -16,8 +15,7 @@ from typing import Mapping, Optional
 
 # Union of the per-adapter maps where they agree. Favors the common-in-the-wild extension
 # over the RFC-correct one (``audio/ogg`` → ``.ogg``, not ``.oga``): downstream STT/vision
-# pipelines whitelist real-world extensions. (weixin.py's private ``_mime_from_filename``
-# is not folded in yet — another in-flight branch edits that file.)
+# pipelines whitelist real-world extensions..
 DEFAULT_MIME_TO_EXT: dict[str, str] = {
     "image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp",
     "audio/ogg": ".ogg", "audio/x-opus+ogg": ".ogg", "audio/opus": ".ogg",  # whatsapp voice notes
@@ -27,7 +25,7 @@ DEFAULT_MIME_TO_EXT: dict[str, str] = {
 }
 
 # Explicit inverse (the forward table is many-to-one, so the inverse must pick
-# the canonical mime). Byte-identical to Signal's historical ``_EXT_TO_MIME``.
+# the canonical mime). 
 DEFAULT_EXT_TO_MIME: dict[str, str] = {
     ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif",
     ".webp": "image/webp", ".ogg": "audio/ogg", ".mp3": "audio/mpeg", ".wav": "audio/wav",

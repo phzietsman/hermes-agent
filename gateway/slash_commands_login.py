@@ -31,11 +31,6 @@ class _SignInAttempt:
     cancelled: bool = False
 
 
-# These adapters use "dm" for a broadcast topic, a channel, or an agent peer. Sending a consent
-# link and sign-in code there would publish them rather than deliver them to one person.
-_LOGIN_BLOCKED_PLATFORMS = frozenset({"ntfy", "raft", "a2a"})
-
-
 class GatewayLoginCommandsMixin:
     _LOGIN_SINGLE = _LOGIN_SINGLE
 
@@ -63,12 +58,7 @@ class GatewayLoginCommandsMixin:
 
     async def _handle_login_command(self, event) -> str:
         src = event.source
-        platform = str(getattr(src.platform, "value", src.platform)).lower()
-        paired_dm = (
-            getattr(src, "chat_type", None) in {"dm", "private"}
-            and bool(getattr(src, "chat_id", None))
-            and platform not in _LOGIN_BLOCKED_PLATFORMS
-        )
+        paired_dm = getattr(src, "chat_type", None) in {"dm", "private"} and bool(getattr(src, "chat_id", None))
         if not paired_dm:
             return anon_auth.LOGIN_DM_ONLY
 

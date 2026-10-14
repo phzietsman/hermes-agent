@@ -25,8 +25,6 @@ def test_all_builtins_have_checker_or_generic_token_path():
         Platform.TELEGRAM,
         Platform.DISCORD,
         Platform.SLACK,
-        Platform.MATRIX,
-        Platform.MATTERMOST,
     }}
 
     # Platforms with a bespoke checker

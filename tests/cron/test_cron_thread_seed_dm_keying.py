@@ -92,13 +92,13 @@ def test_matrix_room_thread_seed_key_matches_room_reply_key():
 
     with patch("gateway.mirror.mirror_to_session", return_value=True):
         _seed_cron_thread_session(
-            {"id": "j7", "name": "alert"}, adapter, "matrix",
+            {"id": "j7", "name": "alert"}, adapter, "slack",
             "!ops:example.org", "$seed_event", "Three bullets",
             chat_name="ops", is_dm=False,
         )
 
     reply_source = SessionSource(
-        platform=Platform.MATRIX,
+        platform=Platform.SLACK,
         chat_id="!ops:example.org",
         chat_type="group",
         user_id="@alice:example.org",

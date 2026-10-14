@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # Adding a Platform Adapter
 
-This guide covers adding a new messaging platform to the Hermes gateway. A platform adapter connects Hermes to an external messaging service (Telegram, Discord, WeCom, etc.) so users can interact with the agent through that service.
+This guide covers adding a new messaging platform to the Hermes gateway. A platform adapter connects Hermes to an external messaging service (Telegram, Discord, etc.) so users can interact with the agent through that service.
 
 :::tip
 There are two ways to add a platform:
@@ -236,14 +236,13 @@ When you call `ctx.register_platform()`, the following integration points are ha
 ### Service adapters: `trusted_inbound`, `display_tier`, `shared_env_prefixes`
 
 Three optional `ctx.register_platform(...)` / `PlatformEntry` fields exist for adapters that bridge a
-service rather than a chat network. The [Home Assistant plugin](https://github.com/NousResearch/hermes-homeassistant)
-is the reference consumer.
+service rather than a chat network.
 
 | Field | Type / default | Effect |
 |---|---|---|
-| `trusted_inbound` | `bool = False` | Every inbound event comes from the service the adapter authenticated to with its own credential; there is no human sender. The gateway's user allowlists and DM pairing do not apply to this platform. Home Assistant's event bus is the consumer. **Never set it for a chat platform** — it would let anyone who can message the bot drive the agent. |
-| `display_tier` | `str = ''` | One of `'high'`, `'medium'`, `'low'`, `'minimal'`: the built-in per-platform display defaults tier (tool progress, streaming, interim messages) used when the user has no `display.platforms.<name>` override. Empty keeps the generic plugin default. Home Assistant uses `'minimal'`. |
-| `shared_env_prefixes` | `tuple[str, ...] = ()` | Env prefixes the platform shares with a non-channel capability, such as the same plugin's tools (Home Assistant: `('HASS_',)`). [Profile clones](../user-guide/profiles.md) strip keys under these prefixes only when the source profile actually runs the adapter, so a profile that only uses the tools keeps its credentials. |
+| `trusted_inbound` | `bool = False` | Every inbound event comes from the service the adapter authenticated to with its own credential; there is no human sender. The gateway's user allowlists and DM pairing do not apply to this platform. A webhook-style event source is the typical consumer. **Never set it for a chat platform** — it would let anyone who can message the bot drive the agent. |
+| `display_tier` | `str = ''` | One of `'high'`, `'medium'`, `'low'`, `'minimal'`: the built-in per-platform display defaults tier (tool progress, streaming, interim messages) used when the user has no `display.platforms.<name>` override. Empty keeps the generic plugin default. |
+| `shared_env_prefixes` | `tuple[str, ...] = ()` | Env prefixes the platform shares with a non-channel capability, such as the same plugin's tools. [Profile clones](../user-guide/profiles.md) strip keys under these prefixes only when the source profile actually runs the adapter, so a profile that only uses the tools keeps its credentials. |
 
 ```python
 import dataclasses
@@ -459,7 +458,7 @@ ctx.register_platform(
 
 Why this hook is necessary: built-in platforms (Telegram, Discord, Slack, etc.) ship direct REST helpers in `tools/send_message_tool.py` so cron can deliver without holding the gateway in the same process. Plugin platforms historically depended on `_gateway_runner_ref()`, which returns `None` outside the gateway process, so without `standalone_sender_fn` the cron-side send fails with `No live adapter for platform '<name>'`.
 
-The function receives the same `pconfig` and `chat_id` that the live adapter would, plus optional `thread_id`, `media_files`, and `force_document` keyword arguments. Returning `{"success": True, "message_id": ...}` is treated as a successful delivery; returning `{"error": "..."}` surfaces the message in cron's `delivery_errors`. Exceptions raised inside the function are caught by the dispatcher and reported as `Plugin standalone send failed: <reason>`. Reference implementations live in `plugins/platforms/{irc,teams,google_chat}/adapter.py`.
+The function receives the same `pconfig` and `chat_id` that the live adapter would, plus optional `thread_id`, `media_files`, and `force_document` keyword arguments. Returning `{"success": True, "message_id": ...}` is treated as a successful delivery; returning `{"error": "..."}` surfaces the message in cron's `delivery_errors`. Exceptions raised inside the function are caught by the dispatcher and reported as `Plugin standalone send failed: <reason>`. Reference implementations live in `plugins/platforms/{teams,email}/adapter.py`.
 
 ## Surfacing Env Vars in `hermes config`
 
@@ -499,98 +498,9 @@ optional_env:
 
 Bare-string entries (`- MY_PLATFORM_TOKEN`) still work — they get a generic description auto-derived from the plugin's `label`. If a hardcoded entry for the same var already exists in `OPTIONAL_ENV_VARS`, it wins (back-compat); the plugin.yaml form acts as the fallback.
 
-## Platform-Specific Slow-LLM UX
-
-Some platforms have constraints that change how a slow LLM response should be presented:
-
-- **LINE** issues a single-use *reply token* that expires roughly 60 seconds after the inbound event. Replying with that token is free; falling back to the metered Push API is not. If the LLM hasn't finished by the deadline, the choice is "burn paid Push quota" or "do something cleverer with the reply token before it expires."
-- **WhatsApp** marks a session inactive after 24h, after which only template messages are accepted.
-- **SMS** has no concept of typing indicators or progressive updates — long responses just look like the bot is offline.
-
-These are real constraints the base `BasePlatformAdapter` can't anticipate. The plugin surface intentionally leaves the room for an adapter to layer platform-specific UX on top of the base typing loop without expanding the kwarg list.
-
-### Pattern: subclass `_keep_typing` to layer mid-flight UX
-
-`BasePlatformAdapter._keep_typing` is the typing-indicator heartbeat — it runs as a background task while the LLM is generating, and is cancelled when the response is delivered. To layer a platform-specific behavior at a threshold (e.g. send a "still thinking" bubble at 45s), override `_keep_typing` in your adapter, schedule your own task alongside `super()._keep_typing()`, and tear it down in `finally`:
-
-```python
-class LineAdapter(BasePlatformAdapter):
-    async def _keep_typing(self, chat_id: str, *args, **kwargs) -> None:
-        if self.slow_response_threshold <= 0:
-            await super()._keep_typing(chat_id, *args, **kwargs)
-            return
-
-        async def _fire_at_threshold() -> None:
-            try:
-                await asyncio.sleep(self.slow_response_threshold)
-            except asyncio.CancelledError:
-                raise
-            # Platform-specific work here — for LINE, send a Template
-            # Buttons "Get answer" bubble using the cached reply token
-            # so the user can fetch the cached response later via a
-            # fresh (free) reply token from the postback callback.
-            await self._send_slow_response_button(chat_id)
-
-        side_task = asyncio.create_task(_fire_at_threshold())
-        try:
-            await super()._keep_typing(chat_id, *args, **kwargs)
-        finally:
-            if not side_task.done():
-                side_task.cancel()
-                try:
-                    await side_task
-                except (asyncio.CancelledError, Exception):
-                    pass
-```
-
-Key points:
-
-- **Always `await super()._keep_typing(...)`.** The typing heartbeat is independently useful — don't replace it, layer on top of it.
-- **Tear down the side task in `finally`.** When the LLM finishes (or `/stop` cancels the run), the gateway cancels the typing task. Your side task must observe that cancellation too, otherwise it lingers and may fire after the response was already delivered.
-- **Pair with `interrupt_session_activity`** to resolve any orphan UX state when the user issues `/stop`. For LINE, this means transitioning the postback cache entry from `PENDING` to `ERROR` so the persistent "Get answer" button delivers a "Run was interrupted" message instead of looping.
-
-### Pattern: subclass `send` to route through a cache instead of sending immediately
-
-If your slow-response UX caches the response for later retrieval (LINE's postback flow), your `send` override needs to recognize three modes:
-
-1. **Pending postback active for this chat** → cache the response under the request_id, don't send anything visible.
-2. **System busy-ack** (`⚡ Interrupting`, `⏳ Queued`, `⏩ Steered`) → bypass the cache and send visibly so the user sees the gateway's response to their input.
-3. **Normal response** → send via reply-token-or-push as usual.
-
-```python
-async def send(self, chat_id: str, content: str, **kw) -> SendResult:
-    if _is_system_bypass(content):
-        return await self._send_text_chunks(chat_id, content, force_push=False)
-    pending_rid = self._pending_buttons.get(chat_id)
-    if pending_rid:
-        self._cache.set_ready(pending_rid, content)
-        return SendResult(success=True, message_id=pending_rid)
-    return await self._send_text_chunks(chat_id, content, force_push=False)
-```
-
-`_SYSTEM_BYPASS_PREFIXES` are the gateway's own busy-acknowledgment prefixes (`⚡`, `⏳`, `⏩`, `💾`). Always let those through visibly, regardless of cached UX state.
-
-### When this pattern is appropriate
-
-Use the typing-loop override approach when:
-
-- The platform's outbound API has a hard time-window constraint (single-use reply token, expiring sticky session, etc.) AND
-- A *visible mid-flight bubble* is acceptable UX on that platform.
-
-Use the simpler `slow_response_threshold = 0` always-Push path when:
-
-- The platform doesn't have a meaningful free vs. paid distinction, OR
-- The user community prefers "loading… loading… DONE" silence-then-response over an interactive intermediate bubble.
-
-LINE supports both: the threshold defaults to 45s for free postback fetch, and `LINE_SLOW_RESPONSE_THRESHOLD=0` reverts to "always Push fallback."
-
-### Reference Implementation
-
-See `plugins/platforms/line/adapter.py` for the full LINE postback implementation — a `RequestCache` state machine (`PENDING → READY → DELIVERED`, plus `ERROR` for `/stop`), a `_keep_typing` override that fires the Template Buttons bubble at threshold, a `send` override that routes through the cache, and an `interrupt_session_activity` override that resolves orphan PENDING entries.
-
 ### Reference Implementations (Plugin Path)
 
-See `plugins/platforms/irc/` in the repo for a complete working example — a full async IRC adapter with zero external dependencies. `plugins/platforms/teams/` covers Bot Framework / Adaptive Cards, `plugins/platforms/google_chat/` covers OAuth-based REST APIs, and `plugins/platforms/line/` covers webhook-driven Messaging APIs with platform-specific slow-LLM UX.
+See `plugins/platforms/teams/` (Bot Framework / Adaptive Cards), `plugins/platforms/slack/` (Socket Mode) and `plugins/platforms/email/` (IMAP/SMTP polling) in the repo for complete working examples.
 
 ---
 
@@ -754,7 +664,7 @@ Before marking a new platform PR as complete, run a parity audit against an esta
 
 ```bash
 # Find every .py file mentioning the reference platform
-search_files "bluebubbles" output_mode="files_only" file_glob="*.py"
+search_files "slack" output_mode="files_only" file_glob="*.py"
 
 # Find every .py file mentioning the new platform
 search_files "newplat" output_mode="files_only" file_glob="*.py"
@@ -768,7 +678,7 @@ Repeat for `.md` and `.ts` files. Investigate each gap — is it a platform enum
 
 ### Long-Poll Adapters
 
-If your adapter uses long-polling (like Telegram or Weixin), use a polling loop task:
+If your adapter uses long-polling (like Telegram), use a polling loop task:
 
 ```python
 async def connect(self):
@@ -784,7 +694,7 @@ async def _poll_loop(self):
 
 ### Callback/Webhook Adapters
 
-If the platform pushes messages to your endpoint (like WeCom Callback), run an HTTP server:
+If the platform pushes messages to your endpoint (like Teams), run an HTTP server:
 
 ```python
 async def connect(self):
@@ -799,7 +709,7 @@ async def _handle_callback(self, request):
     return web.Response(text="success")  # Acknowledge immediately
 ```
 
-For platforms with tight response deadlines (e.g., WeCom's 5-second limit), always acknowledge immediately and deliver the agent's reply proactively via API later. Agent sessions run 3–30 minutes — inline replies within a callback response window are not feasible.
+For platforms with tight response deadlines (e.g., a 5-second limit), always acknowledge immediately and deliver the agent's reply proactively via API later. Agent sessions run 3–30 minutes — inline replies within a callback response window are not feasible.
 
 ### Inbound Deduplication
 
@@ -838,7 +748,4 @@ async def disconnect(self):
 
 | Adapter | Pattern | Complexity | Good reference for |
 |---------|---------|------------|-------------------|
-| `bluebubbles.py` | REST + webhook | Medium | Simple REST API integration |
-| `weixin.py` | Long-poll + CDN | High | Media handling, encryption |
-| `plugins/platforms/wecom/callback_adapter.py` | Callback/webhook | Medium | HTTP server, AES crypto, multi-app |
-| `plugins/platforms/irc/adapter.py` | Long-poll + IRC protocol | High | Full-featured plugin adapter with scoped token lock |
+| `plugins/platforms/email/adapter.py` | IMAP/SMTP polling | Medium | Polling plugin adapter with scoped token lock |

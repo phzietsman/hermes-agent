@@ -264,8 +264,8 @@ class TestCaptureLogSnapshotRedaction:
         log_path = hermes_home_with_secret / "logs" / "agent.log"
         log_path.write_text(
             "2026-04-12 17:00:00 INFO gateway.run: "
-            "inbound message: platform=bluebubbles "
-            "user=person@example.com chat=iMessage;-;person@example.com msg='hello'\n"
+            "inbound message: platform=telegram "
+            "user=person@example.com chat=person@example.com msg='hello'\n"
         )
 
         snap = _capture_log_snapshot("agent", tail_lines=10)

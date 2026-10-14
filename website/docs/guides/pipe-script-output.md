@@ -1,7 +1,7 @@
 ---
 sidebar_position: 12
 title: "Pipe Script Output to Messaging Platforms"
-description: "Send text from any shell script, cron job, CI hook, or monitoring daemon to Telegram, Discord, Slack, Signal, and other platforms using `hermes send`."
+description: "Send text from any shell script, cron job, CI hook, or monitoring daemon to Telegram, Discord, Slack, and other platforms using `hermes send`."
 ---
 
 # Pipe Script Output to Messaging Platforms
@@ -74,11 +74,11 @@ hermes send --list telegram
 | `platform:chat_id` | `telegram:-1001234567890` | Specific numeric chat / group / user |
 | `platform:chat_id:thread_id` | `telegram:-1001234567890:17585` | Specific thread or Telegram forum topic |
 | `platform:#channel` | `discord:#ops` | Human-friendly channel name (resolved against the channel directory) |
-| `platform:+E164` | `signal:+15551234567` | Phone-addressed platforms: Signal, SMS, WhatsApp |
+| `platform:+E164` | `signal:+15551234567` | Phone-addressed platforms: WhatsApp |
 
 Any platform Hermes ships adapters for works as a target:
-`telegram`, `discord`, `slack`, `signal`, `sms`, `whatsapp`, `matrix`,
-`mattermost`, `feishu`, `dingtalk`, `wecom`, `weixin`, `email`, and
+`telegram`, `discord`, `slack`, `whatsapp`, `matrix`,
+`mattermost`, `email`, and
 others.
 
 ### Exit Codes
@@ -184,7 +184,7 @@ msg_id=$(hermes send --to discord:#ops --json "build started" \
 ## Does `hermes send` Need the Gateway Running?
 
 **Usually no.** For any bot-token platform — Telegram, Discord, Slack,
-Signal, SMS, WhatsApp Cloud API, and most others — `hermes send` calls
+WhatsApp Cloud API, and most others — `hermes send` calls
 the platform's REST endpoint directly using credentials from
 `~/.hermes/.env` and `~/.hermes/config.yaml` (or the equivalent files under
 your resolved Hermes home — `%LOCALAPPDATA%\hermes` on Windows, or the profile

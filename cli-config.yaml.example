@@ -1370,7 +1370,7 @@ gateway:
 #   - A preset like "hermes-cli" or "hermes-telegram" (curated tool set)
 #   - A list of individual toolsets to compose your own (see list below)
 #
-# Supported platform keys: cli, telegram, discord, whatsapp, slack, qqbot, teams, google_chat
+# Supported platform keys: cli, telegram, discord, whatsapp, slack, teams
 #
 # Examples:
 #
@@ -1397,10 +1397,7 @@ gateway:
 #   discord:       hermes-discord        (same as telegram)
 #   whatsapp:      hermes-whatsapp       (same as telegram)
 #   slack:         hermes-slack          (same as telegram)
-#   signal:        hermes-signal         (same as telegram)
-#   qqbot:            hermes-qqbot            (same as telegram)
 #   teams:            hermes-teams            (same as telegram)
-#   google_chat:      hermes-google_chat      (same as telegram)
 #
 platform_toolsets:
   cli: [hermes-cli]
@@ -1408,11 +1405,7 @@ platform_toolsets:
   discord: [hermes-discord]
   whatsapp: [hermes-whatsapp]
   slack: [hermes-slack]
-  signal: [hermes-signal]
-  qqbot: [hermes-qqbot]
-  yuanbao: [hermes-yuanbao]
   teams: [hermes-teams]
-  google_chat: [hermes-google_chat]
 
 # =============================================================================
 # Gateway Platform Settings

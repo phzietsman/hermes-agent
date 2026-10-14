@@ -273,7 +273,7 @@ def _import_aiohttp():
 
 
 def ensure_aiohttp() -> Optional[tuple[str, bool]]:
-    """None once aiohttp imports (PM installs the ``sms`` extra, which is exactly aiohttp, when it is missing), else
+    """None once aiohttp imports (PM installs the ``whatsapp`` extra, which is exactly aiohttp, when it is missing), else
     (why not, retryable).
 
     Every bridge call imports aiohttp; a sealed env without it used to fail each /health poll silently and loop
@@ -296,7 +296,7 @@ def ensure_aiohttp() -> Optional[tuple[str, bool]]:
     root = repo_root()
     installable = lazy_installs_allowed() and (running_from_selected_environment(root) or restart_needed(root) is not None)
     try:
-        ensure_import("sms")
+        ensure_import("whatsapp")
     except (RuntimeError, OSError, ValueError) as exc:  # InstallError/DownloadError; anything else escapes as transient
         # Only policy or a foreign interpreter is final. A busy dependency lock, a failed download and "installed;
         # restart Hermes to activate it" stay retryable: as final errors they exit the gateway 78 and keep it down.
@@ -305,7 +305,7 @@ def ensure_aiohttp() -> Optional[tuple[str, bool]]:
         _import_aiohttp()
         return None
     except ImportError as exc:
-        return f"{exc} after installing the sms extra", False
+        return f"{exc} after installing the whatsapp extra", False
 
 
 # Env vars bridge.js consumes; injected because a multiplexed subprocess's os.environ lacks the secondary profile's .env.
@@ -593,7 +593,7 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
         if (missing := ensure_aiohttp()) is not None:  # may install it: connect runs this off the event loop
             why, retryable = missing
             message = (f"aiohttp is unavailable ({why}); the WhatsApp bridge client needs it. "
-                       "Run `hermes pm install --extra sms` (it ships aiohttp; `hermes pm repair` for a damaged install), "
+                       "Run `hermes pm install --extra whatsapp` (it ships aiohttp; `hermes pm repair` for a damaged install), "
                        "then restart `hermes gateway`.")
             logger.warning("[%s] %s", self.name, message)
             self._set_fatal_error("whatsapp_aiohttp_missing", message, retryable=retryable)

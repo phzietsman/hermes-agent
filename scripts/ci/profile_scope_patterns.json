@@ -45,9 +45,9 @@
     {
       "id": "P06",
       "class": "C5",
-      "pattern_regex": "os\\.getenv\\(\\s*[\"'](DISCORD|TELEGRAM|SLACK|MATRIX|WHATSAPP|FEISHU|SIGNAL|TEAMS|LINE|WECOM|YUANBAO|HINDSIGHT|BRV|A2A|WEIXIN)_|os\\.environ\\.get\\(\\s*[\"'](DISCORD|TELEGRAM|SLACK|MATRIX|WHATSAPP|FEISHU|SIGNAL|TEAMS|LINE|WECOM|YUANBAO|HINDSIGHT|BRV|A2A|WEIXIN)_",
+      "pattern_regex": "os\\.getenv\\(\\s*[\"'](DISCORD|TELEGRAM|SLACK|WHATSAPP|TEAMS|HINDSIGHT|BRV)_|os\\.environ\\.get\\(\\s*[\"'](DISCORD|TELEGRAM|SLACK|WHATSAPP|TEAMS|HINDSIGHT|BRV)_",
       "scope_hint": "plugins/platforms/*, plugins/memory/*, gateway/run_config_loaders.py, gateway/platforms/*. Replace with gateway.platforms._shared.extra_or_secret(extra, key, ENV, default) or get_scoped_secret.",
-      "why": "Raw env is the launch profile's. A secondary that omits a key must get the adapter default, not the launch profile's value (Matrix notices/session_scope, Discord everyone-mentions, Slack ignored channels all inherited). MindDragon probe still lists TELEGRAM_WEBHOOK_HOST and run_config_loaders.py:64,93 as open."
+      "why": "Raw env is the launch profile's. A secondary that omits a key must get the adapter default, not the launch profile's value (Discord everyone-mentions, Slack ignored channels all inherited). MindDragon probe still lists TELEGRAM_WEBHOOK_HOST and run_config_loaders.py:64,93 as open."
     },
     {
       "id": "P08",
@@ -167,7 +167,7 @@
       "path_regex": "^(gateway|plugins)/platforms/(?!base\\.py$).+\\.py$",
       "pattern_regex": "\\bbuild_session_key\\(|\\bSessionSource\\(",
       "scope_hint": "Inside an adapter derive every key through self._source_session_key(source) / self._event_session_key(event) (owner-profile namespace, runner-seeded isolation flags) and build sources with self.build_source(...) so the transport provenance is kept; only platforms/base.py owns the free calls.",
-      "why": "Yuanbao keyed its per-group queue and RecallGuard with the free build_session_key() (no profile) while handle_message keyed under agent:<owner>: - two derivations of one identity, one lane shared across bots (#88715)."
+      "why": "An adapter keyed its per-group queue and RecallGuard with the free build_session_key() (no profile) while handle_message keyed under agent:<owner>: - two derivations of one identity, one lane shared across bots (#88715)."
     },
     {
       "id": "P33",

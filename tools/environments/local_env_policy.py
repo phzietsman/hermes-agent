@@ -3,7 +3,6 @@ names are Hermes-managed credentials. The env *builders* applying it (``_make_ru
 ``_sanitize_subprocess_env``, ``hermes_subprocess_env``) live in ``tools.environments.local``."""
 
 import functools
-import os
 from typing import Optional
 
 # Prefix a caller uses in ``extra_env`` to force a blocklisted var through.
@@ -30,9 +29,7 @@ _STATIC_PROVIDER_ENV_BLOCKLIST = frozenset({
     "DISCORD_HOME_CHANNEL_NAME", "DISCORD_REQUIRE_MENTION",
     "DISCORD_FREE_RESPONSE_CHANNELS", "DISCORD_AUTO_THREAD", "SLACK_HOME_CHANNEL",
     "SLACK_HOME_CHANNEL_NAME", "SLACK_ALLOWED_USERS", "WHATSAPP_ENABLED",
-    "WHATSAPP_MODE", "WHATSAPP_ALLOWED_USERS", "SIGNAL_HTTP_URL", "SIGNAL_ACCOUNT",
-    "SIGNAL_ALLOWED_USERS", "SIGNAL_GROUP_ALLOWED_USERS", "SIGNAL_HOME_CHANNEL",
-    "SIGNAL_HOME_CHANNEL_NAME", "SIGNAL_IGNORE_STORIES",
+    "WHATSAPP_MODE", "WHATSAPP_ALLOWED_USERS",
     "EMAIL_ADDRESS", "EMAIL_PASSWORD", "EMAIL_IMAP_HOST", "EMAIL_SMTP_HOST",
     "EMAIL_HOME_ADDRESS", "EMAIL_HOME_ADDRESS_NAME", "HERMES_DASHBOARD_SESSION_TOKEN",
     "GATEWAY_ALLOWED_USERS", "GH_TOKEN", "GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY_PATH",
@@ -52,17 +49,9 @@ _STATIC_PROVIDER_ENV_BLOCKLIST = frozenset({
 })
 
 
-def _left_core_env(*, secrets_only: bool) -> frozenset:
-    """Env of features that left core for a catalog plugin (``hermes_cli.left_core_migration``):
-    stripped exactly as when core shipped them, plugin installed or not."""
-    from hermes_cli.left_core_migration import LEFT_CORE
-    return frozenset(name for feature in LEFT_CORE
-                     for name in feature.secret_env + (() if secrets_only else feature.private_env))
-
-
 def _build_provider_env_blocklist() -> frozenset:
     """Derive the blocklist from provider, tool, and gateway config."""
-    blocked: set[str] = set(_STATIC_PROVIDER_ENV_BLOCKLIST) | _left_core_env(secrets_only=False)
+    blocked: set[str] = set(_STATIC_PROVIDER_ENV_BLOCKLIST)
     try:
         from hermes_cli.auth import PROVIDER_REGISTRY
         for pconfig in PROVIDER_REGISTRY.values():
@@ -85,23 +74,18 @@ def _build_provider_env_blocklist() -> frozenset:
     # CLAUDE_CODE_OAUTH_TOKEN (via the anthropic registry entry) belongs to the user's
     # Claude Code install, not Hermes: stripping it made agent-spawned ``claude`` CLIs
     # fall through to the shared Keychain / ~/.claude store and, on auth failure, wipe
-    # it — logging the user out. BUZZ_* is deliberately NOT discarded: this list feeds
-    # every scrub surface, so an import-time discard would leak BUZZ_PRIVATE_KEY into
-    # non-terminal children; the Buzz carve-out is terminal-only and context-gated
-    # (``_is_terminal_first_party_env``).
+    # it — logging the user out.
     # It is set and owned by the user's Claude Code install (subscription OAuth), not a Hermes-managed
     # inference credential — Claude subscription auth is not a working Hermes provider path. It arrives via
     # the registry loop above (anthropic api_key_env_vars), so remove it explicitly. See #55878.
     blocked.discard("CLAUDE_CODE_OAUTH_TOKEN")
-    # BUZZ_* is deliberately NOT discarded here, even for Buzz-managed agents (BUZZ_MANAGED_AGENT set by the
-    # buzz-acp harness). See #76243, #78026, #78065, #78511.
     return frozenset(blocked)
 
 
 def _build_adapter_secret_env() -> frozenset:
     """Secrets the messaging adapters declare, process-wide: core ``password`` messaging entries
     of OPTIONAL_ENV_VARS, the bundled platform plugin manifests' secret entries, and the
-    secret-named keys the gateway env-override table reads (WEIXIN_TOKEN, FEISHU_ENCRYPT_KEY, ...).
+    secret-named keys the gateway env-override table reads (TELEGRAM_BOT_TOKEN, SLACK_BOT_TOKEN, ...).
     Declared names only: a user's own ``SLACK_USER_TOKEN`` or ``LOCAL_LLM_API_KEY`` is not Hermes's.
     A profile's user-installed platform plugins are per home: :func:`_home_adapter_secret_env`.
     Nothing here fails soft: an unreadable bundled manifest or env table fails the import rather
@@ -110,8 +94,8 @@ def _build_adapter_secret_env() -> frozenset:
         CORE_DECLARED_ENV_NAMES, OPTIONAL_ENV_VARS, PLATFORM_SECRET_ENV_SUFFIXES, platform_manifest_secret_envs)
     from hermes_cli.profile_channels import config_env_table_keys
     # Read in code only, declared nowhere else: the Microsoft Graph app secret and webhook
-    # clientState, and the QQ bot's speech-to-text key.
-    names: set[str] = {"MSGRAPH_CLIENT_SECRET", "MSGRAPH_WEBHOOK_CLIENT_STATE", "QQ_STT_API_KEY"}
+    # clientState.
+    names: set[str] = {"MSGRAPH_CLIENT_SECRET", "MSGRAPH_WEBHOOK_CLIENT_STATE"}
     names.update(name.upper() for name, meta in OPTIONAL_ENV_VARS.items()
                  if name in CORE_DECLARED_ENV_NAMES
                  and meta.get("category") == "messaging" and meta.get("password"))
@@ -182,78 +166,6 @@ def _is_provider_env_blocklisted(name: str, _registered: "frozenset | None" = No
     return upper in (_registered_adapter_secret_env() if _registered is None else _registered)
 
 
-# First-party platform credentials (``BUZZ_*``, driving the platform-mandated ``buzz``
-# CLI) carved out of the TERMINAL scrub only (``_make_run_env``,
-# ``_sanitize_subprocess_env``); execute_code, hermes_subprocess_env, docker and
-# env_passthrough registration stay sealed (GHSA-rhgp-j443-p4rf). CONTEXT-GATED via
-# ``_buzz_terminal_context_active``: a Telegram/CLI/cron session on a host that also
-# runs a Buzz gateway must not get the signing key. Values are used directly, never
-# scope-resolved (UnscopedSecretError under multiplex); the snapshot treats them as
-# profile-scoped. Prefix-based so future BUZZ_* names need no code change.
-# First-party platform credentials the agent's own platform adapters need in terminal children (e.g. the
-# ``BUZZ_*`` vars for the Buzz messaging platform, which drive the platform-mandated ``buzz`` CLI:
-# BUZZ_PRIVATE_KEY, BUZZ_AUTH_TAG, BUZZ_RELAY_URL, and the other BUZZ_* names). These are the agent's OWN
-# credentials — a Buzz community agent is expected to operate the ``buzz`` CLI — so they are carved out of
-# the terminal scrub. CONTEXT-GATED: the carve-out applies ONLY when this process/session is actually
-# operating as a Buzz agent — either the process is a Buzz-ACP managed agent (``BUZZ_MANAGED_AGENT`` is set,
-# only by Buzz Desktop's buzz-acp harness; see #76243 / #78511) or the current session's platform is
-# ``buzz`` (the gateway's ``HERMES_SESSION_PLATFORM`` ContextVar; concurrency safe under a multi-session
-# host). A Telegram/CLI/cron session on a host that also runs a Buzz gateway does NOT get BUZZ_PRIVATE_KEY
-# in its terminal children — blanket passthrough of a signing key to every terminal child on the host would
-# be wrong (maintainer triage note on #76243: don't expose the key to unrelated shell commands).
-# ``_sanitize_subprocess_env`` is also consumed by search workers (e.g. the ddgs web-search subprocess), the
-# computer-use driver binary, and user-script runners (bang ``!`` commands, quick commands, cron scripts,
-# webhook-filter scripts), so those children receive the vars too — matching the approved background/PTY
-# scope. Every other surface stays sealed — execute_code scrubbing, :func:`hermes_subprocess_env` (browser /
-# TUI host / copilot-executor spawns), docker children, and ``env_passthrough`` registration (skills/config
-# still cannot register these names). The GHSA-rhgp-j443-p4rf seal is preserved because no registration path
-# is opened; this is a scrub-path exemption, not an allowlist addition. First-party matches use the merged
-# env value directly — they are the process's own env values and are never scope-resolved (a profile secret
-# scope under multiplex would otherwise raise UnscopedSecretError at passthrough-resolution call sites);
-# only skill/config passthrough names resolve through the profile secret scope. The snapshot mechanism
-# treats these names like profile-scoped passthrough names (see
-# ``LocalEnvironment._additional_profile_scoped_passthrough_names``) so they never persist in the shared
-# terminal snapshot across profiles. Contrast with CLAUDE_CODE_OAUTH_TOKEN above, which is discarded from
-# the blocklist entirely because it is NOT a Hermes credential; these ARE Hermes-managed first-party
-# platform credentials, so they stay IN the blocklist for every non-terminal surface. See issue #78026 (Buzz
-# agents could not use ``buzz`` from the terminal tool) and #76243 (Buzz Desktop managed agent wakes but
-# cannot reply).
-_TERMINAL_FIRST_PARTY_ENV_PREFIXES = ("BUZZ_",)
-
-
-def _matches_terminal_first_party_prefix(name: str) -> bool:
-    """Pure name check (``BUZZ_*``), regardless of session context — the snapshot
-    exclusion must stay conservative even when the carve-out is inactive.
-    Case-folded: on Windows the env block is case-insensitive, so a
-    lowercase-stored ``buzz_private_key`` IS the credential; it needs the
-    carve-out (and the snapshot exclusion) just like the canonical name."""
-    return name.upper().startswith(_TERMINAL_FIRST_PARTY_ENV_PREFIXES)
-
-
-def _buzz_terminal_context_active() -> bool:
-    """True when this process/session operates as a Buzz agent: ``BUZZ_MANAGED_AGENT`` in
-    the process env (set only by Buzz Desktop's buzz-acp harness), or the live session's
-    platform is ``buzz`` via the gateway ContextVar — authoritative under a concurrent
-    multi-session host, so a sibling Telegram session resolves its OWN platform.
-
-    Gateway / CLI / cron / kanban processes never carry it. See #76243.
-    """
-    if os.environ.get("BUZZ_MANAGED_AGENT"):
-        return True
-    try:
-        from gateway.session_context import get_session_env
-
-        return get_session_env("HERMES_SESSION_PLATFORM", "").strip().lower() == "buzz"
-    except Exception:
-        return False
-
-
-def _is_terminal_first_party_env(name: str) -> bool:
-    """``name`` is a first-party platform credential (``BUZZ_*``) AND the current
-    process/session context entitles it to reach terminal children."""
-    return _matches_terminal_first_party_prefix(name) and _buzz_terminal_context_active()
-
-
 # Active-venv markers that must NOT leak: VIRTUAL_ENV/CONDA_PREFIX make uv/poetry sync
 # ANOTHER project's deps into the Hermes venv (still reachable via PATH, so stripping
 # is safe); PYTHONHOME redirects a child interpreter's stdlib to the Hermes venv
@@ -300,9 +212,8 @@ _PROFILE_GATE_ENV_MARKERS = (
     "_ALLOWED_", "_ALLOW_ALL_", "_ALLOW_FROM", "_ALLOW_BOTS", "_ALLOW_PUBLIC_", "_IGNORED_CHANNELS",
     "_NO_THREAD_CHANNELS", "_FREE_RESPONSE_CHANNELS", "_BACKFILL_CHANNELS", "_GROUP_ALLOWED",
 )
-# Gate owners that are not a ``Platform`` value: the cross-platform pairing gate and adapters whose
-# env prefix differs from their platform name (``qqbot`` reads ``QQ_*``).
-_EXTRA_GATE_ENV_PREFIXES = frozenset({"GATEWAY", "QQ"})
+# Gate owners that are not a ``Platform`` value: the cross-platform pairing gate.
+_EXTRA_GATE_ENV_PREFIXES = frozenset({"GATEWAY"})
 
 
 @functools.lru_cache(maxsize=1)
@@ -390,5 +301,5 @@ _ALWAYS_STRIP_KEYS: frozenset[str] = frozenset({
     "HERMES_DASHBOARD_OIDC_CLIENT_SECRET", "HERMES_DASHBOARD_DRAIN_SECRET",
     # Remote-compute / infrastructure secrets
     "MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET", "DAYTONA_API_KEY",
-}) | _ADAPTER_SECRET_ENV | _left_core_env(secrets_only=True)  # every declared adapter secret is Tier 1
+}) | _ADAPTER_SECRET_ENV  # every declared adapter secret is Tier 1
 _ALWAYS_STRIP_FOLDED: frozenset[str] = frozenset(k.upper() for k in _ALWAYS_STRIP_KEYS)

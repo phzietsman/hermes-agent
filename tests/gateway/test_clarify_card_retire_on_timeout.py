@@ -70,7 +70,6 @@ def _run_clarify(adapter, questions=_ONE_QUESTION, answers=(), via_tool=False):
         return _Fut(asyncio.run(coro))
 
     runner._schedule = _schedule
-    runner._close_native_stream_boundary = lambda *a, **k: None
     real_register = cm.register
     seen = {"n": 0}
 

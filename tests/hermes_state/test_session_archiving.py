@@ -69,8 +69,8 @@ def test_archived_only_view_includes_hidden_archived_sessions(db):
 def _stale_lineage(db: SessionDB, prefix: str) -> tuple[str, str]:
     """root(compression, 40 days old) -> tip; the tip's state is the caller's."""
     root, tip = f"{prefix}-root", f"{prefix}-tip"
-    db.create_session(root, source="feishu")
-    db.create_session(tip, source="feishu", parent_session_id=root)
+    db.create_session(root, source="telegram")
+    db.create_session(tip, source="telegram", parent_session_id=root)
     base = time.time() - 40 * 86400
     db._conn.execute(
         "UPDATE sessions SET started_at = ?, ended_at = ?, end_reason = 'compression', last_activity_at = ? WHERE id = ?",

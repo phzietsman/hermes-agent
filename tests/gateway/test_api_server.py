@@ -418,7 +418,7 @@ def _create_app(adapter: APIServerAdapter) -> web.Application:
     return app
 
 
-class _FakeGoogleChatAdapter:
+class _FakePlatformEventAdapter:
     def __init__(self, *, verify_ok: bool = True, verify_code: str = ""):
         self.verify_ok = verify_ok
         self.verify_code = verify_code
@@ -1993,10 +1993,10 @@ class TestMultipleSystemMessages:
 class TestPlatformEventCallbackEndpoint:
 
     @pytest.mark.asyncio
-    async def test_rejects_invalid_google_chat_auth(self, adapter):
+    async def test_rejects_invalid_teams_auth(self, adapter):
         app = _create_app(adapter)
         app["platform_event_adapters"] = {
-            "google_chat": _FakeGoogleChatAdapter(
+            "teams": _FakePlatformEventAdapter(
                 verify_ok=False,
                 verify_code="invalid_google_bearer",
             )
@@ -2004,7 +2004,7 @@ class TestPlatformEventCallbackEndpoint:
 
         async with TestClient(TestServer(app)) as cli:
             resp = await cli.post(
-                "/api/platforms/google_chat/events",
+                "/api/platforms/teams/events",
                 headers={"Authorization": "Bearer bad"},
                 json={"type": "MESSAGE"},
             )

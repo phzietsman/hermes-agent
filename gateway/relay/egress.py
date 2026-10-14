@@ -387,7 +387,7 @@ def _session_ids(platform_name: str) -> Set[str]:
             # `_session_entry_id` builds the id as f"{chat_id}:{thread_id}"
             # when a thread exists, and the entry still carries `thread_id`
             # separately — so the parent is knowable exactly. Splitting on ":"
-            # was a guess that INVENTED attestations: a Matrix room id
+            # was a guess that INVENTED attestations: a room id like
             # `!room:server.org` attested a bare `!room` no session ever used.
             # An allow-list of "platforms whose ids have no native colon" would
             # only have narrowed the guess; the structured field removes it.

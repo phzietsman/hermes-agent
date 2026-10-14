@@ -480,7 +480,7 @@ class GatewayInboundMixin(GatewayPluginInjectionMixin):
             from tools.approval import has_blocking_approval
             if has_blocking_approval(_quick_key):
                 return None
-        # Accept bang-prefixed replies (`!always`, `!cancel`) verbatim: Slack/Matrix show the `!`
+        # Accept bang-prefixed replies (`!always`, `!cancel`) verbatim: Slack shows the `!`
         # prefix (typed `/` is blocked in Slack threads) and adapters only rewrite
         # `!<known-command>` — confirm keywords aren't commands, so the `!` survives to here.
         _norm_reply = (event.text or "").strip().lstrip("!/").lower()

@@ -458,6 +458,6 @@ hermes -p bob gateway &
 
 ## 代理模式
 
-API 服务器还作为 **gateway 代理模式**的后端。当另一个 Hermes gateway 实例配置了指向此 API 服务器的 `GATEWAY_PROXY_URL` 时，它会将所有消息转发到这里，而不是运行自己的 agent。这支持分离部署——例如，一个处理 Matrix E2EE 的 Docker 容器将请求中继到宿主机侧的 agent。
+API 服务器还作为 **gateway 代理模式**的后端。当另一个 Hermes gateway 实例配置了指向此 API 服务器的 `GATEWAY_PROXY_URL` 时，它会将所有消息转发到这里，而不是运行自己的 agent。这支持分离部署——例如，一个 Docker 容器将请求中继到宿主机侧的 agent。
 
-完整设置指南参见 [Matrix 代理模式](../messaging/matrix.md#proxy-mode-e2ee-on-macos)。
+完整设置指南参见 。

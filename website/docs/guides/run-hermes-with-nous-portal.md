@@ -156,7 +156,7 @@ hermes setup tts
 # → pick a speech-to-text backend (local faster-whisper is free, no setup)
 ```
 
-Then in any messaging-platform session (Telegram, Discord, Signal, etc.), send a voice message and Hermes will transcribe it, respond, and reply with synthesized voice — all on your Portal subscription.
+Then in any messaging-platform session (Telegram, Discord, etc.), send a voice message and Hermes will transcribe it, respond, and reply with synthesized voice — all on your Portal subscription.
 
 ## 8. (Optional) Cron + always-on workflows
 

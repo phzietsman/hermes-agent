@@ -11,9 +11,9 @@ import pytest
 from hermes_state import SessionDB
 
 PEER = dict(
-    source="qqbot",
+    source="telegram",
     user_id="D425866BDDB69A1305199BAE0B166AFB",
-    session_key="agent:main:qqbot:dm:D425866BDDB69A1305199BAE0B166AFB",
+    session_key="agent:main:telegram:dm:D425866BDDB69A1305199BAE0B166AFB",
     chat_id="D425866BDDB69A1305199BAE0B166AFB",
     chat_type="dm",
     thread_id=None,
@@ -36,7 +36,7 @@ def _mk_handed_off(db, session_id, *, handoff_state):
         db.append_message(session_id, "user" if i % 2 == 0 else "assistant", f"m{i}")
     with db._lock:
         db._conn.execute(
-            "UPDATE sessions SET handoff_state=?, handoff_platform='qqbot', last_activity_at=?, "
+            "UPDATE sessions SET handoff_state=?, handoff_platform='telegram', last_activity_at=?, "
             "ended_at=1000.0, end_reason='cli_close' WHERE id=?",
             (handoff_state, time.time(), session_id),
         )

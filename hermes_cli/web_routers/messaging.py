@@ -62,14 +62,11 @@ _probe_gateway_health = late("_probe_gateway_health", "hermes_cli.web_server_gat
 get_running_pid_cached = late("get_running_pid_cached", "gateway.status")
 get_runtime_status_running_pid = late("get_runtime_status_running_pid", "gateway.status")
 _GATEWAY_HEALTH_URL = LateState("_GATEWAY_HEALTH_URL")
-# Display labels for env vars not in OPTIONAL_ENV_VARS (bridge toggles, Twilio, Email, ...)
+# Display labels for env vars not in OPTIONAL_ENV_VARS (bridge toggles, Email, ...)
 # so the UI can still render a friendly label. Rows: (key, description, prompt, extra flags).
 _MESSAGING_ENV_FALLBACKS: dict[str, dict[str, Any]] = {
     key: {"description": description, "prompt": prompt, **extra}
     for key, description, prompt, extra in (
-        ("SIGNAL_HTTP_URL", "signal-cli REST API base URL, e.g. http://127.0.0.1:8080", "Signal bridge URL", {"url": "https://github.com/bbernhard/signal-cli-rest-api"}),
-        ("SIGNAL_ACCOUNT", "Signal account phone number registered with the bridge", "Signal account", {}),
-        ("SIGNAL_ALLOWED_USERS", "Comma-separated Signal users allowed to use the bot", "Allowed Signal users", {}),
         ("WHATSAPP_ENABLED", "Enable the WhatsApp gateway adapter", "Enable WhatsApp", {"advanced": True}),
         ("WHATSAPP_MODE", "WhatsApp bridge mode", "WhatsApp mode", {"advanced": True}),
         ("WHATSAPP_DM_POLICY", "How WhatsApp direct messages are authorized", "WhatsApp DM policy", {"advanced": True}),
@@ -78,24 +75,6 @@ _MESSAGING_ENV_FALLBACKS: dict[str, dict[str, Any]] = {
         ("EMAIL_PASSWORD", "Email account password or app password", "Email password", {"password": True}),
         ("EMAIL_IMAP_HOST", "IMAP server host (e.g. imap.gmail.com)", "IMAP host", {}),
         ("EMAIL_SMTP_HOST", "SMTP server host (e.g. smtp.gmail.com)", "SMTP host", {}),
-        ("TWILIO_ACCOUNT_SID", "Twilio Account SID", "Twilio Account SID", {"url": "https://www.twilio.com/console"}),
-        ("TWILIO_AUTH_TOKEN", "Twilio Auth Token", "Twilio Auth Token", {"password": True}),
-        ("WECOM_BOT_ID", "WeCom group bot ID", "WeCom Bot ID", {}),
-        ("WECOM_SECRET", "WeCom group bot secret", "WeCom Secret", {"password": True}),
-        ("WECOM_CALLBACK_CORP_ID", "WeCom corp ID", "WeCom Corp ID", {}),
-        ("WECOM_CALLBACK_CORP_SECRET", "WeCom app corp secret", "WeCom Corp Secret", {"password": True}),
-        ("WECOM_CALLBACK_AGENT_ID", "WeCom app agent ID", "WeCom Agent ID", {}),
-        ("WECOM_CALLBACK_TOKEN", "WeCom callback verification token", "WeCom Token", {}),
-        ("WECOM_CALLBACK_ENCODING_AES_KEY", "WeCom callback AES encoding key", "WeCom AES Key", {"password": True}),
-        ("WEIXIN_ACCOUNT_ID", "iLink Bot account ID obtained through QR login in hermes gateway setup", "iLink Bot account ID", {}),
-        ("WEIXIN_TOKEN", "iLink Bot token obtained through QR login in hermes gateway setup", "iLink Bot token", {"password": True}),
-        ("WEIXIN_BASE_URL", "iLink API base URL saved by QR login (default: https://ilinkai.weixin.qq.com)", "iLink API base URL", {}),
-        ("FEISHU_APP_ID", "Feishu / Lark app ID", "App ID", {}),
-        ("FEISHU_APP_SECRET", "Feishu / Lark app secret", "App secret", {"password": True}),
-        ("FEISHU_ENCRYPT_KEY", "Feishu / Lark encrypt key", "Encrypt key", {"password": True}),
-        ("FEISHU_VERIFICATION_TOKEN", "Feishu / Lark verification token", "Verification token", {"password": True}),
-        ("DINGTALK_CLIENT_ID", "DingTalk client ID (App key)", "Client ID", {}),
-        ("DINGTALK_CLIENT_SECRET", "DingTalk client secret (App secret)", "Client secret", {"password": True}),
     )
 }
 
@@ -139,7 +118,7 @@ def _validate_messaging_env_value(platform_id: str, key: str, value: str) -> Non
         raise HTTPException(status_code=400, detail=rule[1])
 
 
-# Allowlists (``*_ALLOWED_USERS``, ``LINE_ALLOWED_GROUPS``, ``SIMPLEX_GROUP_ALLOWED``) are
+# Allowlists (``*_ALLOWED_USERS``) are
 # comma-separated IDs, not secrets: clients render them as one editable entry per ID, which
 # needs the saved value instead of a redacted preview.
 _ALLOWLIST_KEY_RE = re.compile(r"_ALLOWED(?:_[A-Z]+)?$")
@@ -845,7 +824,7 @@ def _multiplex_port_binding_conflict(platform_id: str, requested_profile: Option
 
     With ``gateway.multiplex_profiles`` on, the default profile's listener already mirrors
     ``api_server`` and ``webhook`` at ``/p/<profile>/`` for every profile, so a SECONDARY must not
-    enable a second one. Every other inbound-port platform (Twilio, LINE, Teams, ...) IS allowed on a
+    enable a second one. Every other inbound-port platform (LINE, Teams, ...) IS allowed on a
     secondary: the gateway serves it on the shared listener at ``/p/<profile>/<path>``.
     """
     from gateway.config import SHARED_LISTENER_MIRROR_PLATFORMS
@@ -1015,7 +994,7 @@ def _messaging_platform_posture(platform_id: str, entry: dict[str, Any], scoped:
     - pairing grants: approved users in the profile's pairing store (the gateway honors
       the store as a UNION with the allowlists)
     - adapter/config-enforced policy (``dm_policy: allowlist`` with an ``allow_from``):
-      the own-policy adapters (WeCom, Weixin, QQBot, WhatsApp, Yuanbao) gate at intake
+      the own-policy adapters (WhatsApp) gate at intake
 
     Everything failing → deny-all: the connection is up but no sender can get through,
     which the Channels "Test" button must not render as a plain green "connected".

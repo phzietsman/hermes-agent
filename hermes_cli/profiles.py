@@ -157,8 +157,6 @@ PROFILE_CREDENTIAL_PATHS = frozenset({
     "npmrc",                        # npm registry auth (source_build)
     ".anthropic_oauth.json",        # Anthropic OAuth tokens (credential_sources)
     "google_token.json", "google_oauth_pending.json", "google_client_secret.json",
-    "google_chat_user_tokens", "google_chat_user_client_secret.json", "google_chat_user_oauth_pending.json",
-    "google_chat_user_token.json", "google_chat_user_oauth_pending",  # legacy single-user layouts
     "slack_tokens.json",
     "honcho.json",                  # Honcho apiKey + OAuth grant (oauth.refreshToken)
     "mem0.json",                    # Mem0 api_key (self-hosted server key) next to its settings
@@ -168,13 +166,11 @@ PROFILE_CREDENTIAL_PATHS = frozenset({
     "vault",                        # vault.key + vault.json.enc
     "browser-profile", "browser_auth", "bot-desktop",  # browser cookies / logins
     "browser-profiles", "browser_profiles",  # live CDP profiles, Browser Use CLI dir (Cookies, Login Data)
-    "pairing", "platforms/pairing", "feishu_comment_pairing.json",
-    "whatsapp/session", "platforms/whatsapp/session", "matrix/store", "platforms/matrix/store",
+    "pairing", "platforms/pairing",
+    "whatsapp/session", "platforms/whatsapp/session",
     "cache/bws_cache.json", "cache/bws_cache.enc.json",
     "workspace/meetings/node_token.json",  # google_meet node RPC secret
-    "weixin/accounts",              # WeChat bot tokens + per-peer context tokens
     ".copilot_jwt.json",            # exchanged Copilot API token
-    "runtime/photon-sidecar.json",  # Photon sidecar auth token
     "proxy",                        # iron-proxy CA key + proxy tokens
     "chrome-debug",                 # /browser connect Chrome profile (cookies, logins)
     "home",                         # subprocess HOME: gh, git, ssh, npm and skill-CLI credentials

@@ -134,10 +134,7 @@ unavailable; WSL is an alternative, not a requirement of the current design.
 
 ### Optional dependency limits
 
-- Matrix's native encrypted adapter is Linux-only; use a supported proxy route
-  or a Linux backend on Windows.
-- Native Windows ARM64 excludes the `google-chat` SDK extra and
-  the openWakeWord engine. Sherpa supports native Windows ARM64 and is the
+- Native Windows ARM64 excludes the openWakeWord engine. Sherpa supports native Windows ARM64 and is the
   automatic wake-word default on that target.
 - Local Faster-Whisper STT is excluded on native Windows ARM64. Use a cloud
   or command-based STT provider. Porcupine remains a wake-engine alternative.

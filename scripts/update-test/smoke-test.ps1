@@ -158,7 +158,7 @@ function New-Fixture {
   New-Item -ItemType Directory -Force -Path `
     (Join-Path $H 'plugins\mnemosyne-wrapper'), (Join-Path $H 'memories'),
     (Join-Path $H 'skills\foo'), (Join-Path $H 'cron'), (Join-Path $H 'logs'),
-    (Join-Path $H 'photon\sidecar\node_modules'), (Join-Path $Root 'external-mnemosyne') | Out-Null
+    (Join-Path $H 'nodeapp\sidecar\node_modules'), (Join-Path $Root 'external-mnemosyne') | Out-Null
   Set-Content -LiteralPath (Join-Path $H 'plugins\mnemosyne-wrapper\plugin.yaml') -Value 'name: mnemosyne-wrapper'
   Set-Content -LiteralPath (Join-Path $H 'plugins\mnemosyne-wrapper\mnemosyne-wrapper.json') -Value '{"wrapper":true}'
   Set-Content -LiteralPath (Join-Path $Root 'external-mnemosyne\witness.txt') -Value 'witness'
@@ -167,10 +167,10 @@ function New-Fixture {
   Set-Content -LiteralPath (Join-Path $H 'auth.json') -Value '{"tokens":{}}'
   Set-Content -LiteralPath (Join-Path $H 'memories\note.md') -Value 'recall'
   Set-Content -LiteralPath (Join-Path $H 'cron\jobs.json') -Value 'jobs'
-  Set-Content -LiteralPath (Join-Path $H 'photon\sidecar\index.mjs') -Value 'console.log(1)'
-  Set-Content -LiteralPath (Join-Path $H 'photon\sidecar\package.json') -Value '{"name":"sidecar"}'
-  Set-Content -LiteralPath (Join-Path $H 'photon\sidecar\package-lock.json') -Value '{"lockfileVersion":3}'
-  Set-Content -LiteralPath (Join-Path $H 'photon\sidecar\node_modules\.package-lock.json') -Value '{"lockfileVersion":3}'
+  Set-Content -LiteralPath (Join-Path $H 'nodeapp\sidecar\index.mjs') -Value 'console.log(1)'
+  Set-Content -LiteralPath (Join-Path $H 'nodeapp\sidecar\package.json') -Value '{"name":"sidecar"}'
+  Set-Content -LiteralPath (Join-Path $H 'nodeapp\sidecar\package-lock.json') -Value '{"lockfileVersion":3}'
+  Set-Content -LiteralPath (Join-Path $H 'nodeapp\sidecar\node_modules\.package-lock.json') -Value '{"lockfileVersion":3}'
 
   # SQL goes through a temp script FILE: a `-c` argument carrying quotes gets
   # reshaped by PowerShell's native-argument handling and fails to parse.
@@ -268,8 +268,8 @@ try {
   Set-Content -LiteralPath (Join-Path $H 'config.yaml') -Value 'timezone: changed-by-update'
   Remove-Item -LiteralPath (Join-Path $H 'memories\note.md')
   Set-Content -LiteralPath (Join-Path $Install 'added_by_update.py') -Value 'print(2)'
-  New-Item -ItemType Directory -Force -Path (Join-Path $H 'photon\sidecar\node_modules\newdep') | Out-Null
-  Set-Content -LiteralPath (Join-Path $H 'photon\sidecar\node_modules\newdep\index.js') -Value 'x'
+  New-Item -ItemType Directory -Force -Path (Join-Path $H 'nodeapp\sidecar\node_modules\newdep') | Out-Null
+  Set-Content -LiteralPath (Join-Path $H 'nodeapp\sidecar\node_modules\newdep\index.js') -Value 'x'
   Set-Content -LiteralPath (Join-Path $env:HERMES_DESKTOP_USER_DATA_DIR 'Preferences') -Value '{"window":{"changed":true}}'
   Set-Content -LiteralPath (Join-Path $env:HERMES_DESKTOP_USER_DATA_DIR 'new-after-update.json') -Value '{}'
   Check 'the simulated update changed HERMES_HOME' ((Get-TreeListing $H) -ne $homeBefore)
@@ -281,7 +281,7 @@ try {
   Check '.env restored' (Test-Path -LiteralPath (Join-Path $H '.env'))
   Check 'memories restored' (Test-Path -LiteralPath (Join-Path $H 'memories\note.md'))
   Check 'plugin marker restored' (Test-Path -LiteralPath (Join-Path $H 'plugins\mnemosyne-wrapper\mnemosyne-wrapper.json'))
-  Check 'photon sidecar marker restored' (Test-Path -LiteralPath (Join-Path $H 'photon\sidecar\node_modules\.package-lock.json'))
+  Check 'nodeapp sidecar marker restored' (Test-Path -LiteralPath (Join-Path $H 'nodeapp\sidecar\node_modules\.package-lock.json'))
   Check 'PM store restored' (Test-Path -LiteralPath (Join-Path $Install '.hermes-runtime\python\interpreter.bin'))
   Check 'checkout restored' (Test-Path -LiteralPath (Join-Path $Install '.git'))
   Check 'checkout HEAD restored' (((& git -C $Install rev-parse HEAD | Out-String).Trim()) -eq $HeadSha)

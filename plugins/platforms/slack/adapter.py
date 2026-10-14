@@ -3839,7 +3839,7 @@ class SlackAdapter(BasePlatformAdapter):
 
     async def _handle_slack_reaction(self, event: dict, removed: bool = False) -> None:
         """Forward reactions as a synthetic ``reaction:<added|removed>:<emoji>`` message
-        (Feishu/Photon convention) from the reactor in the reacted-to thread, so the normal auth
+        (Photon convention) from the reactor in the reacted-to thread, so the normal auth
         gate applies. Hooks fire for every non-self reaction; agent routing is opt-in via
         ``reaction_triggers`` and, without an explicit allowlist, only on the bot's own messages."""
         item = event.get("item") or {}

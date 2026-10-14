@@ -90,7 +90,6 @@ CONFIGURABLE_TOOLSETS = [
     ("spotify",          "🎵 Spotify",                  "playback, search, playlists, library"),
     ("discord",         "💬 Discord (read/participate)", "fetch messages, search members, create thread"),
     ("discord_admin",   "🛡️  Discord Server Admin",    "list channels/roles, pin, assign roles"),
-    ("yuanbao",          "🤖 Yuanbao",                  "group info, member queries, DM"),
     ("computer_use",     "🖱️  Computer Use (macOS/Windows/Linux)", "background desktop control via cua-driver"),
 ]
 
@@ -107,7 +106,7 @@ def gui_toolset_label(label: str) -> str:
 
 # OFF by default for new installs (still in _HERMES_CORE_TOOLS; the checklist won't pre-select them). x_search
 # auto-enables when xAI creds exist; its check_fn still gates the schema.
-_DEFAULT_OFF_TOOLSETS = {"spotify", "discord", "discord_admin", "video", "video_gen", "x_search", "a2a", "kanban"}
+_DEFAULT_OFF_TOOLSETS = {"spotify", "discord", "discord_admin", "video", "video_gen", "x_search", "kanban"}
 
 # Config-only capabilities: provider setup in `hermes tools` (TOOL_CATEGORIES) but not model toolsets — zero
 # schemas, own switch (``stt.enabled``), never in ``platform_toolsets`` or the per-platform checklist.
@@ -381,7 +380,7 @@ TOOLSET_ENV_REQUIREMENTS = {"vision": [("OPENROUTER_API_KEY", "https://openroute
 # --- Platform / Toolset Helpers ---
 _PLATFORM_ENABLE_ENV_VARS = (
     ("telegram", "TELEGRAM_BOT_TOKEN"), ("discord", "DISCORD_BOT_TOKEN"), ("slack", "SLACK_BOT_TOKEN"),
-    ("whatsapp", "WHATSAPP_ENABLED"), ("qqbot", "QQ_APP_ID"))
+    ("whatsapp", "WHATSAPP_ENABLED"))
 
 
 def _get_enabled_platforms() -> List[str]:
@@ -610,9 +609,9 @@ def _get_platform_tools(config: dict, platform: str, *, include_default_mcp_serv
     configurable_keys = _configurable_keys()
     plugin_ts_keys = _get_plugin_toolset_keys()
     platform_default_keys = _platform_default_keys()
-    # Plugin toolsets are first-class on a saved list: ``[hermes-cli, a2a]`` must survive filtering.
+    # Plugin toolsets are first-class on a saved list: ``[hermes-cli, my_plugin]`` must survive filtering.
     # Plugin-provided toolsets are first-class on a platform-toolsets list — explicit config like
-    # ``[hermes-cli, a2a]`` must survive filtering just like a built-in configurable toolset would. See
+    # ``[hermes-cli, my_plugin]`` must survive filtering just like a built-in configurable toolset would. See
     # issue #81163.
     explicit_known_keys = configurable_keys | plugin_ts_keys
 
@@ -672,7 +671,7 @@ def _prune_toolsets_stripped_by_disabled(enabled_toolsets: Set[str], disabled_na
 
 
 def _recover_platform_native_toolsets(enabled_toolsets: Set[str], platform: str, *, skip: Set[str]) -> None:
-    """Add non-configurable platform toolsets (discord, feishu_*) in place: in the default composite but not in
+    """Add non-configurable platform toolsets (discord) in place: in the default composite but not in
     CONFIGURABLE_TOOLSETS, so never in a checklist or saved list. Runs for BOTH ``_get_platform_tools`` branches."""
     from toolsets import resolve_toolset, TOOLSETS
 

@@ -268,18 +268,7 @@ Hermes 会在执行器或调度提供程序分派之前，将每次已领取的 
 | `"discord:#engineering"` | 按频道名指定的 Discord 频道 | 按频道名 |
 | `"slack"` | Slack 主频道 | |
 | `"whatsapp"` | WhatsApp 主账号 | |
-| `"signal"` | Signal | |
-| `"matrix"` | Matrix 主房间 | |
-| `"mattermost"` | Mattermost 主频道 | |
 | `"email"` | 邮件 | |
-| `"sms"` | 通过 Twilio 发送 SMS | |
-| `"homeassistant"` | Home Assistant（插件） | 使用 `HASS_HOME_CHANNEL`；需要 [`homeassistant` 插件](../messaging/homeassistant.md) |
-| `"dingtalk"` | 钉钉 | |
-| `"feishu"` | 飞书/Lark | |
-| `"wecom"` | 企业微信 | |
-| `"weixin"` | 微信（WeChat） | |
-| `"bluebubbles"` | BlueBubbles（iMessage） | |
-| `"qqbot"` | QQ Bot（腾讯 QQ） | |
 | `"all"` | 扇出到所有已连接的主频道 | 触发时解析 |
 | `"telegram,discord"` | 扇出到指定的一组频道 | 逗号分隔列表 |
 | `"origin,all"` | 投递到来源**加上**所有其他已连接频道 | 可组合任意 token |
@@ -344,9 +333,9 @@ cron:
 
 行为为**优先使用话题**，范围限定在任务的来源聊天：
 
-- **支持话题的平台**（Telegram 话题、Discord/Slack/Matrix 话题）：每次投递都会新建
+- **支持话题的平台**（Telegram 话题、Discord/Slack 话题）：每次投递都会新建
   专用话题，并将简报植入该话题的会话中，因此在话题内回复即可带完整上下文继续。
-- **仅 DM 的平台**（WhatsApp、Signal、SMS）：不存在话题，因此简报会被镜像进
+- **仅 DM 的平台**（WhatsApp）：不存在话题，因此简报会被镜像进
   来源 DM 会话——DM 本身就是继续的载体。
 
 只有来源聊天会被触及：扇出/广播目标（`all`、显式的其他聊天投递）永远不会被设为可继续。

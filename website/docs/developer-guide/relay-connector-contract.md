@@ -56,7 +56,7 @@ JSON object. Source of truth: `gateway/relay/descriptor.py`.
 | `emoji` | string | no | Display emoji (default 🔌). |
 | `platform_hint` | string | no | System-prompt platform hint. |
 | `pii_safe` | bool | no | Redact PII in session descriptions. |
-| `supports_context` | bool | no | Whether the connector can supply surrounding channel/group **context** for an addressed turn on this platform (Model A on-demand history fetch — Discord/Slack/Matrix; Model B passive buffer — Telegram/Signal/WhatsApp). Default false ⇒ no `context` is attached to inbound events. See §3. |
+| `supports_context` | bool | no | Whether the connector can supply surrounding channel/group **context** for an addressed turn on this platform (Model A on-demand history fetch — Discord/Slack/Matrix; Model B passive buffer — Telegram/WhatsApp). Default false ⇒ no `context` is attached to inbound events. See §3. |
 | `supports_inchannel_continuable` | bool | no | Whether the platform can host a **flat continuable cron surface** (native Slack's `cron_continuable_surface: in_channel`): the brief posts top-level in the channel/DM and a plain reply continues the job via the flat `(platform, chat_id, None)` session. Default false ⇒ the gateway's scheduler fails safe to thread mode (D6 gate), so an older connector keeps today's thread behavior. |
 | `supports_block_formatting` | bool | no | Whether this platform's sender renders **block-level formatting** from raw markdown when the gateway stamps `metadata.format_hints` on `send`/`edit` frames (Slack: native `markdown` block for tables/lists/code, mrkdwn text kept as fallback). Default false ⇒ the gateway never stamps hints, so an older connector never receives the metadata. |
 | `supported_ops` | string[] | no | Op-level capability discovery: the outbound op names the connector's sender for this platform actually implements (e.g. `["send", "edit", "typing", "follow_up", "get_chat_info"]`). Absent/empty ⇒ the connector predates the field and the gateway assumes the legacy op set (`send`/`edit`/`typing`/`follow_up`); a NEW op is used only when explicitly advertised. |
@@ -123,7 +123,7 @@ Both absent ⇒ byte-identical to today. A connector that never sends them, or a
 `dm`, or a no-context platform, yields no `channel_context`.
 
 `PassthroughForward` is the wire form of a forwarded passthrough-plane request
-(Class-2/3 webhooks — Discord interactions, Twilio): `{platform, botId, method, path, headers: [[k,v],…], bodyB64, profile?}`. `profile` is optional — the
+(Class-2/3 webhooks — Discord interactions): `{platform, botId, method, path, headers: [[k,v],…], bodyB64, profile?}`. `profile` is optional — the
 connector stamps it when NAS resolves the target profile for a Team-Gateway
 interaction; omitting it (single-profile gateways) preserves legacy routing to
 the default `agent:main` session namespace, mirroring the `profile` field the
@@ -148,7 +148,7 @@ old HTTP path needed). The relay-bus hop is inside the connector trust domain
 > gateways, which have no public IP. The WS back-channel above replaces it; the
 > per-tenant delivery key is retained at provision for forward-compat but is no
 > longer used for inbound. The **passthrough plane** (Class-2/3 webhooks like
-> Discord interactions / Twilio) historically still used `gatewayEndpoint` for
+> Discord interactions) historically still used `gatewayEndpoint` for
 > its post-ACK forward; Phase 5 §5.1 moves that forward onto the WS too (the
 > `passthrough_forward` frame above), so a hosted gateway needs zero public
 > inbound surface and `gatewayEndpoint` is retired once the cutover lands.
@@ -185,9 +185,9 @@ present (may be `null`); the rest are included only when set.
 | `user_name` | string\|null | yes | Author display name. |
 | `thread_id` | string\|null | yes | Thread/forum-topic id when in a thread. Session-key discriminator. |
 | `chat_topic` | string\|null | yes | Channel topic/description (Discord, Slack). |
-| `user_id_alt` | string | no | Platform-specific stable alt id (Signal UUID, Feishu union_id). |
-| `chat_id_alt` | string | no | Alternate chat id (e.g. Signal group internal id). |
-| `scope_id` | string | no | Platform-neutral **scope** discriminator: Discord guild / Slack workspace / Matrix server. **REQUIRED for Discord/Slack scope isolation.** Session-key discriminator. (Canonical name as of the D-Q2.5 wire migration.) |
+| `user_id_alt` | string | no | Platform-specific stable alt id (e.g. a stable UUID). |
+| `chat_id_alt` | string | no | Alternate chat id (e.g. an internal group id). |
+| `scope_id` | string | no | Platform-neutral **scope** discriminator: Discord guild / Slack workspace. **REQUIRED for Discord/Slack scope isolation.** Session-key discriminator. (Canonical name as of the D-Q2.5 wire migration.) |
 | `guild_id` | string | no | **Legacy alias, no longer read by the connector.** As of D-Q2.5c the connector reads and writes only `scope_id`; the gateway's agent-wide `SessionSource.to_dict()` still emits `guild_id` (mirrored to `scope_id`) for non-relay session persistence, so it may still appear on the wire but the connector ignores it. Do not depend on it. |
 | `parent_chat_id` | string | no | Parent channel when `chat_id` refers to a thread. |
 | `message_id` | string | no | Id of the triggering message (for pin/reply/react). |
@@ -388,7 +388,7 @@ primitives assume:
    on `going_idle`.
 7. **Suspend only while every messaging connection is relay-fronted — and
    re-check that at suspend time, not just at boot.** A directly connected
-   platform (Photon iMessage's gRPC stream, BlueBubbles, a bot token dialled from
+   platform (a gRPC stream, a bot token dialled from
    the gateway itself) holds a socket the connector cannot buffer or poke for, so
    a suspend with one live loses its inbound and never wakes. The gate counts the
    enabled launch-profile platforms AND the live adapters of every served
@@ -609,7 +609,7 @@ back-channel as a normalized event.
 **The connector is the sole crypto/identity boundary. The gateway re-validates
 nothing.**
 
-Webhook signatures (Discord ed25519, Twilio HMAC, WeCom BizMsgCrypt) are
+Webhook signatures (Discord ed25519) are
 computed over exact raw bytes, and some payloads are *encrypted* with a shared
 secret. The connector fronts a **shared** bot for many tenants and holds every
 tenant's platform secrets, so it:
@@ -628,12 +628,12 @@ package imports/calls no platform-crypto).
 **Why not "forward the signed body byte-for-byte so the gateway re-validates"?**
 That earlier model is incoherent under an untrusted, disposable tenant gateway:
 
-- Re-validating Twilio HMAC / WeCom crypto would require handing the gateway the
+- Re-validating platform signatures would require handing the gateway the
   **shared signing secret** — which is itself the leak, and on a shared bot it's
   a *cross-tenant* leak.
-- WeCom payloads are encrypted with the shared secret; the connector must decrypt
-  at the edge just to route, so forwarding ciphertext would again require giving
-  the gateway the secret.
+- Some platform payloads are encrypted with the shared secret; the connector must
+  decrypt at the edge just to route, so forwarding ciphertext would again require
+  giving the gateway the secret.
 - A Discord interaction token lives **inside** the signed JSON body — you cannot
   both preserve the bytes and strip the credential; they are the same bytes.
 

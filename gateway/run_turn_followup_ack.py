@@ -16,11 +16,10 @@ from gateway.platforms.base import BasePlatformAdapter, MessageEvent, Processing
 
 def _followup_processing_hooks_apply(adapter, event: MessageEvent | None) -> bool:
     """Both conditions are necessary: a real inbound platform message to acknowledge (adapters key their
-    marker off ``message_id`` — Slack/Telegram/Feishu/Matrix/Photon — or off ``raw_message`` — Signal,
+    marker off ``message_id`` — Slack/Telegram — or off ``raw_message`` —
     Discord; synthetic drains such as ``/goal`` continuations, wake-ups and startup auto-resume carry
     neither and must stay silent), and an adapter that overrides ``on_processing_start``. We bracket, so
-    both halves must belong to us: a complete-only adapter (Google Chat reaps its typing card there,
-    webhook ends its per-delivery session) would otherwise be handed a completion for a turn whose reply
+    both halves must belong to us: a complete-only adapter (webhook ends its per-delivery session) would otherwise be handed a completion for a turn whose reply
     is delivered only after the drain chain unwinds back into ``_process_message_background``."""
     if adapter is None or event is None:
         return False
@@ -33,8 +32,8 @@ def _followup_processing_hooks_apply(adapter, event: MessageEvent | None) -> boo
 def _followup_cancel_outcome(adapter) -> ProcessingOutcome:
     """Classify a cancelled follow-up exactly as ``_process_message_background`` does: only cancels the
     adapter itself routed (``/stop``, ``/new``, ``/reset``, cleanup) are CANCELLED, anything else is a
-    failure. Signal and Matrix leave the in-progress marker in place on CANCELLED, so reporting an
-    unexpected cancellation as CANCELLED would strand it."""
+    failure. Adapters that leave the in-progress marker in place on CANCELLED would strand it if an
+    unexpected cancellation were reported as CANCELLED."""
     expected = getattr(adapter, "_expected_cancelled_tasks", None)
     if expected is None:
         return ProcessingOutcome.FAILURE

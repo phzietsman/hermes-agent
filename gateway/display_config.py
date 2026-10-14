@@ -55,22 +55,9 @@ _PLATFORM_DEFAULTS: dict[str, dict[str, Any]] = {
     "discord": {**_TIER_HIGH, "reasoning_style": "subtext"},  # "-# " subtext reads as metadata
     # Slack: Bolt posts cannot be edited like CLI; "new"/"all" spam permanent lines.
     "slack": {**_TIER_MEDIUM, "tool_progress": "off", "long_running_notifications": False, "busy_ack_detail": False},
-    "mattermost": _TIER_MEDIUM,
-    "matrix": _TIER_MEDIUM,
-    "feishu": _TIER_MEDIUM,
-    "buzz": _TIER_MEDIUM,  # Nostr: edits in place but channels are shared community spaces
-    "signal": _TIER_LOW,
     "whatsapp": _TIER_MEDIUM,  # Baileys bridge supports /edit
     "whatsapp_cloud": _TIER_LOW,  # adapter lacks edit_message; promote once it lands
-    "photon": _TIER_LOW,  # permanent-message iMessage inboxes (no edit)
-    "bluebubbles": _TIER_LOW,
-    "weixin": _TIER_LOW,
-    # Non-editable, but its native "stream" msgtype gives a typing animation + cumulative updates.
-    "wecom": {**_TIER_LOW, "streaming": True},
-    "wecom_callback": _TIER_LOW,
-    "dingtalk": _TIER_LOW,
     "email": _TIER_MINIMAL,
-    "sms": _TIER_MINIMAL,
     "webhook": _TIER_MINIMAL,
     "api_server": {**_TIER_HIGH, "tool_preview_length": 0},
 }

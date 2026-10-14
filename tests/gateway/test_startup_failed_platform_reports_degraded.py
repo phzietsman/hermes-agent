@@ -154,7 +154,7 @@ async def test_missing_adapter_degrades_only_the_unserved_enabled_platform(monke
             Platform.SLACK: PlatformConfig(enabled=False, token="***"),
             # A builtin whose probe fails on missing creds needs a config change: flagged once, never
             # queued (else it re-warns forever at the backoff cap on fleet nodes, #5196).
-            Platform.BLUEBUBBLES: PlatformConfig(enabled=True),
+            Platform.WHATSAPP_CLOUD: PlatformConfig(enabled=True),
         },
         lambda platform, platform_config: _HealthyAdapter() if platform is Platform.TELEGRAM else None,
     )
@@ -166,10 +166,10 @@ async def test_missing_adapter_degrades_only_the_unserved_enabled_platform(monke
         assert state["platforms"]["discord"]["error_code"] == "adapter_unavailable"
         assert state["platforms"]["discord"]["needs_attention"] is True
         assert "slack" not in state["platforms"]
-        bluebubbles = state["platforms"]["bluebubbles"]
-        assert (bluebubbles["state"], bluebubbles["error_code"]) == ("fatal", "adapter_unavailable")
-        assert bluebubbles["needs_attention"] is True
-        assert "Retrying" not in bluebubbles["error_message"]
+        whatsapp_cloud = state["platforms"]["whatsapp_cloud"]
+        assert (whatsapp_cloud["state"], whatsapp_cloud["error_code"]) == ("fatal", "adapter_unavailable")
+        assert whatsapp_cloud["needs_attention"] is True
+        assert "Retrying" not in whatsapp_cloud["error_message"]
         assert list(runner._failed_platforms) == [Platform.DISCORD]  # the reconnect watcher owns it
     finally:
         await runner.stop()

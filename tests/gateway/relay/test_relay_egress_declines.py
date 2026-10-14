@@ -414,8 +414,8 @@ def test_carve_out_is_telegram_only(monkeypatch):
     Matrix targets `@user:server.org`; Slack has `@handle` pseudo-ids. Neither
     is resolved by the Telegram Bot API, so neither may ride this exemption.
     """
-    eg = _relay_env(monkeypatch, platform="matrix")
-    denial = eg.authorize_relay_target("matrix", "@someone:server.org")
+    eg = _relay_env(monkeypatch, platform="slack")
+    denial = eg.authorize_relay_target("slack", "@someone")
     assert denial is not None, "the carve-out widened beyond telegram"
 
 

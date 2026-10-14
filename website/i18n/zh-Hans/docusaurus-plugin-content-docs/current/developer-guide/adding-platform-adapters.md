@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # 添加平台适配器
 
-本指南介绍如何向 Hermes gateway 添加新的消息平台。平台适配器将 Hermes 连接到外部消息服务（Telegram、Discord、WeCom 等），使用户可以通过该服务与 agent 交互。
+本指南介绍如何向 Hermes gateway 添加新的消息平台。平台适配器将 Hermes 连接到外部消息服务（Telegram、Discord 等），使用户可以通过该服务与 agent 交互。
 
 :::tip
 添加平台有两种方式：
@@ -319,7 +319,7 @@ ctx.register_platform(
 
 为何需要此 hook：内置平台（Telegram、Discord、Slack 等）在 `tools/send_message_tool.py` 中内置了直接 REST 辅助函数，使 cron 无需在同一进程中持有 gateway 即可投递。Plugin 平台历史上依赖 `_gateway_runner_ref()`，该函数在 gateway 进程外返回 `None`，因此若没有 `standalone_sender_fn`，cron 端发送会失败并报 `No live adapter for platform '<name>'`。
 
-该函数接收与实时适配器相同的 `pconfig` 和 `chat_id`，以及可选的 `thread_id`、`media_files` 和 `force_document` 关键字参数。返回 `{"success": True, "message_id": ...}` 视为成功投递；返回 `{"error": "..."}` 会将消息记录到 cron 的 `delivery_errors` 中。函数内抛出的异常由调度器捕获并报告为 `Plugin standalone send failed: <reason>`。参考实现位于 `plugins/platforms/{irc,teams,google_chat}/adapter.py`。
+该函数接收与实时适配器相同的 `pconfig` 和 `chat_id`，以及可选的 `thread_id`、`media_files` 和 `force_document` 关键字参数。返回 `{"success": True, "message_id": ...}` 视为成功投递；返回 `{"error": "..."}` 会将消息记录到 cron 的 `delivery_errors` 中。函数内抛出的异常由调度器捕获并报告为 `Plugin standalone send failed: <reason>`。参考实现位于 `plugins/platforms/{teams,email}/adapter.py`。
 
 ## 在 `hermes config` 中暴露环境变量 {#surfacing-env-vars-in-hermes-config}
 
@@ -365,7 +365,7 @@ optional_env:
 
 - **LINE** 发出单次使用的*回复 token*，在入站事件后约 60 秒过期。使用该 token 回复是免费的；回退到计费的 Push API 则不然。如果 LLM 在截止时间前未完成，选择是"消耗付费 Push 配额"或"在回复 token 过期前用它做些更聪明的事"。
 - **WhatsApp** 在 24 小时不活跃后将会话标记为非活跃，此后只接受模板消息。
-- **SMS** 没有正在输入指示器或渐进式更新的概念 — 长响应看起来就像 bot 离线了。
+- **Email** 没有正在输入指示器或渐进式更新的概念 — 长响应看起来就像 bot 离线了。
 
 这些是 `BasePlatformAdapter` 无法预判的真实约束。Plugin 接口有意为适配器在基础输入循环之上叠加平台专属 UX 留出空间，而无需扩展 kwarg 列表。
 
@@ -449,7 +449,7 @@ LINE 两者都支持：阈值默认为 45 秒用于免费 postback 获取，`LIN
 
 ### 参考实现（Plugin 路径）
 
-完整的工作示例参见仓库中的 `plugins/platforms/irc/` — 一个无外部依赖的完整异步 IRC 适配器。`plugins/platforms/teams/` 涵盖 Bot Framework / Adaptive Cards，`plugins/platforms/google_chat/` 涵盖基于 OAuth 的 REST API，`plugins/platforms/line/` 涵盖带平台专属慢速 LLM UX 的 webhook 驱动消息 API。
+完整的工作示例参见仓库中的 `plugins/platforms/teams/` — 一个无外部依赖的完整异步 IRC 适配器。`plugins/platforms/teams/` 涵盖 Bot Framework / Adaptive Cards，`plugins/platforms/google_chat/` 涵盖基于 OAuth 的 REST API，`plugins/platforms/line/` 涵盖带平台专属慢速 LLM UX 的 webhook 驱动消息 API。
 
 ---
 
@@ -612,7 +612,7 @@ _PLATFORM_HINTS = {
 
 ```bash
 # 查找所有提及参考平台的 .py 文件
-search_files "bluebubbles" output_mode="files_only" file_glob="*.py"
+search_files "slack" output_mode="files_only" file_glob="*.py"
 
 # 查找所有提及新平台的 .py 文件
 search_files "newplat" output_mode="files_only" file_glob="*.py"
@@ -626,7 +626,7 @@ search_files "newplat" output_mode="files_only" file_glob="*.py"
 
 ### 长轮询适配器
 
-如果你的适配器使用长轮询（如 Telegram 或 Weixin），使用轮询循环任务：
+如果你的适配器使用长轮询（如 Telegram），使用轮询循环任务：
 
 ```python
 async def connect(self):
@@ -642,7 +642,7 @@ async def _poll_loop(self):
 
 ### 回调/Webhook 适配器
 
-如果平台将消息推送到你的端点（如 WeCom 回调），运行 HTTP 服务器：
+如果平台将消息推送到你的端点（如 Teams），运行 HTTP 服务器：
 
 ```python
 async def connect(self):
@@ -657,7 +657,7 @@ async def _handle_callback(self, request):
     return web.Response(text="success")  # 立即确认
 ```
 
-对于有严格响应截止时间的平台（例如 WeCom 的 5 秒限制），始终立即确认，稍后通过 API 主动投递 agent 的回复。Agent 会话运行 3–30 分钟 — 在回调响应窗口内内联回复是不可行的。
+对于有严格响应截止时间的平台（例如 5 秒限制），始终立即确认，稍后通过 API 主动投递 agent 的回复。Agent 会话运行 3–30 分钟 — 在回调响应窗口内内联回复是不可行的。
 
 ### Token 锁
 
@@ -680,7 +680,4 @@ async def disconnect(self):
 
 | 适配器 | 模式 | 复杂度 | 适合参考的场景 |
 |---------|---------|------------|-------------------|
-| `bluebubbles.py` | REST + webhook | 中 | 简单 REST API 集成 |
-| `weixin.py` | 长轮询 + CDN | 高 | 媒体处理、加密 |
-| `wecom_callback.py` | 回调/webhook | 中 | HTTP 服务器、AES 加密、多应用 |
 | `plugins/platforms/irc/adapter.py` | 长轮询 + IRC 协议 | 高 | 带作用域令牌锁的全功能插件适配器 |

@@ -28,10 +28,8 @@ logger = logging.getLogger("cron.scheduler")
 
 # Validates user-supplied delivery platform names, preventing env-var enumeration via crafted names.
 _KNOWN_DELIVERY_PLATFORMS = frozenset({
-    "telegram", "discord", "slack", "whatsapp", "signal",
-    "matrix", "mattermost", "dingtalk", "feishu",
-    "wecom", "wecom_callback", "weixin", "sms", "email", "webhook", "bluebubbles",
-    "qqbot", "yuanbao"})
+    "telegram", "discord", "slack", "whatsapp",
+    "email", "webhook"})
 
 # Gateway platforms whose adapter declares ``supports_async_delivery = False`` (request/response
 # only, ``send()`` is a stub) — a cron report can never reach them, so they are never a
@@ -40,25 +38,12 @@ _NON_PUSH_ORIGIN_PLATFORMS = frozenset({"api_server"})
 
 # Platforms supporting a cron/notification home target -> env var used by gateway config.
 _HOME_TARGET_ENV_VARS = {
-    "matrix": "MATRIX_HOME_ROOM",
     "telegram": "TELEGRAM_HOME_CHANNEL",
     "discord": "DISCORD_HOME_CHANNEL",
     "slack": "SLACK_HOME_CHANNEL",
-    "signal": "SIGNAL_HOME_CHANNEL",
-    "mattermost": "MATTERMOST_HOME_CHANNEL",
-    "sms": "SMS_HOME_CHANNEL",
     "email": "EMAIL_HOME_ADDRESS",
-    "dingtalk": "DINGTALK_HOME_CHANNEL",
-    "feishu": "FEISHU_HOME_CHANNEL",
-    "wecom": "WECOM_HOME_CHANNEL",
-    "weixin": "WEIXIN_HOME_CHANNEL",
-    "bluebubbles": "BLUEBUBBLES_HOME_CHANNEL",
-    "qqbot": "QQBOT_HOME_CHANNEL",
     "whatsapp": "WHATSAPP_HOME_CHANNEL",
     "whatsapp_cloud": "WHATSAPP_CLOUD_HOME_CHANNEL"}
-
-# Back-compat: primary env var -> previous name, consulted when the primary is unset.
-_LEGACY_HOME_TARGET_ENV_VARS = {"QQBOT_HOME_CHANNEL": "QQ_HOME_CHANNEL"}
 
 
 def _resolve_cron_surface_mode(pconfig, logical_platform_name: str) -> str:
@@ -248,10 +233,10 @@ def _maybe_mirror_cron_delivery(
 
 
 # chat_type slot a platform's adapter puts on a NON-DM in-thread reply. Discord (and the default)
-# key the shared "thread" lane; Slack, Matrix and Telegram (forum topics: ``_build_message_event``
+# key the shared "thread" lane; Slack and Telegram (forum topics: ``_build_message_event``
 # types every supergroup "group") keep the parent channel/room's "group" — a seed on the wrong slot
 # is a row no reply ever resolves to (#111896, #112918).
-_THREAD_REPLY_CHAT_TYPE = {"slack": "group", "matrix": "group", "telegram": "group"}
+_THREAD_REPLY_CHAT_TYPE = {"slack": "group", "telegram": "group"}
 
 
 def _open_continuable_cron_thread(job: dict, adapter, chat_id: str, loop) -> Optional[str]:
@@ -443,7 +428,7 @@ def _get_config_home_channel(platform_name: str):
 
 
 def _home_env_lookup(env_var: str, suffix: str = "", *, strip: bool = False) -> str:
-    """Value of ``<env_var><suffix>``, falling back to the legacy name (same suffix) when unset.
+    """Value of ``<env_var><suffix>``.
     Reads via ``get_secret``, not ``os.getenv``: in a multiplex gateway the tick runs with the
     job-owning profile's secret scope (run_one_job sets it), so this resolves the OWNING profile's
     value, not the host environ. ``os.getenv`` only if the scope module is missing."""
@@ -456,11 +441,7 @@ def _home_env_lookup(env_var: str, suffix: str = "", *, strip: bool = False) -> 
         value = (get_secret(name, "") or "") if get_secret is not None else os.getenv(name, "")
         return value.strip() if strip else value
 
-    value = read(env_var + suffix)
-    legacy = _LEGACY_HOME_TARGET_ENV_VARS.get(env_var)
-    if not value and legacy:
-        value = read(legacy + suffix)
-    return value
+    return read(env_var + suffix)
 
 
 def _env_home_target_chat_id(platform_name: str) -> str:
@@ -2016,7 +1997,7 @@ def _deliver_result(
         wrap_response = user_cfg.get("cron", {}).get("wrap_response", True)
     # Mark live sends FINAL so the platform pushes them (Telegram "important" mode mutes otherwise).
     notify_delivery = _cron_delivery_notify_enabled(user_cfg)
-    # Targets acked with NO evidence (bare SendResult(success=True) — Slack/Matrix/Mattermost);
+    # Targets acked with NO evidence (bare SendResult(success=True) — Slack);
     # persisted as ``last_delivery_unverified`` so `hermes cron list` shows it.
     unverified_targets: list = []
     if wrap_response:

@@ -19,7 +19,7 @@ description: "开箱即用的自动化蓝图——定时任务、GitHub 事件�
 | **GitHub 事件** | PR 开启、推送、issue、CI 结果时触发 | Webhook 平台（`hermes webhook subscribe`） |
 | **API 调用** | 外部服务向你的端点 POST JSON | Webhook 平台（config.yaml 路由或 `hermes webhook subscribe`） |
 
-三种方式均支持投递到 Telegram、Discord、Slack、SMS、邮件、GitHub 评论或本地文件。
+三种方式均支持投递到 Telegram、Discord、Slack、邮件、GitHub 评论或本地文件。
 :::
 
 ---
@@ -570,7 +570,6 @@ Keep the outline to ~300 words. This is a starting point, not a finished post." 
 | Telegram | `--deliver telegram` | 主频道，或用 `telegram:CHAT_ID` 指定特定会话 |
 | Discord | `--deliver discord` | 主频道，或用 `discord:CHANNEL_ID` 指定 |
 | Slack | `--deliver slack` | 主频道 |
-| SMS | `--deliver sms:+15551234567` | 直接发送到手机号 |
 | 指定话题 | `--deliver telegram:-100123:456` | Telegram 论坛话题 |
 
 ### Webhook 模板变量

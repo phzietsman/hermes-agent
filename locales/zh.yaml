@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "会话数据库不可用。"
     parse_error: "⚠️ 无法解析 `/resume` 参数：{error}。\n含空格的标题请加引号，例如：`/resume \"Project A Plan\"`。"
-    matrix_no_named_sessions: "此 Matrix 房间中没有已命名的会话。\n使用 `/title 我的会话` 为当前房间会话命名，`/resume --all` 列出所有 Matrix 会话，或 `/resume --cross-room <会话名称>` 显式跨房间恢复。"
-    matrix_blocked_no_origin: "⚠️ Matrix /resume 已阻止：该命名会话没有记录来源房间，因此 Hermes 默认不会在当前房间恢复它。如确需跨房间恢复，请使用 `/resume --cross-room {name}`。"
-    matrix_blocked_other_room: "⚠️ Matrix /resume 已阻止：该会话属于另一个 Matrix 房间（{room}）。如确需在此处恢复，请使用 `/resume --cross-room {name}`。"
-    matrix_cross_room_success: "⚠️ 跨房间恢复：已在 Matrix 房间 **{room}** 中恢复 **{title}**。\n此房间后续消息将使用该会话记录，直到执行 `/reset` 或再次 `/resume`。{msg_part}"
     blocked_not_owner: "⚠️ /resume 已阻止：'**{name}**' 属于其他用户或聊天。你只能恢复本聊天中的会话。"
     no_named_sessions: "未找到已命名的会话。\n使用 `/title 我的会话` 为当前会话命名，然后用 `/resume 我的会话` 返回。"
     all_requires_admin: "_注意：`--all`（跨聊天列表）需要已配置的管理员；仅显示本聊天的会话。_"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "使用 /context all 查看每个技能和工具集的开销。"
   status:
     header: "📊 **Hermes 网关状态**"
-    matrix_scope_header: "**Matrix 范围：**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**会话 ID：** `{session_id}`"
     title: "**标题：** {title}"
     created: "**创建时间：** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ 已回答：{response}"
     cancelled: "↩️ 澄清已取消——你的消息将作为后续消息处理。"
     expired: "⏳ 此提示已过期——请发送新的请求。"
-    native_stream_placeholder: "💬 等待你的选择..."
     skip_hint: '回复“skip”即可跳过此问题。'
   errors:
     rate_limited: "⏱️ AI 模型服务正在限流。请稍等片刻，然后使用 /retry。"
@@ -962,9 +951,6 @@ platform:
     approved: "✅ 已批准。"
     denied: "❌ 已拒绝。"
     approval_expired: "⌛ 审批已过期——命令未执行（已超时或已在别处处理）。"
-  yuanbao:
-    slow_response_notice: "任务有点复杂，正在努力处理中，请耐心等待..."
-    owner_command_denied: "⚠️ {command} 仅在私聊模式下对创建者可用"
   shared:
     truncated_suffix: "\n...（已截断）"
     unknown: "未知"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ 无法发送视频附件。"
       file_failed: "⚠️ 无法发送文件附件（{name}）。"
       attachment_failed: "⚠️ 无法发送附件。"
-  weixin:
-    voice_as_attachment: "[语音消息作为附件]"
-  signal:
-    batch_pacing_notice: "（还有更多图片——因 Signal 速率限制暂停约 {wait}，批次 {batch}/{total}。）"
-    wait_seconds: "{count} 秒"
-    wait_minutes: "{count} 分钟"
   api_server:
     provider_auth_failed: "提供方身份验证失败"
     provider_rate_limited: "提供方限流"
@@ -1324,90 +1304,6 @@ platform:
       running: "正在运行 `/{command}`…"
     handoff:
       seed: ":thread: Hermes 交接——*{name}*"
-  matrix:
-    handoff:
-      default_name: "Hermes 会话"
-    media:
-      image_download_failed: "我无法下载图片并上传到 Matrix。源 URL 可能包含私密令牌，因此未显示。"
-    approval:
-      typed_hint_once: "回复 `!approve` 执行一次，或回复 `!deny` 取消。"
-      typed_hint_session: "回复 `!approve session` 在本会话中批准此模式，`!approve` 执行一次，或 `!deny` 取消。"
-      typed_hint_always: "回复 `!approve session` 在本会话中批准此模式，`!approve always` 永久批准，`!approve` 执行一次，或 `!deny` 取消。"
-      legend_intro: "你也可以点击表情回应来批准："
-      legend_once: "✅ = 批准一次"
-      legend_session: "🌀 = 批准本会话"
-      legend_always: "♾️ = 始终批准"
-      legend_deny: "❎ = 拒绝"
-      invalid_reaction: "该表情回应对此审批提示无效。"
-      expired: "此审批提示已过期。如仍需批准，请重新运行该命令。"
-    picker:
-      no_models: "此会话没有已认证的可用模型。"
-      title: "⚙ **模型配置**"
-      current_model: "当前模型：`{model}`"
-      provider: "提供方：{provider}"
-      react_model: "用表情回应选择模型："
-      react_choice: "用表情回应进行选择。"
-      current_suffix: "{label} ← 当前"
-      invalid_model_reaction: "该表情回应不在可选模型之列。"
-      invalid_choice_reaction: "该表情回应不在可用选项之列。"
-      verb_switch_model: "切换模型"
-      verb_apply_selection: "应用所选项"
-      failed: "{action}失败：{error}"
-    reaction:
-      unauthorized: "只有已授权的 Matrix 用户才能使用这些控件。"
-      not_requester: "只有发起此操作的用户才能使用这些控件。"
-  feishu:
-    approval:
-      action_session: "本会话"
-      action_always: "始终"
-      resolved_once: "已批准一次"
-      resolved_session: "已批准本会话"
-      resolved_always: "已永久批准"
-      resolved_deny: "已拒绝"
-      resolved_fallback: "已处理"
-      resolved_by_user: "{icon} **{label}**（由 {user}）"
-    update_prompt:
-      title: "☤ 更新需要你的输入"
-      default_hint: "\n\n默认值：`{default}`"
-      answer_yes: "✓ 是"
-      answer_no: "✗ 否"
-      word_yes: "是"
-      word_no: "否"
-      answered_title: "{icon} 更新提示已回答：{answer}"
-      answered_by: "由 **{user}** 回答"
-    media:
-      gif_downgraded: "[GIF 已降级为文件]"
-      gif_downgraded_caption: "[GIF 已降级为文件]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "其他 / 输入答案"
-      header: "问题"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes 正在思考…"
-      interrupted: "（已中断）"
-      no_reply: "（无回复）"
-    attachment_fallback:
-      header: "⚠️ 我无法附上 **{filename}**。"
-      explain: "Google Chat 只有在机器人获得你的明确授权（用户 OAuth）后才允许发送文件附件。这是一次性的授权，可直接在本聊天中完成。"
-      activate: "**启用方法：**发送 `/setup-files` 并按提示操作。"
-      host_path: "在此期间，文件位于主机上：`{path}`"
-    setup_files:
-      not_configured: "🔧 原生附件发送**尚未配置**。\n**第 1 步（一次性，在主机上）：**前往 https://console.cloud.google.com/apis/credentials → *创建凭据* → *OAuth 客户端 ID* → *桌面应用* 创建 OAuth 客户端凭据。下载 JSON，然后在主机上运行：\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**第 2 步：**回到这里发送 `/setup-files start`。"
-      start_instructions: "1. 在浏览器中打开此 URL 并授权：\n{auth_url}\n\n2. 点击 *允许* 后，浏览器会无法加载 `http://localhost:1/?...&code=...`。这是正常现象。\n\n3. 从浏览器地址栏复制整个加载失败的 URL，粘贴回这里，格式为：`/setup-files <PASTE_URL>`（或只粘贴 `code=...` 的值）。\n\n提示：该 URL 包含你的访问授权——请勿泄露。"
-      start_failed: "❌ 无法生成 OAuth URL。请检查网关日志，并确认 client_secret.json 有效。"
-      exchange_failed: "❌ 令牌交换失败。代码可能已过期，或 URL 格式有误。发送 `/setup-files start` 获取新的 OAuth URL。"
-      revoke_completed: "撤销完成（部分步骤可能已跳过）。"
-      revoked: "已撤销。"
-      helper_error: "❌ 错误：{error}"
-      revoke_error: "❌ 撤销时出错：{error}"
-      who_shared: "共享（旧版）"
-      active: "✅ 原生附件发送已对 `{who}` **启用**。\n令牌：`{token_path}`\n发送 `/setup-files revoke` 可停用。"
-      not_authorized_yet: "🔧 客户端凭据已保存，但你尚未授权。发送 `/setup-files start` 开始。"
-      no_client_credentials: "⚠️ 此配置文件未保存任何客户端凭据。发送 `/setup-files`（不带参数）查看设置说明。"
-      done_output: "✅ 完成。\n```\n{output}\n```"
-      authorized: "✅ 授权成功！原生附件发送现已启用。试试让我给你发一个 PDF。"
-      exchanged_not_loaded: "⚠️ 令牌已交换，但网关无法在内存中加载新凭据。重启网关后，将自动加载 `{token_path}` 处的令牌。\n辅助程序输出：\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ 已允许（一次）"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "关键决策"
       action_items: "行动项"
       risks: "风险"
-  line:
-    pending:
-      still_thinking: "🤔 仍在思考。准备好后点击下方按钮获取答案。"
-      button_label: "获取答案"
-      delivered: "已回复 ✅"
-      interrupted: "运行在完成前被中断。"
-      expired: "该请求已过期——请重新发送你的消息。"
-    standalone:
-      attachments_not_deliverable: "[已生成 {count} 个附件；无法从定时任务中发送]"
-  wecom:
-    media:
-      kind_image: "图片"
-      kind_video: "视频"
-      kind_voice: "语音"
-      file_too_large: "文件大小 {size_mb}MB 超过了企业微信允许的最大限制 20MB，无法发送。请尝试压缩文件或减小文件大小。"
-      voice_format_downgraded: "语音格式 {content_type} 不支持，企微仅支持 AMR 格式，已转为文件格式发送"
-      size_downgraded: "{label}大小 {size_mb}MB 超过 {cap} 限制，已转为文件格式发送"
   email:
     image_line: "图片：{url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔思考中"
-      done: "🥳完成"
-  irc:
-    quit_message: "Hermes Agent 正在关闭"
-    standalone_quit: "已送达"
   relay:
     confirm_approve_once: "批准一次"
     confirm_always_approve: "始终批准"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "将此会话移交到消息平台（Telegram、Discord 等）"
   branch:
-    description: "从当前会话分支（在 Discord/Telegram/Slack/Matrix 上新建话题；--here 留在当前位置）"
+    description: "从当前会话分支（在 Discord/Telegram/Slack 上新建话题；--here 留在当前位置）"
   worktree:
     description: "显示、列出、创建或清理隔离的 git worktree"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "/voice on 在 CLI 中启用语音模式。Ctrl+B 切换按键说话录音。"
   t155: "流式 TTS 边生成边逐句播放——无需等待完整回复。"
   t156: "Telegram、Discord、WhatsApp 和 Slack 上的语音消息会被自动转写。"
-  t157: "Hermes 可运行在 21 个消息平台上：Telegram、Discord、Slack、WhatsApp、Signal、Matrix、IRC、Microsoft Teams、邮件等。"
+  t157: "Hermes 可运行在 21 个消息平台上：Telegram、Discord、Slack、WhatsApp、Microsoft Teams、邮件等。"
   t158: "hermes gateway install 把它设置为开机自启的系统服务。"
-  t159: "钉钉使用 Stream 模式——无需 webhook 或公网 URL。"
-  t160: "BlueBubbles 通过本地 macOS 服务器把 iMessage 接入 Hermes。"
   t161: "Webhook 路由支持 HMAC 校验、速率限制和事件过滤。"
   t162: "API 服务器提供 OpenAI 兼容端点，可与 Open WebUI 和 LibreChat 配合使用。"
   t163: "Discord 语音频道模式：机器人加入语音频道，转写语音并用语音回复。"
@@ -3814,7 +3684,6 @@ tips:
   t328: "tts.providers.<name>.type: command 可接入任何命令行 TTS 引擎，使用 {input_path} 和 {output_path} 占位符。"
   t329: "API_SERVER_ENABLED=true 会在网关旁运行一个 OpenAI 兼容端点，可供 Open WebUI 和 LibreChat 使用。"
   t330: "GATEWAY_PROXY_URL 实现分离部署：平台 I/O 在本地处理，代理工作委派给远程 API 服务器。"
-  t331: "MATRIX_DEVICE_ID 为 E2EE 固定一个稳定的设备 ID——不设置的话每次启动密钥都会轮换，历史消息将无法解密。"
   t332: "只要设置了 TELEGRAM_WEBHOOK_URL 就必须设置 TELEGRAM_WEBHOOK_SECRET——可用 openssl rand -hex 32 生成。"
   t333: "batch_runner.py --resume 按文本内容匹配已完成的提示词，因此数据集重新排序也不会重跑已完成的工作。"
   t334: "/new 原地开启新会话（别名 /reset）——新的会话 ID、干净的历史记录，CLI 保持打开。"

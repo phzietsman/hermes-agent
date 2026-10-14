@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "قاعدة بيانات الجلسات غير متاحة."
     parse_error: "⚠️ تعذّر تحليل وسائط `/resume`: {error}.\nاستخدم علامات اقتباس حول العناوين التي تحتوي مسافات، مثال: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "لم يُعثر على جلسات مُسمّاة لغرفة Matrix هذه.\nاستخدم `/title My Session` لتسمية جلسة الغرفة الحالية، أو `/resume --all` لسرد كل جلسات Matrix، أو `/resume --cross-room <session name>` لتجاوز حدود الغرفة صراحةً."
-    matrix_blocked_no_origin: "⚠️ حُجب /resume في Matrix: هذه الجلسة المُسمّاة لا تملك أصل غرفة مُسجّلًا، لذا لن يستأنفها Hermes داخل الغرفة الحالية افتراضيًا. استخدم `/resume --cross-room {name}` إن كنت تريد عمدًا تجاوز حدود الغرفة."
-    matrix_blocked_other_room: "⚠️ حُجب /resume في Matrix: تلك الجلسة تخصّ غرفة Matrix مختلفة ({room}). استخدم `/resume --cross-room {name}` إن كنت تريد عمدًا استئنافها هنا."
-    matrix_cross_room_success: "⚠️ استئناف عبر الغرف: استُؤنفت **{title}** داخل غرفة Matrix ‏**{room}**.\nستستخدم الرسائل المستقبلية في هذه الغرفة ذلك النص حتى `/reset` أو `/resume` آخر.{msg_part}"
     blocked_not_owner: "⚠️ حُجب /resume: '**{name}**' تخصّ مستخدمًا أو محادثة مختلفة. يمكنك فقط استئناف جلسات هذه المحادثة."
     no_named_sessions: "لم يُعثر على جلسات مُسمّاة.\nاستخدم `/title My Session` لتسمية جلستك الحالية، ثم `/resume My Session` للعودة إليها لاحقًا."
     all_requires_admin: "_ملاحظة: يتطلب `--all` (سرد عبر الدردشات) مسؤولاً مُهيأً؛ تُعرض جلسات هذه الدردشة فقط._"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "استخدم /context all لتكاليف كل مهارة وكل مجموعة أدوات."
   status:
     header: "📊 **حالة بوابة Hermes**"
-    matrix_scope_header: "**نطاق Matrix:**"
-    matrix_scope_room: "  الغرفة: {room}"
-    matrix_scope_room_id: "  معرّف الغرفة: {room_id}"
-    matrix_scope_thread: "  معرّف الخيط: {thread_id}"
-    matrix_scope_mode: "  نطاق الجلسة: {scope}"
-    matrix_scope_key: "  مفتاح الجلسة: {session_key}"
     session_id: "**معرّف الجلسة:** `{session_id}`"
     title: "**العنوان:** {title}"
     created: "**أُنشئت:** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ تمت الإجابة: {response}"
     cancelled: "↩️ أُلغي الاستيضاح — ستُعالج رسالتك كمتابعة."
     expired: "⏳ انتهت صلاحية هذه المطالبة — يُرجى إرسال طلب جديد."
-    native_stream_placeholder: "💬 في انتظار اختيارك..."
     skip_hint: 'رُدّ بـ "skip" لتخطي هذا السؤال.'
   errors:
     rate_limited: "⏱️ خدمة نموذج الذكاء الاصطناعي تحدّ من معدّل الطلبات. انتظر قليلًا، ثم استخدم /retry."
@@ -962,9 +951,6 @@ platform:
     approved: "✅ تمت الموافقة."
     denied: "❌ تم الرفض."
     approval_expired: "⌛ انتهت صلاحية الموافقة — لم يُنفَّذ الأمر (انتهت مهلته أو حُسم في مكان آخر)."
-  yuanbao:
-    slow_response_notice: "هذه المهمة معقّدة قليلًا — ما زلت أعمل عليها، يُرجى الانتظار..."
-    owner_command_denied: "⚠️ الأمر {command} متاح للمُنشئ فقط في وضع المحادثة الخاصة"
   shared:
     truncated_suffix: "\n...(مقتطع)"
     unknown: "غير معروف"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ تعذّر إيصال مرفق الفيديو."
       file_failed: "⚠️ تعذّر إيصال مرفق الملف ({name})."
       attachment_failed: "⚠️ تعذّر إيصال المرفق."
-  weixin:
-    voice_as_attachment: "[رسالة صوتية كمرفق]"
-  signal:
-    batch_pacing_notice: "(مزيد من الصور قادمة — توقّف مؤقت ~{wait} بسبب حد المعدّل في Signal، الدفعة {batch}/{total}.)"
-    wait_seconds: "{count} ث"
-    wait_minutes: "{count} د"
   api_server:
     provider_auth_failed: "فشلت مصادقة المزوّد"
     provider_rate_limited: "المزوّد قيّد المعدّل"
@@ -1324,90 +1304,6 @@ platform:
       running: "جارٍ تشغيل `/{command}`…"
     handoff:
       seed: ":thread: تسليم Hermes — *{name}*"
-  matrix:
-    handoff:
-      default_name: "جلسة Hermes"
-    media:
-      image_download_failed: "تعذّر عليّ تنزيل الصورة ورفعها إلى Matrix. لم يُعرض عنوان المصدر لأنه قد يحتوي على رموز وصول خاصة."
-    approval:
-      typed_hint_once: "ردّ بـ `!approve` للتنفيذ مرة واحدة، أو `!deny` للإلغاء."
-      typed_hint_session: "ردّ بـ `!approve session` للموافقة على هذا النمط طوال الجلسة، أو `!approve` للتنفيذ مرة واحدة، أو `!deny` للإلغاء."
-      typed_hint_always: "ردّ بـ `!approve session` للموافقة على هذا النمط طوال الجلسة، أو `!approve always` للموافقة الدائمة، أو `!approve` للتنفيذ مرة واحدة، أو `!deny` للإلغاء."
-      legend_intro: "يمكنك أيضًا النقر على التفاعل للموافقة:"
-      legend_once: "✅ = موافقة مرة واحدة"
-      legend_session: "🌀 = موافقة لهذه الجلسة"
-      legend_always: "♾️ = موافقة دائمة"
-      legend_deny: "❎ = رفض"
-      invalid_reaction: "هذا التفاعل غير صالح لطلب الموافقة هذا."
-      expired: "انتهت صلاحية طلب الموافقة هذا. شغّل الأمر من جديد إن كنت لا تزال تريد الموافقة عليه."
-    picker:
-      no_models: "لا توجد نماذج مصادَق عليها متاحة لهذه الجلسة."
-      title: "⚙ **إعدادات النموذج**"
-      current_model: "النموذج الحالي: `{model}`"
-      provider: "المزوّد: {provider}"
-      react_model: "تفاعل لاختيار نموذج:"
-      react_choice: "تفاعل للاختيار."
-      current_suffix: "{label} ← الحالي"
-      invalid_model_reaction: "هذا التفاعل ليس من خيارات النماذج المتاحة."
-      invalid_choice_reaction: "هذا التفاعل ليس من الخيارات المتاحة."
-      verb_switch_model: "تبديل النموذج"
-      verb_apply_selection: "تطبيق الاختيار"
-      failed: "فشل {action}: {error}"
-    reaction:
-      unauthorized: "لا يمكن استخدام عناصر التحكم هذه إلا لمستخدم Matrix مصرّح له."
-      not_requester: "لا يمكن استخدام عناصر التحكم هذه إلا للمستخدم الذي طلب هذا الإجراء."
-  feishu:
-    approval:
-      action_session: "الجلسة"
-      action_always: "دائمًا"
-      resolved_once: "تمت الموافقة مرة واحدة"
-      resolved_session: "تمت الموافقة للجلسة"
-      resolved_always: "تمت الموافقة بشكل دائم"
-      resolved_deny: "مرفوض"
-      resolved_fallback: "تم البتّ"
-      resolved_by_user: "{icon} **{label}** بواسطة {user}"
-    update_prompt:
-      title: "☤ التحديث يحتاج إلى ردّك"
-      default_hint: "\n\nالافتراضي: `{default}`"
-      answer_yes: "✓ نعم"
-      answer_no: "✗ لا"
-      word_yes: "نعم"
-      word_no: "لا"
-      answered_title: "{icon} تمت الإجابة على مطالبة التحديث: {answer}"
-      answered_by: "أجاب **{user}**"
-    media:
-      gif_downgraded: "[تم تحويل GIF إلى ملف]"
-      gif_downgraded_caption: "[تم تحويل GIF إلى ملف]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "غير ذلك / اكتب إجابة"
-      header: "سؤال"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes يفكّر…"
-      interrupted: "(قُطع)"
-      no_reply: "(لا ردّ)"
-    attachment_fallback:
-      header: "⚠️ تعذّر عليّ إرفاق **{filename}**."
-      explain: "لا يسمح Google Chat بإرفاق الملفات إلا إذا حصل البوت على إذنك الصريح (OAuth للمستخدم). إنها موافقة لمرة واحدة تتم من هذه المحادثة."
-      activate: "**للتفعيل:** أرسل `/setup-files` واتبع التعليمات."
-      host_path: "في هذه الأثناء، الملف موجود على المضيف: `{path}`"
-    setup_files:
-      not_configured: "🔧 تسليم المرفقات الأصلي **غير مهيّأ**.\n**الخطوة 1 (مرة واحدة، على المضيف):** أنشئ بيانات اعتماد عميل OAuth من https://console.cloud.google.com/apis/credentials ← *Create credentials* ← *OAuth client ID* ← *Desktop app*. نزّل ملف JSON. ثم شغّل على المضيف:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**الخطوة 2:** عد إلى هنا وأرسل `/setup-files start`."
-      start_instructions: "1. افتح هذا الرابط في متصفحك وامنح التصريح:\n{auth_url}\n\n2. بعد النقر على *Allow*، سيفشل متصفحك في تحميل `http://localhost:1/?...&code=...`. هذا متوقع.\n\n3. انسخ عنوان URL الفاشل كاملًا من شريط عناوين المتصفح وألصقه هنا بالصيغة: `/setup-files <PASTE_URL>` (أو قيمة `code=...` فقط).\n\nنصيحة: يحتوي الرابط على منحة وصولك — أبقه سريًا."
-      start_failed: "❌ تعذّر إنشاء رابط OAuth. راجع سجلات البوّابة وتحقق من صلاحية ملف client_secret.json."
-      exchange_failed: "❌ فشل تبادل رمز الوصول. ربما انتهت صلاحية الرمز أو أن الرابط غير سليم. أرسل `/setup-files start` للحصول على رابط OAuth جديد."
-      revoke_completed: "اكتمل الإلغاء (ربما تم تخطّي بعض الخطوات)."
-      revoked: "تم الإلغاء."
-      helper_error: "❌ خطأ: {error}"
-      revoke_error: "❌ خطأ أثناء الإلغاء: {error}"
-      who_shared: "مشترك (قديم)"
-      active: "✅ تسليم المرفقات الأصلي **نشط** لـ `{who}`.\nرمز الوصول: `{token_path}`\nأرسل `/setup-files revoke` للتعطيل."
-      not_authorized_yet: "🔧 بيانات اعتماد العميل محفوظة لكنك لم تمنح التصريح بعد. أرسل `/setup-files start` للبدء."
-      no_client_credentials: "⚠️ لا توجد بيانات اعتماد عميل محفوظة لهذا الملف التعريفي. أرسل `/setup-files` (بدون وسائط) للحصول على تعليمات الإعداد."
-      done_output: "✅ تم.\n```\n{output}\n```"
-      authorized: "✅ تم التصريح! تسليم المرفقات الأصلي نشط الآن. جرّب أن تطلب مني إرسال ملف PDF إليك."
-      exchanged_not_loaded: "⚠️ تم تبادل رمز الوصول لكن البوّابة لم تتمكن من تحميل بيانات الاعتماد الجديدة في الذاكرة. أعد تشغيل البوّابة وسيُلتقط رمز الوصول من `{token_path}`.\nمخرجات الأداة المساعدة:\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ مسموح (مرة واحدة)"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "القرارات الرئيسية"
       action_items: "بنود العمل"
       risks: "المخاطر"
-  line:
-    pending:
-      still_thinking: "🤔 لا يزال يفكّر. اضغط أدناه لجلب الإجابة عندما تصبح جاهزة."
-      button_label: "جلب الإجابة"
-      delivered: "تم الرد مسبقًا ✅"
-      interrupted: "قُطع التشغيل قبل اكتماله."
-      expired: "انتهت صلاحية هذا الطلب — أرسل رسالتك من جديد."
-    standalone:
-      attachments_not_deliverable: "[تم إنشاء {count} مرفق(ات)؛ لا يمكن تسليمها من مهمة مجدولة]"
-  wecom:
-    media:
-      kind_image: "صورة"
-      kind_video: "فيديو"
-      kind_voice: "رسالة صوتية"
-      file_too_large: "حجم الملف {size_mb} ميغابايت يتجاوز حد WeCom البالغ 20 ميغابايت ولا يمكن إرساله. جرّب ضغط الملف أو تقليل حجمه."
-      voice_format_downgraded: "صيغة الصوت {content_type} غير مدعومة (WeCom يقبل AMR فقط)؛ أُرسل كملف بدلًا من ذلك."
-      size_downgraded: "حجم {label} البالغ {size_mb} ميغابايت يتجاوز حد {cap}؛ أُرسل كملف بدلًا من ذلك."
   email:
     image_line: "صورة: {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔يفكّر"
-      done: "🥳تم"
-  irc:
-    quit_message: "جارٍ إيقاف تشغيل Hermes Agent"
-    standalone_quit: "تم التسليم"
   relay:
     confirm_approve_once: "الموافقة مرة"
     confirm_always_approve: "الموافقة دائمًا"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "تسليم هذه الجلسة إلى منصة مراسلة (Telegram أو Discord وغيرهما)"
   branch:
-    description: "تفريع الجلسة الحالية (سلسلة جديدة على Discord/Telegram/Slack/Matrix؛ --here يبقيها هنا)"
+    description: "تفريع الجلسة الحالية (سلسلة جديدة على Discord/Telegram/Slack؛ --here يبقيها هنا)"
   worktree:
     description: "عرض أو سرد أو إنشاء أو تنظيف git worktrees معزولة"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "يفعّل /voice on وضع الصوت في سطر الأوامر. ويبدّل Ctrl+B تسجيل اضغط-للتحدّث."
   t155: "يشغّل بث تحويل النص إلى كلام الجمل أثناء توليدها — فلا تنتظر الاستجابة الكاملة."
   t156: "تُنسخ الرسائل الصوتية على Telegram وDiscord وWhatsApp وSlack إلى نص تلقائيًا."
-  t157: "يعمل Hermes على 21 منصة مراسلة: Telegram وDiscord وSlack وWhatsApp وSignal وMatrix وIRC وMicrosoft Teams والبريد الإلكتروني وغيرها."
+  t157: "يعمل Hermes على 21 منصة مراسلة: Telegram وDiscord وSlack وWhatsApp  وMicrosoft Teams والبريد الإلكتروني وغيرها."
   t158: "يثبّت hermes gateway install البوّابة كخدمة نظام تبدأ عند الإقلاع."
-  t159: "يستخدم DingTalk وضع Stream — لا حاجة إلى webhooks أو عنوان URL عام."
-  t160: "يجلب BlueBubbles خدمة iMessage إلى Hermes عبر خادم macOS محلي."
   t161: "تدعم مسارات webhook التحقق عبر HMAC وحدّ المعدّل وتصفية الأحداث."
   t162: "يوفّر خادم API نقطة نهاية متوافقة مع OpenAI تعمل مع Open WebUI وLibreChat."
   t163: "وضع القناة الصوتية في Discord: ينضم البوت إلى القناة الصوتية وينسخ الكلام ويردّ صوتيًا."
@@ -3814,7 +3684,6 @@ tips:
   t328: "tts.providers.<name>.type: command يربط أي محرك TTS بسطر الأوامر باستخدام العنصرَين {input_path} و {output_path}."
   t329: "API_SERVER_ENABLED=true يشغّل نقطة نهاية متوافقة مع OpenAI بجانب البوّابة لاستخدامها مع Open WebUI و LibreChat."
   t330: "GATEWAY_PROXY_URL يشغّل إعدادًا مقسومًا: إدخال/إخراج المنصات محليًا، وعمل الوكيل مفوّض إلى خادم API بعيد."
-  t331: "MATRIX_DEVICE_ID يثبّت معرّف جهاز مستقرًا للتشفير E2EE — بدونه تتبدّل المفاتيح عند كل بدء ويتعطل فك تشفير الرسائل السابقة."
   t332: "TELEGRAM_WEBHOOK_SECRET مطلوب كلما ضُبط TELEGRAM_WEBHOOK_URL — أنشئه بـ openssl rand -hex 32."
   t333: "batch_runner.py --resume يطابق المطالبات المكتملة بنصّها كي لا تُعاد الأعمال المنتهية عند إعادة ترتيب مجموعة البيانات."
   t334: "/new يبدأ جلسة جديدة في مكانها (الاسم البديل /reset) — معرّف جلسة جديد وسجل نظيف مع بقاء CLI مفتوحًا."

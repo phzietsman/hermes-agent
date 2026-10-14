@@ -2115,15 +2115,6 @@ export const ruOverrides = {
         label: 'Название домашнего канала',
         help: 'Отображаемое имя домашнего канала в журналах и выводе статуса.'
       },
-      BLUEBUBBLES_ALLOW_ALL_USERS: {
-        label: 'Разрешить всех пользователей iMessage',
-        help: 'Если true, allowlist BlueBubbles пропускается.'
-      },
-      MATTERMOST_ALLOW_ALL_USERS: { label: 'Разрешить всех пользователей Mattermost' },
-      MATTERMOST_HOME_CHANNEL: { label: 'Домашний канал' },
-      QQ_ALLOW_ALL_USERS: { label: 'Разрешить всех пользователей QQ' },
-      QQBOT_HOME_CHANNEL: { label: 'Домашний канал QQ', help: 'Канал или группа по умолчанию для доставки cron.' },
-      QQBOT_HOME_CHANNEL_NAME: { label: 'Название домашнего канала QQ' },
       SLACK_BOT_TOKEN: {
         label: 'Токен бота Slack',
         help: 'Используйте токен бота из OAuth & Permissions после установки вашего приложения Slack.',
@@ -2137,29 +2128,6 @@ export const ruOverrides = {
       SLACK_ALLOWED_USERS: {
         label: 'Разрешённые ID пользователей Slack',
         help: 'Рекомендуется. ID пользователей Slack (по одному в поле).'
-      },
-      MATTERMOST_URL: { label: 'URL сервера', placeholder: 'https://mattermost.example.com' },
-      MATTERMOST_TOKEN: { label: 'Токен бота' },
-      MATTERMOST_ALLOWED_USERS: {
-        label: 'Разрешённые ID пользователей',
-        help: 'Рекомендуется. ID пользователей Mattermost (по одному в поле).'
-      },
-      MATRIX_HOMESERVER: { label: 'URL homeserver', placeholder: 'https://matrix.org' },
-      MATRIX_ACCESS_TOKEN: { label: 'Токен доступа' },
-      MATRIX_USER_ID: { label: 'ID пользователя бота', placeholder: '@hermes:example.org' },
-      MATRIX_ALLOWED_USERS: {
-        label: 'Разрешённые ID пользователей Matrix',
-        help: 'Рекомендуется. ID пользователей (по одному в поле) в формате @user:server.'
-      },
-      SIGNAL_HTTP_URL: {
-        label: 'URL моста Signal',
-        placeholder: 'http://127.0.0.1:8080',
-        help: 'URL работающего REST-моста signal-cli.'
-      },
-      SIGNAL_ACCOUNT: { label: 'Номер телефона', help: 'Номер, зарегистрированный в вашем мосте signal-cli.' },
-      SIGNAL_ALLOWED_USERS: {
-        label: 'Разрешённые пользователи Signal',
-        help: 'Рекомендуется. Идентификаторы Signal (по одному в поле).'
       },
       WHATSAPP_ENABLED: {
         label: 'Включить мост WhatsApp',

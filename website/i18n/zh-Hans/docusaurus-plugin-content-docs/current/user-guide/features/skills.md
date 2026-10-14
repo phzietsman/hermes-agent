@@ -101,7 +101,7 @@ Skills 可以使用 `platforms` 字段将自身限制在特定操作系统上：
 | `windows` | Windows |
 
 ```yaml
-platforms: [macos]            # macOS only (e.g., iMessage, Apple Reminders, FindMy)
+platforms: [macos]            # macOS only (e.g., Apple Reminders, FindMy)
 platforms: [macos, linux]     # macOS and Linux
 ```
 
@@ -134,7 +134,7 @@ Here is your rendered chart:
 - 你生成了用户需要作为文件的截图或图表（用于在其他工具中编辑、存档、完整分享）。
 - 默认的有损预览会遮蔽细节（小字体、像素精确的图表、对颜色敏感的渲染）。
 
-没有单独文档路径的平台（如 SMS）会回退到其支持的任何附件机制。
+没有单独文档路径的平台（如 webhook）会回退到其支持的任何附件机制。
 
 ### 条件激活（Fallback Skills）
 

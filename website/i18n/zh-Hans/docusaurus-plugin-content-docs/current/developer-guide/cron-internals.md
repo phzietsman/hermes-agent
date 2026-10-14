@@ -172,19 +172,8 @@ Cron 任务结果可投递到任何受支持的平台。
 | Telegram | `telegram`、`telegram:<chat_id>`、`telegram:<chat_id>:<thread_id>`、`telegram:@username` | `telegram:-1001234567890:17585` |
 | Discord | `discord`、`discord:#channel`、`discord:<channel_id>`、`discord:<channel_id>:<thread_id>` | `discord:#engineering` |
 | Slack | `slack`、`slack:#channel`、`slack:<channel_id>`、`slack:<channel_id>:<thread_ts>` | `slack:#engineering` |
-| Matrix | `matrix`、`matrix:<!room_id:server>`、`matrix:<@user:server>` | `matrix:!abc123:example.org` |
-| Feishu | `feishu`、`feishu:<chat_id>`、`feishu:<chat_id>:<thread_id>` | `feishu:oc_abc123def` |
 | WhatsApp | `whatsapp`、`whatsapp:<jid>`、`whatsapp:+<E.164>` | `whatsapp:123456@g.us` |
-| Signal | `signal`、`signal:group:<id>`、`signal:+<E.164>` | `signal:group:aBcD==` |
-| SMS | `sms`、`sms:+<E.164>` | `sms:+<E.164 号码>` |
 | Email | `email`、`email:<address>` | `email:alerts@example.com` |
-| Weixin | `weixin`、`weixin:<wxid>` | `weixin:wxid_abc123` |
-| Mattermost | `mattermost` 或 `mattermost:<channel_id>` | 裸名投递到 Mattermost 主频道 |
-| Home Assistant（插件） | `homeassistant` 或 `homeassistant:<notify target>` | 裸名投递到 `HASS_HOME_CHANNEL`；需要插件目录中的 `homeassistant` 插件 |
-| DingTalk | `dingtalk` 或 `dingtalk:<chat_id>` | 裸名投递到钉钉 |
-| WeCom | `wecom` 或 `wecom:<chat_id>` | 裸名投递到企业微信 |
-| BlueBubbles | `bluebubbles` 或 `bluebubbles:<chat_guid>` | 裸名通过 BlueBubbles 投递到 iMessage |
-| QQ Bot | `qqbot` 或 `qqbot:<chat_id>` | 裸名通过官方 API v2 投递到 QQ（腾讯） |
 
 第一组平台具有显式、经校验的目标语法——具名频道（`#channel`）、话题/线程、房间/用户 ID、群组 ID 或电话号码。其余平台接受通用的 `platform:<chat_id>` 形式（冒号后的值原样用作目标 ID）；裸平台名始终投递到主频道。
 

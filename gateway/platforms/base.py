@@ -174,8 +174,6 @@ def _reply_anchor_for_event(event) -> str | None:
         if getattr(source, "chat_type", None) != "dm":
             return None
         return getattr(event, "message_id", None) or getattr(event, "reply_to_message_id", None)
-    if platform == "feishu" and thread_id and getattr(event, "reply_to_message_id", None):
-        return getattr(event, "reply_to_message_id", None)
     return getattr(event, "message_id", None)
 
 
@@ -2052,7 +2050,7 @@ class BasePlatformAdapter(ABC):
     @property
     def enforces_own_access_policy(self) -> bool:
         """Whether this adapter enforces its own config-driven access policy at intake
-        (``dm_policy``/``group_policy``/``allow_from``: WeCom, Weixin, QQBot, WhatsApp…). The
+        (``dm_policy``/``group_policy``/``allow_from``: WhatsApp…). The
         gateway env allowlist runs *after* the adapter; without one it trusts this flag ONLY when
         the effective policy is a real ``"allowlist"`` — never ``"open"`` (the default), which would
         be a network-exposed fail-open (SECURITY.md §2.6). Open access still requires
@@ -2604,12 +2602,6 @@ class BasePlatformAdapter(ABC):
         """Hand a flushed batch to the pipeline (adapters with per-chat guards override)."""
         await self.handle_message(event)
 
-    async def _flush_text_batch_now(self, key: str) -> None:
-        """Dispatch the pending batch for ``key`` immediately (no quiet period)."""
-        event = self._pop_text_batch(key)
-        if event is not None:
-            await self._dispatch_text_batch(event)
-
     async def _flush_text_batch(self, key: str) -> None:
         """Wait for the quiet period, then dispatch the batch for ``key``.
 
@@ -2736,7 +2728,7 @@ class BasePlatformAdapter(ABC):
                    metadata: Optional[Dict[str, Any]] = None) -> SendResult:
         """Send ``content`` (may be markdown) to a chat; returns SendResult with message id."""
 
-    # Surfaces needing an explicit finalize edit (DingTalk AI Cards): the consumer never skips it.
+    # Surfaces needing an explicit finalize edit (e.g. AI-card style streams): the consumer never skips it.
     REQUIRES_EDIT_FINALIZE: bool = False
 
     async def create_handoff_thread(self, parent_chat_id: str, name: str) -> Optional[str]:
@@ -2748,8 +2740,8 @@ class BasePlatformAdapter(ABC):
     async def edit_message(
         self, chat_id: str, message_id: str, content: str, *, finalize: bool = False) -> SendResult:
         """Edit a sent message (optional: success=False makes callers send anew). ``finalize`` marks
-        the last edit of a streamed response; surfaces with a distinct "in progress" state (DingTalk
-        AI Cards) close the message on it and set ``REQUIRES_EDIT_FINALIZE`` so it's routed even
+        the last edit of a streamed response; surfaces with a distinct "in progress" state
+        close the message on it and set ``REQUIRES_EDIT_FINALIZE`` so it's routed even
         when content is unchanged."""
         return SendResult(success=False, error="Not supported")
 
@@ -3005,7 +2997,7 @@ class BasePlatformAdapter(ABC):
         metadata: Optional[Dict[str, Any]] = None, human_delay: float = 0.0) -> SendResult:
         """Send ``(url, alt)`` images (``http(s)://`` or ``file://``) one by one (GIFs via
         ``send_animation``, local files via ``send_image_file``); override to bundle natively
-        (Signal). Returns success when at least one image was delivered — the outcome
+        Returns success when at least one image was delivered — the outcome
         the turn-level delivery tracker records; every override must return the same
         aggregate, or a media-only turn on that platform reports FAILURE (#106153)."""
         delivered = False
@@ -3670,7 +3662,7 @@ class BasePlatformAdapter(ABC):
         # through to the plain-text fallback, which re-enters the ban and can
         # truncate content.  Gate on the platform-neutral classifier as well so
         # platforms that surface a rate limit without a retry_after field
-        # (e.g. Weixin raising a bare RuntimeError) get the same treatment.
+        # (e.g. a bare RuntimeError) get the same treatment.
         is_rate_limited = self._is_rate_limited_error(error_str)
         is_network = (
             result.retryable
@@ -3790,7 +3782,7 @@ class BasePlatformAdapter(ABC):
     async def _send_plain_fallback(
             self, chat_id: str, content: str, *, reply_to: Optional[str], metadata: Any) -> "SendResult":
         """Last-resort send after a non-transient failure; platforms whose markup is not the
-        likely culprit override it (Photon drops rich links instead of adding the banner)."""
+        likely culprit override it."""
         return await self.send(
             chat_id=chat_id, content=self.warning_text(
                 t("gateway.notify.plain_fallback_prefix", content=content[:3500]), content[:3500],

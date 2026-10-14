@@ -1,8 +1,8 @@
 """Shared-listener ingress for inbound-port platforms under ``gateway.multiplex_profiles``.
 
 The default profile owns the ONE HTTP listener (api_server, and the webhook adapter's port). A
-secondary profile's port-binding adapter (Twilio SMS, LINE, Teams, BlueBubbles, Microsoft Graph,
-WhatsApp Cloud, WeCom callback, Feishu webhook mode) therefore cannot bind its own port; instead the
+secondary profile's port-binding adapter (LINE, Teams, Microsoft Graph,
+WhatsApp Cloud) therefore cannot bind its own port; instead the
 runner constructs it in *shared-listener mode*: ``bind_listener`` publishes the adapter's fully wired
 ``web.Application`` instead of starting a ``TCPSite``, and the default listener forwards
 ``/p/<profile>/<path>`` to it through ``dispatch_profile_ingress``.

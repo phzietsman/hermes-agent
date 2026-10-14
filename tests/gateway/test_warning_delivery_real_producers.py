@@ -14,33 +14,9 @@ def policy(request, monkeypatch, tmp_path):
     value = request.param
     config: dict = {} if value is None else {"display": {"suppress_warning_notifications": value is True}}
     if value == "override":
-        config["display"]["platforms"] = {p: {"suppress_warning_notifications": True} for p in ("slack", "signal")}
+        config["display"]["platforms"] = {p: {"suppress_warning_notifications": True} for p in ("slack", "telegram")}
     (tmp_path / "config.yaml").write_text(json.dumps(config))
     return value in (True, "override")
-
-
-@pytest.mark.asyncio
-async def test_signal_pacing_producer_keeps_actual_image_delivery(policy, monkeypatch, tmp_path):
-    import gateway.platforms.signal as module
-    adapter = module.SignalAdapter(PlatformConfig())
-    scheduler = SimpleNamespace(state=lambda: {}, estimate_wait=lambda n: 120,
-        acquire=AsyncMock(), report_rpc_duration=AsyncMock())
-    monkeypatch.setattr(module, "get_scheduler", lambda: scheduler)
-    adapter._stop_typing_indicator = AsyncMock()
-    path = tmp_path / "image.png"
-    path.write_bytes(b"image")
-    adapter._resolve_image_path = AsyncMock(return_value=(str(path), None, None))
-    adapter._with_target = AsyncMock(side_effect=lambda params, chat: params)
-    adapter._rpc = AsyncMock(return_value={"timestamp": 123})
-    adapter.send = AsyncMock(return_value=SendResult(success=True))
-    result = await adapter.send_multiple_images("recipient", [(path.as_uri(), "caption")])
-    assert result.success
-    assert adapter.send.await_count == (0 if policy else 1)
-    if not policy:
-        assert "rate limit" in adapter.send.call_args.args[1]
-    assert adapter._rpc.call_args.args[1]["attachments"] == [str(path)]
-    scheduler.acquire.assert_awaited_once_with(1)
-    scheduler.report_rpc_duration.assert_awaited_once()
 
 
 @pytest.mark.asyncio

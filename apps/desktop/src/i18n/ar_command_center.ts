@@ -296,26 +296,6 @@ export const arCommandCenter = {
         label: 'اسم القناة الرئيسية',
         help: 'الاسم المعروض للقناة الرئيسية في السجلات ومخرجات الحالة.'
       },
-      BLUEBUBBLES_ALLOW_ALL_USERS: {
-        label: 'السماح لكل مستخدمي iMessage',
-        help: 'عند التفعيل، يتم تخطي قائمة سماح BlueBubbles.'
-      },
-      MATTERMOST_ALLOW_ALL_USERS: {
-        label: 'السماح لكل مستخدمي Mattermost'
-      },
-      MATTERMOST_HOME_CHANNEL: {
-        label: 'القناة الرئيسية'
-      },
-      QQ_ALLOW_ALL_USERS: {
-        label: 'السماح لكل مستخدمي QQ'
-      },
-      QQBOT_HOME_CHANNEL: {
-        label: 'قناة QQ الرئيسية',
-        help: 'القناة أو المجموعة الافتراضية لتسليم cron.'
-      },
-      QQBOT_HOME_CHANNEL_NAME: {
-        label: 'اسم قناة QQ الرئيسية'
-      },
       SLACK_BOT_TOKEN: {
         label: 'رمز بوت Slack',
         help: 'استخدم رمز البوت من OAuth & Permissions بعد تثبيت تطبيق Slack الخاص بك.',
@@ -329,45 +309,6 @@ export const arCommandCenter = {
       SLACK_ALLOWED_USERS: {
         label: 'معرّفات مستخدمي Slack المسموح بهم',
         help: 'موصى به. معرّفات مستخدمي Slack (واحد في كل حقل).'
-      },
-      MATTERMOST_URL: {
-        label: 'رابط الخادم',
-        placeholder: 'https://mattermost.example.com'
-      },
-      MATTERMOST_TOKEN: {
-        label: 'رمز البوت (token)'
-      },
-      MATTERMOST_ALLOWED_USERS: {
-        label: 'معرّفات المستخدمين المسموح بهم',
-        help: 'موصى به. معرّفات مستخدمي Mattermost (واحد في كل حقل).'
-      },
-      MATRIX_HOMESERVER: {
-        label: 'رابط Homeserver',
-        placeholder: 'https://matrix.org'
-      },
-      MATRIX_ACCESS_TOKEN: {
-        label: 'رمز الوصول'
-      },
-      MATRIX_USER_ID: {
-        label: 'معرّف مستخدم البوت',
-        placeholder: '@hermes:example.org'
-      },
-      MATRIX_ALLOWED_USERS: {
-        label: 'معرّفات مستخدمي Matrix المسموح بهم',
-        help: 'موصى به. معرّفات مستخدمين (واحد في كل حقل) بصيغة @user:server.'
-      },
-      SIGNAL_HTTP_URL: {
-        label: 'رابط جسر Signal',
-        placeholder: 'http://127.0.0.1:8080',
-        help: 'رابط جسر signal-cli REST قيد التشغيل.'
-      },
-      SIGNAL_ACCOUNT: {
-        label: 'رقم الهاتف',
-        help: 'الرقم المسجّل مع جسر signal-cli الخاص بك.'
-      },
-      SIGNAL_ALLOWED_USERS: {
-        label: 'مستخدمو Signal المسموح بهم',
-        help: 'موصى به. معرّفات Signal (واحد في كل حقل).'
       },
       WHATSAPP_ENABLED: {
         label: 'تفعيل جسر WhatsApp',

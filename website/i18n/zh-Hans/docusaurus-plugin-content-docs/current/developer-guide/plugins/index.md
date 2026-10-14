@@ -881,7 +881,7 @@ optional_env:
     password: false
 ```
 
-**完整指南：** [添加平台适配器](../adding-platform-adapters.md)——完整的 `BasePlatformAdapter` 约定、消息路由、认证限制、设置向导集成。参考 `plugins/platforms/irc/` 获取仅使用标准库的可用示例。
+**完整指南：** [添加平台适配器](../adding-platform-adapters.md)——完整的 `BasePlatformAdapter` 约定、消息路由、认证限制、设置向导集成。参考 `plugins/platforms/teams/` 获取仅使用标准库的可用示例。
 
 ### 记忆提供商插件——添加跨会话知识后端
 

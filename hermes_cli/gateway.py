@@ -1623,7 +1623,7 @@ def _print_multiplex_standalone_reason() -> None:
 
 def _print_served_ingress_urls(profile: str | None = None) -> None:
     """Callback URLs of inbound-port platforms the live multiplexer serves for secondary profiles
-    (the value to paste into the Twilio / LINE / Teams / BlueBubbles console)."""
+    (the value to paste into the LINE / Teams console)."""
     try:
         from hermes_cli.gateway_multiplex_served import format_ingress_url_lines, served_profile_ingress_urls
         urls = served_profile_ingress_urls(profile)
@@ -4726,12 +4726,6 @@ from hermes_cli.gateway_setup_wizard import (  # noqa: E402,F401 — facade re-e
     _clean_discord_ids,
     _prompt_allowlist_var,
     _setup_standard_platform,
-    _WEIXIN_DM_POLICIES,
-    _WEIXIN_GROUP_NOTE,
-    _setup_weixin,
-    _setup_qqbot,
-    _signal_line_input,
-    _setup_signal,
     _builtin_setup_fn,
     _configure_platform,
     _wizard_offer_service_action,
@@ -4823,7 +4817,7 @@ def _print_info_lines(*lines: str) -> None:
 
 
 
-# WhatsApp/DingTalk/WeCom/Feishu setup flows live in their plugins' adapter.py::interactive_setup.
+# WhatsApp setup flow lives in its plugin's adapter.py::interactive_setup.
 
 
 def _running_under_s6() -> bool:

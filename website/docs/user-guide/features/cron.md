@@ -572,18 +572,7 @@ When scheduling jobs, you specify where the output goes:
 | `"discord:#engineering"` | Specific Discord channel | By channel name |
 | `"slack"` | Slack home channel | |
 | `"whatsapp"` | WhatsApp home | |
-| `"signal"` | Signal | |
-| `"matrix"` | Matrix home room | |
-| `"mattermost"` | Mattermost home channel | |
 | `"email"` | Email | |
-| `"sms"` | SMS via Twilio | |
-| `"homeassistant"` | Home Assistant (plugin) | Uses `HASS_HOME_CHANNEL`; requires the [`homeassistant` plugin](../messaging/homeassistant.md) |
-| `"dingtalk"` | DingTalk | |
-| `"feishu"` | Feishu/Lark | |
-| `"wecom"` | WeCom | |
-| `"weixin"` | Weixin (WeChat) | |
-| `"bluebubbles"` | BlueBubbles (iMessage) | |
-| `"qqbot"` | QQ Bot (Tencent QQ) | |
 | `"bot-chat"` | This profile's canonical Bot Chat — the bot reads the output and responds | Machine-local |
 | `"bot-chat:research"` | Another local profile's Bot Chat | Validated at create time |
 | `"all"` | Fan out to every connected home channel | Resolved at fire time |
@@ -690,8 +679,7 @@ pushes for one and stays silent for the other.
 A live-adapter delivery is logged as delivered only on positive evidence from
 the adapter: an explicit `success` that is not a filtered drop
 (`delivered: false`), plus a `message_id` or `raw_response`. A result carrying
-`success` but neither piece of evidence — the shape Slack, Matrix and
-Mattermost adapters return — is still accepted (it is not proof of failure),
+`success` but neither piece of evidence — the shape Slack adapters return — is still accepted (it is not proof of failure),
 but the run is recorded on the job as `last_delivery_unverified` and surfaces
 in `hermes cron list`:
 
@@ -723,12 +711,12 @@ cron:
 
 Behaviour is **thread-preferred**, scoped to the job's own conversation:
 
-- **Thread-capable platforms** (Telegram topics, Discord/Slack/Matrix threads): each
+- **Thread-capable platforms** (Telegram topics, Discord/Slack threads): each
   delivery opens its own dedicated thread and the brief is seeded into that
   thread's session, so a reply in-thread continues with full context. A
   recurring job (e.g. a daily brief) opens a fresh thread per run, keeping each
   delivery's follow-up discussion isolated.
-- **DM-only platforms** (WhatsApp, Signal, SMS): no threads exist, so the brief
+- **DM-only platforms** (WhatsApp): no threads exist, so the brief
   is mirrored into the target DM session instead (the origin DM, or the home DM
   for fallback and bare-platform jobs) — the DM itself is the continuation surface.
 

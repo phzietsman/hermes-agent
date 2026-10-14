@@ -41,9 +41,7 @@ PERPLEXITY_API_KEY COHERE_API_KEY FIREWORKS_API_KEY XAI_API_KEY HELICONE_API_KEY
 TELEGRAM_HOME_CHANNEL TELEGRAM_HOME_CHANNEL_NAME DISCORD_HOME_CHANNEL
 DISCORD_HOME_CHANNEL_NAME DISCORD_REQUIRE_MENTION DISCORD_FREE_RESPONSE_CHANNELS
 DISCORD_AUTO_THREAD SLACK_HOME_CHANNEL SLACK_HOME_CHANNEL_NAME SLACK_ALLOWED_USERS
-WHATSAPP_ENABLED WHATSAPP_MODE WHATSAPP_ALLOWED_USERS SIGNAL_HTTP_URL SIGNAL_ACCOUNT
-SIGNAL_ALLOWED_USERS SIGNAL_GROUP_ALLOWED_USERS SIGNAL_HOME_CHANNEL SIGNAL_HOME_CHANNEL_NAME
-SIGNAL_IGNORE_STORIES HASS_TOKEN HASS_URL EMAIL_ADDRESS EMAIL_PASSWORD EMAIL_IMAP_HOST
+WHATSAPP_ENABLED WHATSAPP_MODE WHATSAPP_ALLOWED_USERS EMAIL_ADDRESS EMAIL_PASSWORD EMAIL_IMAP_HOST
 EMAIL_SMTP_HOST EMAIL_HOME_ADDRESS EMAIL_HOME_ADDRESS_NAME HERMES_DASHBOARD_SESSION_TOKEN
 HERMES_DASHBOARD_BASIC_AUTH_PASSWORD HERMES_DASHBOARD_BASIC_AUTH_SECRET HERMES_DASHBOARD_DRAIN_SECRET
 HERMES_DASHBOARD_OIDC_CLIENT_SECRET HERMES_ANON_API_SECRET HERMES_MEET_REALTIME_KEY
@@ -97,9 +95,9 @@ def test_terminal_child_observes_declared_policy(child_env, monkeypatch):
 # app secrets), declared in the gateway env-override table, a plugin manifest, or the policy's
 # own short list, none of them among the hand-written OPTIONAL_ENV_VARS entries.
 ADAPTER_SECRETS = """
-TEAMS_INCOMING_WEBHOOK_URL WHATSAPP_CLOUD_ACCESS_TOKEN WHATSAPP_CLOUD_APP_SECRET WHATSAPP_CLOUD_VERIFY_TOKEN WEIXIN_TOKEN
-YUANBAO_APP_SECRET FEISHU_ENCRYPT_KEY FEISHU_VERIFICATION_TOKEN TELEGRAM_WEBHOOK_SECRET
-PHOTON_SIDECAR_TOKEN A2A_PUSH_SECRET TEAMS_GRAPH_ACCESS_TOKEN QQ_STT_API_KEY
+TEAMS_INCOMING_WEBHOOK_URL WHATSAPP_CLOUD_ACCESS_TOKEN WHATSAPP_CLOUD_APP_SECRET WHATSAPP_CLOUD_VERIFY_TOKEN
+TELEGRAM_WEBHOOK_SECRET
+TEAMS_GRAPH_ACCESS_TOKEN
 MSGRAPH_WEBHOOK_CLIENT_STATE MSGRAPH_CLIENT_SECRET
 """.split()
 # The user's own credentials that merely start with a platform name. Hermes never reads them, so
@@ -472,64 +470,6 @@ def test_force_prefix_is_not_plugin_passthrough(child_env, monkeypatch, builder,
     # Even a buggy plugin hook cannot bypass dynamic-secret exclusion.
     with patch("tools.env_passthrough.is_env_passthrough", return_value=True):
         assert "AUXILIARY_VISION_API_KEY" not in factories[builder]()
-
-
-@pytest.mark.parametrize("managed,platform,allowed", [(True, "telegram", True), (False, "buzz", True), (False, "telegram", False)])
-@pytest.mark.parametrize("scope", [None, {"BUZZ_PRIVATE_KEY": "fake-scoped"}])
-def test_buzz_context_and_plain_process_value(child_env, monkeypatch, managed, platform, allowed, scope):
-    from agent import secret_scope as ss
-    from gateway.session_context import _SESSION_PLATFORM
-    from tools.code_execution_env import _scrub_child_env
-    from tools.env_passthrough import register_env_passthrough, is_env_passthrough
-    buzz = {"BUZZ_PRIVATE_KEY": "fake-process", "BUZZ_AUTH_TAG": "fake-tag", "BUZZ_RELAY_URL": "fake-relay"}
-    for k, v in buzz.items():
-        monkeypatch.setenv(k, v)
-    if managed:
-        monkeypatch.setenv("BUZZ_MANAGED_AGENT", "1")
-    platform_token = _SESSION_PLATFORM.set(platform)
-    ss.set_multiplex_active(True)
-    scope_token = ss.set_secret_scope(scope) if scope is not None else None
-    try:
-        register_env_passthrough(buzz)
-        assert not any(is_env_passthrough(k) for k in buzz)
-        for result in (local._make_run_env({}), local._sanitize_subprocess_env(dict(os.environ))):
-            assert {k: result.get(k) for k in buzz} == (buzz if allowed else dict.fromkeys(buzz))
-        for result in (local.hermes_subprocess_env(), _scrub_child_env(os.environ)):
-            assert not set(buzz) & result.keys()
-    finally:
-        if scope_token is not None:
-            ss.reset_secret_scope(scope_token)
-        ss.set_multiplex_active(False)
-        _SESSION_PLATFORM.reset(platform_token)
-
-
-@pytest.mark.platforms("linux", "macos", "windows")
-@pytest.mark.parametrize("first_platform,first_value", [("buzz", "fake-profile-a"), ("telegram", None)], ids=["buzz", "other"])
-def test_buzz_secret_never_reaches_second_profile_via_snapshot(child_env, monkeypatch, first_platform, first_value):
-    from agent import secret_scope as ss
-    from gateway.session_context import _SESSION_PLATFORM
-    monkeypatch.setenv("BUZZ_PRIVATE_KEY", "fake-profile-a")
-    ss.set_multiplex_active(True)
-    platform = _SESSION_PLATFORM.set(first_platform)
-    env = None
-    try:
-        env = local.LocalEnvironment(cwd=str(child_env), timeout=30)
-        snap = Path(env._snapshot_path)
-        assert snap.exists()
-        assert "BUZZ_PRIVATE_KEY" not in snap.read_text(encoding="utf-8")
-        assert observe_terminal(env, ["BUZZ_PRIVATE_KEY"]) == {"BUZZ_PRIVATE_KEY": first_value}
-        assert "fake-profile-a" not in snap.read_text(encoding="utf-8")
-        monkeypatch.delenv("BUZZ_PRIVATE_KEY")
-        _SESSION_PLATFORM.reset(platform)
-        platform = _SESSION_PLATFORM.set("telegram")
-        assert observe_terminal(env, ["BUZZ_PRIVATE_KEY"]) == {"BUZZ_PRIVATE_KEY": None}
-        assert "BUZZ_PRIVATE_KEY" in env._snapshot_passthrough_names
-        assert "BUZZ_PRIVATE_KEY" not in snap.read_text(encoding="utf-8")
-    finally:
-        if env is not None:
-            env.cleanup()
-        _SESSION_PLATFORM.reset(platform)
-        ss.set_multiplex_active(False)
 
 
 @pytest.mark.parametrize("scoped,expected", [({"SERVICE_TOKEN": "fake-routed"}, "fake-routed"), ({}, None)])
@@ -1470,15 +1410,6 @@ class TestBlocklistCoverage:
             "WHATSAPP_ENABLED",
             "WHATSAPP_MODE",
             "WHATSAPP_ALLOWED_USERS",
-            "SIGNAL_HTTP_URL",
-            "SIGNAL_ACCOUNT",
-            "SIGNAL_ALLOWED_USERS",
-            "SIGNAL_GROUP_ALLOWED_USERS",
-            "SIGNAL_HOME_CHANNEL",
-            "SIGNAL_HOME_CHANNEL_NAME",
-            "SIGNAL_IGNORE_STORIES",
-            "HASS_TOKEN",
-            "HASS_URL",
             "EMAIL_ADDRESS",
             "EMAIL_PASSWORD",
             "EMAIL_IMAP_HOST",

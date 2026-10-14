@@ -232,8 +232,8 @@ class ThreadParticipationTracker:
 
         ``_save`` ends in ``atomic_json_write`` -> ``os.replace``, whose
         duration is unbounded under filesystem pressure.  Every caller of this
-        tracker sits on an inbound-message coroutine in the Discord and Matrix
-        adapters, so the rename must not be paid inline on the event loop -- it
+        tracker sits on an inbound-message coroutine in the Discord
+        adapter, so the rename must not be paid inline on the event loop -- it
         stalls every other adapter's polling and every in-flight turn for as
         long as it runs.
         """
@@ -247,35 +247,6 @@ class ThreadParticipationTracker:
     def clear(self) -> None:
         with self._lock:
             self._threads.clear()
-
-
-async def send_chunks(chunks: list, send_one) -> Any:
-    """Send ``chunks`` in order through ``send_one(chunk) -> SendResult``, stopping at the first failure.
-
-    A failure after earlier chunks landed carries the ``partial_overflow`` contract that
-    ``BasePlatformAdapter._is_partial_delivery`` reads, so no caller (send retry, plain-text
-    fallback, cron standalone fallback) re-sends the head the recipient already has.
-    """
-    from gateway.platforms.base import SendResult
-    result = SendResult(success=False, error="nothing to send")
-    for delivered, chunk in enumerate(chunks):
-        result = await send_one(chunk)
-        if not result.success:
-            if delivered:
-                raw = dict(result.raw_response) if isinstance(result.raw_response, dict) else {}
-                raw.update(partial_overflow=True, delivered_chunks=delivered, total_chunks=len(chunks))
-                result.raw_response = raw
-            break
-    return result
-
-
-def redact_phone(phone: str) -> str:
-    """Redact a phone number for logging, preserving country code and last 4."""
-    if not phone:
-        return "<none>"
-    if len(phone) <= 8:
-        return phone[:2] + "****" + phone[-2:] if len(phone) > 4 else "****"
-    return phone[:4] + "****" + phone[-4:]
 
 
 # ─── GFM table → bullets. Discord calls convert_table_to_bullets(); Telegram imports the
@@ -344,62 +315,38 @@ def convert_table_to_bullets(text: str) -> str:
     return '\n'.join(out)
 
 
-def compile_mention_patterns(raw, *, log_prefix: str, platform_label: str | None = None,
-                             display_label: str | None = None, defaults: 'list[str] | None' = None,
+def compile_mention_patterns(raw, *, log_prefix: str, platform_label: str,
+                             display_label: str | None = None,
                              logger_: 'logging.Logger | None' = None) -> 'list[re.Pattern]':
-    """Compile regex wake-word/mention patterns from config or env values.
+    """Compile regex wake-word/mention patterns from config values.
 
-    * **Config-style** (dingtalk, telegram): pass ``platform_label``. ``raw`` must be a
-      list or string (else warn + ``[]``); non-string entries skipped; info log on load.
-    * **Wakeword-style** (photon, bluebubbles): pass ``defaults``. ``raw`` may be None
-      (defaults), a string (JSON list or comma/newline separated), a list, or a scalar.
-    ``log_prefix`` is interpolated into every log line so per-adapter output stays
-    byte-identical to the historical inline implementations.
+    ``raw`` must be a list or string (else warn + ``[]``); non-string entries are skipped and an
+    info line is logged on load. ``log_prefix`` is interpolated into every log line so per-adapter
+    output stays byte-identical to the historical inline implementations.
     """
     log = logger_ or logger
-
-    def _compile(patterns, warn_fmt, *warn_args):
-        compiled: list[re.Pattern] = []
-        for pattern in patterns:
-            try:
-                compiled.append(re.compile(pattern, re.IGNORECASE))
-            except re.error as exc:
-                log.warning(warn_fmt, log_prefix, *warn_args, pattern, exc)
-        return compiled
-
-    if platform_label is not None:
-        display = display_label or platform_label
-        if raw is None:
-            return []
-        patterns = [raw] if isinstance(raw, str) else raw
-        if not isinstance(patterns, list):
-            log.warning("[%s] %s mention_patterns must be a list or string; got %s",
-                        log_prefix, platform_label, type(patterns).__name__)
-            return []
-        compiled = _compile([p for p in patterns if isinstance(p, str) and p.strip()],
-                            "[%s] Invalid %s mention pattern %r: %s", display)
-        if compiled:
-            log.info("[%s] Loaded %d %s mention pattern(s)", log_prefix, len(compiled), display)
-        return compiled
+    display = display_label or platform_label
     if raw is None:
-        patterns = list(defaults or [])
-    elif isinstance(raw, str):
-        text = raw.strip()
+        return []
+    patterns = [raw] if isinstance(raw, str) else raw
+    if not isinstance(patterns, list):
+        log.warning("[%s] %s mention_patterns must be a list or string; got %s",
+                    log_prefix, platform_label, type(patterns).__name__)
+        return []
+    compiled: list[re.Pattern] = []
+    for pattern in (p for p in patterns if isinstance(p, str) and p.strip()):
         try:
-            loaded = json.loads(text) if text else []
-        except Exception:
-            loaded = None
-        patterns = loaded if isinstance(loaded, list) else [
-            part.strip() for line in text.splitlines() for part in line.split(",")]
-    else:
-        patterns = raw if isinstance(raw, list) else [raw]
-    texts = [t for t in (str(p).strip() for p in patterns) if t]
-    return _compile(texts, "[%s] Invalid mention pattern %r: %s")
+            compiled.append(re.compile(pattern, re.IGNORECASE))
+        except re.error as exc:
+            log.warning("[%s] Invalid %s mention pattern %r: %s", log_prefix, display, pattern, exc)
+    if compiled:
+        log.info("[%s] Loaded %d %s mention pattern(s)", log_prefix, len(compiled), display)
+    return compiled
 
 
 # ─── Fence-Aware Markdown Chunking ───────────────────────────────────────────
 # Shared core for gateway/stream_consumer.py (``prefer_paragraphs=False, balance_fences=True``),
-# yuanbao (``prefer_paragraphs=True, balance_fences=False``) and weixin (``greedy_pack_blocks``).
+# paragraph-preferring adapters (``prefer_paragraphs=True, balance_fences=False``).
 
 
 def text_has_unclosed_fence(text: str) -> bool:
@@ -545,36 +492,11 @@ def fence_state_after(text: str, in_code: bool = False, lang: str = "") -> "tupl
     return in_code, lang
 
 
-def greedy_pack_blocks(blocks, max_length, len_fn=None, sep="\n\n", overflow=None):
-    """Greedily pack *blocks* (joined with *sep*) into chunks of at most *max_length*; an
-    oversized block goes through *overflow(block)* (-> list of chunks) if given, else as-is."""
-    _len = len_fn or len
-    packed: "list[str]" = []
-    current = ""
-    for block in blocks:
-        candidate = block if not current else f"{current}{sep}{block}"
-        if _len(candidate) <= max_length:
-            current = candidate
-            continue
-        if current:
-            packed.append(current)
-            current = ""
-        if _len(block) <= max_length:
-            current = block
-        elif overflow is not None:
-            packed.extend(overflow(block))
-        else:
-            packed.append(block)
-    if current:
-        packed.append(current)
-    return packed
-
-
 def split_text_fence_aware(text, limit, len_fn=None, *, prefer_paragraphs=True,
                            balance_fences=False):
     """Split markdown into chunks of at most *limit*, respecting fences.
 
-    ``prefer_paragraphs=True`` (yuanbao-derived): atoms (fences, tables, paragraphs) are
+    ``prefer_paragraphs=True``: atoms (fences, tables, paragraphs) are
     greedily merged, oversized non-atomic chunks split at paragraph boundaries, small
     neighbours re-merged; a single atom larger than *limit* is emitted oversize, not broken.
     ``prefer_paragraphs=False`` (stream_consumer-derived): newline-preferred hard splitting
@@ -591,7 +513,7 @@ def split_text_fence_aware(text, limit, len_fn=None, *, prefer_paragraphs=True,
 
 
 def _chunk_markdown_paragraphs(text, max_chars, len_fn=None):
-    """Yuanbao-derived paragraph/atom chunking pipeline (see module docs)."""
+    """Paragraph/atom chunking pipeline (see module docs)."""
     _len = len_fn or len
     if _len(text) <= max_chars:
         return [text]

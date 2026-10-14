@@ -4488,7 +4488,7 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
                 self._app.router.add_route(method, path, handler)
                 self._app.router.add_route(method, f"/p/{{profile}}{path}", handler)
             # Registered LAST so every native mirror above wins: anything else under /p/<profile>/ is a
-            # secondary profile's inbound-port platform (Twilio, LINE, Teams, ...) served on this listener.
+            # secondary profile's inbound-port platform (LINE, Teams, ...) served on this listener.
             self._app.router.add_route("*", "/p/{profile}/{tail:.*}", self._handle_profile_ingress)
             # After native routes: Relay bootstrap shims feature-detect on this key and must
             # no-op rather than shadow the native session-control handlers.

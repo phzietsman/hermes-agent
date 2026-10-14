@@ -575,15 +575,15 @@ class TestDeleteProfile:
         scope = str(tmp_path / ".hermes" / "sessions")
         db = SessionDB(tmp_path / ".hermes" / "state.db")
         db.save_gateway_routing_entry(
-            "agent:gone:feishu:dm:chatA",
-            json.dumps({"session_key": "agent:gone:feishu:dm:chatA",
-                        "origin": {"platform": "feishu", "chat_id": "chatA",
+            "agent:gone:telegram:dm:chatA",
+            json.dumps({"session_key": "agent:gone:telegram:dm:chatA",
+                        "origin": {"platform": "telegram", "chat_id": "chatA",
                                    "profile": "gone"}}),
             scope=scope)
         db.save_gateway_routing_entry(
-            "agent:keepme:feishu:dm:chatB",
-            json.dumps({"session_key": "agent:keepme:feishu:dm:chatB",
-                        "origin": {"platform": "feishu", "chat_id": "chatB",
+            "agent:keepme:telegram:dm:chatB",
+            json.dumps({"session_key": "agent:keepme:telegram:dm:chatB",
+                        "origin": {"platform": "telegram", "chat_id": "chatB",
                                    "profile": "keepme"}}),
             scope=scope)
         db.register_backend_heartbeat(
@@ -600,7 +600,7 @@ class TestDeleteProfile:
         check = SessionDB(tmp_path / ".hermes" / "state.db")
         try:
             assert set(check.load_gateway_routing_entries(scope=scope)) == {
-                "agent:keepme:feishu:dm:chatB"}
+                "agent:keepme:telegram:dm:chatB"}
             assert check._read_one(
                 "SELECT COUNT(*) AS n FROM gateway_heartbeats WHERE profile = ?",
                 ("gone",))["n"] == 0
@@ -625,8 +625,8 @@ class TestDeleteProfile:
         scope = str(tmp_path / ".hermes" / "sessions")
         db = SessionDB(tmp_path / ".hermes" / "state.db")
         db.save_gateway_routing_entry(
-            "agent:gone:feishu:dm:chatA",
-            json.dumps({"session_key": "agent:gone:feishu:dm:chatA"}),
+            "agent:gone:telegram:dm:chatA",
+            json.dumps({"session_key": "agent:gone:telegram:dm:chatA"}),
             scope=scope)
         db.close()
 
@@ -648,7 +648,7 @@ class TestDeleteProfile:
         try:
             # The CLI left the identity alone rather than racing the live owner.
             assert set(check.load_gateway_routing_entries(scope=scope)) == {
-                "agent:gone:feishu:dm:chatA"}
+                "agent:gone:telegram:dm:chatA"}
         finally:
             check.close()
 
@@ -1242,14 +1242,14 @@ class TestRenameProfile:
         # Seed a session owned by the old profile in the profile's own store + the root routing index.
         pdb = SessionDB(old_dir / "state.db")
         pdb.create_session(
-            "sess1", "feishu", session_key="agent:oldname:feishu:dm:chatA",
+            "sess1", "telegram", session_key="agent:oldname:telegram:dm:chatA",
             profile_name="oldname", chat_id="chatA", chat_type="dm")
         pdb.close()
         root_db = SessionDB(tmp_path / ".hermes" / "state.db")
         root_db.save_gateway_routing_entry(
-            "agent:oldname:feishu:dm:chatA",
-            json.dumps({"session_key": "agent:oldname:feishu:dm:chatA", "session_id": "sess1",
-                        "origin": {"platform": "feishu", "chat_id": "chatA", "profile": "oldname"}}),
+            "agent:oldname:telegram:dm:chatA",
+            json.dumps({"session_key": "agent:oldname:telegram:dm:chatA", "session_id": "sess1",
+                        "origin": {"platform": "telegram", "chat_id": "chatA", "profile": "oldname"}}),
             scope=str(tmp_path / ".hermes" / "sessions"))
         root_db.close()
 
@@ -1261,14 +1261,14 @@ class TestRenameProfile:
         moved_db = SessionDB(new_dir / "state.db")
         row = moved_db._read_one(
             "SELECT session_key, profile_name FROM sessions WHERE id = ?", ("sess1",))
-        assert row["session_key"] == "agent:newname:feishu:dm:chatA"
+        assert row["session_key"] == "agent:newname:telegram:dm:chatA"
         assert row["profile_name"] == "newname"
         moved_db.close()
         root_db2 = SessionDB(tmp_path / ".hermes" / "state.db")
         routing = root_db2.load_gateway_routing_entries(
             scope=str(tmp_path / ".hermes" / "sessions"))
-        assert "agent:oldname:feishu:dm:chatA" not in routing
-        assert "agent:newname:feishu:dm:chatA" in routing
+        assert "agent:oldname:telegram:dm:chatA" not in routing
+        assert "agent:newname:telegram:dm:chatA" in routing
         root_db2.close()
 
     def test_rename_delegates_identity_migration_to_live_gateway(self, profile_env):
@@ -1304,14 +1304,14 @@ class TestRenameProfile:
         old_dir = tmp_path / ".hermes" / "profiles" / "oldname"
         pdb = SessionDB(old_dir / "state.db")
         pdb.create_session(
-            "sess1", "feishu", session_key="agent:oldname:feishu:dm:chatA",
+            "sess1", "telegram", session_key="agent:oldname:telegram:dm:chatA",
             profile_name="oldname", chat_id="chatA", chat_type="dm")
         pdb.close()
         root_db = SessionDB(tmp_path / ".hermes" / "state.db")
         root_db.save_gateway_routing_entry(
-            "agent:oldname:feishu:dm:chatA",
-            json.dumps({"session_key": "agent:oldname:feishu:dm:chatA", "session_id": "sess1",
-                        "origin": {"platform": "feishu", "chat_id": "chatA", "profile": "oldname"}}),
+            "agent:oldname:telegram:dm:chatA",
+            json.dumps({"session_key": "agent:oldname:telegram:dm:chatA", "session_id": "sess1",
+                        "origin": {"platform": "telegram", "chat_id": "chatA", "profile": "oldname"}}),
             scope=str(tmp_path / ".hermes" / "sessions"))
         root_db.close()
 
@@ -1337,14 +1337,14 @@ class TestRenameProfile:
         row = moved_db._read_one(
             "SELECT session_key, profile_name FROM sessions WHERE id = ?", ("sess1",))
         assert row is not None
-        assert row["session_key"] == "agent:newname:feishu:dm:chatA"
+        assert row["session_key"] == "agent:newname:telegram:dm:chatA"
         assert row["profile_name"] == "newname"
         moved_db.close()
         root_db2 = SessionDB(tmp_path / ".hermes" / "state.db")
         routing = root_db2.load_gateway_routing_entries(
             scope=str(tmp_path / ".hermes" / "sessions"))
-        assert "agent:oldname:feishu:dm:chatA" not in routing
-        assert "agent:newname:feishu:dm:chatA" in routing
+        assert "agent:oldname:telegram:dm:chatA" not in routing
+        assert "agent:newname:telegram:dm:chatA" in routing
         root_db2.close()
 
 

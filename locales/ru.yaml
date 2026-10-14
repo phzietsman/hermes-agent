@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "База данных сеансов недоступна."
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}. Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room. Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Matrix /resume заблокирован: у этого именованного сеанса нет записанной исходной комнаты, поэтому Hermes по умолчанию не возобновит его в текущей комнате. Используйте `/resume --cross-room {name}`, если вы намеренно хотите выйти за границы комнаты."
-    matrix_blocked_other_room: "⚠️ Matrix /resume заблокирован: этот сеанс принадлежит другой комнате Matrix ({room}). Используйте `/resume --cross-room {name}`, если вы намеренно хотите возобновить его здесь."
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**. Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ /resume заблокирован: '**{name}**' принадлежит другому пользователю или чату. Возобновлять можно только сеансы этого чата."
     no_named_sessions: "Именованных сеансов не найдено.\nИспользуйте `/title Мой сеанс`, чтобы назвать текущий сеанс, затем `/resume Мой сеанс`, чтобы вернуться к нему позже."
     all_requires_admin: "_Примечание: `--all` (список по всем чатам) требует настроенного администратора; показаны только сеансы этого чата._"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "Используйте /context all, чтобы увидеть стоимость каждого навыка и набора инструментов."
   status:
     header: "📊 **Состояние Hermes Gateway**"
-    matrix_scope_header: "**Область Matrix:**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**ID сеанса:** `{session_id}`"
     title: "**Название:** {title}"
     created: "**Создано:** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ ответ: {response}"
     cancelled: "↩️ Уточняющий вопрос отменён — ваше сообщение будет обработано как обычное продолжение."
     expired: "⏳ Срок этого запроса истёк — отправьте новый запрос."
-    native_stream_placeholder: "💬 Жду вашего выбора..."
     skip_hint: 'Ответьте «skip», чтобы пропустить этот вопрос.'
   errors:
     rate_limited: "⏱️ Сервис ИИ-модели ограничивает частоту запросов. Подождите немного, затем используйте /retry."
@@ -962,9 +951,6 @@ platform:
     approved: "✅ Одобрено."
     denied: "❌ Отклонено."
     approval_expired: "⌛ Срок одобрения истёк — команда не выполнена (уже сработал тайм-аут или решение принято в другом месте)."
-  yuanbao:
-    slow_response_notice: "Задача довольно объёмная — всё ещё работаю над ней, пожалуйста, подождите..."
-    owner_command_denied: "⚠️ {command} доступна только создателю в режиме личного чата"
   shared:
     truncated_suffix: "\n...(обрезано)"
     unknown: "неизвестно"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ Не удалось доставить вложенное видео."
       file_failed: "⚠️ Не удалось доставить вложенный файл ({name})."
       attachment_failed: "⚠️ Не удалось доставить вложение."
-  weixin:
-    voice_as_attachment: "[голосовое сообщение во вложении]"
-  signal:
-    batch_pacing_notice: "(Ещё изображения на подходе — пауза ~{wait} из-за ограничения частоты Signal, пакет {batch}/{total}.)"
-    wait_seconds: "{count} с"
-    wait_minutes: "{count} мин"
   api_server:
     provider_auth_failed: "Ошибка аутентификации у провайдера"
     provider_rate_limited: "Провайдер ограничил частоту запросов"
@@ -1324,90 +1304,6 @@ platform:
       running: "Выполняю `/{command}`…"
     handoff:
       seed: ":thread: Передача Hermes — *{name}*"
-  matrix:
-    handoff:
-      default_name: "Сеанс Hermes"
-    media:
-      image_download_failed: "Не удалось скачать и загрузить изображение в Matrix. Исходный URL не показан, так как может содержать приватные токены."
-    approval:
-      typed_hint_once: "Ответьте `!approve`, чтобы выполнить один раз, или `!deny`, чтобы отменить."
-      typed_hint_session: "Ответьте `!approve session`, чтобы одобрить этот шаблон на сеанс, `!approve`, чтобы выполнить один раз, или `!deny`, чтобы отменить."
-      typed_hint_always: "Ответьте `!approve session`, чтобы одобрить этот шаблон на сеанс, `!approve always`, чтобы одобрить навсегда, `!approve`, чтобы выполнить один раз, или `!deny`, чтобы отменить."
-      legend_intro: "Также можно одобрить, нажав на реакцию:"
-      legend_once: "✅ = одобрить один раз"
-      legend_session: "🌀 = одобрить на этот сеанс"
-      legend_always: "♾️ = одобрять всегда"
-      legend_deny: "❎ = отклонить"
-      invalid_reaction: "Эта реакция не подходит для данного запроса на одобрение."
-      expired: "Срок этого запроса на одобрение истёк. Выполните команду ещё раз, если всё ещё хотите её одобрить."
-    picker:
-      no_models: "Для этого сеанса нет доступных моделей с авторизацией."
-      title: "⚙ **Настройка модели**"
-      current_model: "Текущая модель: `{model}`"
-      provider: "Провайдер: {provider}"
-      react_model: "Поставьте реакцию, чтобы выбрать модель:"
-      react_choice: "Поставьте реакцию, чтобы выбрать."
-      current_suffix: "{label} ← текущая"
-      invalid_model_reaction: "Эта реакция не соответствует ни одной из доступных моделей."
-      invalid_choice_reaction: "Эта реакция не соответствует ни одному из доступных вариантов."
-      verb_switch_model: "переключить модель"
-      verb_apply_selection: "применить выбор"
-      failed: "Не удалось {action}: {error}"
-    reaction:
-      unauthorized: "Этими элементами управления может пользоваться только авторизованный пользователь Matrix."
-      not_requester: "Этими элементами управления может пользоваться только тот, кто запросил это действие."
-  feishu:
-    approval:
-      action_session: "На сеанс"
-      action_always: "Всегда"
-      resolved_once: "Одобрено однократно"
-      resolved_session: "Одобрено на сеанс"
-      resolved_always: "Одобрено навсегда"
-      resolved_deny: "Отклонено"
-      resolved_fallback: "Решено"
-      resolved_by_user: "{icon} **{label}**: {user}"
-    update_prompt:
-      title: "☤ Обновлению нужен ваш ответ"
-      default_hint: "\n\nПо умолчанию: `{default}`"
-      answer_yes: "✓ Да"
-      answer_no: "✗ Нет"
-      word_yes: "Да"
-      word_no: "Нет"
-      answered_title: "{icon} Ответ на запрос обновления: {answer}"
-      answered_by: "Ответил(а) **{user}**"
-    media:
-      gif_downgraded: "[GIF отправлен как файл]"
-      gif_downgraded_caption: "[GIF отправлен как файл]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "Другое / ввести ответ"
-      header: "Вопрос"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes думает…"
-      interrupted: "(прервано)"
-      no_reply: "(нет ответа)"
-    attachment_fallback:
-      header: "⚠️ Не удалось прикрепить **{filename}**."
-      explain: "Google Chat разрешает прикреплять файлы, только если бот получил ваше явное разрешение (OAuth пользователя). Согласие даётся один раз прямо из этого чата."
-      activate: "**Чтобы включить:** отправьте `/setup-files` и следуйте инструкциям."
-      host_path: "Пока что файл лежит на хосте: `{path}`"
-    setup_files:
-      not_configured: "🔧 Нативная доставка вложений **не настроена**.\n**Шаг 1 (один раз, на хосте):** создайте учётные данные OAuth-клиента на https://console.cloud.google.com/apis/credentials → *Create credentials* → *OAuth client ID* → *Desktop app*. Скачайте JSON. Затем на хосте выполните:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**Шаг 2:** вернитесь сюда и отправьте `/setup-files start`."
-      start_instructions: "1. Откройте этот URL в браузере и авторизуйтесь:\n{auth_url}\n\n2. После нажатия *Allow* браузер не сможет загрузить `http://localhost:1/?...&code=...`. Так и должно быть.\n\n3. Скопируйте весь незагрузившийся URL из адресной строки браузера и отправьте его сюда в виде: `/setup-files <PASTE_URL>` (или только значение `code=...`).\n\nСовет: URL содержит ваш токен доступа — не передавайте его никому."
-      start_failed: "❌ Не удалось сгенерировать OAuth URL. Проверьте логи шлюза и убедитесь, что client_secret.json корректен."
-      exchange_failed: "❌ Не удалось обменять код на токен. Возможно, код истёк или URL повреждён. Отправьте `/setup-files start`, чтобы получить новый OAuth URL."
-      revoke_completed: "Отзыв завершён (некоторые шаги могли быть пропущены)."
-      revoked: "Отозвано."
-      helper_error: "❌ Ошибка: {error}"
-      revoke_error: "❌ Ошибка при отзыве: {error}"
-      who_shared: "общий (устаревший)"
-      active: "✅ Нативная доставка вложений **активна** для `{who}`.\nТокен: `{token_path}`\nОтправьте `/setup-files revoke`, чтобы отключить."
-      not_authorized_yet: "🔧 Учётные данные клиента сохранены, но вы ещё не авторизовались. Отправьте `/setup-files start`, чтобы начать."
-      no_client_credentials: "⚠️ Для этого профиля не сохранены учётные данные клиента. Отправьте `/setup-files` (без аргументов), чтобы получить инструкции по настройке."
-      done_output: "✅ Готово.\n```\n{output}\n```"
-      authorized: "✅ Авторизация выполнена! Нативная доставка вложений теперь активна. Попробуйте попросить меня отправить вам PDF."
-      exchanged_not_loaded: "⚠️ Токен получен, но шлюз не смог загрузить новые учётные данные в память. Перезапустите шлюз — токен из `{token_path}` будет подхвачен.\nВывод хелпера:\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ Разрешено (один раз)"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "Ключевые решения"
       action_items: "Задачи"
       risks: "Риски"
-  line:
-    pending:
-      still_thinking: "🤔 Ещё думаю. Нажмите кнопку ниже, чтобы получить ответ, когда он будет готов."
-      button_label: "Получить ответ"
-      delivered: "Ответ уже отправлен ✅"
-      interrupted: "Выполнение было прервано до завершения."
-      expired: "Этот запрос истёк — отправьте сообщение ещё раз."
-    standalone:
-      attachments_not_deliverable: "[Создано вложений: {count}; из cron доставить нельзя]"
-  wecom:
-    media:
-      kind_image: "Изображение"
-      kind_video: "Видео"
-      kind_voice: "Голосовое сообщение"
-      file_too_large: "Размер файла {size_mb} МБ превышает лимит WeCom в 20 МБ, отправить его нельзя. Попробуйте сжать файл или уменьшить его размер."
-      voice_format_downgraded: "Голосовой формат {content_type} не поддерживается (WeCom принимает только AMR); отправлено как файл."
-      size_downgraded: "{label}: размер {size_mb} МБ превышает лимит {cap}; отправлено как файл."
   email:
     image_line: "Изображение: {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔Думаю"
-      done: "🥳Готово"
-  irc:
-    quit_message: "Hermes Agent завершает работу"
-    standalone_quit: "доставлено"
   relay:
     confirm_approve_once: "Одобрить один раз"
     confirm_always_approve: "Одобрять всегда"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "Передать этот сеанс в мессенджер (Telegram, Discord и т. д.)"
   branch:
-    description: "Ответвить текущий сеанс (новый тред в Discord/Telegram/Slack/Matrix; --here — остаться здесь)"
+    description: "Ответвить текущий сеанс (новый тред в Discord/Telegram/Slack; --here — остаться здесь)"
   worktree:
     description: "Показать, перечислить, создать или удалить изолированные git worktree"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "/voice on включает голосовой режим в CLI. Ctrl+B переключает запись в режиме push-to-talk."
   t155: "Потоковый TTS озвучивает предложения по мере их генерации — не нужно ждать полного ответа."
   t156: "Голосовые сообщения в Telegram, Discord, WhatsApp и Slack расшифровываются автоматически."
-  t157: "Hermes работает на 21 платформе обмена сообщениями: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, IRC, Microsoft Teams, email и другие."
+  t157: "Hermes работает на 21 платформе обмена сообщениями: Telegram, Discord, Slack, WhatsApp, Microsoft Teams, email и другие."
   t158: "hermes gateway install настраивает шлюз как системную службу, запускающуюся при загрузке."
-  t159: "DingTalk использует Stream Mode — вебхуки и публичный URL не нужны."
-  t160: "BlueBubbles подключает iMessage к Hermes через локальный сервер на macOS."
   t161: "Маршруты вебхуков поддерживают проверку HMAC, ограничение частоты запросов и фильтрацию событий."
   t162: "API-сервер предоставляет OpenAI-совместимую конечную точку, работающую с Open WebUI и LibreChat."
   t163: "Режим голосового канала Discord: бот заходит в голосовой канал, расшифровывает речь и отвечает голосом."
@@ -3814,7 +3684,6 @@ tips:
   t328: "tts.providers.<name>.type: command подключает любой CLI-движок TTS через плейсхолдеры {input_path} и {output_path}."
   t329: "API_SERVER_ENABLED=true поднимает рядом со шлюзом OpenAI-совместимый эндпоинт для Open WebUI и LibreChat."
   t330: "GATEWAY_PROXY_URL включает раздельную схему: ввод-вывод платформ локально, работа агента делегируется удалённому API-серверу."
-  t331: "MATRIX_DEVICE_ID закрепляет постоянный ID устройства для E2EE — без него ключи меняются при каждом запуске, и расшифровка истории ломается."
   t332: "TELEGRAM_WEBHOOK_SECRET обязателен, если задан TELEGRAM_WEBHOOK_URL — сгенерируйте его командой openssl rand -hex 32."
   t333: "batch_runner.py --resume сопоставляет выполненные промпты по тексту, поэтому перестановка датасета не перезапускает готовую работу."
   t334: "/new начинает новый сеанс на месте (псевдоним /reset) — новый ID сеанса, чистая история, CLI остаётся открытым."

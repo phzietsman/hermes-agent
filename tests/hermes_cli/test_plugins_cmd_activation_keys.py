@@ -59,16 +59,16 @@ def _lists():
 
 
 def test_disable_bundled_platform_by_manifest_name_gates_the_loader(home):
-    """`hermes plugins disable photon-platform` must produce a key the loader's gate matches; the
-    CLI wrote ``platforms/photon`` while discovery keyed the adapter ``photon-platform``."""
-    plugins_cmd.cmd_disable("photon-platform")
+    """`hermes plugins disable teams-platform` must produce a key the loader's gate matches; the
+    CLI wrote ``platforms/teams`` while discovery keyed the adapter ``teams-platform``."""
+    plugins_cmd.cmd_disable("teams-platform")
 
     enabled, disabled = _lists()
-    photon = next(m for m in collect_directory_manifests() if m.name == "photon-platform")
-    gate = gate_manifest(photon, disabled, enabled)
+    teams = next(m for m in collect_directory_manifests() if m.name == "teams-platform")
+    gate = gate_manifest(teams, disabled, enabled)
     assert gate.action == "placeholder" and gate.error == "disabled via config"
     # And the key the CLI persists IS the loader's key — not merely an alias of it.
-    assert photon.key in disabled
+    assert teams.key in disabled
 
 
 def test_dashboard_toggle_writes_canonical_key_and_clears_stale_aliases(home):

@@ -67,8 +67,8 @@ without spending an attempt. Long form: `website/docs/developer-guide/gateway-in
 
 ## `/login` (off-turn, paired DM only)
 
-`GatewayLoginCommandsMixin` refuses outside a real paired DM (ntfy, raft and a2a report `dm` for
-broadcast surfaces) and binds the WHOLE install's `providers.nous`, so shared gateways must set
+`GatewayLoginCommandsMixin` refuses outside a real paired DM (any platform whose `dm` is a broadcast
+surface does not qualify) and binds the WHOLE install's `providers.nous`, so shared gateways must set
 `allow_admin_from`. It drains `anon_auth.run_sign_in` on its private single-worker `_login_executor`
 (never the shared pool), allows one attempt per process, and on completion evicts agents still on
 `nous/welcome` instead of writing a model override. Long form: `gateway-internals.md` § `/login`.
@@ -133,14 +133,14 @@ gateway under the backend, and do NOT "fix" update locks by widening the tree-ki
   `# launch profile, pre-identity`; a path with an identity reads `identity.runtime_profile`.
 - **Token locks.** An adapter that connects with a unique credential (bot token, API key) calls
   `acquire_scoped_lock()` from `gateway.status` in `connect()`/`start()` and `release_scoped_lock()`
-  in `disconnect()`/`stop()`, so two profiles cannot share one credential. Canonical:
-  `plugins/platforms/irc/adapter.py`.
+  in `disconnect()`/`stop()`, so two profiles cannot share one credential. See
+  `gateway/platforms/base.py` and `gateway/status.py`.
 - **Multiplex profile-scoped env reads MUST fail closed — never borrow from `os.environ`**
   (`agent/secret_scope.py`; #72348, #86905). Under `gateway.multiplex_profiles`, `os.environ` holds
   the DEFAULT profile's values; a secondary profile's `.env` exists only in its secret scope,
   bound per profile *activity* by `_profile_runtime_scope` (turn, callback, eviction, tick — never
   only "per turn"). All profile-level env config — credentials
-  (`app_secret`, tokens) AND authorization (`FEISHU_ALLOWED_USERS`, `{PLATFORM}_ALLOW_ALL_USERS`,
+  (`app_secret`, tokens) AND authorization (`SLACK_ALLOWED_USERS`, `{PLATFORM}_ALLOW_ALL_USERS`,
   `GATEWAY_ALLOW_ALL_USERS`, `group_policy`, `allow_bots`) — is read scope-aware: adapters via
   `gateway.platforms._shared.get_scoped_secret` (the ONE implementation; adapters import it as
   `_get_scoped_secret`; `extra_or_secret` / `seed_extra_from_env` / `env_is_connected` build on it),

@@ -235,7 +235,7 @@ Agent 会代你执行终端命令并显示结果。
 hermes gateway setup    # 交互式平台配置
 ```
 
-接入 [Telegram](../user-guide/messaging/telegram.md)、[Discord](../user-guide/messaging/discord.md)、[Slack](../user-guide/messaging/slack.md)、[WhatsApp](../user-guide/messaging/whatsapp.md)、[Signal](../user-guide/messaging/signal.md)、[Email](../user-guide/messaging/email.md)、[Home Assistant](../user-guide/messaging/homeassistant.md)（插件）或 [Microsoft Teams](../user-guide/messaging/teams.md)。
+接入 [Telegram](../user-guide/messaging/telegram.md)、[Discord](../user-guide/messaging/discord.md)、[Slack](../user-guide/messaging/slack.md)、[WhatsApp](../user-guide/messaging/whatsapp.md)、[Email](../user-guide/messaging/email.md)、（插件）或 [Microsoft Teams](../user-guide/messaging/teams.md)。
 
 ### 自动化与工具
 
@@ -344,7 +344,7 @@ hermes acp
 
 - **[CLI 指南](../user-guide/cli.md)** — 掌握终端界面
 - **[配置](../user-guide/configuration.md)** — 自定义你的配置
-- **[消息 Gateway](../user-guide/messaging/index.md)** — 接入 Telegram、Discord、Slack、WhatsApp、Signal、Email、Home Assistant、Teams 等
+- **[消息 Gateway](../user-guide/messaging/index.md)** — 接入 Telegram、Discord、Slack、WhatsApp、Email、Teams 等
 - **[工具与工具集](../user-guide/features/tools.md)** — 探索可用功能
 - **[AI Providers](../integrations/providers.md)** — 完整 provider 列表及配置详情
 - **[Skills 系统](../user-guide/features/skills.md)** — 可复用的工作流与知识

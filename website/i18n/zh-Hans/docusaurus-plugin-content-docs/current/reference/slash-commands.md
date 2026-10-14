@@ -15,16 +15,13 @@ Hermes 有两个斜杠命令入口，均由 `hermes_cli/commands.py` 中的中�
 
 ## 权限与管理员/用户分级
 
-每个支持按用户白名单的消息平台（Telegram、Discord、Slack、Matrix、Mattermost、Signal 等）都支持两级斜杠命令分级：**管理员**可使用所有已注册命令，**普通用户**只能使用你在 `user_allowed_commands` 中列出的命令（以及始终允许的 `/help` 和 `/whoami`）。在 `~/.hermes/gateway-config.yaml` 中对应平台的 `extra:` 块内配置 `allow_admin_from` 和 `user_allowed_commands`（以及群组等效项 `group_allow_admin_from` / `group_user_allowed_commands`）。
+每个支持按用户白名单的消息平台（Telegram、Discord、Slack 等）都支持两级斜杠命令分级：**管理员**可使用所有已注册命令，**普通用户**只能使用你在 `user_allowed_commands` 中列出的命令（以及始终允许的 `/help` 和 `/whoami`）。在 `~/.hermes/gateway-config.yaml` 中对应平台的 `extra:` 块内配置 `allow_admin_from` 和 `user_allowed_commands`（以及群组等效项 `group_allow_admin_from` / `group_user_allowed_commands`）。
 
 各平台文档中有示例——结构在各平台间完全一致：
 
 - [Telegram](../user-guide/messaging/telegram.md#slash-command-access-control)
 - [Discord](../user-guide/messaging/discord.md)
 - [Slack](../user-guide/messaging/slack.md)
-- [Matrix](../user-guide/messaging/matrix.md)
-- [Mattermost](../user-guide/messaging/mattermost.md)
-- [Signal](../user-guide/messaging/signal.md)
 
 如果某个作用域未设置 `allow_admin_from`，该作用域将保持不受限的向后兼容模式——所有允许的用户均可运行所有命令。
 
@@ -59,7 +56,7 @@ Hermes 有两个斜杠命令入口，均由 `hermes_cli/commands.py` 中的中�
 | `/bg <prompt>` | 在独立的后台会话中运行 prompt。agent 独立处理你的 prompt——当前会话保持空闲可继续其他工作。任务完成后结果以面板形式显示。见 [CLI 后台会话](../user-guide/cli.md#background-sessions)。 |
 | `/btw <question>` | 在不打断当前工作的情况下，就**当前对话**提出一个快速的顺带问题。由一次一次性辅助 LLM 调用根据对话快照作答——实时会话的历史和提示缓存不受影响，当前回合继续运行。需要全新上下文的独立任务请使用 `/bg`。 |
 | `/branch [name]`（别名：`/fork`） | 分支当前会话（探索不同路径） |
-| `/handoff <platform>` | **仅限 CLI。** 将当前会话移交给消息平台（Telegram、Discord、Slack、WhatsApp、Signal、Matrix）。gateway 立即接管，在支持线程的平台上创建新线程（Telegram 话题、Discord 文字频道线程、Slack 和 Matrix 消息锚定线程），将目标重新绑定到你的 CLI session_id 以重放完整的角色感知转录，并伪造一条合成用户轮次让 agent 确认已在新位置工作。成功后 CLI 干净退出并提示 `/resume`；随时可用 `/resume <title>` 在本地恢复。轮次进行中拒绝执行。需要 gateway 正在运行且目标平台已配置 home 频道（从目标聊天中执行 `/sethome`）。见 [跨平台移交](../user-guide/sessions.md#cross-platform-handoff)。 |
+| `/handoff <platform>` | **仅限 CLI。** 将当前会话移交给消息平台（Telegram、Discord、Slack、WhatsApp）。gateway 立即接管，在支持线程的平台上创建新线程（Telegram 话题、Discord 文字频道线程、Slack 消息锚定线程），将目标重新绑定到你的 CLI session_id 以重放完整的角色感知转录，并伪造一条合成用户轮次让 agent 确认已在新位置工作。成功后 CLI 干净退出并提示 `/resume`；随时可用 `/resume <title>` 在本地恢复。轮次进行中拒绝执行。需要 gateway 正在运行且目标平台已配置 home 频道（从目标聊天中执行 `/sethome`）。见 [跨平台移交](../user-guide/sessions.md#cross-platform-handoff)。 |
 
 ### 配置
 
@@ -195,7 +192,7 @@ hermes config set model.aliases.grok x-ai/grok-4
 
 ## 消息平台斜杠命令
 
-消息 gateway 在 Telegram、Discord、Slack、WhatsApp、Signal、Email、Home Assistant 和 Teams 聊天中支持以下内置命令：
+消息 gateway 在 Telegram、Discord、Slack、WhatsApp、Email 和 Teams 聊天中支持以下内置命令：
 
 | 命令 | 描述 |
 |---------|-------------|

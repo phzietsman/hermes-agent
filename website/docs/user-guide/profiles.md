@@ -150,17 +150,16 @@ before they bite.
 
 - every key an adapter declares (tokens, app/client ids, allowlists, allow-all switches, home
   channels) and every key under its `<PLATFORM>_` prefix, including historical aliases
-  (`WECOM_*`, `SMS_*`/`TWILIO_*`, `QQ_*`, `HASS_*`, `EMAIL_*`);
+  (`EMAIL_*`);
 - gateway-wide channel policy `GATEWAY_ALLOW_ALL_USERS` / `GATEWAY_ALLOWED_USERS` and the
   relay enrollment identity `GATEWAY_RELAY_ID` / `GATEWAY_RELAY_SECRET` / `GATEWAY_RELAY_DELIVERY_KEY`;
 - for `--clone-all`, per-bot state files **and directories** (`platforms/`, pairing ledgers,
-  `google_chat_user_tokens/`, `<platform>_*`).
+  `<platform>_*`).
 
-Credentials that a messaging adapter shares with a non-channel capability — `HASS_TOKEN`/`HASS_URL`
-(also the Home Assistant plugin's tools; plugin adapters declare these as `shared_env_prefixes`), `TWILIO_*` (also the telephony skill), `EMAIL_*` (also
+Credentials that a messaging adapter shares with a non-channel capability — `EMAIL_*` (also
 mail-sending scripts) — are stripped **only when the source's gateway would run that adapter**
 (the platform is enabled in its `config.yaml`, or its credential set is complete and not
-explicitly disabled). A source with `platforms.homeassistant.enabled: false` uses `HASS_TOKEN`
+explicitly disabled). A source with `platforms.email.enabled: false` uses `EMAIL_*`
 as a tool key, so the clone keeps it. Allowlists and ports under those prefixes are always
 channel-only and always stripped.
 
@@ -274,7 +273,7 @@ nano ~/.hermes/profiles/assistant/.env
 
 ### Safety: token locks
 
-If two profiles accidentally use the same bot token, the second gateway will be blocked with a clear error naming the conflicting profile. Supported for Telegram, Discord, Slack, WhatsApp, and Signal.
+If two profiles accidentally use the same bot token, the second gateway will be blocked with a clear error naming the conflicting profile. Supported for Telegram, Discord, Slack, WhatsApp.
 
 ### Persistent services
 

@@ -223,22 +223,10 @@ class Platform(Enum):
     WHATSAPP = "whatsapp"
     WHATSAPP_CLOUD = "whatsapp_cloud"
     SLACK = "slack"
-    SIGNAL = "signal"
-    MATTERMOST = "mattermost"
-    MATRIX = "matrix"
     EMAIL = "email"
-    SMS = "sms"
-    DINGTALK = "dingtalk"
     API_SERVER = "api_server"
     WEBHOOK = "webhook"
     MSGRAPH_WEBHOOK = "msgraph_webhook"
-    FEISHU = "feishu"
-    WECOM = "wecom"
-    WECOM_CALLBACK = "wecom_callback"
-    WEIXIN = "weixin"
-    BLUEBUBBLES = "bluebubbles"
-    QQBOT = "qqbot"
-    YUANBAO = "yuanbao"
     RELAY = "relay"  # generic relay adapter fronted by the connector (EXPERIMENTAL)
 
     @classmethod
@@ -305,11 +293,8 @@ _BUILTIN_PLATFORM_VALUES = frozenset(m.value for m in Platform.__members__.value
 # profile's port-binder is built in shared-listener mode and served at /p/<profile>/<path> on the
 # default's listener (gateway/platforms/shared_ingress.py); api_server/webhook are mirrored there.
 PORT_BINDING_PLATFORM_VALUES = frozenset({
-    "webhook", "api_server", "msgraph_webhook", "feishu", "wecom_callback",
-    "bluebubbles", "sms", "whatsapp_cloud", "line", "teams",
+    "webhook", "api_server", "msgraph_webhook", "whatsapp_cloud", "teams",
 })
-# Platforms that only bind in one connection mode (Feishu's default websocket mode is outbound).
-PORT_BINDING_CONDITIONAL_MODES: dict[str, str] = {"feishu": "webhook"}
 # Port-binders whose /p/<profile>/ surface is a MIRROR served by the default's own adapter; a secondary
 # never gets an instance of these (api_server: /p/<profile>/v1/..., webhook: profile-bound routes).
 SHARED_LISTENER_MIRROR_PLATFORMS = frozenset({"api_server", "webhook"})
@@ -317,12 +302,9 @@ SHARED_LISTENER_MIRROR_PLATFORMS = frozenset({"api_server", "webhook"})
 SHARED_LISTENER_MIRROR_PATHS: dict[str, str] = {"api_server": "/v1", "webhook": "/webhooks/<route>"}
 
 
-def platform_binds_port(platform_value: str, extra: Optional[dict] = None) -> bool:
-    """True when *platform_value* actually binds a port for *extra* config."""
-    if platform_value not in PORT_BINDING_PLATFORM_VALUES:
-        return False
-    expected_mode = PORT_BINDING_CONDITIONAL_MODES.get(platform_value)
-    return expected_mode is None or str((extra or {}).get("connection_mode", "websocket")).strip().lower() == expected_mode
+def platform_binds_port(platform_value: str) -> bool:
+    """True when *platform_value* binds a host TCP port."""
+    return platform_value in PORT_BINDING_PLATFORM_VALUES
 
 _DISCORD_CHANNEL_LINK_RE = re.compile(
     r"https://(?:(?:ptb|canary)\.)?discord(?:app)?\.com/channels/(?:[0-9]+|@me)/([0-9]+)/?")
@@ -399,9 +381,6 @@ PLATFORM_TOKEN_ENV_NAMES: dict["Platform", str] = {
     Platform.TELEGRAM: "TELEGRAM_BOT_TOKEN",
     Platform.DISCORD: "DISCORD_BOT_TOKEN",
     Platform.SLACK: "SLACK_BOT_TOKEN",
-    Platform.MATTERMOST: "MATTERMOST_TOKEN",
-    Platform.MATRIX: "MATRIX_ACCESS_TOKEN",
-    Platform.WEIXIN: "WEIXIN_TOKEN",
 }
 
 
@@ -415,7 +394,7 @@ class PlatformConfig:
     reply_to_mode: str = "first"  # "off" never threads, "first" only the first chunk, "all" every chunk
     gateway_restart_notification: bool = True  # "♻️ Gateway online/restarted" pings; noise on end-user platforms
     typing_indicator: bool = True  # drives _keep_typing; False where unwanted (Slack setStatus blocks compose)
-    # Working-state text for text-rendering indicators (Slack status, Google Chat marker); None = platform default.
+    # Working-state text for text-rendering indicators (Slack status); None = platform default.
     typing_status_text: Optional[str] = None
     channel_overrides: Dict[str, ChannelOverride] = field(default_factory=dict)
     extra: Dict[str, Any] = field(default_factory=dict)  # Platform-specific settings
@@ -558,17 +537,12 @@ def _needs_extra(*keys: str) -> Callable[[PlatformConfig], bool]:
 
 
 # Built-in "sufficiently configured?" checks; platforms covered by the generic
-# ``token or api_key`` check (Telegram, Discord, Slack, Matrix, ...) need no entry.
+# ``token or api_key`` check (Telegram, Discord, Slack, ...) need no entry.
 _PLATFORM_CONNECTED_CHECKERS: dict[Platform, Callable[[PlatformConfig], bool]] = {
-    Platform.WEIXIN: lambda cfg: bool(cfg.extra.get("account_id") and (cfg.token or cfg.extra.get("token"))),
     Platform.WHATSAPP_CLOUD: _needs_extra("phone_number_id", "access_token"),
-    Platform.SIGNAL: _needs_extra("http_url"),
     Platform.API_SERVER: lambda cfg: _has_usable_api_server_key(cfg.extra.get("key") if cfg else None),
     Platform.WEBHOOK: lambda cfg: True,
     Platform.MSGRAPH_WEBHOOK: lambda cfg: bool(str(cfg.extra.get("client_state") or "").strip()),
-    Platform.BLUEBUBBLES: _needs_extra("server_url", "password"),
-    Platform.QQBOT: _needs_extra("app_id", "client_secret"),
-    Platform.YUANBAO: _needs_extra("app_id", "app_secret"),
     # Relay dials OUT: "connected" once an endpoint URL is configured. EXPERIMENTAL.
     Platform.RELAY: lambda cfg: bool(cfg.extra.get("relay_url") or cfg.extra.get("url")),
 }
@@ -664,9 +638,6 @@ class GatewayConfig:
 
     def _is_platform_connected(self, platform: Platform, config: PlatformConfig) -> bool:
         checker = _PLATFORM_CONNECTED_CHECKERS.get(platform)
-        # Weixin needs token AND account_id, so it must bypass the generic token branch.
-        if platform == Platform.WEIXIN:
-            return checker(config)
         if config.token or config.api_key:
             return True
         if checker is not None:
@@ -682,13 +653,12 @@ class GatewayConfig:
                 # plugin platform is enabled when its credentials are configured (``is_connected``) and its
                 # dependencies are either present (passive ``check_fn``) or installable on demand
                 # (``ensure_deps_fn``, run later by ``create_adapter()`` — never here). Plugins that need to
-                # seed ``PlatformConfig.extra`` from env vars (e.g. Google Chat's project_id /
-                # subscription_name) can supply ``env_enablement_fn`` on their PlatformEntry — called here
+                # seed ``PlatformConfig.extra`` from env vars can supply ``env_enablement_fn`` on their PlatformEntry — called here
                 # BEFORE adapter construction. Enablement gate (#31116): when a plugin registers
                 # ``is_connected`` (the "has the user actually configured credentials for this?" check), we
                 # MUST consult it before flipping ``enabled = True``. Otherwise ``check_fn`` alone — a
                 # passive "is the SDK importable?" probe — silently enables platforms the user never opted
-                # into, and the gateway then tries to connect to Discord / Teams / Google Chat with no token
+                # into, and the gateway then tries to connect to Discord / Teams with no token
                 # and emits noisy retry-forever errors. ``_platform_status`` was already fixed for the same
                 # bug class in commit 7849a3d73; this is the runtime counterpart.
                 from hermes_cli.plugins import discover_plugins
@@ -846,14 +816,6 @@ def load_gateway_config() -> GatewayConfig:
         config_loader.load_yaml_layer(_home, gw_data)
     except Exception as e:
         logger.warning(
-            # DingTalk settings → env vars: migrated to the dingtalk plugin's apply_yaml_config_fn hook
-            # (plugins/platforms/dingtalk/adapter.py). #41112 / #3823.
-            # Mattermost config bridge moved into plugins/platforms/mattermost/
-            # adapter.py::_apply_yaml_config — see #25443 (apply_yaml_config_fn).
-            # Matrix settings → env vars: migrated to the matrix plugin's apply_yaml_config_fn hook
-            # (plugins/platforms/matrix/adapter.py). #41112 / #3823.
-            # Feishu settings → env vars: migrated to the feishu plugin's apply_yaml_config_fn hook
-            # (plugins/platforms/feishu/adapter.py). #41112 / #3823.
             "Failed to process config.yaml — falling back to .env / gateway.json values. "
             "Check %s for syntax errors. Error: %s",
             _home / "config.yaml", e,

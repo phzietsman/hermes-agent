@@ -1,4 +1,4 @@
-"""Transport layer of GatewayStreamConsumer: native frames, drafts, edit/send.
+"""Transport layer of GatewayStreamConsumer: drafts, edit/send.
 
 Mixin methods use only ``self`` state; see gateway/stream_consumer.py for the
 state model and the drain loop that calls into these."""
@@ -42,50 +42,6 @@ class StreamTransportMixin:
             except (TypeError, ValueError):
                 pass
         return await self.adapter.edit_message(**kwargs)
-
-    async def _try_seed_frame(self, fail_log: str, *, exc_info: bool = False) -> bool:
-        """Open a native stream with an empty seed frame (typing indicator before any token) as a
-        bool; a raise logs ``fail_log`` at DEBUG (error formatted in, or the traceback when
-        ``exc_info``) and reads as False."""
-        seed = self.adapter.send_stream_frame(
-            "", chat_id=self.chat_id, reply_to=self._initial_reply_to_id, turn_id=self._turn_id)
-        return await self._try_frame(seed, fail_log, exc_info=exc_info)
-
-    @staticmethod
-    async def _try_frame(coro, fail_log: str, *, exc_info: bool = False) -> bool:
-        """Await a frame send as a bool; a raise logs ``fail_log`` at DEBUG and reads as False."""
-        try:
-            return bool(await coro)
-        except Exception as e:
-            if exc_info:
-                logger.debug(fail_log, exc_info=True)
-            else:
-                logger.debug(fail_log, e)
-            return False
-
-    async def _send_frame(self, text: str, *, finalize: bool):
-        """One native-stream frame; every frame carries the same chat/reply/turn routing."""
-        return await self.adapter.send_stream_frame(
-            text, finalize=finalize, chat_id=self.chat_id, reply_to=self._initial_reply_to_id,
-            turn_id=self._turn_id)
-
-    def _close_native_state(self) -> None:
-        """Mark the native stream closed (next content re-seeds or falls back)."""
-        self._native_stream_opened = False
-        self._native_last_pushed_len = 0
-
-    async def _close_empty_native_bubble(self, fail_log: str) -> None:
-        """Best-effort empty finalize frame to close an open typing bubble, then mark closed."""
-        await self._try_frame(self._send_frame("", finalize=True), fail_log)
-        self._close_native_state()
-        self._reopen_seeded_eagerly = False
-
-    def _degrade_native_to_buffered_send(self) -> None:
-        """Leave native mode; buffer_only so post-boundary output is ONE send() at got_done
-        (mid-stream flushes would create multiple messages on non-editable platforms)."""
-        self._use_native_streaming = False
-        self._close_native_state()
-        self.cfg.buffer_only = True
 
     def _draft_metadata(self) -> dict | None:
         """Draft-frame metadata: same reply_to_message_id as the final send, because the
@@ -148,21 +104,6 @@ class StreamTransportMixin:
                          "falling back to edit", self.chat_id, self.cfg.chat_type)
         return bool(supported)
 
-    def _resolve_native_streaming(self) -> bool:
-        """Native streaming (send_stream_frame for ALL frames): a BasePlatformAdapter with
-        class-level SUPPORTS_NATIVE_STREAMING and a truthy supports_native_streaming probe."""
-        if not (isinstance(self.adapter, _BasePlatformAdapter)
-                and getattr(type(self.adapter), "SUPPORTS_NATIVE_STREAMING", False)):
-            return False
-        probe = getattr(self.adapter, "supports_native_streaming", None)
-        if probe is None:
-            return False
-        try:
-            return bool(probe(chat_type=self.cfg.chat_type or None, metadata=self.metadata))
-        except Exception:
-            logger.debug("supports_native_streaming probe raised", exc_info=True)
-            return False
-
     async def _send_draft_frame(self, text: str) -> bool:
         """Emit one draft frame; any failure permanently disables drafts for this run.
         Drafts have no message_id and clear on the client when the final send lands."""
@@ -199,7 +140,7 @@ class StreamTransportMixin:
         self._use_draft_streaming = False
         return False
 
-    async def _abandon_native_stream(self) -> None:
+    async def _abandon_open_draft(self) -> None:
         """Seal an orphaned draft stream on turn death (stale exit / cancel): else the live
         indicator stays forever and armed interception state leaks into the next turn.
         Never sets delivery flags."""
@@ -313,7 +254,7 @@ class StreamTransportMixin:
     async def _send_or_edit(
         self, text: str, *, finalize: bool = False, is_turn_final: bool = True) -> bool:
         """Send or edit the streaming message; True if delivered.  ``finalize`` marks the
-        last edit.  Transport order: native frame → draft frame → edit existing → first
+        last edit.  Transport order: draft frame → edit existing → first
         send; a transport returns None to fall through to the next."""
         text = self._clean_for_display(text)
         # Stream-is-the-message draft frames must stay prefix-stable: a closing ```
@@ -324,12 +265,6 @@ class StreamTransportMixin:
         # A bare cursor renders as a stray tofu box on some clients.
         visible_stripped = (text.replace(self.cfg.cursor, "") if self.cfg.cursor else text).strip()
         if not visible_stripped:
-            # Native streams MUST still get a finalize frame (placeholder) to close
-            # the thinking bubble, e.g. for a MEDIA-only response.
-            if (finalize and self._use_native_streaming and self._native_stream_opened
-                    and await self._try_frame(self._send_frame("✅", finalize=True),
-                                              "Finalize empty stream failed: %s")):
-                self._mark_final_delivered()
             return True  # cursor-only / whitespace-only update
         # Don't open a new message for 1-2 tokens + cursor (rapid tool-calling): if
         # the cursor-strip edit is then rate-limited, "X ▉" stays forever.
@@ -344,12 +279,8 @@ class StreamTransportMixin:
             # Mid-stream: accumulate more.  Segment-break finalize: dropped (see above).
             return True
 
-        # A failed native/draft transport disables itself and falls through so the
+        # A failed draft transport disables itself and falls through so the
         # accumulated text still reaches the user via edit/send.
-        if self._use_native_streaming:
-            ok = await self._native_push(text, finalize=finalize, is_turn_final=is_turn_final)
-            if ok is not None:
-                return ok
         if self._use_draft_streaming and self._message_id is None:
             ok = await self._draft_push(text, pre_fence_text, finalize=finalize,
                                         is_turn_final=is_turn_final)
@@ -369,61 +300,6 @@ class StreamTransportMixin:
         except Exception as e:
             logger.error("Stream send/edit error: %s", e)
             return False
-
-    async def _native_push(self, text: str, *, finalize: bool, is_turn_final: bool,
-                           ) -> Optional[bool]:
-        """Native streaming: every frame goes through send_stream_frame(); lazy re-seed after
-        a boundary.  None when native was disabled (seed/frame failure) → caller falls through."""
-        if not self._native_stream_opened and text:
-            if not await self._try_seed_frame("Re-seed failed, disabling native streaming: %s"):
-                self._use_native_streaming = False
-                return None
-            self._native_stream_opened = True
-            self._awaiting_reopen_after_boundary = False
-            # Paired with the boundary-finalize INFO: typing-reappear latency.
-            logger.info("[latency] Re-opened native stream after boundary "
-                        "(turn=%s, waited for first delta)", self._turn_id)
-
-        # WeCom renders each finalize as a separate bubble: only the turn-final and
-        # boundaries close the stream, not segment breaks.
-        finalize = finalize and is_turn_final
-        if not finalize and text == self._last_sent_text:
-            return True  # unchanged — skip
-
-        # Mark a finalize frame delivered OPTIMISTICALLY, before the ack wait: WeCom
-        # renders the bytes before the ack, so a gateway join-cancel mid-wait must not
-        # strand final_content_delivered=False and duplicate the send (docs/rca-wecom-
-        # stream-final-ack-timeout-duplicate.md).  A definitive failure rolls it back.
-        if finalize:
-            self._mark_final_delivered(record=text)  # recorded: stale frame can't suppress
-        if await self._try_frame(self._send_frame(text, finalize=finalize),
-                                 "send_stream_frame raised, disabling native streaming: %s"):
-            self._already_sent = True
-            self._last_sent_text = text
-            self._native_last_pushed_len = len(text)
-            if finalize:
-                self._mark_final_delivered()
-            return True
-
-        # Definitive failure: roll back the optimistic mark so the edit/send
-        # fallback delivers exactly once.
-        if finalize:
-            self._final_response_sent = False
-            self._final_content_delivered = False
-            self._delivered_final_text = None
-        # Subsequent frames take the edit/send fallback; the adapter marks the chat
-        # expired so it doesn't retry the dead stream.
-        self._use_native_streaming = False
-        # Best-effort close of an opened bubble (the seed frame has zero length but
-        # still opens it).  DO NOT mark delivered: the frame closes the bubble but
-        # WeCom may not render the content (errcode 6000 race).
-        if self._native_stream_opened:
-            try:
-                await self._send_frame(text, finalize=True)
-                logger.debug("Native fallback: finalized stream (best-effort close)")
-            except Exception as e:
-                logger.debug("Native fallback: failed to finalize stream: %s", e)
-        return None
 
     async def _draft_push(self, text: str, pre_fence_text: str, *, finalize: bool,
                           is_turn_final: bool) -> Optional[bool]:

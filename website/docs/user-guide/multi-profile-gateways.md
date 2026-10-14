@@ -419,8 +419,8 @@ no API server is enabled); it serves three kinds of profile-prefixed paths:
   `API_SERVER_KEY` or `WEBHOOK_ENABLED` in the secondary's `.env` wires the
   credential without starting a listener).
 - **Every other inbound-port platform runs in shared-listener mode.** A
-  secondary that configures Twilio SMS, LINE, Teams, BlueBubbles, Microsoft
-  Graph, WhatsApp Cloud, WeCom callback or Feishu webhook mode gets its **own**
+  secondary that configures LINE, Teams, Microsoft
+  Graph or WhatsApp Cloud gets its **own**
   adapter instance built without a port; the default listener forwards
   `/p/<profile>/<the adapter's usual path>` to it. See
   [Inbound-port platforms under the multiplexer](#inbound-port-platforms-under-the-multiplexer).
@@ -473,27 +473,22 @@ silently dropping the unsafe profile.
 
 #### Inbound-port platforms under the multiplexer
 
-A standalone `hermes -p coder gateway run` binds coder's Twilio, LINE, Teams,
+A standalone `hermes -p coder gateway run` binds coder's LINE, Teams,
 … webhook servers on their own ports. Under the multiplexer those adapters are
 still coder's — same credentials from `profiles/coder/.env`, same
 `config.yaml`, replies sent through coder's channel — but they bind **no port**.
 The default profile's shared listener forwards `/p/coder/<path>` to them, where
 `<path>` is exactly the path the adapter would serve standalone. The request is
-verified by **coder's** adapter with **coder's** secret (Twilio auth token, LINE
-channel secret, Teams app credentials, BlueBubbles password, …) and runs under
+verified by **coder's** adapter with **coder's** secret (LINE
+channel secret, Teams app credentials password, …) and runs under
 coder's runtime scope; the default profile's own `/path` is untouched, and a
 profile that has no adapter for a path gets `404`, never another profile's bot.
 
 | Platform | Secondary profile's callback URL on the shared listener | Verified with the named profile's |
 |---|---|---|
-| Twilio SMS (`sms`) | `https://<host>/p/<profile>/webhooks/twilio` | `TWILIO_AUTH_TOKEN` signature (`SMS_WEBHOOK_URL` must be this URL) |
-| LINE (`line`) | `https://<host>/p/<profile>/line/webhook` (media: `/p/<profile>/line/media/...`) | `LINE_CHANNEL_SECRET` |
 | Microsoft Teams (`teams`) | `https://<host>/p/<profile>/api/messages` | Bot Framework token for `TEAMS_CLIENT_ID` |
-| BlueBubbles (`bluebubbles`) | `http://<host>/p/<profile>/bluebubbles-webhook` (registered with the server automatically) | `BLUEBUBBLES_PASSWORD` |
 | Microsoft Graph (`msgraph_webhook`) | `https://<host>/p/<profile>/msgraph/webhook` | `extra.client_state` |
 | WhatsApp Cloud (`whatsapp_cloud`) | `https://<host>/p/<profile>/whatsapp/webhook` | `WHATSAPP_CLOUD_APP_SECRET` / verify token |
-| WeCom callback (`wecom_callback`) | `https://<host>/p/<profile>/wecom/callback` | the app's callback token / AES key |
-| Feishu webhook mode (`feishu`) | `https://<host>/p/<profile>/feishu/webhook` | `FEISHU_VERIFICATION_TOKEN` / `FEISHU_ENCRYPT_KEY` |
 
 `<host>` is the public hostname (tunnel, reverse proxy) in front of the default
 profile's listener; a custom `webhook_path` in the profile's config moves the
@@ -501,8 +496,8 @@ path after `/p/<profile>` accordingly. The gateway logs the exact URL at
 startup:
 
 ```
-[sms] profile 'coder' is served on the default profile's shared listener:
-http://127.0.0.1:8642/p/coder/webhooks/twilio (point the vendor's callback URL at this path ...)
+[line] profile 'coder' is served on the default profile's shared listener:
+http://127.0.0.1:8642/p/coder/line/webhook (point the vendor's callback URL at this path ...)
 ```
 
 and every status surface repeats it, so you know what to paste into the vendor
@@ -515,7 +510,6 @@ $ hermes -p coder gateway status
 
 Inbound callback URLs on the shared listener:
   line: http://127.0.0.1:8642/p/coder/line/webhook
-  sms: http://127.0.0.1:8642/p/coder/webhooks/twilio
 ```
 
 `hermes gateway status` and `hermes status` on the default profile list the same
@@ -526,13 +520,13 @@ for a served profile — as **connected** with `ingress_url`
 `http://127.0.0.1:8642/p/coder/v1` (respectively `.../p/coder/webhooks/<route>`) —
 since the profile has no adapter of its own for them; it is the default's listener
 answering under the `/p/coder/` prefix. A per-profile
-`SMS_WEBHOOK_PORT`, `LINE_PORT`, `TEAMS_PORT`, … in a secondary's `.env` is
+`LINE_PORT`, `TEAMS_PORT`, … in a secondary's `.env` is
 ignored under the multiplexer (nothing binds); it applies again the moment that
 profile runs its own standalone gateway.
 
 #### 3. Per-credential platforms still need their own token per profile
 
-Polling/connection platforms (Telegram, Discord, Slack, Matrix, Signal, …) work
+Polling/connection platforms (Telegram, Discord, Slack, …) work
 fine multiplexed, but each profile that enables one must supply its **own** bot
 token — the same token cannot be polled by two profiles at once. If two profiles
 configure the same `(platform, token)`, the gateway logs an error naming both
@@ -552,7 +546,7 @@ The **default** profile keeps the historical `agent:main:…` namespace
 byte-for-byte, so existing default-profile sessions are unaffected — no
 migration, no orphaned history. Every gateway path that reads a key back —
 delegation completions after a restart, shutdown notices, a per-user-thread
-`/stop` of a sibling's run, `/undo`, QQ approval buttons — accepts the
+`/stop` of a sibling's run, `/undo` approval buttons — accepts the
 `agent:<profile>:…` shape too, so secondary profiles get the same behaviour
 as the default one. The one profile name that would collide with the default's
 namespace, a profile literally called `main`, is keyed `agent:main~:…` so it
@@ -611,11 +605,11 @@ profile opting into open access never opens a secondary profile's bot, and a
 secondary that opts in only in its own `.env` is honored. The same holds for
 per-bot behaviour written in a profile's `config.yaml` (`require_mention`,
 `mention_patterns`, `allow_bots`, `reactions`, `auto_thread`, `free_response_auto_thread`, `dm_policy`,
-`ignored_channels`, Matrix `session_scope`, …): a secondary profile's YAML never
+`ignored_channels`, …): a secondary profile's YAML never
 lands in the shared process environment, so it cannot become the default
 profile's policy, and the default profile's YAML never governs a secondary
-bot. The `terminal.env_passthrough` allowlist, the Yuanbao auto-designated
-home channel, and the write guards protecting each profile's own `config.yaml`
+bot. The `terminal.env_passthrough` allowlist, the
+auto-designated home channel, and the write guards protecting each profile's own `config.yaml`
 are resolved per profile as well. Kanban, profile-scoped skills/memory/SOUL, and
 model routing all behave per-profile exactly as they do with separate gateways.
 
@@ -637,8 +631,7 @@ key, xAI video, and every memory-provider identity (`MEM0_USER_ID`,
 endpoints travel with their keys — `OPENAI_BASE_URL`, `XAI_BASE_URL`,
 `NOUS_INFERENCE_BASE_URL`, `GATEWAY_PROXY_URL`, Firecrawl / Browserbase /
 RetainDB / Supermemory / Honcho / Hindsight URLs — so a profile's key is never
-sent to another profile's proxy or self-hosted server. `WEIXIN_HOME_CHANNEL`,
-`HERMES_LANGUAGE` and `display.language`, and `hooks.outbound[].secret_env` are
+sent to another profile's proxy or self-hosted server. `HERMES_LANGUAGE` and `display.language`, and `hooks.outbound[].secret_env` are
 likewise per profile, and end-of-session memory extraction for an evicted
 secondary session runs under that profile's scope.
 
@@ -649,7 +642,7 @@ the media-delivery policy (`gateway.strict`, `media_delivery_allow_dirs`,
 `trust_recent_files*`) and the Nous `auth.json` used for auxiliary calls are all
 read from the profile serving the turn, never from the profile the gateway was
 launched under. The same holds for per-profile state files (`processes.json`,
-`checkpoints/`, sandbox snapshot stores, Feishu comment rules/pairing) and for
+`checkpoints/`, sandbox snapshot stores comment rules/pairing) and for
 gateway hooks: each profile's `hooks/` directory is loaded on its own and fires
 only for that profile's events. Shell hooks run with the routed profile's
 `HERMES_HOME`, without the default profile's secrets in their environment, and
@@ -666,8 +659,8 @@ profile and never shares with the default or any sibling:
 | Authorization (`GATEWAY_ALLOW_ALL_USERS`, `GATEWAY_ALLOWED_USERS`, per-platform allowlists and allow-all opt-ins) | The owning profile's `.env` and `config.yaml` | Closed — a default-profile opt-in never opens a secondary's bot |
 | Slash-command gating (`allow_admin_from`, `user_allowed_commands`, `group_allow_admin_from`; see [Slash commands](../reference/slash-commands.md)) | The profile whose bot received the message — a secondary's own platform `extra` block governs its bots, not the default profile's | Fail closed: a served profile whose config the multiplexer has not loaded is gated with an **empty** admin list and no user-enabled commands, so only the always-allowed floor (`/help`, `/whoami`) runs — never the default profile's open policy |
 | HTTP endpoints (`/p/<profile>/api/...`, `/p/<profile>/webhooks/...`, platform event callbacks) | The named profile's `API_SERVER_KEY`, `profile:`-bound webhook routes, and its own adapter | `401`/`404`; delivery without an adapter is `502`/`503`, never another profile's bot |
-| Inbound-port platforms (`/p/<profile>/webhooks/twilio`, `/p/<profile>/line/webhook`, `/p/<profile>/api/messages`, …) | The named profile's own adapter and its secret (Twilio auth token, LINE channel secret, Teams app, BlueBubbles password, …); replies leave through that adapter | `401`/`403` on a wrong secret, `404` when the profile has no such adapter — never the default profile's adapter |
-| Adapter settings (`*_REQUIRE_MENTION`, `*_REACTIONS`, `*_ALLOW_BOTS`, `*_PROXY`, Discord `allow_mentions`, Matrix `allowed_users` / `ignore_user_patterns`, webhook host/port/URL, Matrix thread/session/E2EE policy, Discord backfill/attachment caps, Buzz reply mode, A2A agent card / public URL, WhatsApp bridge policy, Yuanbao home channel) | The owning profile, in this order: explicit `.env` value → its `config.yaml` → the adapter's default | The adapter's documented default — never the default profile's setting. Single-profile installs keep env-over-YAML exactly as each platform page documents |
+| Inbound-port platforms (`/p/<profile>/line/webhook`, `/p/<profile>/api/messages`, …) | The named profile's own adapter and its secret (LINE channel secret, Teams app password, …); replies leave through that adapter | `401`/`403` on a wrong secret, `404` when the profile has no such adapter — never the default profile's adapter |
+| Adapter settings (`*_REQUIRE_MENTION`, `*_REACTIONS`, `*_ALLOW_BOTS`, `*_PROXY`, Discord `allow_mentions`, webhook host/port/URL, Discord backfill/attachment caps, WhatsApp bridge policy home channel) | The owning profile, in this order: explicit `.env` value → its `config.yaml` → the adapter's default | The adapter's documented default — never the default profile's setting. Single-profile installs keep env-over-YAML exactly as each platform page documents |
 | `MEDIA:` attachment denylist | Every home under `profiles/` plus the default home, enumerated at check time | A turn can never attach another profile's `.env`, `auth.json`, `state.db`, sessions or token stores |
 | stdio MCP child environment | Safe baseline + the profile's scoped values for secret-source names + the server's own `env:` | A name the profile lacks is absent from the child — no default-profile fallthrough |
 | Outbound egress (`send_message`, shutdown/restart/`/update` notices, `/loop` wakeups, `profile:`-bound webhook delivery, `github_comment` tokens) | The profile's own connected adapter and `.env` | Clear failure; never posts through the default profile's bot |
@@ -677,7 +670,7 @@ profile and never shares with the default or any sibling:
 | Working directory of a turn (unset `terminal.cwd`) | Same rule as a standalone gateway: `$HOME` for the local backend, sandbox default otherwise | Never the directory the multiplexer process was launched from |
 | Command approvals (`command_allowlist`, "always" choices) | The profile's own `config.yaml` | A default-profile "always" never pre-approves a secondary's command; a secondary's choice is saved to its own config |
 | Sandbox credential-file mounts (`terminal.credential_files`), `security.redact_secrets`, `browser.*` engine/headed flags, `lsp.*`, auxiliary-provider health marks, `logs/mcp-stderr.log` | The profile's own `config.yaml` / `.env` | Documented default — never the launch profile's cached value |
-| Cloud-SDK credential clients (Bedrock boto3 clients + model discovery, Azure Entra credential), credential-fetched catalogs (DeepInfra, Copilot context limits, Nous reasoning caps, Ramp Router efforts, xAI / OpenRouter image models, custom-endpoint `/models`), Camofox VNC address, computer-use aux-vision routing, remote-backend probe text, learned image token costs, `display.skin`, guest-mint back-off, banner skills, Yuanbao "active" adapter, Langfuse client | The profile's own `.env` / `config.yaml` / `<home>/cache` | Documented default — never the launch profile's cached value or its credentials |
+| Cloud-SDK credential clients (Bedrock boto3 clients + model discovery, Azure Entra credential), credential-fetched catalogs (DeepInfra, Copilot context limits, Nous reasoning caps, Ramp Router efforts, xAI / OpenRouter image models, custom-endpoint `/models`), Camofox VNC address, computer-use aux-vision routing, remote-backend probe text, learned image token costs, `display.skin`, guest-mint back-off, banner skills "active" adapter, Langfuse client | The profile's own `.env` / `config.yaml` / `<home>/cache` | Documented default — never the launch profile's cached value or its credentials |
 | Session-search knobs (`sessions.cjk_fts`, `sessions.search_slow_ms`) | The profile's `config.yaml` | Documented default — never the default profile's bridged value |
 | RoomLink capability catalog and the signed execution policy it advertises to a remote Bot (`approvals.mode`, `agent.max_turns`, `platform_toolsets.api_server`) | The served profile named by the request (`/p/<profile>/v1/room-members/...`, the RPC `profile` param); `target_profile` is **required** on every catalog — there is no `HERMES_PROFILE` fallback | Invitation/capabilities fail with the offending `target_profile` named; a profile that does not exist is refused, never resolved from the launch profile's config |
 | Platform proxies (`TELEGRAM_PROXY`, `DISCORD_PROXY`, `HTTPS_PROXY`, …) | The profile's own `.env` | Direct connection — never the default profile's proxy |
@@ -685,7 +678,7 @@ profile and never shares with the default or any sibling:
 | Settings changed from a Desktop / TUI session (`/busy`, `/verbose`, `/approval`, `/cwd`, theme and display toggles) | The `config.yaml` of the profile that owns the session, even when the RPC carries only the session id | The session's own profile is written; the launch profile's `config.yaml` and its `TERMINAL_CWD` are never touched |
 | MCP connections in the Desktop/dashboard backend and the per-profile cron ticker | Keyed per served profile even with `gateway.multiplex_profiles` off — same rule as the multiplexer | A same-named `mcp_servers` entry with other credentials is its own connection; a served profile never calls a server as another profile |
 | Dashboard actions (`hermes -p <name> …` spawned by the Desktop/dashboard) | A scrubbed child env pinned to that profile's `HERMES_HOME` | The child loads its own `.env`; the dashboard profile's tokens and ports are not inherited |
-| Every child that acts for a served profile (slash worker, Bot Chat delivery, A2A forward, `key_cmd` helper, browser driver) | That profile's own `.env` + secret sources over a credential-scrubbed base — with or without `gateway.multiplex_profiles` (the Desktop/dashboard `?profile=` route counts) | Absent from the child — a key that reached the launch process only through systemd / Compose / the shell is never inherited by another profile's child |
+| Every child that acts for a served profile (slash worker, Bot Chat delivery, `key_cmd` helper, browser driver) | That profile's own `.env` + secret sources over a credential-scrubbed base — with or without `gateway.multiplex_profiles` (the Desktop/dashboard `?profile=` route counts) | Absent from the child — a key that reached the launch process only through systemd / Compose / the shell is never inherited by another profile's child |
 | Authorization gates in a child spawned for another profile (`*_ALLOWED_USERS` / `*_ALLOWED_CHANNELS` / `*_IGNORED_CHANNELS` / `*_ALLOW_ALL_USERS` / `*_ALLOW_BOTS`, `GATEWAY_ALLOW*`) — dashboard `hermes -p <name>` actions, kanban workers, Bot Chat delivery, the post-update per-profile `gateway restart` | The child's own `.env` / `config.yaml`, loaded by the child itself | Closed (the adapter's documented default) — a gate exported into the spawning process by a unit file or the shell is dropped before the child starts, so profile B never enforces profile A's channel or user list; a same-profile child keeps it |
 | Routed-profile detection in an embedding host that mirrors the served profile into the live `HERMES_HOME` env var for legacy readers (Hermes WebUI) | The launch home the host pinned with `hermes_constants.pin_process_hermes_home()`; MCP connection keys, the launch-env strip for a served profile's children, the bridged allow-all seed and the `terminal.*` env-bridge guard all compare against it | Without a pin the live env var is the launch home, exactly as before — a host that never mutates `HERMES_HOME` needs nothing |
 | The launch (default) profile's own credentials in a `hermes serve` / dashboard process that also serves another profile | Its `.env` + secret sources over the process env **frozen the moment the first other profile is served**; not re-read afterwards | A credential rotated only in the process env (`systemctl set-environment`, a refreshed `op run` wrapper that did not re-exec) is not picked up until the process restarts — put rotating keys in `.env` or a secret source, or restart after rotating |
@@ -796,7 +789,7 @@ as trustworthy as the adapter that reports it, so treat it as an authorization i
 platforms whose ingress authenticates the sender. Sender ids are also namespaced per tenant
 on some platforms — a Slack user id is workspace-local — so on a gateway serving more than
 one workspace or server, pair `user_id` with the `guild_id` of that scope (Discord guild,
-Slack workspace, Matrix server) rather than relying on the id alone.
+Slack workspace) rather than relying on the id alone.
 
 Omitting `user_id` keeps the route unconstrained by sender for backward compatibility.
 Setting it to `null`, an empty string, or whitespace invalidates that route instead of
@@ -1073,7 +1066,7 @@ and reboots.
 ## Token-conflict safety
 
 Each profile must use unique bot tokens for each platform. If two profiles
-share a Telegram, Discord, Slack, WhatsApp, or Signal token, the second
+share a Telegram, Discord, Slack, WhatsApp token, the second
 gateway refuses to start with an error naming the conflicting profile. Under
 [multiplexing](#alternative-one-gateway-for-all-profiles-multiplexing) the same
 rule parks only the duplicate profile's adapter and the shared gateway keeps

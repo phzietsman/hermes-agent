@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
 title: "Messaging Gateway"
-description: "Chat with Hermes from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Home Assistant, Mattermost, Matrix, DingTalk, Yuanbao, Microsoft Teams, LINE, Raft, Webhooks, or any OpenAI-compatible frontend via the API server — architecture and setup overview"
+description: "Chat with Hermes from Telegram, Discord, Slack, WhatsApp, Email, Microsoft Teams, Webhooks, or any OpenAI-compatible frontend via the API server — architecture and setup overview"
 ---
 
 # Messaging Gateway
 
-Chat with Hermes from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Home Assistant, Mattermost, Matrix, DingTalk, Feishu/Lark, WeCom, Weixin, BlueBubbles (iMessage), QQ, Yuanbao, Microsoft Teams, LINE, ntfy, or your browser. The gateway is a single background process that connects to all your configured platforms, handles sessions, runs cron jobs, and delivers voice messages.
+Chat with Hermes from Telegram, Discord, Slack, WhatsApp, Email, Microsoft Teams, or your browser. The gateway is a single background process that connects to all your configured platforms, handles sessions, runs cron jobs, and delivers voice messages.
 
 For the full voice feature set — including CLI microphone mode, spoken replies in messaging, and Discord voice-channel conversations — see [Voice Mode](../features/voice-mode.md) and [Use Voice Mode with Hermes](../../guides/use-voice-mode-with-hermes.md).
 
@@ -35,31 +35,10 @@ connected. An enabled platform can correctly show **Messaging gateway stopped**.
 | Telegram | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | Discord | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Slack | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Google Chat | — | ✅ | ✅ | ✅ | — | ✅ | — |
 | WhatsApp | — | ✅ | ✅ | — | — | ✅ | ✅ |
 | WhatsApp Cloud API | ✅ | ✅ | ✅ | — | — | ✅ | — |
-| Signal | — | ✅ | ✅ | — | — | ✅ | — |
-| SMS | — | — | — | — | — | — | — |
 | Email | — | ✅ | ✅ | ✅ | — | — | — |
-| Home Assistant (plugin) | — | — | — | — | — | — | — |
-| Mattermost | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-| Matrix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| DingTalk | — | ✅ | ✅ | — | ✅ | — | ✅ |
-| Feishu/Lark | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| WeCom | ✅ | ✅ | ✅ | — | — | — | — |
-| WeCom Callback | — | — | — | — | — | — | — |
-| Weixin | ✅ | ✅ | ✅ | — | — | ✅ | — |
-| BlueBubbles | — | ✅ | ✅ | — | ✅ | ✅ | — |
-| Photon (iMessage) | ✅ | ✅ | ✅ | — | ✅ | ✅ | — |
-| QQ | ✅ | ✅ | ✅ | — | — | ✅ | — |
-| Yuanbao | ✅ | ✅ | ✅ | — | — | ✅ | ✅ |
 | Microsoft Teams | — | ✅ | — | ✅ | — | ✅ | — |
-| LINE | — | ✅ | ✅ | — | — | ✅ | — |
-| ntfy | — | — | — | — | — | — | — |
-| Raft | — | — | — | — | — | — | — |
-| IRC | — | — | — | — | — | — | — |
-| Buzz | — | ✅ | — | ✅ | — | — | — |
-| SimpleX | ✅ | ✅ | ✅ | — | — | ✅ | — |
 
 **Voice** = TTS audio replies and/or voice message transcription. **Images** = send/receive images. **Files** = send/receive file attachments. **Threads** = threaded conversations. **Reactions** = emoji reactions on messages. **Typing** = typing indicator while processing. **Streaming** = progressive message updates via editing.
 
@@ -77,21 +56,7 @@ flowchart TB
             dc[Discord]
             wa[WhatsApp]
             sl[Slack]
-            gc[Google Chat]
-            sig[Signal]
-            sms[SMS]
             em[Email]
-            ha[Home Assistant]
-            mm[Mattermost]
-            mx[Matrix]
-            dt[DingTalk]
-    fs[Feishu/Lark]
-    wc[WeCom]
-    wcb[WeCom Callback]
-    wx[Weixin]
-    bb[BlueBubbles]
-    qq[QQ]
-    yb[Yuanbao]
     ms[Microsoft Teams]
     api["API Server<br/>(OpenAI-compatible)"]
     wh[Webhooks]
@@ -106,21 +71,7 @@ flowchart TB
     dc --> store
     wa --> store
     sl --> store
-    gc --> store
-    sig --> store
-    sms --> store
     em --> store
-    ha --> store
-    mm --> store
-    mx --> store
-    dt --> store
-    fs --> store
-    wc --> store
-    wcb --> store
-    wx --> store
-    bb --> store
-    qq --> store
-    yb --> store
     ms --> store
     api --> store
     wh --> store
@@ -355,15 +306,7 @@ Details:
 # Restrict to specific users (recommended):
 TELEGRAM_ALLOWED_USERS=123456789,987654321
 DISCORD_ALLOWED_USERS=123456789012345678
-SIGNAL_ALLOWED_USERS=+155****4567,+155****6543
-SMS_ALLOWED_USERS=+155****4567,+155****6543
 EMAIL_ALLOWED_USERS=trusted@example.com,colleague@work.com
-MATTERMOST_ALLOWED_USERS=3uo8dkh1p7g1mfk49ear5fzs5c
-MATRIX_ALLOWED_USERS=@alice:matrix.org
-DINGTALK_ALLOWED_USERS=user-id-1
-FEISHU_ALLOWED_USERS=ou_xxxxxxxx,ou_yyyyyyyy
-WECOM_ALLOWED_USERS=user-id-1,user-id-2
-WECOM_CALLBACK_ALLOWED_USERS=user-id-1,user-id-2
 TEAMS_ALLOWED_USERS=aad-object-id-1,aad-object-id-2
 
 # Or allow
@@ -679,7 +622,7 @@ The plist sets `RunAtLoad`, so loading it starts the gateway. `hermes gateway in
 :::
 
 :::info Local Network access (LAN devices fail with "No route to host")
-macOS Local Network Privacy attributes a socket to the executable launchd spawned for the job. A bare venv Python has no application identity, so a launchd-run gateway could not reach LAN hosts (Home Assistant, local model servers) — every connect failed with `errno 65 No route to host` while the same URL worked from Terminal, and no prompt was ever shown to grant it. The generated plist therefore runs the gateway through `/usr/bin/osascript`; a JXA `system()` call starts the gateway without an interactive event-polling loop, and macOS treats its children as osascript's own — an Apple platform binary, exempt from the check. `ps` shows `osascript → stderr_timestamp → gateway run`; stop/restart/KeepAlive behave exactly as before. A plist installed by an older Hermes is refreshed by `hermes gateway install` (or on the next `hermes gateway start`).
+macOS Local Network Privacy attributes a socket to the executable launchd spawned for the job. A bare venv Python has no application identity, so a launchd-run gateway could not reach LAN hosts (local model servers) — every connect failed with `errno 65 No route to host` while the same URL worked from Terminal, and no prompt was ever shown to grant it. The generated plist therefore runs the gateway through `/usr/bin/osascript`; a JXA `system()` call starts the gateway without an interactive event-polling loop, and macOS treats its children as osascript's own — an Apple platform binary, exempt from the check. `ps` shows `osascript → stderr_timestamp → gateway run`; stop/restart/KeepAlive behave exactly as before. A plist installed by an older Hermes is refreshed by `hermes gateway install` (or on the next `hermes gateway start`).
 :::
 
 :::tip Picking up new credentials after `hermes auth add` / `hermes auth reset`
@@ -729,25 +672,10 @@ Each platform has its own toolset:
 | WhatsApp | `hermes-whatsapp` | Full tools including terminal |
 | WhatsApp Cloud API | `hermes-whatsapp` | Full tools including terminal (shares toolset with the Baileys bridge) |
 | Slack | `hermes-slack` | Full tools including terminal |
-| Google Chat | `hermes-google_chat` | Full tools including terminal |
-| Signal | `hermes-signal` | Full tools including terminal |
-| SMS | `hermes-sms` | Full tools including terminal |
 | Email | `hermes-email` | Full tools including terminal |
-| Home Assistant (plugin) | `hermes-homeassistant` | Full tools + HA device control (ha_list_entities, ha_get_state, ha_call_service, ha_list_services) from the `homeassistant` catalog plugin |
-| Mattermost | `hermes-mattermost` | Full tools including terminal |
-| Matrix | `hermes-matrix` | Full tools including terminal |
-| DingTalk | `hermes-dingtalk` | Full tools including terminal |
-| Feishu/Lark | `hermes-feishu` | Full tools including terminal |
-| WeCom | `hermes-wecom` | Full tools including terminal |
-| WeCom Callback | `hermes-wecom-callback` | Full tools including terminal |
-| Weixin | `hermes-weixin` | Full tools including terminal |
-| BlueBubbles | `hermes-bluebubbles` | Full tools including terminal |
-| QQBot | `hermes-qqbot` | Full tools including terminal |
-| Yuanbao | `hermes-yuanbao` | Full tools including terminal |
 | Microsoft Teams | `hermes-teams` | Full tools including terminal |
 | API Server | `hermes-api-server` | Full tools (drops `clarify`, `text_to_speech` — programmatic access doesn't have an interactive user) |
 | Webhooks | `hermes-webhook` | Full tools including terminal |
-| Raft | `hermes-raft` | Wake-only channel; agent uses Raft CLI for message I/O |
 
 ## Operating a multi-platform gateway
 
@@ -771,27 +699,26 @@ See also the broader status summary command [`/platforms`](../../reference/slash
 
 `platforms.<name>.enabled: false` in `~/.hermes/config.yaml` is authoritative.
 Credentials for that platform left in the environment (`TELEGRAM_BOT_TOKEN`,
-`WEIXIN_TOKEN`, `HASS_TOKEN`, `EMAIL_*`, `TWILIO_ACCOUNT_SID`, ...) are still
+`EMAIL_*`, ...) are still
 wired into the platform's config so send-only tooling keeps working, but they
 no longer start the adapter:
 
 ```yaml title="~/.hermes/config.yaml"
 platforms:
-  weixin:
-    enabled: false   # wins over WEIXIN_TOKEN in .env
+  telegram:
+    enabled: false   # wins over TELEGRAM_BOT_TOKEN in .env
 ```
 
-Earlier releases let the mere presence of credentials re-enable twelve
-platforms (Weixin, WhatsApp Cloud, Home Assistant, Email, SMS, DingTalk, Feishu,
-WeCom, WeCom callback, BlueBubbles, QQ Bot, Yuanbao) regardless of that key. If
+Earlier releases let the mere presence of credentials re-enable several
+platforms (WhatsApp Cloud, Email) regardless of that key. If
 you relied on that, the gateway now logs one WARNING per affected platform at
 startup so it does not just go dark:
 
 ```
-Platform 'weixin' is explicitly disabled by platforms.weixin.enabled: false in config.yaml,
-so the credentials found in the environment (WEIXIN_TOKEN, WEIXIN_ACCOUNT_ID) will NOT start
+Platform 'telegram' is explicitly disabled by platforms.telegram.enabled: false in config.yaml,
+so the credentials found in the environment (TELEGRAM_BOT_TOKEN) will NOT start
 its adapter. Environment credentials no longer override an explicit disable. Remove the key
-or set platforms.weixin.enabled: true to turn it back on.
+or set platforms.telegram.enabled: true to turn it back on.
 ```
 
 Omitting the `enabled` key entirely keeps the env-only behaviour: credentials
@@ -812,8 +739,7 @@ gateway:
   trust_env: false
 ```
 
-Explicit per-platform proxy variables (`DISCORD_PROXY`, `TELEGRAM_PROXY`,
-`MATRIX_PROXY`, ...) are still honored. Restart the gateway after changing it.
+Explicit per-platform proxy variables (`DISCORD_PROXY`, `TELEGRAM_PROXY`, ...) are still honored. Restart the gateway after changing it.
 
 ### Automatic circuit breaker
 
@@ -850,7 +776,7 @@ Disable it on noisy or low-priority platforms while leaving it on for your prima
 
 ### Typing indicators
 
-While the agent is processing a message, the gateway shows a live typing status on platforms that support it — a "typing…" bubble on Telegram/Discord/Signal, or the "is thinking…" assistant status on Slack. This is controlled per-platform by the `typing_indicator` flag in `config.yaml`, which defaults to `true`:
+While the agent is processing a message, the gateway shows a live typing status on platforms that support it — a "typing…" bubble on Telegram/Discord, or the "is thinking…" assistant status on Slack. This is controlled per-platform by the `typing_indicator` flag in `config.yaml`, which defaults to `true`:
 
 ```yaml
 gateway:
@@ -969,33 +895,11 @@ Defaults to `false`. Only platforms whose adapter implements `delete_message` ho
 - [Telegram Setup](telegram.md)
 - [Discord Setup](discord.md)
 - [Slack Setup](slack.md)
-- [Google Chat Setup](google_chat.md)
 - [WhatsApp Setup](whatsapp.md)
 - [WhatsApp Business Cloud API Setup](whatsapp-cloud.md)
-- [Signal Setup](signal.md)
-- [SMS Setup (Twilio)](sms.md)
 - [Email Setup](email.md)
-- [Home Assistant Integration](homeassistant.md) (plugin catalog)
-- [Mattermost Setup](mattermost.md)
-- [Matrix Setup](matrix.md)
-- [DingTalk Setup](dingtalk.md)
-- [Feishu/Lark Setup](feishu.md)
-- [WeCom Setup](wecom.md)
-- [WeCom Callback Setup](wecom-callback.md)
-- [Weixin Setup (WeChat)](weixin.md)
-- [BlueBubbles Setup (iMessage)](bluebubbles.md)
-- [Photon Setup (iMessage)](photon.md)
-- [QQBot Setup](qqbot.md)
-- [Yuanbao Setup](yuanbao.md)
 - [Microsoft Teams Setup](teams.md)
 - [Teams Meetings Pipeline](teams-meetings.md)
 - [Microsoft Graph Webhook Listener](msgraph-webhook.md)
-- [LINE Setup](line.md)
-- [ntfy Setup](ntfy.md)
-- [SimpleX Chat Setup](simplex.md)
 - [Open WebUI + API Server](open-webui.md)
-- [Raft Setup](raft.md)
-- [IRC Setup](irc.md)
-- [Buzz Setup](buzz.md)
-- [A2A (Agent-to-Agent) Setup](a2a.md)
 - [Webhooks](webhooks.md)

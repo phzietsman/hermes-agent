@@ -280,7 +280,7 @@ docker run -d \
 - 从摘要固定的 Node 镜像提供的 Node.js 26 和 npm。
 - PM 固定版本的 uv、完整 Chromium、FFmpeg 和 ripgrep，位于 `/opt/hermes/tools`。
 - 系统 Git、OpenSSH、Docker CLI 和 Chromium 所需共享库。
-- 预构建的 TUI/dashboard 和 Photon sidecar 依赖，以及 s6-overlay。
+- 预构建的 TUI/dashboard，以及 s6-overlay。
 
 Chromium 由 PM 准备，不使用 `npx playwright install`。
 实际可执行路径记录在 `/etc/hermes/agent-browser-executable-path`。

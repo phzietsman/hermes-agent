@@ -138,7 +138,7 @@ _NO_TODO_SENTENCE = "- Reference code as `path:line` instead of pasting whole fi
 # Clearly non-coding skill categories (deny-list; coding-adjacent and custom ones keep full entries).
 _NON_CODING_SKILL_CATEGORIES = (
     "apple", "communication", "cooking", "creative", "email", "finance", "gaming", "gifs", "health", "media",
-    "music", "note-taking", "productivity", "shopping", "smart-home", "social-media", "travel", "yuanbao",
+    "music", "note-taking", "productivity", "shopping", "smart-home", "social-media", "travel",
 )
 _MODE_ALIASES = {
     **dict.fromkeys(("focus", "strict", "lean"), "focus"),

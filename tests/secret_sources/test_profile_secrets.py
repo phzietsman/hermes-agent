@@ -65,25 +65,25 @@ PROFILE_HOME = Path("/home/u/.hermes/profiles/milla")
 
 def test_preserve_existing_beats_override():
     report, env = _apply(
-        {"FEISHU_APP_SECRET": "shared", "OPENAI_API_KEY": "fresh"},
-        cfg_extra={"preserve_existing": ["FEISHU_APP_SECRET"]},
-        env={"FEISHU_APP_SECRET": "profile-local", "OPENAI_API_KEY": "stale"},
+        {"TELEGRAM_BOT_TOKEN": "shared", "OPENAI_API_KEY": "fresh"},
+        cfg_extra={"preserve_existing": ["TELEGRAM_BOT_TOKEN"]},
+        env={"TELEGRAM_BOT_TOKEN": "profile-local", "OPENAI_API_KEY": "stale"},
     )
-    assert env["FEISHU_APP_SECRET"] == "profile-local"   # preserved
+    assert env["TELEGRAM_BOT_TOKEN"] == "profile-local"   # preserved
     assert env["OPENAI_API_KEY"] == "fresh"              # override still works
     sr = report.sources[0]
-    assert "FEISHU_APP_SECRET" in sr.skipped_existing
+    assert "TELEGRAM_BOT_TOKEN" in sr.skipped_existing
     assert "OPENAI_API_KEY" in sr.applied
 
 
 def test_preserve_existing_only_guards_set_vars():
     """A preserve-listed var with NO existing value still gets applied."""
     _, env = _apply(
-        {"FEISHU_APP_SECRET": "shared"},
-        cfg_extra={"preserve_existing": ["FEISHU_APP_SECRET"]},
+        {"TELEGRAM_BOT_TOKEN": "shared"},
+        cfg_extra={"preserve_existing": ["TELEGRAM_BOT_TOKEN"]},
         env={},
     )
-    assert env["FEISHU_APP_SECRET"] == "shared"
+    assert env["TELEGRAM_BOT_TOKEN"] == "shared"
 
 
 

@@ -113,7 +113,7 @@ class GatewayAdapterLifecycleMixin:
         PID-file cleanup and the next start dies with "PID file race lost".
 
         Both ``cancel_background_tasks()`` and ``disconnect()`` can block indefinitely when a platform's
-        network state is half-dead (e.g. a wedged Feishu/Lark WebSocket thread waiting on I/O). See #14128.
+        network state is half-dead (e.g. a wedged WebSocket thread waiting on I/O). See #14128.
         """
         timeout = self._adapter_disconnect_timeout_secs()
         suffix = f" (profile: {profile})" if profile else ""
@@ -244,7 +244,6 @@ class GatewayAdapterLifecycleMixin:
             "config": platform_config, "attempts": attempts, "next_retry": now + delay,
             **({"queued_at": now} if queued else {}),
             "credential_claim": self._adapter_credential_claim(platform, adapter),
-            "listener_claim": self._adapter_listener_claim(platform, adapter),
             # The replaced instance: its dedup caches seed each candidate, its held inbound moves on publish.
             "predecessor": adapter,
         }
@@ -1026,18 +1025,16 @@ class GatewayAdapterLifecycleMixin:
 
     def _primary_resource_claims(self, active: str) -> Dict[tuple, str]:
         """Resource claim -> owning profile for every live or queued primary adapter (credential:
-        one account polled once; listener: one bind+port). A queued retryable primary owns both."""
+        one account polled once). A queued retryable primary owns its claim too."""
         claimed: Dict[tuple, str] = {}
         for _plat, _ad in self.adapters.items():
             fp = self._adapter_credential_fingerprint(_ad)
-            for claim in ((_plat, fp) if fp is not None else None, self._adapter_listener_claim(_plat, _ad)):
-                if claim is not None:
-                    claimed[claim] = active
+            if fp is not None:
+                claimed[(_plat, fp)] = active
         for retry_info in getattr(self, "_failed_platforms", {}).values():
-            for claim_name in ("credential_claim", "listener_claim"):
-                retry_claim = retry_info.get(claim_name)
-                if isinstance(retry_claim, tuple):
-                    claimed[retry_claim] = active
+            retry_claim = retry_info.get("credential_claim")
+            if isinstance(retry_claim, tuple):
+                claimed[retry_claim] = active
         return claimed
 
     def _record_served_profiles(self, active: str, profile_homes) -> None:
@@ -1074,9 +1071,6 @@ class GatewayAdapterLifecycleMixin:
         from hermes_cli.env_loader import hydrate_profile_secret_sources
         # Hydrate external secret sources off-loop ONCE: sync hydration would stall every heartbeat.
         await asyncio.to_thread(hydrate_profile_secret_sources, profile_home)
-        # A platform that left core for a catalog plugin is installed before discovery below.
-        from gateway.run_startup import recover_left_core_in
-        await asyncio.to_thread(recover_left_core_in, profile_home, hydrate_secrets=False)
         with _profile_runtime_scope(profile_home, hydrate_secrets=False):
             profile_runtime_cfg = _load_gateway_config()
             from hermes_cli.plugins import discover_plugins, get_plugin_manager
@@ -1160,12 +1154,12 @@ class GatewayAdapterLifecycleMixin:
         return owner_origin, incoming
 
     def _refuse_duplicate_claim(
-        self, claim, claimed: Dict[tuple, str], profile_name: str, platform: Platform, kind: str,
+        self, claim, claimed: Dict[tuple, str], profile_name: str, platform: Platform,
         *, owner_origin: Optional[str] = None, incoming_origin: Optional[str] = None,
     ) -> bool:
-        """Log + park a secondary adapter whose credential/listener another profile owns (True when
-        refused). NOT disconnected: it never connected, and for a same-credential Photon adapter
-        disconnect() would shut down the primary profile's live sidecar."""
+        """Log + park a secondary adapter whose credential another profile owns (True when refused).
+        NOT disconnected: it never connected, so disconnect() could tear down the primary profile's
+        live connection."""
         owner = claimed.get(claim) if claim is not None else None
         if owner is None:
             return False
@@ -1177,24 +1171,15 @@ class GatewayAdapterLifecycleMixin:
         def _who(name: str, origin: Optional[str]) -> str:
             return f"{name} ({origin})" if env_derived and origin else name
         head = f"Profile '{_who(owner, owner_origin)}' and '{_who(profile_name, incoming_origin)}' both configure {pv} "
-        if kind == "credential":
-            message = head + f"with the same credential. Give each profile its own {pv} credential."
-            logger.error(
-                "Profile '%s' and '%s' both configure %s with the same credential — refusing to start the "
-                "duplicate (one credential cannot be consumed twice). Give each profile its own %s credential.",
-                _who(owner, owner_origin), _who(profile_name, incoming_origin), pv, pv,
-            )
-        else:
-            bind, port = claim[-2:]
-            message = head + f"sidecars on the same listener. Configure a distinct listener for profile '{profile_name}'."
-            logger.error(
-                "Profile '%s' and '%s' both configure %s sidecars on %s:%s — refusing to start the duplicate "
-                "listener. Set platforms.%s.extra.sidecar_port to a distinct port for profile '%s'.",
-                owner, profile_name, pv, bind, port, pv, profile_name,
-            )
+        message = head + f"with the same credential. Give each profile its own {pv} credential."
+        logger.error(
+            "Profile '%s' and '%s' both configure %s with the same credential — refusing to start the "
+            "duplicate (one credential cannot be consumed twice). Give each profile its own %s credential.",
+            _who(owner, owner_origin), _who(profile_name, incoming_origin), pv, pv,
+        )
         self._update_platform_runtime_status(
             f"{profile_name}:{platform.value}", platform_state="fatal",
-            error_code=f"duplicate_{kind}", error_message=message,
+            error_code="duplicate_credential", error_message=message,
         )
         return True
 
@@ -1306,9 +1291,8 @@ class GatewayAdapterLifecycleMixin:
                     )
             if not adapter:
                 continue
-            # Same-token / same-listener conflict detection — refuse a duplicate poll or bind.
+            # Same-token conflict detection — refuse a duplicate poll.
             credential_claim = self._adapter_credential_claim(platform, adapter)
-            listener_claim = self._adapter_listener_claim(platform, adapter)
             owner_name = claimed.get(credential_claim) if credential_claim is not None else None
             owner_origin, incoming_origin = (None, None)
             if owner_name:
@@ -1316,9 +1300,9 @@ class GatewayAdapterLifecycleMixin:
                     owner_name, profile_name, profile_home, platform, adapter,
                 )
             if self._refuse_duplicate_claim(
-                credential_claim, claimed, profile_name, platform, "credential",
+                credential_claim, claimed, profile_name, platform,
                 owner_origin=owner_origin, incoming_origin=incoming_origin,
-            ) or self._refuse_duplicate_claim(listener_claim, claimed, profile_name, platform, "listener"):
+            ):
                 continue
             self._configure_profile_adapter(adapter, profile_name, platform)
             try:
@@ -1337,9 +1321,8 @@ class GatewayAdapterLifecycleMixin:
             # Restore persisted /voice state for this bot (primary startup and reconnects do too).
             # See #84872.
             self._sync_voice_mode_state_to_adapter(adapter)
-            for claim in (credential_claim, listener_claim):
-                if claim is not None:
-                    claimed[claim] = profile_name
+            if credential_claim is not None:
+                claimed[credential_claim] = profile_name
             connected += 1
             logger.info("✓ %s connected (profile: %s)", platform.value, profile_name)
         return connected
@@ -1410,7 +1393,7 @@ class GatewayAdapterLifecycleMixin:
         # A secondary's port-binding adapter never binds: the default profile owns the one shared
         # listener, which forwards /p/<profile>/<path> to this adapter's app (shared_ingress.py).
         if self._multiplex_on() and platform.value not in SHARED_LISTENER_MIRROR_PLATFORMS \
-                and _platform_binds_port(platform.value, getattr(getattr(adapter, "config", None), "extra", None)):
+                and _platform_binds_port(platform.value):
             adapter._shared_listener_profile = profile_name
 
     async def _secondary_reconnect_attempt(self, profile_name: str, platform: Platform, predecessor=None):
@@ -1843,19 +1826,6 @@ class GatewayAdapterLifecycleMixin:
         return None if fingerprint is None else (platform, fingerprint)
 
     @staticmethod
-    def _adapter_listener_claim(platform: Platform, adapter: Any) -> Optional[tuple]:
-        """Exclusive listener claim (Photon sidecar bind+port): distinct credentials still cannot
-        share a port, so the later adapter is rejected before connect() disturbs the first."""
-        bind = getattr(adapter, "_sidecar_bind", None)
-        if getattr(platform, "value", None) != "photon" or not isinstance(bind, str) or not bind.strip():
-            return None
-        try:
-            port = int(getattr(adapter, "_sidecar_port", None))
-        except (TypeError, ValueError):
-            return None
-        return ("listener", "photon", bind.strip().lower(), port)
-
-    @staticmethod
     def _adapter_credential_fingerprint(adapter: Any) -> Optional[str]:
         """Salted, log-safe hash of an adapter's credential; None when none is discoverable
         (conflict detection is then skipped)."""
@@ -1863,9 +1833,8 @@ class GatewayAdapterLifecycleMixin:
         candidates = [
             (adapter, attr) for attr in (
                 "token", "bot_token", "_token", "api_token", "_bot_token",
-                "_project_secret",  # Photon/Spectrum: project credentials, not a bot token
-                "_app_id",  # Feishu/Lark app_id — stable, log-safe, already the _app_lock_identity
-                "_client_id", "_bot_id",  # Teams / WeCom app-style id pairs
+                "_app_id",  # app_id — stable, log-safe
+                "_client_id", "_bot_id",  # Teams app-style id pairs
             )
         ] + [(getattr(adapter, "config", None), attr) for attr in ("token", "bot_token")]
         for obj, attr in candidates:

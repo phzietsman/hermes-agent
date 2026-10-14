@@ -3161,26 +3161,6 @@ export const esOverrides = {
         label: 'Nombre del canal principal',
         help: 'Nombre visible del canal principal en registros y salida de estado.'
       },
-      BLUEBUBBLES_ALLOW_ALL_USERS: {
-        label: 'Permitir todos los usuarios de iMessage',
-        help: 'Si es true, omite la allowlist de BlueBubbles.'
-      },
-      MATTERMOST_ALLOW_ALL_USERS: {
-        label: 'Permitir todos los usuarios de Mattermost'
-      },
-      MATTERMOST_HOME_CHANNEL: {
-        label: 'Canal principal'
-      },
-      QQ_ALLOW_ALL_USERS: {
-        label: 'Permitir todos los usuarios de QQ'
-      },
-      QQBOT_HOME_CHANNEL: {
-        label: 'Canal principal de QQ',
-        help: 'Canal o grupo predeterminado para entrega cron.'
-      },
-      QQBOT_HOME_CHANNEL_NAME: {
-        label: 'Nombre del canal principal de QQ'
-      },
       SLACK_BOT_TOKEN: {
         label: 'Token del bot de Slack',
         help: 'Usa el token del bot de OAuth & Permissions después de instalar tu app de Slack.',
@@ -3194,45 +3174,6 @@ export const esOverrides = {
       SLACK_ALLOWED_USERS: {
         label: 'IDs de usuarios de Slack permitidos',
         help: 'Recomendado. IDs de Slack (uno por casilla).'
-      },
-      MATTERMOST_URL: {
-        label: 'URL del servidor',
-        placeholder: 'https://mattermost.example.com'
-      },
-      MATTERMOST_TOKEN: {
-        label: 'Token del bot'
-      },
-      MATTERMOST_ALLOWED_USERS: {
-        label: 'IDs de usuarios permitidos',
-        help: 'Recomendado. IDs de Mattermost (uno por casilla).'
-      },
-      MATRIX_HOMESERVER: {
-        label: 'URL del homeserver',
-        placeholder: 'https://matrix.org'
-      },
-      MATRIX_ACCESS_TOKEN: {
-        label: 'Token de acceso'
-      },
-      MATRIX_USER_ID: {
-        label: 'ID de usuario del bot',
-        placeholder: '@hermes:example.org'
-      },
-      MATRIX_ALLOWED_USERS: {
-        label: 'IDs de usuarios de Matrix permitidos',
-        help: 'Recomendado. IDs (uno por casilla) en formato @usuario:servidor.'
-      },
-      SIGNAL_HTTP_URL: {
-        label: 'URL del puente Signal',
-        placeholder: 'http://127.0.0.1:8080',
-        help: 'URL de un puente REST signal-cli en ejecución.'
-      },
-      SIGNAL_ACCOUNT: {
-        label: 'Número de teléfono',
-        help: 'El número registrado con tu puente signal-cli.'
-      },
-      SIGNAL_ALLOWED_USERS: {
-        label: 'Usuarios de Signal permitidos',
-        help: 'Recomendado. Identificadores de Signal (uno por casilla).'
       },
       WHATSAPP_ENABLED: {
         label: 'Activar puente de WhatsApp',

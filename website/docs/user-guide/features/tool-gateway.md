@@ -208,7 +208,7 @@ These knobs exist for custom infrastructure setups (enterprise deployments, dev 
 
 ### Does it work with Telegram / Discord / the other messaging gateways?
 
-Yes. Tool Gateway operates at the tool-execution layer, not the CLI. Every interface that can call a tool — CLI, Telegram, Discord, Slack, IRC, Teams, the API server, anything — benefits from it transparently.
+Yes. Tool Gateway operates at the tool-execution layer, not the CLI. Every interface that can call a tool — CLI, Telegram, Discord, Slack, Teams, the API server, anything — benefits from it transparently.
 
 ### What happens if my subscription expires?
 

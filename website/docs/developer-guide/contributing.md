@@ -125,7 +125,7 @@ Choose the highest (least-footprint) rung that correctly solves the problem:
    `hermes <subcommand>` guided by a skill. Default for subscriptions, scheduled tasks,
    service setup (`hermes webhook`, `hermes cron`, `hermes tools`).
 3. **Service-gated tool (`check_fn`)** — needs structured params/returns AND only appears when
-   a prerequisite is configured (Home Assistant tools, memory-provider tools). This rung gates
+   a prerequisite is configured (memory-provider tools). This rung gates
    reachability/opt-in process-wide; a capability that varies per SESSION (who is watching) is
    a named toolset folded in by the toolset resolver, not a `check_fn` — see `tools/AGENTS.md` § "Surface
    capability is a property of the SESSION".

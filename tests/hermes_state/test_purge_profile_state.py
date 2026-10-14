@@ -55,10 +55,10 @@ def _create_legacy_ledger_without_adapter_profile(db):
             owner_pid INTEGER, owner_started_at INTEGER, last_error TEXT
         )
     """)
-    for oid, key in (("ob_gone", "agent:gone:feishu:dm:chatA"), ("ob_keep", "agent:keepme:feishu:dm:chatB")):
+    for oid, key in (("ob_gone", "agent:gone:telegram:dm:chatA"), ("ob_keep", "agent:keepme:telegram:dm:chatB")):
         db._write_sql(
             "INSERT INTO delivery_obligations (obligation_id, session_key, platform, chat_id, "
-            "content, state, created_at, updated_at) VALUES (?, ?, 'feishu', 'c', 'hi', 'pending', 1, 1)",
+            "content, state, created_at, updated_at) VALUES (?, ?, 'telegram', 'c', 'hi', 'pending', 1, 1)",
             (oid, key))
 
 
@@ -74,7 +74,7 @@ def _write_obligation(db, monkeypatch, obligation_id, session_key, chat_id, prof
             "INSERT INTO delivery_obligations (obligation_id, session_key, platform, chat_id, "
             "content, state, created_at, updated_at, adapter_profile) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (obligation_id, session_key, "feishu", chat_id, "hi", state, now, now, profile),
+            (obligation_id, session_key, "telegram", chat_id, "hi", state, now, now, profile),
         )
         conn.commit()
 
@@ -82,11 +82,11 @@ def _write_obligation(db, monkeypatch, obligation_id, session_key, chat_id, prof
 class TestPurgeProfileState:
     def test_purges_routing_and_heartbeats_but_keeps_bystanders(self, db):
         db.save_gateway_routing_entry(
-            "agent:gone:feishu:dm:chatA", json.dumps({"session_key": "agent:gone:feishu:dm:chatA"}),
+            "agent:gone:telegram:dm:chatA", json.dumps({"session_key": "agent:gone:telegram:dm:chatA"}),
             scope="/root/sessions")
         db.save_gateway_routing_entry(
-            "agent:keepme:feishu:dm:chatB",
-            json.dumps({"session_key": "agent:keepme:feishu:dm:chatB"}), scope="/root/sessions")
+            "agent:keepme:telegram:dm:chatB",
+            json.dumps({"session_key": "agent:keepme:telegram:dm:chatB"}), scope="/root/sessions")
         db.register_backend_heartbeat(
             backend_id="be-gone", pid=1, started_at=time.time(), profile="gone", host="h")
         db.register_backend_heartbeat(
@@ -97,8 +97,8 @@ class TestPurgeProfileState:
         assert counts["gateway_routing"] == 1
         assert counts["gateway_heartbeats"] == 1
         routing = db.load_gateway_routing_entries(scope="/root/sessions")
-        assert "agent:gone:feishu:dm:chatA" not in routing
-        assert "agent:keepme:feishu:dm:chatB" in routing
+        assert "agent:gone:telegram:dm:chatA" not in routing
+        assert "agent:keepme:telegram:dm:chatB" in routing
         assert db._read_one(
             "SELECT profile FROM gateway_heartbeats WHERE backend_id = ?",
             ("be-keep",))["profile"] == "keepme"
@@ -107,12 +107,12 @@ class TestPurgeProfileState:
 
     def test_abandons_pending_deliveries_instead_of_deleting_them(self, db, monkeypatch):
         """A pending obligation is delivery state, not identity: terminalize it, never drop it."""
-        _write_obligation(db, monkeypatch, "ob-gone", "agent:gone:feishu:dm:chatA", "chatA", "gone")
+        _write_obligation(db, monkeypatch, "ob-gone", "agent:gone:telegram:dm:chatA", "chatA", "gone")
         _write_obligation(
-            db, monkeypatch, "ob-gone-done", "agent:gone:feishu:dm:chatB", "chatB", "gone",
+            db, monkeypatch, "ob-gone-done", "agent:gone:telegram:dm:chatB", "chatB", "gone",
             state="delivered")
         _write_obligation(
-            db, monkeypatch, "ob-keep", "agent:keepme:feishu:dm:chatC", "chatC", "keepme")
+            db, monkeypatch, "ob-keep", "agent:keepme:telegram:dm:chatC", "chatC", "keepme")
 
         counts = db.purge_profile_state("gone")
 
@@ -137,7 +137,7 @@ class TestPurgeProfileState:
         history, and nothing here pins the row's stale ownership either.
         """
         db.create_session(
-            "sess_gone", "feishu", session_key="agent:gone:feishu:dm:chatA",
+            "sess_gone", "telegram", session_key="agent:gone:telegram:dm:chatA",
             profile_name="gone", chat_id="chatA", chat_type="dm",
         )
 
@@ -180,17 +180,17 @@ class TestPurgeProfileState:
 
     def test_underscore_in_profile_name_is_not_a_like_wildcard(self, db):
         db.save_gateway_routing_entry(
-            "agent:foo_bar:feishu:dm:chatA",
-            json.dumps({"session_key": "agent:foo_bar:feishu:dm:chatA"}), scope="/root/sessions")
+            "agent:foo_bar:telegram:dm:chatA",
+            json.dumps({"session_key": "agent:foo_bar:telegram:dm:chatA"}), scope="/root/sessions")
         db.save_gateway_routing_entry(
-            "agent:fooXbar:feishu:dm:chatB",
-            json.dumps({"session_key": "agent:fooXbar:feishu:dm:chatB"}), scope="/root/sessions")
+            "agent:fooXbar:telegram:dm:chatB",
+            json.dumps({"session_key": "agent:fooXbar:telegram:dm:chatB"}), scope="/root/sessions")
 
         db.purge_profile_state("foo_bar")
 
         routing = db.load_gateway_routing_entries(scope="/root/sessions")
-        assert "agent:foo_bar:feishu:dm:chatA" not in routing
-        assert "agent:fooXbar:feishu:dm:chatB" in routing
+        assert "agent:foo_bar:telegram:dm:chatA" not in routing
+        assert "agent:fooXbar:telegram:dm:chatB" in routing
 
     def test_purges_legacy_v2_topic_binding_by_session_key(self, db):
         """Purge is safe on old tables and leaves unrelated namespace rows intact."""

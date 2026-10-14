@@ -112,9 +112,6 @@ _ALWAYS_BLOCKED_IPS = frozenset(
 # Entire link-local range (no legit agent target), plus its IPv4-mapped form.
 _ALWAYS_BLOCKED_NETWORKS = tuple(ipaddress.ip_network(n) for n in ("169.254.0.0/16", "::ffff:169.254.0.0/112"))
 
-# Exact HTTPS hostnames allowed to resolve to private/benchmark-space IPs
-# (QQ media legitimately resolves to 198.18.0.0/15 behind local proxy infra).
-_TRUSTED_PRIVATE_IP_HOSTS = frozenset({"multimedia.nt.qq.com.cn"})
 _MAX_SSRF_CONNECT_IPS = 8
 
 # 100.64.0.0/10 (CGNAT, RFC 6598) is neither is_private nor is_global in
@@ -321,11 +318,6 @@ def is_always_blocked_url(url: str) -> bool:
         return False
 
 
-def _allows_private_ip_resolution(hostname: str, scheme: str) -> bool:
-    """Return True when a trusted HTTPS hostname may bypass IP-class blocking."""
-    return scheme == "https" and hostname in _TRUSTED_PRIVATE_IP_HOSTS
-
-
 def _resolved_ip_block_reason(ip: _IPAddress, allow_private: bool) -> Optional[str]:
     """Why a resolved answer must be rejected, or None if it may be dialed. The metadata floor
     ignores ``allow_private``; ordinary private/internal classes are blocked only when it is False."""
@@ -354,9 +346,7 @@ def is_safe_url(url: str) -> bool:
         if hostname in _BLOCKED_HOSTNAMES:
             logger.warning("Blocked request to internal hostname: %s", hostname)
             return False
-        allow_all_private = _global_allow_private_urls()
-        allow_private_ip = _allows_private_ip_resolution(hostname, scheme)
-        allow_private = allow_all_private or allow_private_ip
+        allow_private = _global_allow_private_urls()
         try:
             addr_info = _getaddrinfo(hostname)
         except socket.gaierror:
@@ -379,10 +369,8 @@ def is_safe_url(url: str) -> bool:
             if reason is not None:
                 logger.warning("Blocked request to %s: %s -> %s", reason, hostname, ip_str)
                 return False
-        if allow_all_private:
+        if allow_private:
             logger.debug("Allowing private/internal resolution (security.allow_private_urls=true): %s", hostname)
-        elif allow_private_ip:
-            logger.debug("Allowing trusted hostname despite private/internal resolution: %s", hostname)
         return True
     except Exception as exc:
         # Fail closed: parsing edge cases must not become SSRF bypass vectors.
@@ -408,7 +396,7 @@ def _resolved_http_connect_ips(host: str, port: int, scheme: str) -> list[str]:
         raise SSRFConnectionBlocked("Blocked request with empty hostname")
     if hostname in _BLOCKED_HOSTNAMES:
         raise SSRFConnectionBlocked(f"Blocked request to internal hostname: {hostname}")
-    allow_private = _global_allow_private_urls() or _allows_private_ip_resolution(hostname, scheme)
+    allow_private = _global_allow_private_urls()
     try:
         addr_info = _getaddrinfo(hostname, port)
     except socket.gaierror as exc:

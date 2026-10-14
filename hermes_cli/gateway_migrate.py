@@ -549,7 +549,7 @@ def platform_serves_profile_prefix(platform_value: str) -> bool:
             adapter_cls, _ok = _builtin_adapter_import(spec[0], spec[1], spec[2])
             return _declares(adapter_cls)
     with contextlib.suppress(Exception):
-        # Plugin-shipped adapters (sms, line, teams, feishu, wecom, ...) only exist in the registry
+        # Plugin-shipped adapters (line, teams, ...) only exist in the registry
         # after discovery; a bare CLI process has not run it yet.
         from hermes_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
@@ -591,7 +591,7 @@ def _check_secondary_port_binders(plan: MigrationPlan, configs: dict[str, object
         if cfg is None:
             continue
         for platform, platform_config in cfg.platforms.items():
-            if not platform_config.enabled or not platform_binds_port(platform.value, platform_config.extra):
+            if not platform_config.enabled or not platform_binds_port(platform.value):
                 continue
             if platform_serves_profile_prefix(platform.value):
                 plan.notices.append(

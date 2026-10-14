@@ -8,7 +8,7 @@ The gateway re-validates nothing — it cannot, without being handed the shared
 signing secret, which would itself be the leak on a shared bot.
 
 The relay package therefore MUST NOT import or call platform signature/crypto
-verification (Discord ed25519, Twilio HMAC, WeCom BizMsgCrypt, generic webhook
+verification (Discord ed25519, generic webhook
 signature checks). Those live in the *direct* platform adapters
 (``gateway/platforms/*``) which serve non-relay deployments; the relay receives
 already-trusted events. This test fails if someone bolts re-validation onto the
@@ -31,8 +31,6 @@ _RELAY_PKG = _REPO_ROOT / "gateway" / "relay"
 # Modules / symbols that mean "platform crypto re-validation". If the relay path
 # imports any of these it has re-coupled the gateway to a platform secret.
 _FORBIDDEN_MODULE_TOKENS = (
-    "wecom_crypto",
-    "wecom_callback",
     "webhook",  # gateway.platforms.webhook holds signature verification
 )
 _FORBIDDEN_SYMBOL_RE = re.compile(
@@ -61,7 +59,7 @@ _CHANNEL_AUTH_FILES = {"auth.py"}
 def test_relay_package_calls_no_signature_verification():
     """No relay module references a PLATFORM signature/crypto-verification symbol.
 
-    Scoped to platform crypto (Discord ed25519, Twilio/WeCom HMAC, webhook
+    Scoped to platform crypto (Discord ed25519, webhook
     signature checks). The connector⇄gateway channel authenticator (``auth.py``)
     is exempt: its HMAC is over the connector's own per-gateway/per-tenant
     secrets to authenticate the relay channel itself — the gateway holds NO

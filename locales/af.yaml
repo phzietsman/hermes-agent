@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "Sessie-databasis is nie beskikbaar nie."
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}. Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room. Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Matrix /resume geblokkeer: hierdie benoemde sessie het geen aangetekende kamer-oorsprong nie, so Hermes sal dit nie by verstek binne die huidige kamer hervat nie. Gebruik `/resume --cross-room {name}` as jy doelbewus kamergrense wil oorsteek."
-    matrix_blocked_other_room: "⚠️ Matrix /resume geblokkeer: daardie sessie behoort aan 'n ander Matrix-kamer ({room}). Gebruik `/resume --cross-room {name}` as jy dit doelbewus hier wil hervat."
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**. Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ /resume geblokkeer: '**{name}**' behoort aan 'n ander gebruiker of geselsie. Jy kan slegs sessies vanaf hierdie geselsie hervat."
     no_named_sessions: "Geen benoemde sessies gevind nie.\nGebruik `/title My Sessie` om jou huidige sessie 'n naam te gee, en dan `/resume My Sessie` om later daarheen terug te keer."
     all_requires_admin: "_Let wel: `--all` (kruis-geselslys) vereis 'n opgestelde administrateur; slegs hierdie geselsie se sessies word gewys._"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "Gebruik /context all vir koste per vaardigheid en per gereedskapstel."
   status:
     header: "📊 **Hermes Gateway-status**"
-    matrix_scope_header: "**Matrix-omvang:**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**Sessie-ID:** `{session_id}`"
     title: "**Titel:** {title}"
     created: "**Geskep:** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ geantwoord: {response}"
     cancelled: "↩️ Verduideliking gekanselleer — jou boodskap sal as 'n opvolg hanteer word."
     expired: "⏳ Hierdie prompt het verval — stuur asseblief 'n nuwe versoek."
-    native_stream_placeholder: "💬 Wag vir jou keuse..."
     skip_hint: 'Antwoord "skip" om hierdie vraag oor te slaan.'
   errors:
     rate_limited: "⏱️ Die KI-modeldiens beperk tans die tempo van versoeke. Wag 'n oomblik en gebruik dan /retry."
@@ -962,9 +951,6 @@ platform:
     approved: "✅ Goedgekeur."
     denied: "❌ Geweier."
     approval_expired: "⌛ Goedkeuring het verval — die opdrag is nie uitgevoer nie (reeds uitgetel of elders afgehandel)."
-  yuanbao:
-    slow_response_notice: "Hierdie taak is 'n bietjie omvattend — ek werk nog daaraan, hou asseblief aan..."
-    owner_command_denied: "⚠️ {command} is slegs vir die skepper beskikbaar in privaatgesprek-modus"
   shared:
     truncated_suffix: "\n...(afgekap)"
     unknown: "onbekend"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ Kon nie die video-aanhegsel aflewer nie."
       file_failed: "⚠️ Kon nie die lêeraanhegsel aflewer nie ({name})."
       attachment_failed: "⚠️ Kon nie die aanhegsel aflewer nie."
-  weixin:
-    voice_as_attachment: "[stemboodskap as aanhegsel]"
-  signal:
-    batch_pacing_notice: "(Nog beelde op pad — wag ~{wait} vir Signal se tarieflimiet, bondel {batch}/{total}.)"
-    wait_seconds: "{count}s"
-    wait_minutes: "{count} min"
   api_server:
     provider_auth_failed: "Verskaffer-verifikasie het misluk"
     provider_rate_limited: "Verskaffer-tarieflimiet bereik"
@@ -1324,90 +1304,6 @@ platform:
       running: "Voer `/{command}` uit…"
     handoff:
       seed: ":thread: Hermes-oorhandiging — *{name}*"
-  matrix:
-    handoff:
-      default_name: "Hermes-sessie"
-    media:
-      image_download_failed: "Ek kon nie die beeld aflaai en na Matrix oplaai nie. Die bron-URL word nie gewys nie, want dit kan private tokens bevat."
-    approval:
-      typed_hint_once: "Antwoord `!approve` om eenmalig uit te voer, of `!deny` om te kanselleer."
-      typed_hint_session: "Antwoord `!approve session` om hierdie patroon vir die sessie goed te keur, `!approve` om eenmalig uit te voer, of `!deny` om te kanselleer."
-      typed_hint_always: "Antwoord `!approve session` om hierdie patroon vir die sessie goed te keur, `!approve always` om permanent goed te keur, `!approve` om eenmalig uit te voer, of `!deny` om te kanselleer."
-      legend_intro: "Jy kan ook op die reaksie klik om goed te keur:"
-      legend_once: "✅ = eenmalig goedkeur"
-      legend_session: "🌀 = vir hierdie sessie goedkeur"
-      legend_always: "♾️ = altyd goedkeur"
-      legend_deny: "❎ = weier"
-      invalid_reaction: "Daardie reaksie is nie geldig vir hierdie goedkeuringsprompt nie."
-      expired: "Hierdie goedkeuringsprompt het verval. Voer die opdrag weer uit as jy dit steeds wil goedkeur."
-    picker:
-      no_models: "Geen geverifieerde modelle is vir hierdie sessie beskikbaar nie."
-      title: "⚙ **Modelkonfigurasie**"
-      current_model: "Huidige model: `{model}`"
-      provider: "Verskaffer: {provider}"
-      react_model: "Reageer om 'n model te kies:"
-      react_choice: "Reageer om te kies."
-      current_suffix: "{label} ← huidig"
-      invalid_model_reaction: "Daardie reaksie is nie een van die beskikbare modelkeuses nie."
-      invalid_choice_reaction: "Daardie reaksie is nie een van die beskikbare keuses nie."
-      verb_switch_model: "model verander"
-      verb_apply_selection: "keuse toepas"
-      failed: "Kon nie {action} nie: {error}"
-    reaction:
-      unauthorized: "Slegs 'n gemagtigde Matrix-gebruiker kan hierdie kontroles gebruik."
-      not_requester: "Slegs die gebruiker wat hierdie aksie aangevra het, kan hierdie kontroles gebruik."
-  feishu:
-    approval:
-      action_session: "Sessie"
-      action_always: "Altyd"
-      resolved_once: "Eenmalig goedgekeur"
-      resolved_session: "Vir sessie goedgekeur"
-      resolved_always: "Permanent goedgekeur"
-      resolved_deny: "Geweier"
-      resolved_fallback: "Afgehandel"
-      resolved_by_user: "{icon} **{label}** deur {user}"
-    update_prompt:
-      title: "☤ Opdatering het jou insette nodig"
-      default_hint: "\n\nVerstek: `{default}`"
-      answer_yes: "✓ Ja"
-      answer_no: "✗ Nee"
-      word_yes: "Ja"
-      word_no: "Nee"
-      answered_title: "{icon} Opdateringsprompt beantwoord: {answer}"
-      answered_by: "Beantwoord deur **{user}**"
-    media:
-      gif_downgraded: "[GIF as lêer gestuur]"
-      gif_downgraded_caption: "[GIF as lêer gestuur]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "Ander / tik antwoord"
-      header: "Vraag"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes dink…"
-      interrupted: "(onderbreek)"
-      no_reply: "(geen antwoord)"
-    attachment_fallback:
-      header: "⚠️ Ek kon nie **{filename}** aanheg nie."
-      explain: "Google Chat laat lêeraanhegsels slegs toe wanneer die bot jou uitdruklike toestemming het (gebruiker-OAuth). Dit is 'n eenmalige toestemming wat vanuit hierdie klets gegee word."
-      activate: "**Om dit te aktiveer:** stuur `/setup-files` en volg die instruksies."
-      host_path: "Intussen is die lêer op die gasheer: `{path}`"
-    setup_files:
-      not_configured: "🔧 Inheemse aanhegsel-aflewering is **nie opgestel nie**.\n**Stap 1 (eenmalig, op die gasheer):** skep OAuth-kliëntgeloofsbriewe by https://console.cloud.google.com/apis/credentials → *Create credentials* → *OAuth client ID* → *Desktop app*. Laai die JSON af. Voer dan op die gasheer uit:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**Stap 2:** kom terug hierheen en stuur `/setup-files start`."
-      start_instructions: "1. Open hierdie URL in jou blaaier en magtig:\n{auth_url}\n\n2. Nadat jy op *Allow* geklik het, sal jou blaaier nie `http://localhost:1/?...&code=...` kan laai nie. Dit is te verwagte.\n\n3. Kopieer die volledige mislukte URL uit die blaaier se adresbalk en plak dit hier terug as: `/setup-files <PASTE_URL>` (of net die `code=...`-waarde).\n\nWenk: die URL bevat jou toegangsmagtiging — hou dit privaat."
-      start_failed: "❌ Kon nie die OAuth-URL genereer nie. Kyk na die gateway-loglae en maak seker die client_secret.json is geldig."
-      exchange_failed: "❌ Token-uitruil het misluk. Die kode het moontlik verval of die URL is misvorm. Stuur `/setup-files start` om 'n vars OAuth-URL te kry."
-      revoke_completed: "Herroeping voltooi (sommige stappe is moontlik oorgeslaan)."
-      revoked: "Herroep."
-      helper_error: "❌ Fout: {error}"
-      revoke_error: "❌ Fout met herroeping: {error}"
-      who_shared: "gedeel (verouderd)"
-      active: "✅ Inheemse aanhegsel-aflewering is **aktief** vir `{who}`.\nToken: `{token_path}`\nStuur `/setup-files revoke` om dit te deaktiveer."
-      not_authorized_yet: "🔧 Kliëntgeloofsbriewe is gestoor, maar jy het nog nie gemagtig nie. Stuur `/setup-files start` om te begin."
-      no_client_credentials: "⚠️ Geen kliëntgeloofsbriewe vir hierdie profiel gestoor nie. Stuur `/setup-files` (sonder argumente) vir opstelinstruksies."
-      done_output: "✅ Klaar.\n```\n{output}\n```"
-      authorized: "✅ Gemagtig! Inheemse aanhegsel-aflewering is nou aktief. Vra my gerus om vir jou 'n PDF te stuur."
-      exchanged_not_loaded: "⚠️ Token is uitgeruil, maar die gateway kon nie die nuwe geloofsbriewe in die geheue laai nie. Herbegin die gateway, en die token by `{token_path}` sal opgeneem word.\nHelper-uitvoer:\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ Toegelaat (eenmalig)"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "Sleutelbesluite"
       action_items: "Aksiepunte"
       risks: "Risiko's"
-  line:
-    pending:
-      still_thinking: "🤔 Dink nog. Tik hieronder om die antwoord te kry wanneer dit gereed is."
-      button_label: "Kry antwoord"
-      delivered: "Reeds geantwoord ✅"
-      interrupted: "Die uitvoering is onderbreek voordat dit voltooi is."
-      expired: "Daardie versoek het verval — stuur jou boodskap weer."
-    standalone:
-      attachments_not_deliverable: "[{count} aanhegsel(s) gegenereer; nie afleverbaar vanaf cron nie]"
-  wecom:
-    media:
-      kind_image: "Beeld"
-      kind_video: "Video"
-      kind_voice: "Stemboodskap"
-      file_too_large: "Lêergrootte {size_mb}MB oorskry WeCom se limiet van 20MB en kan nie gestuur word nie. Probeer die lêer saampers of kleiner maak."
-      voice_format_downgraded: "Stemformaat {content_type} word nie ondersteun nie (WeCom aanvaar slegs AMR); eerder as 'n lêer gestuur."
-      size_downgraded: "{label}-grootte {size_mb}MB oorskry die limiet van {cap}; eerder as 'n lêer gestuur."
   email:
     image_line: "Beeld: {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔Dink"
-      done: "🥳Klaar"
-  irc:
-    quit_message: "Hermes Agent skakel af"
-    standalone_quit: "afgelewer"
   relay:
     confirm_approve_once: "Eenmalig goedkeur"
     confirm_always_approve: "Altyd goedkeur"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "Dra hierdie sessie oor na 'n boodskapplatform (Telegram, Discord, ens.)"
   branch:
-    description: "Vertak die huidige sessie (nuwe draad op Discord/Telegram/Slack/Matrix; --here bly hier)"
+    description: "Vertak die huidige sessie (nuwe draad op Discord/Telegram/Slack; --here bly hier)"
   worktree:
     description: "Wys, lys, skep of snoei geïsoleerde git-werkbome"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "/voice on aktiveer stemmodus in die CLI. Ctrl+B skakel druk-om-te-praat-opname aan of af."
   t155: "Stromende TTS speel sinne terwyl hulle gegenereer word — jy wag nie vir die volle antwoord nie."
   t156: "Stemboodskappe op Telegram, Discord, WhatsApp en Slack word outomaties getranskribeer."
-  t157: "Hermes loop op 21 boodskapplatforms: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, IRC, Microsoft Teams, e-pos en meer."
+  t157: "Hermes loop op 21 boodskapplatforms: Telegram, Discord, Slack, WhatsApp, Microsoft Teams, e-pos en meer."
   t158: "hermes gateway install stel dit op as 'n stelseldiens wat by opstart begin."
-  t159: "DingTalk gebruik Stream Mode — geen webhooks of publieke URL nodig nie."
-  t160: "BlueBubbles bring iMessage na Hermes via 'n plaaslike macOS-bediener."
   t161: "Webhook-roetes ondersteun HMAC-validering, tempobeperking en gebeurtenisfiltrering."
   t162: "Die API-bediener bied 'n OpenAI-versoenbare eindpunt wat met Open WebUI en LibreChat werk."
   t163: "Discord-stemkanaalmodus: die bot sluit by die stemkanaal aan, transkribeer spraak en praat terug."
@@ -3814,7 +3684,6 @@ tips:
   t328: "tts.providers.<name>.type: command koppel enige CLI-TTS-enjin met {input_path}- en {output_path}-plekhouers."
   t329: "API_SERVER_ENABLED=true laat 'n OpenAI-versoenbare eindpunt saam met die gateway loop vir Open WebUI en LibreChat."
   t330: "GATEWAY_PROXY_URL laat 'n verdeelde opstelling loop: platform-I/O plaaslik, agentwerk gedelegeer na 'n afgeleë API-bediener."
-  t331: "MATRIX_DEVICE_ID vaspen 'n stabiele toestel-ID vir E2EE — daarsonder roteer sleutels by elke begin en breek historiese ontsyfering."
   t332: "TELEGRAM_WEBHOOK_SECRET is verpligtend wanneer TELEGRAM_WEBHOOK_URL gestel is — genereer dit met openssl rand -hex 32."
   t333: "batch_runner.py --resume pas voltooide prompte volgens teksinhoud sodat herrangskikking van die datastel nie klaar werk weer laat loop nie."
   t334: "/new begin 'n vars sessie in plek (alias /reset) — nuwe sessie-ID, skoon geskiedenis, die CLI bly oop."

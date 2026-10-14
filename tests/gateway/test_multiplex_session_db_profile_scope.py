@@ -335,7 +335,7 @@ def test_write_under_profile_scope_lands_in_profile_store(multiplex_homes):
 
     token = set_hermes_home_override(str(profile))
     try:
-        store._db.create_session("20260817_233028_542fda58", "feishu")
+        store._db.create_session("20260817_233028_542fda58", "telegram")
     finally:
         reset_hermes_home_override(token)
 

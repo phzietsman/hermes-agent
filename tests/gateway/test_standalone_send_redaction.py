@@ -3,7 +3,7 @@
 Every ``plugins/platforms/*/adapter.py::_standalone_send`` used to build ``{"error": f"... {e}"}``
 by hand; a token or signed URL inside an httpx/aiohttp exception went straight into the tool
 result. They now share ``gateway.platforms._shared.send_error`` (the ``send_message`` redactor).
-This drives two real senders end-to-end with a transport that raises a secret-bearing error.
+This pins the shared redactor on a secret-bearing error and drives real senders end-to-end.
 """
 
 import pytest
@@ -33,41 +33,36 @@ def test_send_error_redacts_token_and_signed_url():
 
 
 @pytest.mark.asyncio
-async def test_ntfy_standalone_failure_is_redacted(monkeypatch):
-    ntfy = load_plugin_adapter("ntfy")
-    monkeypatch.setenv("NTFY_TOPIC", "hermes-test")
+async def test_email_standalone_failure_is_redacted(monkeypatch):
+    email = load_plugin_adapter("email")
+    monkeypatch.setenv("EMAIL_ADDRESS", "bot@example.com")
+    monkeypatch.setenv("EMAIL_PASSWORD", "pw")
+    monkeypatch.setenv("EMAIL_SMTP_HOST", "smtp.example.com")
 
-    class _Boom:
-        def __init__(self, *a, **k):
-            pass
+    def _boom(*a, **k):
+        raise OSError(f"connect failed: Authorization: Bearer {_FAKE_TOKEN} {_FAKE_URL_SECRET}")
 
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *a):
-            return False
-
-        async def post(self, *a, **k):
-            raise RuntimeError(f"connect failed: Authorization: Bearer {_FAKE_TOKEN} {_FAKE_URL_SECRET}")
-
-    monkeypatch.setattr(ntfy, "HTTPX_AVAILABLE", True)
-    monkeypatch.setattr(ntfy.httpx, "AsyncClient", _Boom)
-    result = await ntfy._standalone_send(PlatformConfig(enabled=True, extra={}), "hermes-test", "hi")
+    monkeypatch.setattr(email, "_open_smtp", _boom)
+    result = await email._standalone_send(PlatformConfig(enabled=True, extra={}), "you@example.com", "hi")
     assert "error" in result
     assert _FAKE_TOKEN not in result["error"] and "sk_live_ABCDEF0123456789" not in result["error"]
     assert "connect failed" in result["error"]
 
 
 @pytest.mark.asyncio
-async def test_irc_standalone_failure_is_redacted(monkeypatch):
-    irc = load_plugin_adapter("irc")
+async def test_teams_standalone_failure_is_redacted(monkeypatch):
+    aiohttp = pytest.importorskip("aiohttp")
+    teams = load_plugin_adapter("teams")
+    monkeypatch.setenv("TEAMS_CLIENT_ID", "cid")
+    monkeypatch.setenv("TEAMS_CLIENT_SECRET", "csecret")
+    monkeypatch.setenv("TEAMS_TENANT_ID", "tenant1")
 
-    async def _boom(*a, **k):
-        raise OSError(f"refused; proxy Authorization: Basic {_FAKE_TOKEN}")
+    class _Boom:
+        def __init__(self, *a, **k):
+            raise RuntimeError(f"refused; proxy Authorization: Basic {_FAKE_TOKEN} {_FAKE_URL_SECRET}")
 
-    monkeypatch.setattr(irc.asyncio, "open_connection", _boom)
-    result = await irc._standalone_send(
-        PlatformConfig(enabled=True, extra={"server": "irc.example", "channel": "#x", "nickname": "h"}), "#x", "hi")
+    monkeypatch.setattr(aiohttp, "ClientSession", _Boom)
+    result = await teams._standalone_send(PlatformConfig(enabled=True, extra={}), "conv123", "hi")
     assert "error" in result
-    assert _FAKE_TOKEN not in result["error"]
+    assert _FAKE_TOKEN not in result["error"] and "sk_live_ABCDEF0123456789" not in result["error"]
     assert "refused" in result["error"]

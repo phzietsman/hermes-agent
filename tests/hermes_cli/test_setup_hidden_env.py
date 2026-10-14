@@ -11,16 +11,29 @@ import pytest
 from hermes_cli.setup_hidden_env import is_setup_hidden_env
 
 
+_FAKE_PLATFORM = {
+    "key": "fake", "label": "Fake", "emoji": "💬", "token_var": "FAKE_TOKEN",
+    "setup_instructions": ["1. Create a bot."],
+    "vars": [
+        {"name": "FAKE_URL", "prompt": "Server URL", "password": False, "help": "Your server URL."},
+        {"name": "FAKE_TOKEN", "prompt": "Bot token", "password": True, "help": "The bot token."},
+        {"name": "FAKE_ALLOWED_USERS", "prompt": "Allowed user IDs (comma-separated)",
+         "password": False, "is_allowlist": True, "help": "Your user ID."},
+        {"name": "FAKE_HOME_CHANNEL", "prompt": "Home channel ID", "password": False, "help": "Home channel."},
+        {"name": "FAKE_REPLY_MODE", "prompt": "Reply mode", "password": False, "help": "Reply mode."},
+    ],
+}
+
+
 class TestIsSetupHiddenEnv:
 
 
     def test_applies_to_plugin_platforms_nobody_enumerated(self):
-        """Suffix matching is the point — IRC/SimpleX/ntfy get this for free."""
+        """Suffix matching is the point — plugin platforms get this for free."""
         for key in (
-            "IRC_ALLOW_ALL_USERS",
-            "SIMPLEX_HOME_CHANNEL",
-            "NTFY_HOME_CHANNEL_NAME",
-            "LINE_ALLOW_ALL_USERS",
+            "PLUGINX_ALLOW_ALL_USERS",
+            "PLUGINX_HOME_CHANNEL",
+            "PLUGINX_HOME_CHANNEL_NAME",
         ):
             assert is_setup_hidden_env(key), key
 
@@ -63,7 +76,7 @@ class TestCliWizard:
 
         from hermes_cli import gateway as gw
 
-        platform = next(p for p in gw._PLATFORMS if p["key"] == "mattermost")
+        platform = _FAKE_PLATFORM
         monkeypatch.setattr("sys.stdin", io.StringIO("\n".join(answers) + "\n"))
         gw._setup_standard_platform(dict(platform))
 
@@ -87,10 +100,10 @@ class TestCliWizard:
         )
 
         written = self._env(home)
-        assert written.get("MATTERMOST_URL") == "https://mm.example.com"
-        assert written.get("MATTERMOST_TOKEN") == "tok-abc"
-        assert "MATTERMOST_HOME_CHANNEL" not in written
-        assert "MATTERMOST_REPLY_MODE" not in written
+        assert written.get("FAKE_URL") == "https://mm.example.com"
+        assert written.get("FAKE_TOKEN") == "tok-abc"
+        assert "FAKE_HOME_CHANNEL" not in written
+        assert "FAKE_REPLY_MODE" not in written
 
         out = capsys.readouterr().out
         assert "Home channel" not in out
@@ -100,7 +113,7 @@ class TestCliWizard:
         """Proves the token wasn't swept out along with the knobs."""
         self._run(["https://mm.example.com", ""], monkeypatch)
 
-        assert "MATTERMOST_TOKEN" not in self._env(home)
+        assert "FAKE_TOKEN" not in self._env(home)
 
 
 class TestStillConfigurable:

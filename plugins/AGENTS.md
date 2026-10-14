@@ -25,16 +25,6 @@ command. A hook with no concrete consumer is speculative infrastructure and is r
   `plugins.memory.import_provider_module`, never a `plugins.memory.<name>` import. New
   backends ship as standalone repos implementing the same `MemoryProvider` ABC, discovered through
   the same path, integrated via `hermes memory setup` / `post_setup()`.
-- **Other features that leave core** (Home Assistant platform + toolset, Oct 2026 →
-  `plugin-catalog/homeassistant.yaml`) keep their names/config/env and get a row in
-  `hermes_cli/left_core_migration.py::LEFT_CORE` (catalog plugin + read-only "this home uses it"
-  predicate); `hermes update` and agent/gateway start install the plugin for homes that used it.
-  Installing and converting core-era state are separate steps: the toolset-scope conversion runs
-  once per home and row (`_left_core_scoped` in config.yaml) even when the plugin is already there.
-  The automatic install also happens once per home and row (`_left_core_installed`, written only
-  once the plugin dir exists): a later `hermes plugins remove` sticks, a failed install retries.
-  Core special cases become `PlatformEntry` seams the plugin sets (`trusted_inbound`,
-  `display_tier`, `shared_env_prefixes`), never a name check.
 - **No new third-party-product plugins (June 2026).** Observability/metrics backends, vendor SaaS
   connectors, analytics dashboards, paid-service tie-ins ship as standalone plugin repos
   (`~/.hermes/plugins/` or pip entry point) promoted in Discord `#plugins-skills-and-skins`. Reason:
@@ -72,7 +62,7 @@ bare names resolve through the catalog or error.
 | Memory provider | `plugins/memory/<name>/` | `plugins/memory/__init__.py`: bundled → `$HERMES_HOME/plugins/` → `./.hermes/plugins/` (opt-in `HERMES_ENABLE_PROJECT_PLUGINS`) → `hermes_agent.memory_providers` entry points; **bundled-first** | Activated by name via `memory.provider`, so a dropped-in dir must not shadow a shipped one (reverse of general later-wins). Enumerates without importing. Implements `MemoryProvider` ABC (`agent/memory_provider.py`), orchestrated by `agent/memory_manager.py`: `sync_turn`, `prefetch`, `shutdown`, optional `post_setup`. `cli.py` with `register_cli(subparser)` is wired by `discover_plugin_cli_commands()` — only for the ACTIVE provider, so `hermes --help` stays clean |
 | Model provider | `plugins/model-providers/<name>/` | `providers/__init__.py._discover_providers()`, **lazy**, on first `get_provider_profile()`/`list_providers()`; bundled → `$HERMES_HOME/plugins/model-providers/` → legacy `providers/<name>.py` | `__init__.py` calls `providers.register_provider(ProviderProfile(...))` at load; **last-writer-wins** so a user plugin overrides a bundled profile. `PluginManager` records `kind: model-provider` manifests but does NOT import them (would double-instantiate); manifests without `kind:` are auto-coerced by source heuristic (`register_provider` + `ProviderProfile`) |
 | Context engine / image-gen / others | `plugins/context_engine/`, `plugins/image_gen/`, ... | ABC + orchestrator + per-plugin directory | Plug into `agent/context_engine.py`, `agent/image_gen_provider.py` |
-| Platform adapters | `plugins/platforms/<name>/adapter.py` | gateway | Token-lock and scoped-secret rules in `gateway/AGENTS.md` (`irc`, `feishu` are canonical) |
+| Platform adapters | `plugins/platforms/<name>/adapter.py` | gateway | Token-lock and scoped-secret rules in `gateway/AGENTS.md` (`teams` is canonical) |
 
 **Discovery timing pitfall:** `discover_plugins()` runs only as a side effect of importing
 `model_tools.py`. Code that reads plugin state without importing `model_tools.py` first must call

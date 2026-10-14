@@ -225,7 +225,7 @@ The doctor checks:
 
 ## Gateway (Messaging Platforms)
 
-Gemini works with all Hermes gateway platforms (Telegram, Discord, Slack, WhatsApp, LINE, Feishu, etc.). Configure Gemini as your provider, then start the gateway normally:
+Gemini works with all Hermes gateway platforms (Telegram, Discord, Slack, WhatsApp, etc.). Configure Gemini as your provider, then start the gateway normally:
 
 ```bash
 hermes gateway setup

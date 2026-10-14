@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "Oturum veritabanı kullanılamıyor."
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}. Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room. Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Matrix /resume engellendi: bu adlandırılmış oturumun kayıtlı bir oda kökeni yok, bu yüzden Hermes onu varsayılan olarak mevcut odada sürdürmez. Oda sınırlarını bilerek aşmak istiyorsanız `/resume --cross-room {name}` kullanın."
-    matrix_blocked_other_room: "⚠️ Matrix /resume engellendi: bu oturum farklı bir Matrix odasına ({room}) ait. Onu bilerek burada sürdürmek istiyorsanız `/resume --cross-room {name}` kullanın."
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**. Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ /resume engellendi: '**{name}**' farklı bir kullanıcıya veya sohbete ait. Yalnızca bu sohbetin oturumlarını sürdürebilirsiniz."
     no_named_sessions: "Adlandırılmış oturum bulunamadı.\nMevcut oturumu adlandırmak için `/title Oturumum`, daha sonra geri dönmek için `/resume Oturumum` kullanın."
     all_requires_admin: "_Not: `--all` (sohbetler arası listeleme) yapılandırılmış bir yönetici gerektirir; yalnızca bu sohbetin oturumları gösteriliyor._"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "Skill ve araç seti başına maliyetler için /context all kullanın."
   status:
     header: "📊 **Hermes Gateway Durumu**"
-    matrix_scope_header: "**Matrix kapsamı:**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**Oturum kimliği:** `{session_id}`"
     title: "**Başlık:** {title}"
     created: "**Oluşturuldu:** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ yanıtlandı: {response}"
     cancelled: "↩️ Netleştirme iptal edildi — mesajınız devam mesajı olarak işlenecek."
     expired: "⏳ Bu sorunun süresi doldu — lütfen yeni bir istek gönderin."
-    native_stream_placeholder: "💬 Seçiminiz bekleniyor..."
     skip_hint: 'Bu soruyu atlamak için "skip" yazın.'
   errors:
     rate_limited: "⏱️ Yapay zekâ model servisi istekleri hız sınırlamasına tabi tutuyor. Biraz bekleyin, ardından /retry kullanın."
@@ -962,9 +951,6 @@ platform:
     approved: "✅ Onaylandı."
     denied: "❌ Reddedildi."
     approval_expired: "⌛ Onay süresi doldu — komut çalıştırılmadı (zaten zaman aşımına uğradı veya başka bir yerde sonuçlandı)."
-  yuanbao:
-    slow_response_notice: "Bu görev biraz kapsamlı — hâlâ üzerinde çalışıyorum, lütfen bekleyin..."
-    owner_command_denied: "⚠️ {command} yalnızca özel sohbet modunda oluşturucu tarafından kullanılabilir"
   shared:
     truncated_suffix: "\n...(kısaltıldı)"
     unknown: "bilinmiyor"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ Video eki iletilemedi."
       file_failed: "⚠️ Dosya eki iletilemedi ({name})."
       attachment_failed: "⚠️ Ek iletilemedi."
-  weixin:
-    voice_as_attachment: "[ek olarak sesli mesaj]"
-  signal:
-    batch_pacing_notice: "(Daha fazla görsel geliyor — Signal hız sınırı için ~{wait} bekleniyor, grup {batch}/{total}.)"
-    wait_seconds: "{count} sn"
-    wait_minutes: "{count} dk"
   api_server:
     provider_auth_failed: "Sağlayıcı kimlik doğrulaması başarısız oldu"
     provider_rate_limited: "Sağlayıcı hız sınırı uyguladı"
@@ -1324,90 +1304,6 @@ platform:
       running: "`/{command}` çalıştırılıyor…"
     handoff:
       seed: ":thread: Hermes devri — *{name}*"
-  matrix:
-    handoff:
-      default_name: "Hermes oturumu"
-    media:
-      image_download_failed: "Görüntüyü indirip Matrix'e yükleyemedim. Kaynak URL, özel token'lar içerebileceği için gösterilmedi."
-    approval:
-      typed_hint_once: "Bir kez çalıştırmak için `!approve`, iptal etmek için `!deny` yazın."
-      typed_hint_session: "Bu deseni oturum için onaylamak üzere `!approve session`, bir kez çalıştırmak için `!approve`, iptal etmek için `!deny` yazın."
-      typed_hint_always: "Bu deseni oturum için onaylamak üzere `!approve session`, kalıcı olarak onaylamak için `!approve always`, bir kez çalıştırmak için `!approve`, iptal etmek için `!deny` yazın."
-      legend_intro: "Onaylamak için tepkiye de tıklayabilirsiniz:"
-      legend_once: "✅ = bir kez onayla"
-      legend_session: "🌀 = bu oturum için onayla"
-      legend_always: "♾️ = her zaman onayla"
-      legend_deny: "❎ = reddet"
-      invalid_reaction: "Bu tepki, bu onay istemi için geçerli değil."
-      expired: "Bu onay isteminin süresi doldu. Yine de onaylamak istiyorsanız komutu yeniden çalıştırın."
-    picker:
-      no_models: "Bu oturum için kimliği doğrulanmış model bulunmuyor."
-      title: "⚙ **Model Yapılandırması**"
-      current_model: "Geçerli model: `{model}`"
-      provider: "Sağlayıcı: {provider}"
-      react_model: "Model seçmek için tepki verin:"
-      react_choice: "Seçmek için tepki verin."
-      current_suffix: "{label} ← geçerli"
-      invalid_model_reaction: "Bu tepki, kullanılabilir model seçeneklerinden biri değil."
-      invalid_choice_reaction: "Bu tepki, kullanılabilir seçeneklerden biri değil."
-      verb_switch_model: "model değiştirme"
-      verb_apply_selection: "seçimi uygulama"
-      failed: "{action} başarısız oldu: {error}"
-    reaction:
-      unauthorized: "Bu kontrolleri yalnızca yetkili bir Matrix kullanıcısı kullanabilir."
-      not_requester: "Bu kontrolleri yalnızca bu işlemi isteyen kullanıcı kullanabilir."
-  feishu:
-    approval:
-      action_session: "Oturum"
-      action_always: "Her zaman"
-      resolved_once: "Bir kez onaylandı"
-      resolved_session: "Oturum için onaylandı"
-      resolved_always: "Kalıcı olarak onaylandı"
-      resolved_deny: "Reddedildi"
-      resolved_fallback: "Sonuçlandırıldı"
-      resolved_by_user: "{icon} **{label}** — {user}"
-    update_prompt:
-      title: "☤ Güncelleme Girdinizi Bekliyor"
-      default_hint: "\n\nVarsayılan: `{default}`"
-      answer_yes: "✓ Evet"
-      answer_no: "✗ Hayır"
-      word_yes: "Evet"
-      word_no: "Hayır"
-      answered_title: "{icon} Güncelleme istemi yanıtlandı: {answer}"
-      answered_by: "**{user}** yanıtladı"
-    media:
-      gif_downgraded: "[GIF dosyaya dönüştürüldü]"
-      gif_downgraded_caption: "[GIF dosyaya dönüştürüldü]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "Diğer / yanıt yazın"
-      header: "Soru"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes düşünüyor…"
-      interrupted: "(kesildi)"
-      no_reply: "(yanıt yok)"
-    attachment_fallback:
-      header: "⚠️ **{filename}** dosyasını ekleyemedim."
-      explain: "Google Chat, dosya eklerine yalnızca bot açık izninize sahipse (kullanıcı OAuth) izin verir. Bu, bu sohbetten yapılan tek seferlik bir onaydır."
-      activate: "**Etkinleştirmek için:** `/setup-files` gönderin ve talimatları izleyin."
-      host_path: "Bu arada dosya ana makinede: `{path}`"
-    setup_files:
-      not_configured: "🔧 Yerel ek teslimi **yapılandırılmamış**.\n**1. Adım (tek seferlik, ana makinede):** https://console.cloud.google.com/apis/credentials → *Create credentials* → *OAuth client ID* → *Desktop app* adresinden OAuth istemci kimlik bilgileri oluşturun. JSON'u indirin. Ardından ana makinede şunu çalıştırın:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**2. Adım:** buraya geri dönüp `/setup-files start` gönderin."
-      start_instructions: "1. Bu URL'yi tarayıcınızda açın ve yetkilendirin:\n{auth_url}\n\n2. *Allow* düğmesine tıkladıktan sonra tarayıcınız `http://localhost:1/?...&code=...` adresini yükleyemeyecek. Bu beklenen bir durumdur.\n\n3. Yüklenemeyen URL'nin tamamını tarayıcının adres çubuğundan kopyalayıp buraya şu şekilde yapıştırın: `/setup-files <PASTE_URL>` (veya yalnızca `code=...` değerini).\n\nİpucu: URL erişim iznini içerir — gizli tutun."
-      start_failed: "❌ OAuth URL'si oluşturulamadı. Gateway günlüklerini kontrol edin ve client_secret.json dosyasının geçerli olduğunu doğrulayın."
-      exchange_failed: "❌ Token değişimi başarısız oldu. Kodun süresi dolmuş veya URL hatalı biçimlendirilmiş olabilir. Yeni bir OAuth URL'si almak için `/setup-files start` gönderin."
-      revoke_completed: "İptal tamamlandı (bazı adımlar atlanmış olabilir)."
-      revoked: "İptal edildi."
-      helper_error: "❌ Hata: {error}"
-      revoke_error: "❌ İptal edilirken hata: {error}"
-      who_shared: "paylaşılan (eski)"
-      active: "✅ Yerel ek teslimi `{who}` için **etkin**.\nToken: `{token_path}`\nDevre dışı bırakmak için `/setup-files revoke` gönderin."
-      not_authorized_yet: "🔧 İstemci kimlik bilgileri kayıtlı ancak henüz yetkilendirme yapmadınız. Başlamak için `/setup-files start` gönderin."
-      no_client_credentials: "⚠️ Bu profil için kayıtlı istemci kimlik bilgisi yok. Kurulum talimatları için `/setup-files` (argümansız) gönderin."
-      done_output: "✅ Tamamlandı.\n```\n{output}\n```"
-      authorized: "✅ Yetkilendirildi! Yerel ek teslimi artık etkin. Benden size bir PDF göndermemi isteyerek deneyin."
-      exchanged_not_loaded: "⚠️ Token değiştirildi ancak gateway yeni kimlik bilgilerini belleğe yükleyemedi. Gateway'i yeniden başlatın; `{token_path}` konumundaki token alınacaktır.\nYardımcı çıktısı:\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ İzin verildi (bir kez)"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "Önemli kararlar"
       action_items: "Yapılacaklar"
       risks: "Riskler"
-  line:
-    pending:
-      still_thinking: "🤔 Hâlâ düşünüyor. Yanıt hazır olduğunda almak için aşağıya dokunun."
-      button_label: "Yanıtı al"
-      delivered: "Zaten yanıtlandı ✅"
-      interrupted: "Çalıştırma tamamlanmadan kesildi."
-      expired: "Bu isteğin süresi doldu — mesajınızı yeniden gönderin."
-    standalone:
-      attachments_not_deliverable: "[{count} ek oluşturuldu; cron'dan teslim edilemiyor]"
-  wecom:
-    media:
-      kind_image: "Görüntü"
-      kind_video: "Video"
-      kind_voice: "Sesli mesaj"
-      file_too_large: "Dosya boyutu ({size_mb}MB) WeCom'un 20MB sınırını aşıyor ve gönderilemiyor. Dosyayı sıkıştırmayı veya boyutunu küçültmeyi deneyin."
-      voice_format_downgraded: "{content_type} ses biçimi desteklenmiyor (WeCom yalnızca AMR kabul eder); bunun yerine dosya olarak gönderildi."
-      size_downgraded: "{label} boyutu ({size_mb}MB) {cap} sınırını aşıyor; bunun yerine dosya olarak gönderildi."
   email:
     image_line: "Görüntü: {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔Düşünüyor"
-      done: "🥳Tamamlandı"
-  irc:
-    quit_message: "Hermes Agent kapatılıyor"
-    standalone_quit: "teslim edildi"
   relay:
     confirm_approve_once: "Bir Kez Onayla"
     confirm_always_approve: "Her Zaman Onayla"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "Bu oturumu bir mesajlaşma platformuna devret (Telegram, Discord vb.)"
   branch:
-    description: "Geçerli oturumu dallandır (Discord/Telegram/Slack/Matrix'te yeni konu; --here burada kalır)"
+    description: "Geçerli oturumu dallandır (Discord/Telegram/Slack'te yeni konu; --here burada kalır)"
   worktree:
     description: "Yalıtılmış git worktree'lerini göster, listele, oluştur veya temizle"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "/voice on, CLI'da ses modunu etkinleştirir. Ctrl+B bas-konuş kaydını açar/kapatır."
   t155: "Akışlı TTS cümleleri üretildikçe seslendirir — yanıtın tamamını beklemeniz gerekmez."
   t156: "Telegram, Discord, WhatsApp ve Slack'teki sesli mesajlar otomatik olarak yazıya dökülür."
-  t157: "Hermes 21 mesajlaşma platformunda çalışır: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, IRC, Microsoft Teams, e-posta ve daha fazlası."
+  t157: "Hermes 21 mesajlaşma platformunda çalışır: Telegram, Discord, Slack, WhatsApp, Microsoft Teams, e-posta ve daha fazlası."
   t158: "hermes gateway install, gateway'i açılışta başlayan bir sistem hizmeti olarak kurar."
-  t159: "DingTalk, Stream Mode kullanır — webhook veya herkese açık URL gerekmez."
-  t160: "BlueBubbles, yerel bir macOS sunucusu üzerinden iMessage'ı Hermes'e getirir."
   t161: "Webhook rotaları HMAC doğrulaması, hız sınırlama ve olay filtrelemeyi destekler."
   t162: "API sunucusu, Open WebUI ve LibreChat ile uyumlu, OpenAI uyumlu bir uç nokta sunar."
   t163: "Discord ses kanalı modu: bot sesli kanala katılır, konuşmayı yazıya döker ve sesli yanıt verir."
@@ -3814,7 +3684,6 @@ tips:
   t328: "tts.providers.<name>.type: command, {input_path} ve {output_path} yer tutucularıyla herhangi bir CLI TTS motorunu bağlar."
   t329: "API_SERVER_ENABLED=true, Open WebUI ve LibreChat için gateway'in yanında OpenAI uyumlu bir uç nokta çalıştırır."
   t330: "GATEWAY_PROXY_URL bölünmüş bir kurulum sağlar: platform G/Ç'si yerelde, ajan işi uzak bir API sunucusuna devredilir."
-  t331: "MATRIX_DEVICE_ID, E2EE için sabit bir cihaz kimliği belirler — yoksa anahtarlar her başlatmada değişir ve geçmiş mesajların şifresi çözülemez."
   t332: "TELEGRAM_WEBHOOK_URL ayarlandığında TELEGRAM_WEBHOOK_SECRET zorunludur — openssl rand -hex 32 ile üretin."
   t333: "batch_runner.py --resume, tamamlanan istemleri metne göre eşleştirir; böylece veri kümesi yeniden sıralansa bile biten işler tekrar çalışmaz."
   t334: "/new, yerinde yeni bir oturum başlatır (takma adı /reset) — yeni oturum kimliği, temiz geçmiş, CLI açık kalır."

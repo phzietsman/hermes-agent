@@ -30,8 +30,8 @@ def _patch_named_profile(monkeypatch, profiles_root, profile_dir):
 # Stores named here as well as in PROFILE_CREDENTIAL_PATHS, so dropping one from the list fails a test:
 # the loaders' and writers' own file names (.op.env and npmrc have no suffix the scrub edits).
 _EXTRA_STORES = {
-    ".op.env", "npmrc", "honcho.json", "google_chat_user_token.json", "google_chat_user_oauth_pending",
-    "workspace/meetings/node_token.json", "weixin/accounts", ".copilot_jwt.json", "proxy", "chrome-debug",
+    ".op.env", "npmrc", "honcho.json",
+    "workspace/meetings/node_token.json", ".copilot_jwt.json", "proxy", "chrome-debug",
     "home/.git-credentials", "home/.config/gh/hosts.yml", "backups", "state-snapshots",
     DEFAULT_TEAMS_PIPELINE_STORE_FILENAME, "mem0.json",
     "browser-profiles/live/Default/Cookies", "browser_profiles/default/Default/Login Data",
@@ -107,8 +107,8 @@ class TestCredentialExclusion:
         _seed_stores(profile_dir)
         (profile_dir / "config.yaml").write_text(f"model:\n  api_key: {_LEAKED_KEY}\n")
         (profile_dir / "config.yaml.bak-my-note").write_text(f"model:\n  api_key: {_LEAKED_KEY}\n")
-        (profile_dir / "GOOGLE_CHAT_USER_TOKENS").mkdir(exist_ok=True)
-        (profile_dir / "GOOGLE_CHAT_USER_TOKENS" / "upper.json").write_text("fake-credential")
+        (profile_dir / "MCP-TOKENS").mkdir(exist_ok=True)
+        (profile_dir / "MCP-TOKENS" / "upper.json").write_text("fake-credential")
         nested = [f"skills/s/{r}" for r in (".ssh/id_rsa", ".aws/credentials", ".gnupg/x", ".kube/config", ".envrc",
                                             ".docker/config.json", ".azure/accessTokens.json",
                                             ".config/gh/hosts.yml", ".config/gcloud/application_default_credentials.json")]
@@ -139,7 +139,7 @@ class TestCredentialExclusion:
         assert "default/skills/s/.config/other/settings.json" in default_members
         assert "testprofile/skills/s/.config/other/settings.json" in members
         assert _LEAKED_KEY not in note
-        rels = {*_EXTRA_STORES, *PROFILE_CREDENTIAL_PATHS, "google_chat_user_tokens/upper.json", *nested,
+        rels = {*_EXTRA_STORES, *PROFILE_CREDENTIAL_PATHS, "mcp-tokens/upper.json", *nested,
                 *(c.relative_to(profile_dir).as_posix() for c in copies)}
         folded = {n.casefold() for n in (*members, *default_members)}
         leaked = sorted(f"{p}/{r}" for p in ("testprofile", "default") for r in rels if any(

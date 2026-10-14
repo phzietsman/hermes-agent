@@ -1606,12 +1606,12 @@ model:
 agent:
   max_turns: 60
 platforms:
-  feishu:
+  telegram:
     enabled: true
     extra:
       app_id: cli_xxx
       app_secret: xxx
-feishu:
+telegram:
   require_mention: true
 """
         (tmp_path / "config.yaml").write_text(body, encoding="utf-8")
@@ -1627,8 +1627,8 @@ feishu:
             raw = yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))
             merged = load_config()
 
-        assert raw["platforms"]["feishu"]["extra"]["app_id"] == "cli_xxx"
-        assert raw["feishu"]["require_mention"] is True
+        assert raw["platforms"]["telegram"]["extra"]["app_id"] == "cli_xxx"
+        assert raw["telegram"]["require_mention"] is True
         # verify_on_stop=False now equals the schema default (opt-in), so
         # strip_defaults removes it from disk; deep-merge supplies it at read.
         assert "verify_on_stop" not in raw.get("agent", {})
@@ -1645,7 +1645,7 @@ model:
 agent:
   max_turns: 60
 platforms:
-  feishu:
+  telegram:
     enabled: true
     extra:
       app_id: cli_xxx
@@ -1659,7 +1659,7 @@ platforms:
             _persist_migration(config)
             raw = yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))
 
-        assert raw["platforms"]["feishu"]["extra"]["app_id"] == "cli_xxx"
+        assert raw["platforms"]["telegram"]["extra"]["app_id"] == "cli_xxx"
         # The migration-write invariant strips schema-default values, and
         # verify_on_stop=False now IS the default — so it must NOT be
         # materialised to disk by _persist_migration.
@@ -1668,7 +1668,7 @@ platforms:
         assert raw["_config_version"] == 32
 
     def test_v30_to_latest_migration_keeps_platforms(self, tmp_path):
-        """End-to-end: reporter's v30 feishu profile survives version bump."""
+        """End-to-end: reporter's v30 telegram profile survives version bump."""
         body = """_config_version: 30
 model:
   default: deepseek-v4-pro
@@ -1676,12 +1676,12 @@ model:
 agent:
   max_turns: 60
 platforms:
-  feishu:
+  telegram:
     enabled: true
     extra:
       app_id: cli_xxx
       app_secret: xxx
-feishu:
+telegram:
   require_mention: true
 """
         (tmp_path / "config.yaml").write_text(body, encoding="utf-8")
@@ -1689,8 +1689,8 @@ feishu:
             migrate_config(interactive=False, quiet=True)
             raw = yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))
 
-        assert raw["platforms"]["feishu"]["extra"]["app_id"] == "cli_xxx"
-        assert raw["feishu"]["require_mention"] is True
+        assert raw["platforms"]["telegram"]["extra"]["app_id"] == "cli_xxx"
+        assert raw["telegram"]["require_mention"] is True
 
 
 class TestVerifyOnStopMigration:

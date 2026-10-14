@@ -259,30 +259,17 @@ class GatewaySlashCommandsMixin(
             self._evict_cached_agent(session_key)
         return _set_approval
 
-    async def _deliver_approval_confirmation(self, event: MessageEvent, confirmation_text: str, verb: str):
-        """Return *confirmation_text* for normal delivery, or push it on native-streaming adapters
-        (WeCom msgtype:"stream"), which need it sent directly with control-lane metadata (reliable
-        proactive send, not the finalized reply stream). ``is not True``: mocks auto-create attrs."""
-        source = event.source
-        adapter = self._delivery_adapter_for(source)  # the receiving bot, not the default profile's
+    async def _deliver_approval_confirmation(self, event: MessageEvent, confirmation_text: str):
+        """Resume typing (the agent is about to continue) and return *confirmation_text* for normal delivery."""
+        adapter = self._delivery_adapter_for(event.source)  # the receiving bot, not the default profile's
         if adapter:
-            adapter.resume_typing_for_chat(source.chat_id)  # agent is about to continue
-        if getattr(adapter, "SUPPORTS_NATIVE_STREAMING", False) is not True:
-            return confirmation_text
-        if adapter:
-            try:
-                await adapter.send(
-                    source.chat_id, confirmation_text, reply_to=event.message_id,
-                    metadata={"is_approval_prompt": True, "force_proactive_send": True})
-            except Exception as exc:
-                logger.warning("Failed to send /%s confirmation to %s: %s", verb, source.chat_id,
-                               exc, exc_info=True)
-        return None
+            adapter.resume_typing_for_chat(event.source.chat_id)
+        return confirmation_text
 
     def _typed_command_prefix_for(self, platform) -> str:
         """The prefix users can always type to reach Hermes commands (adapter ``typed_command_prefix``,
-        default "/"). Slack and Matrix use "!" because typed "/" is blocked/reserved there; their
-        adapters rewrite "!command" to "/command"."""
+        default "/"). Slack uses "!" because typed "/" is blocked there; its
+        adapter rewrites "!command" to "/command"."""
         adapter = self.adapters.get(platform) if getattr(self, "adapters", None) else None
         return getattr(adapter, "typed_command_prefix", "/") if adapter is not None else "/"
 
@@ -405,7 +392,7 @@ class GatewaySlashCommandsMixin(
                 _kbn.add_notify_sub(
                     conn, task_id=task_id, platform=platform_str, chat_id=chat_id, chat_type=chat_type,
                     thread_id=_field("thread_id"), user_id=_field("user_id"),
-                    # Also persist the stable alt id (Signal UUID, Feishu union_id): build_session_key
+                    # Also persist the stable alt id (platform-specific stable id): build_session_key
                     # keys the participant on ``user_id_alt or user_id``, so a replayed wake rebuilds
                     # the same session key only when the alt id survives the round-trip.
                     user_id_alt=_field("user_id_alt"),
@@ -1205,7 +1192,7 @@ class GatewaySlashCommandsMixin(
             return t("gateway.approve.no_pending")
         confirmation_text = t(f"gateway.approve.{choice}_{'plural' if count > 1 else 'singular'}", count=count)
         logger.info("User approved %d dangerous command(s) via /approve (%s)", count, choice)
-        return await self._deliver_approval_confirmation(event, confirmation_text, "approve")
+        return await self._deliver_approval_confirmation(event, confirmation_text)
 
     async def _handle_deny_command(self, event: MessageEvent) -> str:
         """Handle /deny — reject pending dangerous command(s) with a definitive BLOCKED result, as in
@@ -1232,7 +1219,7 @@ class GatewaySlashCommandsMixin(
                     " (with reason)" if reason else "")
         key = "gateway.deny.denied" + ("_reason" if reason else "") + ("_plural" if count > 1 else "_singular")
         confirmation_text = t(key, count=count, reason=reason)
-        return await self._deliver_approval_confirmation(event, confirmation_text, "deny")
+        return await self._deliver_approval_confirmation(event, confirmation_text)
 
     async def _handle_debug_command(self, event: MessageEvent) -> str:
         """Handle /debug — upload ONLY the summary (system info + log tails), never full logs, to

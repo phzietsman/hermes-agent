@@ -71,7 +71,6 @@ def _runner(adapter):
         def result(self, timeout=None): return self._r
 
     runner._schedule = lambda coro, _label: _Fut(asyncio.run(coro))
-    runner._close_native_stream_boundary = lambda _why: None
     return runner
 
 

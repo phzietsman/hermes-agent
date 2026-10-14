@@ -1954,7 +1954,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         runs when `stdout.read()` returns EOF. If the direct `Popen` child has exited but a descendant
         process (e.g. a daemon spawned by `hermes update` restarting the gateway) is still holding the
         stdout pipe open, the reader blocks forever and poll() keeps returning "running" indefinitely (issue
-        #17327 — 74 polls over 7 minutes on Feishu).
+        #17327 — 74 polls over 7 minutes in a chat session).
         """
         if session is None or session.exited:
             return

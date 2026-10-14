@@ -477,7 +477,7 @@ See `agent/tts_provider.py` for the full ABC including docstrings.
 
 ## Voice Message Transcription (STT)
 
-Voice messages sent on Telegram, Discord, WhatsApp, Slack, or Signal are automatically transcribed and injected as text into the conversation. The agent sees the transcript as normal text.
+Voice messages sent on Telegram, Discord, WhatsApp, or Slack are automatically transcribed and injected as text into the conversation. The agent sees the transcript as normal text.
 
 | Provider | Quality | Cost | API Key |
 |----------|---------|------|---------| 

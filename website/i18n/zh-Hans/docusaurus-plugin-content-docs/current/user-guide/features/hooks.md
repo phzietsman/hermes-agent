@@ -936,7 +936,7 @@ def register(ctx):
 
 ### `pre_approval_request`
 
-在审批请求向用户展示**之前立即**触发——覆盖所有界面：交互式 CLI、Ink TUI、gateway 平台（Telegram、Discord、Slack、WhatsApp、Matrix 等）以及 ACP 客户端（VS Code、Zed、JetBrains）。
+在审批请求向用户展示**之前立即**触发——覆盖所有界面：交互式 CLI、Ink TUI、gateway 平台（Telegram、Discord、Slack、WhatsApp 等）以及 ACP 客户端（VS Code、Zed、JetBrains）。
 
 这是接入自定义通知器的正确位置——例如弹出允许/拒绝通知的 macOS 菜单栏应用，或记录每个带上下文审批请求的审计日志。
 

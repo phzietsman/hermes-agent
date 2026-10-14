@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "セッションデータベースは利用できません。"
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}. Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room. Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Matrix での /resume をブロックしました: この名前付きセッションには元のルームが記録されていないため、Hermes はデフォルトでは現在のルーム内で再開しません。意図的にルームの境界を越えて再開する場合は `/resume --cross-room {name}` を使用してください。"
-    matrix_blocked_other_room: "⚠️ Matrix での /resume をブロックしました: そのセッションは別の Matrix ルーム ({room}) のものです。意図的にここで再開する場合は `/resume --cross-room {name}` を使用してください。"
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**. Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ /resume をブロックしました: '**{name}**' は別のユーザーまたはチャットのセッションです。再開できるのはこのチャットのセッションのみです。"
     no_named_sessions: "名前付きセッションが見つかりません。\n`/title セッション名` で現在のセッションに名前を付けると、後で `/resume セッション名` で戻れます。"
     all_requires_admin: "_注: `--all`（チャット横断の一覧）には設定済みの管理者権限が必要です。このチャットのセッションのみ表示しています。_"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "スキル別・ツールセット別のコストを見るには /context all を使ってください。"
   status:
     header: "📊 **Hermes ゲートウェイ状態**"
-    matrix_scope_header: "**Matrix スコープ:**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**セッション ID:** `{session_id}`"
     title: "**タイトル:** {title}"
     created: "**作成日時:** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ 回答済み: {response}"
     cancelled: "↩️ 確認をキャンセルしました — あなたのメッセージは続きの指示として処理されます。"
     expired: "⏳ このプロンプトは期限切れです — 新しいリクエストを送信してください。"
-    native_stream_placeholder: "💬 選択をお待ちしています..."
     skip_hint: 'この質問をスキップするには「skip」と返信してください。'
   errors:
     rate_limited: "⏱️ AI モデルサービスがリクエストをレート制限しています。少し待ってから /retry を使ってください。"
@@ -962,9 +951,6 @@ platform:
     approved: "✅ 承認しました。"
     denied: "❌ 拒否しました。"
     approval_expired: "⌛ 承認の有効期限が切れました — コマンドは実行されませんでした（すでにタイムアウトしたか、別の場所で処理済みです）。"
-  yuanbao:
-    slow_response_notice: "このタスクは少し手間がかかります — 処理を続けていますので、しばらくお待ちください..."
-    owner_command_denied: "⚠️ {command} はプライベートチャットモードで作成者のみが使用できます"
   shared:
     truncated_suffix: "\n...(省略)"
     unknown: "不明"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ 動画の添付ファイルを送信できませんでした。"
       file_failed: "⚠️ 添付ファイル（{name}）を送信できませんでした。"
       attachment_failed: "⚠️ 添付ファイルを送信できませんでした。"
-  weixin:
-    voice_as_attachment: "[音声メッセージを添付ファイルとして送信]"
-  signal:
-    batch_pacing_notice: "（まだ画像があります — Signal のレート制限のため約 {wait} 待機します。バッチ {batch}/{total}）"
-    wait_seconds: "{count} 秒"
-    wait_minutes: "{count} 分"
   api_server:
     provider_auth_failed: "プロバイダーの認証に失敗しました"
     provider_rate_limited: "プロバイダーのレート制限中"
@@ -1324,90 +1304,6 @@ platform:
       running: "`/{command}` を実行中…"
     handoff:
       seed: ":thread: Hermes ハンドオフ — *{name}*"
-  matrix:
-    handoff:
-      default_name: "Hermes セッション"
-    media:
-      image_download_failed: "画像をダウンロードして Matrix にアップロードできませんでした。ソース URL には非公開のトークンが含まれる可能性があるため表示していません。"
-    approval:
-      typed_hint_once: "`!approve` と返信すると一度だけ実行、`!deny` でキャンセルします。"
-      typed_hint_session: "`!approve session` と返信するとこのパターンをセッション中は承認、`!approve` で一度だけ実行、`!deny` でキャンセルします。"
-      typed_hint_always: "`!approve session` と返信するとこのパターンをセッション中は承認、`!approve always` で永続的に承認、`!approve` で一度だけ実行、`!deny` でキャンセルします。"
-      legend_intro: "リアクションをクリックして承認することもできます:"
-      legend_once: "✅ = 一度だけ承認"
-      legend_session: "🌀 = このセッション中は承認"
-      legend_always: "♾️ = 常に承認"
-      legend_deny: "❎ = 拒否"
-      invalid_reaction: "そのリアクションはこの承認プロンプトでは無効です。"
-      expired: "この承認プロンプトの有効期限が切れました。承認する場合は、コマンドをもう一度実行してください。"
-    picker:
-      no_models: "このセッションで利用できる認証済みモデルはありません。"
-      title: "⚙ **モデル設定**"
-      current_model: "現在のモデル: `{model}`"
-      provider: "プロバイダー: {provider}"
-      react_model: "リアクションでモデルを選択:"
-      react_choice: "リアクションで選択してください。"
-      current_suffix: "{label} ← 現在"
-      invalid_model_reaction: "そのリアクションは選択可能なモデルに対応していません。"
-      invalid_choice_reaction: "そのリアクションは選択可能な選択肢に対応していません。"
-      verb_switch_model: "モデルの切り替え"
-      verb_apply_selection: "選択の適用"
-      failed: "{action}に失敗しました: {error}"
-    reaction:
-      unauthorized: "これらの操作は、認可された Matrix ユーザーのみが使用できます。"
-      not_requester: "これらの操作は、このアクションをリクエストしたユーザーのみが使用できます。"
-  feishu:
-    approval:
-      action_session: "セッション中"
-      action_always: "常に"
-      resolved_once: "一度だけ承認"
-      resolved_session: "セッション中は承認"
-      resolved_always: "永続的に承認"
-      resolved_deny: "拒否"
-      resolved_fallback: "処理済み"
-      resolved_by_user: "{icon} {user} が **{label}**"
-    update_prompt:
-      title: "☤ アップデートに入力が必要です"
-      default_hint: "\n\nデフォルト: `{default}`"
-      answer_yes: "✓ はい"
-      answer_no: "✗ いいえ"
-      word_yes: "はい"
-      word_no: "いいえ"
-      answered_title: "{icon} アップデートプロンプトに回答しました: {answer}"
-      answered_by: "**{user}** が回答"
-    media:
-      gif_downgraded: "[GIF をファイルとして送信]"
-      gif_downgraded_caption: "[GIF をファイルとして送信]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "その他 / 回答を入力"
-      header: "質問"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes が考えています…"
-      interrupted: "（中断されました）"
-      no_reply: "（返信なし）"
-    attachment_fallback:
-      header: "⚠️ **{filename}** を添付できませんでした。"
-      explain: "Google Chat では、ボットに明示的な許可（ユーザー OAuth）がある場合のみファイルを添付できます。このチャットから一度だけ同意すれば完了します。"
-      activate: "**有効にするには:** `/setup-files` を送信し、指示に従ってください。"
-      host_path: "それまでの間、ファイルはホスト上にあります: `{path}`"
-    setup_files:
-      not_configured: "🔧 ネイティブの添付ファイル配信は**未設定**です。\n**ステップ 1（初回のみ、ホスト上で）:** https://console.cloud.google.com/apis/credentials で OAuth クライアント認証情報を作成します → *認証情報を作成* → *OAuth クライアント ID* → *デスクトップアプリ*。JSON をダウンロードし、ホスト上で次を実行します:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**ステップ 2:** ここに戻って `/setup-files start` を送信してください。"
-      start_instructions: "1. ブラウザでこの URL を開いて認可します:\n{auth_url}\n\n2. *許可* をクリックすると、ブラウザは `http://localhost:1/?...&code=...` の読み込みに失敗します。これは想定どおりの動作です。\n\n3. ブラウザの URL バーから失敗した URL 全体をコピーし、`/setup-files <PASTE_URL>`（または `code=...` の値のみ）としてここに貼り付けてください。\n\nヒント: この URL にはアクセス権限が含まれます — 他人に共有しないでください。"
-      start_failed: "❌ OAuth URL を生成できませんでした。ゲートウェイのログを確認し、client_secret.json が有効か確認してください。"
-      exchange_failed: "❌ トークンの交換に失敗しました。コードの有効期限が切れたか、URL の形式が正しくない可能性があります。`/setup-files start` を送信して新しい OAuth URL を取得してください。"
-      revoke_completed: "取り消しが完了しました（一部のステップはスキップされた可能性があります）。"
-      revoked: "取り消しました。"
-      helper_error: "❌ エラー: {error}"
-      revoke_error: "❌ 取り消しエラー: {error}"
-      who_shared: "共有（レガシー）"
-      active: "✅ ネイティブの添付ファイル配信は `{who}` に対して**有効**です。\nトークン: `{token_path}`\n無効にするには `/setup-files revoke` を送信してください。"
-      not_authorized_yet: "🔧 クライアント認証情報は保存されていますが、まだ認可されていません。`/setup-files start` を送信して開始してください。"
-      no_client_credentials: "⚠️ このプロファイルにはクライアント認証情報が保存されていません。`/setup-files`（引数なし）を送信するとセットアップ手順を表示します。"
-      done_output: "✅ 完了しました。\n```\n{output}\n```"
-      authorized: "✅ 認可されました！ネイティブの添付ファイル配信が有効になりました。PDF を送るよう試しに依頼してみてください。"
-      exchanged_not_loaded: "⚠️ トークンは交換されましたが、ゲートウェイが新しい認証情報をメモリに読み込めませんでした。ゲートウェイを再起動すると `{token_path}` のトークンが読み込まれます。\nヘルパーの出力:\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ 許可（一度だけ）"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "主な決定事項"
       action_items: "アクションアイテム"
       risks: "リスク"
-  line:
-    pending:
-      still_thinking: "🤔 まだ考えています。準備ができたら、下をタップして回答を取得してください。"
-      button_label: "回答を取得"
-      delivered: "返信済み ✅"
-      interrupted: "実行は完了前に中断されました。"
-      expired: "そのリクエストは有効期限が切れました — メッセージをもう一度送信してください。"
-    standalone:
-      attachments_not_deliverable: "[{count} 件の添付ファイルを生成しました。cron からは配信できません]"
-  wecom:
-    media:
-      kind_image: "画像"
-      kind_video: "動画"
-      kind_voice: "音声メッセージ"
-      file_too_large: "ファイルサイズ {size_mb}MB が WeCom の上限 20MB を超えているため送信できません。ファイルを圧縮するか、サイズを小さくしてください。"
-      voice_format_downgraded: "音声形式 {content_type} はサポートされていません（WeCom は AMR のみ対応）。代わりにファイルとして送信しました。"
-      size_downgraded: "{label}のサイズ {size_mb}MB が上限 {cap} を超えています。代わりにファイルとして送信しました。"
   email:
     image_line: "画像: {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔考え中"
-      done: "🥳完了"
-  irc:
-    quit_message: "Hermes Agent をシャットダウンしています"
-    standalone_quit: "配信済み"
   relay:
     confirm_approve_once: "一度だけ承認"
     confirm_always_approve: "常に承認"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "このセッションをメッセージングプラットフォーム（Telegram、Discord など）に引き継ぐ"
   branch:
-    description: "現在のセッションを分岐（Discord/Telegram/Slack/Matrix では新しいスレッド。--here でここに留まる）"
+    description: "現在のセッションを分岐（Discord/Telegram/Slack では新しいスレッド。--here でここに留まる）"
   worktree:
     description: "分離された git worktree の表示、一覧、作成、または削除"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "/voice on は CLI で音声モードを有効にします。Ctrl+B でプッシュトゥトーク録音を切り替えます。"
   t155: "ストリーミング TTS は文が生成されるそばから再生するため、応答全体を待つ必要がありません。"
   t156: "Telegram、Discord、WhatsApp、Slack の音声メッセージは自動的に文字起こしされます。"
-  t157: "Hermes は Telegram、Discord、Slack、WhatsApp、Signal、Matrix、IRC、Microsoft Teams、メールなど 21 のメッセージングプラットフォームで動作します。"
+  t157: "Hermes は Telegram、Discord、Slack、WhatsApp、Microsoft Teams、メールなど 21 のメッセージングプラットフォームで動作します。"
   t158: "hermes gateway install は起動時に自動で開始するシステムサービスとして設定します。"
-  t159: "DingTalk は Stream Mode を使うため、Webhook や公開 URL は不要です。"
-  t160: "BlueBubbles はローカルの macOS サーバー経由で iMessage を Hermes に接続します。"
   t161: "Webhook ルートは HMAC 検証、レート制限、イベントフィルタリングに対応しています。"
   t162: "API サーバーは Open WebUI や LibreChat と互換性のある OpenAI 互換エンドポイントを公開します。"
   t163: "Discord のボイスチャンネルモード: ボットが VC に参加し、発話を文字起こしして音声で返答します。"
@@ -3814,7 +3684,6 @@ tips:
   t328: "tts.providers.<name>.type: command は、{input_path} と {output_path} のプレースホルダーで任意の CLI TTS エンジンを接続します。"
   t329: "API_SERVER_ENABLED=true は、Open WebUI や LibreChat 向けに、ゲートウェイと並行して OpenAI 互換エンドポイントを起動します。"
   t330: "GATEWAY_PROXY_URL は分離構成を実現します。プラットフォームの入出力はローカルで、エージェントの処理はリモートの API サーバーに委ねます。"
-  t331: "MATRIX_DEVICE_ID は E2EE 用の固定デバイス ID を指定します。未設定だと起動ごとにキーが変わり、過去メッセージの復号が壊れます。"
   t332: "TELEGRAM_WEBHOOK_URL を設定する場合は TELEGRAM_WEBHOOK_SECRET が必須です。openssl rand -hex 32 で生成できます。"
   t333: "batch_runner.py --resume は完了済みプロンプトをテキスト内容で照合するため、データセットの順序が変わっても完了した作業を再実行しません。"
   t334: "/new はその場で新しいセッションを開始します（別名 /reset）。新しいセッション ID、空の履歴、CLI は開いたままです。"

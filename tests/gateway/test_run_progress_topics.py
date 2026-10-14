@@ -3,7 +3,6 @@
 import asyncio
 import importlib
 import sys
-import threading
 import time
 import types
 from types import SimpleNamespace
@@ -146,33 +145,6 @@ class MetadataEditProgressCaptureAdapter(ProgressCaptureAdapter):
                 "metadata": metadata,
             }
         )
-        return SendResult(success=True, message_id=message_id)
-
-
-class MatrixStreamingProgressCaptureAdapter(ProgressCaptureAdapter):
-    """Records whether Matrix edits are progressive or finalizing."""
-
-    initial_send_seen = threading.Event()
-    progressive_edit_seen = threading.Event()
-
-    async def send(self, chat_id, content, reply_to=None, metadata=None) -> SendResult:
-        result = await super().send(chat_id, content, reply_to=reply_to, metadata=metadata)
-        self.initial_send_seen.set()
-        return result
-
-    async def edit_message(
-        self, chat_id, message_id, content, *, finalize: bool = False, metadata=None
-    ) -> SendResult:
-        self.edits.append(
-            {
-                "chat_id": chat_id,
-                "message_id": message_id,
-                "content": content,
-                "finalize": finalize,
-            }
-        )
-        if not finalize:
-            self.progressive_edit_seen.set()
         return SendResult(success=True, message_id=message_id)
 
 
@@ -927,26 +899,6 @@ class FinalAsInterimAgent:
         }
 
 
-class StreamingRefineAgent:
-    def __init__(self, **kwargs):
-        self.stream_delta_callback = kwargs.get("stream_delta_callback")
-        self.tools = []
-
-    def run_conversation(self, message, conversation_history=None, task_id=None, **kwargs):
-        if self.stream_delta_callback:
-            self.stream_delta_callback("Continuing to refine:")
-        MatrixStreamingProgressCaptureAdapter.initial_send_seen.wait(timeout=2.0)
-        if self.stream_delta_callback:
-            self.stream_delta_callback(" Final answer.")
-        MatrixStreamingProgressCaptureAdapter.progressive_edit_seen.wait(timeout=2.0)
-        return {
-            "final_response": "Continuing to refine: Final answer.",
-            "response_previewed": True,
-            "messages": [],
-            "api_calls": 1,
-        }
-
-
 class QueuedCommentaryAgent:
     calls = 0
 
@@ -1441,36 +1393,6 @@ async def test_non_editable_interim_final_is_recorded_for_final_send_dedup(monke
     assert adapter.edits == []
 
 
-@pytest.mark.asyncio
-async def test_run_agent_matrix_streaming_omits_cursor(monkeypatch, tmp_path):
-    MatrixStreamingProgressCaptureAdapter.initial_send_seen.clear()
-    MatrixStreamingProgressCaptureAdapter.progressive_edit_seen.clear()
-    adapter, result = await _run_with_agent(
-        monkeypatch,
-        tmp_path,
-        StreamingRefineAgent,
-        session_id="sess-matrix-streaming",
-        config_data={
-            "display": {"tool_progress": "off", "interim_assistant_messages": False},
-            "streaming": {"enabled": True, "edit_interval": 0.01, "buffer_threshold": 1},
-        },
-        platform=Platform.MATRIX,
-        chat_id="!room:matrix.example.org",
-        chat_type="group",
-        thread_id="$thread",
-        adapter_cls=MatrixStreamingProgressCaptureAdapter,
-    )
-
-    assert result.get("already_sent") is True
-    all_text = [call["content"] for call in adapter.sent] + [call["content"] for call in adapter.edits]
-    assert all_text, "expected streamed Matrix content to be sent or edited"
-    assert any(not call["finalize"] for call in adapter.edits), (
-        "Matrix should progressively edit the active message before finalization"
-    )
-    assert all("▉" not in text for text in all_text)
-    assert any("Continuing to refine:" in text for text in all_text)
-
-
 class TransformedStreamAgent:
     """Streams a response, then signals the gateway that a plugin hook
     (``transform_llm_output``) modified the final text after streaming
@@ -1510,8 +1432,8 @@ async def test_transformed_response_edits_streamed_message_in_place(monkeypatch,
             "display": {"tool_progress": "off", "interim_assistant_messages": False},
             "streaming": {"enabled": True, "edit_interval": 0.01, "buffer_threshold": 1},
         },
-        platform=Platform.MATRIX,
-        chat_id="!room:matrix.example.org",
+        platform=Platform.SLACK,
+        chat_id="C123",
         chat_type="group",
         thread_id="$thread",
         adapter_cls=MetadataEditProgressCaptureAdapter,
@@ -2166,14 +2088,3 @@ class TestSlackReplyInThreadProgressRouting:
             event_message_id="1700000000.000100",
             reply_in_thread=False,
         ) is None
-
-    def test_buzz_uses_event_message_id_as_progress_thread(self):
-        """Buzz has no native thread_id; progress must reply-to the trigger."""
-        from gateway.run import _resolve_progress_thread_id
-
-        assert _resolve_progress_thread_id(
-            "buzz",
-            source_thread_id=None,
-            event_message_id="evt-trigger-001",
-            reply_in_thread=True,
-        ) == "evt-trigger-001"

@@ -69,9 +69,7 @@ def _probe_gateway_health() -> tuple[bool, dict | None]:
 # DEFAULT_WEBHOOK_PORT. Display-only data for the topology readout, not a bind source.
 _PORT_BINDING_PLATFORM_PORTS: Dict[str, Tuple[str, int]] = {
     "webhook": ("port", 8644), "api_server": ("port", 8642), "msgraph_webhook": ("port", 8646),
-    "feishu": ("webhook_port", 8765), "wecom_callback": ("port", 8645), "bluebubbles": ("webhook_port", 8645),
-    "sms": ("webhook_port", 8080), "whatsapp_cloud": ("webhook_port", 8090), "line": ("port", 8646),
-    "teams": ("port", 3978),
+    "whatsapp_cloud": ("webhook_port", 8090), "line": ("port", 8646), "teams": ("port", 3978),
 }
 
 # Platform states that mean the adapter is NOT serving its port right now.
@@ -368,7 +366,7 @@ def _profile_action_environment(
     that mapping verbatim into ``hermes -p <other> ...`` lets the named child see the dashboard
     profile's platform credentials and ports *before* its own dotenv loads (``load_hermes_dotenv``
     does not override keys already present): a supposedly A2A-only profile then claims the default
-    Discord token and binds the default API/BlueBubbles ports.
+    Discord token and binds the default API ports.
 
     Named-profile actions therefore start from Hermes' standard scrubbed subprocess env, then drop
     the profile-managed keys plus every key declared by the dashboard/default profile dotenv files

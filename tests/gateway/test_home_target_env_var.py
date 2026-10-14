@@ -8,11 +8,7 @@ to env vars nothing read on startup — the home channel appeared to set
 successfully but was lost on every new gateway session.
 """
 
-from gateway.run import _home_target_env_var, _home_thread_env_var
-
-
-def test_matrix_home_target_env_var_uses_home_room():
-    assert _home_target_env_var("matrix") == "MATRIX_HOME_ROOM"
+from gateway.run import _home_target_env_var
 
 
 def test_email_home_target_env_var_uses_home_address():

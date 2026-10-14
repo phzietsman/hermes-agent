@@ -689,9 +689,9 @@ def _sanitize_gateway_final_response(platform: Any, text: str) -> str:
     if not text or _gateway_surface_passes_raw_text(platform):
         return text
 
-    # Lone UTF-16 surrogates make Telegram/Signal ``.encode()`` raise; last defense for legacy/plugin paths.
+    # Lone UTF-16 surrogates make Telegram ``.encode()`` raise; last defense for legacy/plugin paths.
     # Lone UTF-16 surrogates (U+D800–U+DFFF) in model output crash chat surfaces downstream: Telegram's
-    # ``utf16_len`` length check and Signal formatting both ``.encode()`` the reply and raise
+    # ``utf16_len`` length check ``.encode()`` the reply and raise
     # UnicodeEncodeError before any send (#55143, #55309). The stored-history copy is already sanitized by
     # ``build_assistant_message`` and ``finalize_turn`` scrubs the returned ``final_response``, but this
     # boundary is the last line of defense for every legacy/plugin delivery path that hands us raw text.
@@ -832,37 +832,14 @@ def _resolve_progress_thread_id(
         return str(source_thread_id) if source_thread_id else None
     if source_thread_id:
         return str(source_thread_id)
-    if platform_key in {"slack", "mattermost", "buzz"} and event_message_id:
+    if platform_key in {"slack"} and event_message_id:
         return str(event_message_id)
     return None
 
 
-def _has_platform_display_override(user_config: dict, platform_key: str, setting: str) -> bool:
-    """Return True when display.platforms.<platform> explicitly sets setting."""
-    display = user_config.get("display") if isinstance(user_config, dict) else None
-    if not isinstance(display, dict):
-        return False
-    platforms = display.get("platforms")
-    if not isinstance(platforms, dict):
-        return False
-    platform_cfg = platforms.get(platform_key)
-    return isinstance(platform_cfg, dict) and setting in platform_cfg
-
-
 def _resolve_gateway_display_bool(
-    user_config: dict, platform_key: str, setting: str, *, default: bool = False,
-    platform: Any = None, require_platform_override_for: set[Any] | None = None) -> bool:
-    """Resolve a boolean display setting with optional platform-only opt-in.
-
-    Scratch-text is too noisy for threaded surfaces (Mattermost): they need an explicit per-platform override.
-    """
-    current_platform = _gateway_platform_value(platform or platform_key)
-    platform_only = {_gateway_platform_value(c) for c in (require_platform_override_for or set())}
-    if (
-        current_platform in platform_only
-        and not _has_platform_display_override(user_config, platform_key, setting)):
-        return False
-
+    user_config: dict, platform_key: str, setting: str, *, default: bool = False) -> bool:
+    """Resolve a boolean display setting."""
     from gateway.display_config import resolve_display_setting
 
     value = resolve_display_setting(user_config, platform_key, setting, default)
@@ -1900,7 +1877,7 @@ async def _discover_gateway_mcp_tools(config: object) -> None:
 
 def _platform_has_bot_credential(platform: "Platform", platform_config: "PlatformConfig") -> bool:
     """Return True when a token-authenticated platform has a usable bot credential; platforms not using
-    ``PlatformConfig.token`` (Signal session paths, port-binding HTTP adapters) always return True."""
+    ``PlatformConfig.token`` (port-binding HTTP adapters) always return True."""
     from gateway.config import PLATFORM_TOKEN_ENV_NAMES, Platform
     if platform is Platform.WHATSAPP:
         from hermes_constants import get_hermes_dir
@@ -1913,19 +1890,7 @@ def _platform_has_bot_credential(platform: "Platform", platform_config: "Platfor
         value = getattr(platform_config, attr, None) or ""
         if isinstance(value, str) and value.strip():
             return True
-    # Matrix also authenticates by password; a token-only check would evict a reconnectable config from
-    # the retry queue. Read ONLY extra (build_config() copies env there): env fallback = every config OK.
-    # Those credentials land in ``extra`` rather than ``.token``, so a token-only check reads a perfectly
-    # reconnectable password-auth config as credential-less and evicts it from the retry queue on the first
-    # transient failure — after which it stays down until the gateway is restarted by hand. Mirror the
-    # adapter's own gate: homeserver + user_id + password. Read ONLY from extra, never os.getenv:
-    # build_config() already copies all three env vars onto extra, and importing this module loads
-    # ~/.hermes/.env, so an env fallback would report "has credential" for every Matrix config on the box —
-    # including the empty-primary multiplex case (#64674) this check exists to evict.
-    if platform is not Platform.MATRIX:
-        return False
-    extra = getattr(platform_config, "extra", None) or {}
-    return all(str(extra.get(key) or "").strip() for key in ("homeserver", "user_id", "password"))
+    return False
 
 
 _DOCKER_VOLUME_SPEC_RE = re.compile(r"^(?P<host>.+):(?P<container>/[^:]+?)(?::(?P<options>[^:]+))?$")
@@ -2217,10 +2182,6 @@ _EXECUTOR_QUIESCE_TIMEOUT = 2.0
 
 
 _OWN_POLICY_OPEN_ENV = {
-    Platform.WECOM: ("WECOM_DM_POLICY", "WECOM_GROUP_POLICY", "WECOM_ALLOW_ALL_USERS"),
-    Platform.WEIXIN: ("WEIXIN_DM_POLICY", "WEIXIN_GROUP_POLICY", "WEIXIN_ALLOW_ALL_USERS"),
-    Platform.YUANBAO: ("YUANBAO_DM_POLICY", "YUANBAO_GROUP_POLICY", "YUANBAO_ALLOW_ALL_USERS"),
-    Platform.QQBOT: (None, None, "QQ_ALLOW_ALL_USERS"),
     Platform.WHATSAPP: ("WHATSAPP_DM_POLICY", "WHATSAPP_GROUP_POLICY", "WHATSAPP_ALLOW_ALL_USERS")}
 
 
@@ -3314,22 +3275,12 @@ def _builtin_adapter_import(module: str, adapter_name: str, requirement: str):
 _BUILTIN_ADAPTERS: dict[Platform, tuple[str, str, str, str]] = {
     Platform.WHATSAPP_CLOUD: ("whatsapp_cloud", "WhatsAppCloudAdapter", "check_whatsapp_cloud_requirements",
                               "WhatsApp Cloud: aiohttp/httpx missing — reinstall hermes-agent"),
-    Platform.SIGNAL: ("signal", "SignalAdapter", "check_signal_requirements",
-                      "Signal: runtime requirements not met"),
-    Platform.WEIXIN: ("weixin", "WeixinAdapter", "check_weixin_requirements",
-                      "Weixin: aiohttp/cryptography not installed"),
     Platform.API_SERVER: ("api_server", "APIServerAdapter", "check_api_server_requirements",
                           "API Server: aiohttp not installed"),
     Platform.WEBHOOK: ("webhook", "WebhookAdapter", "check_webhook_requirements",
                        "Webhook: aiohttp not installed"),
     Platform.MSGRAPH_WEBHOOK: ("msgraph_webhook", "MSGraphWebhookAdapter", "check_msgraph_webhook_requirements",
-                               "MSGraph webhook: aiohttp not installed"),
-    Platform.BLUEBUBBLES: ("bluebubbles", "BlueBubblesAdapter", "check_bluebubbles_requirements",
-                           "BlueBubbles: aiohttp/httpx missing or BLUEBUBBLES_SERVER_URL/BLUEBUBBLES_PASSWORD not configured"),
-    Platform.QQBOT: ("qqbot", "QQAdapter", "check_qq_requirements",
-                     "QQBot: aiohttp/httpx missing or QQ_APP_ID/QQ_CLIENT_SECRET not configured"),
-    Platform.YUANBAO: ("yuanbao", "YuanbaoAdapter", "WEBSOCKETS_AVAILABLE",
-                       "Yuanbao: websockets not installed. Run: pip install websockets")}
+                               "MSGraph webhook: aiohttp not installed")}
 
 
 def _instantiate_builtin_adapter(platform: Platform, config: Any) -> Optional[BasePlatformAdapter]:
@@ -3342,11 +3293,6 @@ def _instantiate_builtin_adapter(platform: Platform, config: Any) -> Optional[Ba
     if not (requirements_ok() if callable(requirements_ok) else requirements_ok):
         logger.warning(warning)
         return None
-    if platform == Platform.SIGNAL:
-        from gateway.platforms.signal import validate_signal_config
-        if not validate_signal_config(config):
-            logger.warning("Signal: SIGNAL_HTTP_URL or SIGNAL_ACCOUNT not configured")
-            return None
     return adapter_cls(config)
 
 
@@ -4196,9 +4142,7 @@ class GatewayRunner(
     # Built-in platforms where ``/update`` is allowed (programmatic interfaces must not trigger updates).
     # Plugin-migrated platforms declare ``allow_update_command=True`` on their ``PlatformEntry`` instead.
     _UPDATE_ALLOWED_PLATFORMS = frozenset({
-        Platform.TELEGRAM, Platform.SLACK, Platform.WHATSAPP, Platform.SIGNAL, Platform.MATRIX,
-        Platform.EMAIL, Platform.SMS, Platform.DINGTALK,
-        Platform.FEISHU, Platform.WECOM, Platform.WECOM_CALLBACK, Platform.WEIXIN, Platform.BLUEBUBBLES, Platform.QQBOT, Platform.LOCAL,
+        Platform.TELEGRAM, Platform.SLACK, Platform.WHATSAPP, Platform.EMAIL, Platform.LOCAL,
     })
 
     def _set_session_env(self, context: SessionContext) -> list:
@@ -5792,9 +5736,6 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
         return False
 
     _start_gateway_configure_logging(verbosity)
-
-    from gateway.run_startup import recover_left_core_at_gateway_start
-    await asyncio.to_thread(recover_left_core_at_gateway_start)  # before the runner loads platform config
 
     runner = GatewayRunner(config)
     # Multiplex: swap the launch-home file handlers for per-profile routers so each profile's records

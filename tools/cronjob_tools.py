@@ -350,12 +350,12 @@ def _run_claimed_job(job: Dict[str, Any], extra_prompt: Optional[str] = None) ->
         fire_owner = str(claim.get("by") or "") if isinstance(claim, dict) else None
 
         # Inside the gateway process deliver on the loop that owns clients such as
-        # Matrix/aiohttp (a standalone asyncio.run() loop breaks them).
+        # aiohttp (a standalone asyncio.run() loop breaks them).
         runner_ref = getattr(sys.modules.get("gateway.run"), "_gateway_runner_ref", None)
         # Manual runs invoked from a gateway agent execute outside the scheduler ticker, but they still
         # share the process with the live platform adapters. Calling those clients from run_one_job's
         # standalone asyncio.run() loop raises errors like "Timeout context manager should be used inside a
-        # task" and can break encrypted Matrix delivery (#61495 — salvaged from #63586 by @Fly-onlyone).
+        # task" and can break delivery (#61495 — salvaged from #63586 by @Fly-onlyone).
         runner = runner_ref() if callable(runner_ref) else None
         adapters = getattr(runner, "adapters", None) if runner is not None else None
         # ``runner.adapters`` is the LAUNCH profile's map; under multiplex the run executes with

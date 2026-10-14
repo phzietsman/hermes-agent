@@ -81,12 +81,12 @@ class TestBackwardCompat:
             "display": {
                 "tool_progress": "all",
                 "tool_progress_overrides": {
-                    "signal": "off",
+                    "discord": "off",
                     "telegram": "verbose",
                 },
             }
         }
-        assert resolve_display_setting(config, "signal", "tool_progress") == "off"
+        assert resolve_display_setting(config, "discord", "tool_progress") == "off"
         assert resolve_display_setting(config, "telegram", "tool_progress") == "verbose"
 
 # ---------------------------------------------------------------------------
@@ -149,7 +149,7 @@ def assert_keeps_platform_display_defaults(cfg):
 
 class TestInstallerSeededConfigThroughGatewayResolver:
     """Regression for #121230: a fresh install copies cli-config.yaml.example to config.yaml, and the
-    gateway then rendered reasoning into QQBot/Telegram/... because the template pinned a global
+    gateway then rendered reasoning into WhatsApp/Telegram/... because the template pinned a global
     ``display.show_reasoning: true`` over every platform's ``False`` default.
     """
 
@@ -166,7 +166,6 @@ class TestInstallerSeededConfigThroughGatewayResolver:
     def test_shipped_template_keeps_every_platform_default(self, tmp_path):
         """The installers, the Docker first boot and ``doctor --fix`` copy cli-config.yaml.example
         verbatim, so an uncommented ``display.<key>`` there becomes an explicit global value."""
-        from gateway.config import Platform
         from gateway.run import _load_gateway_config, _resolve_gateway_display_bool
 
         seeded = _load_gateway_config(self._seed_like_installer(tmp_path / "hermes-home"))
@@ -175,20 +174,17 @@ class TestInstallerSeededConfigThroughGatewayResolver:
         assert_keeps_platform_display_defaults(seeded)
         # ...and through the resolver the gateway turn actually calls (same arguments as gateway/run_turn.py).
         assert _resolve_gateway_display_bool(
-            seeded, "qqbot", "show_reasoning", default=False, platform=Platform.QQBOT,
-            require_platform_override_for={Platform.MATTERMOST},
+            seeded, "whatsapp", "show_reasoning", default=False,
         ) is False
 
     def test_explicit_global_opt_in_still_reaches_gateway_platforms(self, tmp_path):
         """Control: an operator who deliberately writes ``display.show_reasoning: true`` still gets it (#7148)."""
-        from gateway.config import Platform
         from gateway.run import _load_gateway_config, _resolve_gateway_display_bool
 
         (tmp_path / "config.yaml").write_text("display:\n  show_reasoning: true\n")
         cfg = _load_gateway_config(tmp_path / "config.yaml")
         assert _resolve_gateway_display_bool(
-            cfg, "qqbot", "show_reasoning", default=False, platform=Platform.QQBOT,
-            require_platform_override_for={Platform.MATTERMOST},
+            cfg, "whatsapp", "show_reasoning", default=False,
         ) is True
 
 
@@ -208,7 +204,7 @@ class TestConfigMigration:
             "_config_version": 15,
             "display": {
                 "tool_progress_overrides": {
-                    "signal": "off",
+                    "discord": "off",
                     "telegram": "all",
                 },
             },
@@ -225,7 +221,7 @@ class TestConfigMigration:
         # Re-read config
         updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
         platforms = updated.get("display", {}).get("platforms", {})
-        assert platforms.get("signal", {}).get("tool_progress") == "off"
+        assert platforms.get("discord", {}).get("tool_progress") == "off"
         assert platforms.get("telegram", {}).get("tool_progress") == "all"
 
 # ---------------------------------------------------------------------------

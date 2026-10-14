@@ -328,10 +328,6 @@ gateway:
   resume:
     db_unavailable: "세션 데이터베이스를 사용할 수 없습니다."
     parse_error: "⚠️ Could not parse `/resume` arguments: {error}. Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
-    matrix_no_named_sessions: "No named sessions found for this Matrix room. Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Matrix /resume 차단됨: 이 이름이 지정된 세션에는 기록된 원본 방이 없어 Hermes가 기본적으로 현재 방에서 재개하지 않습니다. 의도적으로 방 경계를 넘어 재개하려면 `/resume --cross-room {name}`을 사용하세요."
-    matrix_blocked_other_room: "⚠️ Matrix /resume 차단됨: 해당 세션은 다른 Matrix 방({room})에 속합니다. 의도적으로 여기서 재개하려면 `/resume --cross-room {name}`을 사용하세요."
-    matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**. Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
     blocked_not_owner: "⚠️ /resume 차단됨: '**{name}**'은(는) 다른 사용자 또는 채팅에 속합니다. 이 채팅의 세션만 재개할 수 있습니다."
     no_named_sessions: "이름이 지정된 세션이 없습니다.\n현재 세션에 이름을 지정하려면 `/title 내 세션`을 사용하고, 나중에 `/resume 내 세션`으로 돌아오세요."
     all_requires_admin: "_참고: `--all`(채팅 간 목록)은 구성된 관리자가 필요합니다. 이 채팅의 세션만 표시합니다._"
@@ -423,12 +419,6 @@ gateway:
     hint_all: "스킬별·도구 세트별 비용은 /context all로 볼 수 있어요."
   status:
     header: "📊 **Hermes 게이트웨이 상태**"
-    matrix_scope_header: "**Matrix 범위:**"
-    matrix_scope_room: "  room: {room}"
-    matrix_scope_room_id: "  room_id: {room_id}"
-    matrix_scope_thread: "  thread_id: {thread_id}"
-    matrix_scope_mode: "  session_scope: {scope}"
-    matrix_scope_key: "  session_key: {session_key}"
     session_id: "**세션 ID:** `{session_id}`"
     title: "**제목:** {title}"
     created: "**생성됨:** {timestamp}"
@@ -654,7 +644,6 @@ gateway:
     answered: "✅ 답변: {response}"
     cancelled: "↩️ 확인 질문이 취소되었어요 — 메시지는 후속 메시지로 처리돼요."
     expired: "⏳ 이 질문은 만료되었어요 — 새 요청을 보내 주세요."
-    native_stream_placeholder: "💬 선택을 기다리고 있어요..."
     skip_hint: '이 질문을 건너뛰려면 "skip"이라고 답장하세요.'
   errors:
     rate_limited: "⏱️ AI 모델 서비스가 요청을 제한하고 있어요. 잠시 기다린 뒤 /retry를 사용하세요."
@@ -962,9 +951,6 @@ platform:
     approved: "✅ 승인됨."
     denied: "❌ 거부됨."
     approval_expired: "⌛ 승인이 만료되어 명령이 실행되지 않았어요 (이미 시간 초과되었거나 다른 곳에서 처리됨)."
-  yuanbao:
-    slow_response_notice: "이 작업은 조금 복잡해서 아직 진행 중이에요. 잠시만 기다려 주세요..."
-    owner_command_denied: "⚠️ {command}은(는) 비공개 채팅 모드에서 생성자만 사용할 수 있어요"
   shared:
     truncated_suffix: "\n...(잘림)"
     unknown: "알 수 없음"
@@ -978,12 +964,6 @@ platform:
       video_failed: "⚠️ 동영상 첨부 파일을 전송할 수 없었어요."
       file_failed: "⚠️ 첨부 파일({name})을 전송할 수 없었어요."
       attachment_failed: "⚠️ 첨부 파일을 전송할 수 없었어요."
-  weixin:
-    voice_as_attachment: "[음성 메시지 첨부]"
-  signal:
-    batch_pacing_notice: "(이미지가 더 있어요 — Signal 요청 제한으로 약 {wait} 대기 중, 배치 {batch}/{total}.)"
-    wait_seconds: "{count}초"
-    wait_minutes: "{count}분"
   api_server:
     provider_auth_failed: "제공자 인증 실패"
     provider_rate_limited: "제공자 요청 제한 적용됨"
@@ -1324,90 +1304,6 @@ platform:
       running: "`/{command}` 실행 중…"
     handoff:
       seed: ":thread: Hermes 인계 — *{name}*"
-  matrix:
-    handoff:
-      default_name: "Hermes 세션"
-    media:
-      image_download_failed: "이미지를 내려받아 Matrix에 업로드하지 못했어요. 원본 URL에 비공개 토큰이 포함될 수 있어 표시하지 않았어요."
-    approval:
-      typed_hint_once: "`!approve`로 답하면 한 번 실행하고, `!deny`로 답하면 취소해요."
-      typed_hint_session: "`!approve session`으로 답하면 이 패턴을 세션 동안 승인하고, `!approve`는 한 번 실행, `!deny`는 취소해요."
-      typed_hint_always: "`!approve session`으로 답하면 이 패턴을 세션 동안 승인하고, `!approve always`는 영구 승인, `!approve`는 한 번 실행, `!deny`는 취소해요."
-      legend_intro: "반응을 클릭해서 승인할 수도 있어요:"
-      legend_once: "✅ = 한 번 승인"
-      legend_session: "🌀 = 이 세션 동안 승인"
-      legend_always: "♾️ = 항상 승인"
-      legend_deny: "❎ = 거부"
-      invalid_reaction: "이 승인 요청에는 사용할 수 없는 반응이에요."
-      expired: "이 승인 요청은 만료됐어요. 여전히 승인하려면 명령을 다시 실행해 주세요."
-    picker:
-      no_models: "이 세션에서 사용할 수 있는 인증된 모델이 없어요."
-      title: "⚙ **모델 설정**"
-      current_model: "현재 모델: `{model}`"
-      provider: "제공자: {provider}"
-      react_model: "반응으로 모델을 선택하세요:"
-      react_choice: "반응으로 선택하세요."
-      current_suffix: "{label} ← 현재"
-      invalid_model_reaction: "이 반응은 선택 가능한 모델에 해당하지 않아요."
-      invalid_choice_reaction: "이 반응은 선택 가능한 항목에 해당하지 않아요."
-      verb_switch_model: "모델 전환"
-      verb_apply_selection: "선택 적용"
-      failed: "{action} 실패: {error}"
-    reaction:
-      unauthorized: "권한이 있는 Matrix 사용자만 이 컨트롤을 사용할 수 있어요."
-      not_requester: "이 작업을 요청한 사용자만 이 컨트롤을 사용할 수 있어요."
-  feishu:
-    approval:
-      action_session: "세션"
-      action_always: "항상"
-      resolved_once: "한 번 승인됨"
-      resolved_session: "세션 동안 승인됨"
-      resolved_always: "영구 승인됨"
-      resolved_deny: "거부됨"
-      resolved_fallback: "처리됨"
-      resolved_by_user: "{icon} **{label}** — {user}"
-    update_prompt:
-      title: "☤ 업데이트에 입력이 필요해요"
-      default_hint: "\n\n기본값: `{default}`"
-      answer_yes: "✓ 예"
-      answer_no: "✗ 아니요"
-      word_yes: "예"
-      word_no: "아니요"
-      answered_title: "{icon} 업데이트 질문에 답변됨: {answer}"
-      answered_by: "**{user}**님이 답변했어요"
-    media:
-      gif_downgraded: "[GIF를 파일로 전환했어요]"
-      gif_downgraded_caption: "[GIF를 파일로 전환했어요]\n{caption}"
-  google_chat:
-    clarify:
-      other_button: "기타 / 직접 입력"
-      header: "질문"
-      question: "❓ {question}"
-    typing:
-      thinking: "Hermes가 생각하고 있어요…"
-      interrupted: "(중단됨)"
-      no_reply: "(응답 없음)"
-    attachment_fallback:
-      header: "⚠️ **{filename}** 파일을 첨부하지 못했어요."
-      explain: "Google Chat은 봇에 명시적인 권한(사용자 OAuth)이 있을 때만 파일 첨부를 허용해요. 이 채팅에서 한 번만 동의하면 돼요."
-      activate: "**활성화 방법:** `/setup-files`를 보내고 안내를 따라 주세요."
-      host_path: "그동안 파일은 호스트에 있어요: `{path}`"
-    setup_files:
-      not_configured: "🔧 네이티브 첨부 파일 전송이 **설정되지 않았어요**.\n**1단계 (호스트에서 한 번만):** https://console.cloud.google.com/apis/credentials → *사용자 인증 정보 만들기* → *OAuth 클라이언트 ID* → *데스크톱 앱*에서 OAuth 클라이언트 자격 증명을 만들고 JSON을 내려받으세요. 그런 다음 호스트에서 실행하세요:\n```\npython -m plugins.platforms.google_chat.oauth --client-secret /path/to/client_secret.json\n```\n**2단계:** 여기로 돌아와 `/setup-files start`를 보내세요."
-      start_instructions: "1. 브라우저에서 이 URL을 열고 권한을 부여하세요:\n{auth_url}\n\n2. *허용*을 클릭하면 브라우저가 `http://localhost:1/?...&code=...` 페이지를 열지 못할 거예요. 정상이에요.\n\n3. 브라우저 주소창에서 실패한 URL 전체를 복사해 `/setup-files <PASTE_URL>` 형식으로 (또는 `code=...` 값만) 여기에 붙여 넣으세요.\n\n팁: 이 URL에는 접근 권한이 담겨 있으니 비공개로 유지하세요."
-      start_failed: "❌ OAuth URL을 생성하지 못했어요. 게이트웨이 로그를 확인하고 client_secret.json이 유효한지 확인해 주세요."
-      exchange_failed: "❌ 토큰 교환에 실패했어요. 코드가 만료됐거나 URL 형식이 잘못됐을 수 있어요. `/setup-files start`를 보내 새 OAuth URL을 받으세요."
-      revoke_completed: "해지를 완료했어요 (일부 단계는 건너뛰었을 수 있어요)."
-      revoked: "해지했어요."
-      helper_error: "❌ 오류: {error}"
-      revoke_error: "❌ 해지 중 오류: {error}"
-      who_shared: "공유 (레거시)"
-      active: "✅ `{who}`에 대해 네이티브 첨부 파일 전송이 **활성화**돼 있어요.\n토큰: `{token_path}`\n비활성화하려면 `/setup-files revoke`를 보내세요."
-      not_authorized_yet: "🔧 클라이언트 자격 증명은 저장되어 있지만 아직 권한을 부여하지 않았어요. `/setup-files start`를 보내 시작하세요."
-      no_client_credentials: "⚠️ 이 프로필에 저장된 클라이언트 자격 증명이 없어요. 설정 안내를 보려면 인수 없이 `/setup-files`를 보내세요."
-      done_output: "✅ 완료.\n```\n{output}\n```"
-      authorized: "✅ 권한 부여 완료! 이제 네이티브 첨부 파일 전송이 활성화됐어요. PDF를 보내 달라고 요청해 보세요."
-      exchanged_not_loaded: "⚠️ 토큰은 교환됐지만 게이트웨이가 새 자격 증명을 메모리에 불러오지 못했어요. 게이트웨이를 재시작하면 `{token_path}`의 토큰이 적용돼요.\n헬퍼 출력:\n```\n{output}\n```"
   teams:
     approval:
       resolved_once: "✅ 허용됨 (한 번)"
@@ -1426,33 +1322,9 @@ platform:
       key_decisions: "주요 결정"
       action_items: "실행 항목"
       risks: "리스크"
-  line:
-    pending:
-      still_thinking: "🤔 아직 생각하고 있어요. 준비되면 아래를 눌러 답변을 받아 보세요."
-      button_label: "답변 받기"
-      delivered: "이미 답변했어요 ✅"
-      interrupted: "실행이 완료되기 전에 중단됐어요."
-      expired: "요청이 만료됐어요 — 메시지를 다시 보내 주세요."
-    standalone:
-      attachments_not_deliverable: "[첨부 파일 {count}개 생성됨; 크론에서는 전송할 수 없어요]"
-  wecom:
-    media:
-      kind_image: "이미지"
-      kind_video: "동영상"
-      kind_voice: "음성 메시지"
-      file_too_large: "파일 크기 {size_mb}MB가 WeCom의 20MB 한도를 넘어 보낼 수 없어요. 파일을 압축하거나 크기를 줄여 보세요."
-      voice_format_downgraded: "음성 형식 {content_type}은(는) 지원되지 않아요 (WeCom은 AMR만 허용). 대신 파일로 보냈어요."
-      size_downgraded: "{label} 크기 {size_mb}MB가 {cap} 한도를 넘어 대신 파일로 보냈어요."
   email:
     image_line: "이미지: {url}"
     standalone_subject: "Hermes Agent"
-  dingtalk:
-    emotion:
-      thinking: "🤔생각 중"
-      done: "🥳완료"
-  irc:
-    quit_message: "Hermes Agent를 종료하는 중"
-    standalone_quit: "전송됨"
   relay:
     confirm_approve_once: "한 번 승인"
     confirm_always_approve: "항상 승인"
@@ -1517,7 +1389,7 @@ slash:
   handoff:
     description: "이 세션을 메시징 플랫폼(Telegram, Discord 등)으로 넘기기"
   branch:
-    description: "현재 세션 분기 (Discord/Telegram/Slack/Matrix에서는 새 스레드; --here는 여기서 유지)"
+    description: "현재 세션 분기 (Discord/Telegram/Slack에서는 새 스레드; --here는 여기서 유지)"
   worktree:
     description: "격리된 git 워크트리 표시, 목록, 생성 또는 정리"
   compress:
@@ -3640,10 +3512,8 @@ tips:
   t154: "/voice on으로 CLI에서 음성 모드를 켤 수 있어요. Ctrl+B로 푸시 투 토크 녹음을 전환해요."
   t155: "스트리밍 음성 합성은 문장이 생성되는 대로 바로 재생해요 — 전체 응답을 기다릴 필요가 없어요."
   t156: "Telegram, Discord, WhatsApp, Slack의 음성 메시지는 자동으로 음성 인식돼요."
-  t157: "Hermes는 21개 메시징 플랫폼에서 동작해요: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, IRC, Microsoft Teams, 이메일 등이에요."
+  t157: "Hermes는 21개 메시징 플랫폼에서 동작해요: Telegram, Discord, Slack, WhatsApp, Microsoft Teams, 이메일 등이에요."
   t158: "hermes gateway install은 게이트웨이를 부팅 시 자동 시작되는 시스템 서비스로 등록해요."
-  t159: "DingTalk은 Stream Mode를 사용해요 — 웹훅이나 공개 URL이 필요 없어요."
-  t160: "BlueBubbles는 로컬 macOS 서버를 통해 iMessage를 Hermes에 연결해요."
   t161: "웹훅 라우트는 HMAC 검증, 요청 제한, 이벤트 필터링을 지원해요."
   t162: "API 서버는 Open WebUI, LibreChat과 호환되는 OpenAI 호환 엔드포인트를 제공해요."
   t163: "Discord 음성 채널 모드: 봇이 음성 채널에 참여해 말을 인식하고 음성으로 대답해요."
@@ -3814,7 +3684,6 @@ tips:
   t328: "tts.providers.<name>.type: command는 {input_path}와 {output_path} 플레이스홀더로 어떤 CLI 음성 합성 엔진이든 연결해요."
   t329: "API_SERVER_ENABLED=true는 게이트웨이와 함께 OpenAI 호환 엔드포인트를 실행해서 Open WebUI와 LibreChat에 쓸 수 있어요."
   t330: "GATEWAY_PROXY_URL은 분리 구성을 실행해요: 플랫폼 I/O는 로컬에서, 에이전트 작업은 원격 API 서버에 위임해요."
-  t331: "MATRIX_DEVICE_ID는 E2EE용 장치 ID를 고정해요 — 없으면 시작할 때마다 키가 바뀌어 과거 메시지 복호화가 깨져요."
   t332: "TELEGRAM_WEBHOOK_URL을 설정하면 TELEGRAM_WEBHOOK_SECRET이 반드시 필요해요 — openssl rand -hex 32로 생성하세요."
   t333: "batch_runner.py --resume은 완료된 프롬프트를 텍스트 내용으로 매칭해서 데이터셋 순서가 바뀌어도 끝난 작업을 다시 실행하지 않아요."
   t334: "/new는 그 자리에서 새 세션을 시작해요 (별칭 /reset) — 새 세션 ID, 깨끗한 기록, CLI는 그대로 열려 있어요."

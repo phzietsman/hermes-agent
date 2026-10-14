@@ -124,20 +124,20 @@ class TestExpansionUnderProfileScope:
     def test_scoped_ref_never_reads_another_profiles_environ(self, monkeypatch):
         from agent import secret_scope as ss
 
-        monkeypatch.setenv("MATRIX_ACCESS_TOKEN", "default-token")
+        monkeypatch.setenv("SLACK_BOT_TOKEN", "default-token")
         was_active = ss.is_multiplex_active()
         ss.set_multiplex_active(True)
         token = ss.set_secret_scope({"OTHER_KEY": "x"})  # profile-b: no matrix token
         try:
-            assert _expand_env_vars("${MATRIX_ACCESS_TOKEN}") == "${MATRIX_ACCESS_TOKEN}"
-            assert _expand_env_vars("${env:MATRIX_ACCESS_TOKEN}") == "${env:MATRIX_ACCESS_TOKEN}"
+            assert _expand_env_vars("${SLACK_BOT_TOKEN}") == "${SLACK_BOT_TOKEN}"
+            assert _expand_env_vars("${env:SLACK_BOT_TOKEN}") == "${env:SLACK_BOT_TOKEN}"
         finally:
             ss.reset_secret_scope(token)
-        token = ss.set_secret_scope({"MATRIX_ACCESS_TOKEN": "c-token"})
+        token = ss.set_secret_scope({"SLACK_BOT_TOKEN": "c-token"})
         try:
-            assert _expand_env_vars("${MATRIX_ACCESS_TOKEN}") == "c-token"
+            assert _expand_env_vars("${SLACK_BOT_TOKEN}") == "c-token"
         finally:
             ss.reset_secret_scope(token)
             ss.set_multiplex_active(was_active)
         # Unscoped (default profile / single-profile CLI): legacy environ read.
-        assert _expand_env_vars("${MATRIX_ACCESS_TOKEN}") == "default-token"
+        assert _expand_env_vars("${SLACK_BOT_TOKEN}") == "default-token"

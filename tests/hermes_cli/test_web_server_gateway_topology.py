@@ -182,7 +182,7 @@ class TestCollectProfileGatewayTopology:
                         "writer_start_time": 110,
                     },
                     # Written by the current process — kept.
-                    "signal": {
+                    "telegram": {
                         "state": "fatal",
                         "error_code": "duplicate_credential",
                         "writer_pid": 200,
@@ -200,10 +200,10 @@ class TestCollectProfileGatewayTopology:
             lambda home, runtime: (200, 222),
         )
         topo = _collect_profile_gateway_topology()
-        assert set(topo["profile_platforms"].get("coder", {})) == {"signal"}
+        assert set(topo["profile_platforms"].get("coder", {})) == {"telegram"}
 
     def test_a_stale_platform_entry_reports_no_port(self, tmp_path, monkeypatch):
-        # The live case: a Feishu entry left "connected" by a gateway process from a week earlier
+        # The live case: a Telegram entry left "connected" by a gateway process from a week earlier
         # (the platform has since been removed) put its port into ``gateways[].ports`` beside the
         # ports the live gateway really binds. Ports follow the same writer-identity ownership as
         # the platform map: a port the current process does not bind is not reported.
@@ -212,7 +212,7 @@ class TestCollectProfileGatewayTopology:
             "default": {
                 "platforms": {
                     "api_server": {"state": "connected", "writer_pid": 200, "writer_start_time": 222},
-                    "feishu": {"state": "connected", "writer_pid": 34105, "writer_start_time": 178945520374},
+                    "telegram": {"state": "connected", "writer_pid": 34105, "writer_start_time": 178945520374},
                 }
             },
         }

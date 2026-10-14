@@ -85,7 +85,6 @@ FLAT_INSTALL_RUNTIME_STATE = (
     "webhook_subscriptions.json",
     "channel_directory.json",
     "channel_aliases.json",
-    "feishu_comment_pairing.json",
     "memories/MEMORY.md",
     "profiles/work/config.yaml",
     "credentials/github_token",

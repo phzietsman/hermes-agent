@@ -34,15 +34,15 @@ class TestSplitPairingDirMigration:
         new = home / "platforms" / "pairing"
         legacy.mkdir(parents=True)
         new.mkdir(parents=True)
-        (new / "feishu-approved.json").write_text(json.dumps({
+        (new / "telegram-approved.json").write_text(json.dumps({
             "ou_user": {"user_name": "Alice", "approved_at": 123.0}
         }))
 
         with patch("gateway.pairing.PAIRING_DIR", legacy), patch("gateway.pairing.get_hermes_home", return_value=home):
             store = PairingStore()
-            assert store.is_approved("feishu", "ou_user") is True
+            assert store.is_approved("telegram", "ou_user") is True
 
-        migrated = json.loads((legacy / "feishu-approved.json").read_text())
+        migrated = json.loads((legacy / "telegram-approved.json").read_text())
         assert "ou_user" in migrated
 
 
@@ -537,7 +537,7 @@ class TestUnreadablePairingFile:
         import logging
         import builtins
 
-        approved_path = tmp_path / "weixin-approved.json"
+        approved_path = tmp_path / "whatsapp-approved.json"
         approved_path.write_text(
             '{"o9cq80fake@im.wechat": {"user_name": "x", "approved_at": 0}}'
         )
@@ -588,7 +588,7 @@ class TestProfileScopedStorage:
             store = PairingStore()
         assert store.profile is None
         assert store._dir == tmp_path
-        assert store._approved_path("weixin") == tmp_path / "weixin-approved.json"
+        assert store._approved_path("whatsapp") == tmp_path / "whatsapp-approved.json"
 
     def test_default_store_is_not_frozen_at_first_use(self, tmp_path, monkeypatch):
         """Regression test for #93449.
@@ -622,7 +622,7 @@ class TestProfileScopedStorage:
         assert store.profile == "yangyang"
         expected = tmp_path / "profiles" / "yangyang" / "platforms" / "pairing"
         assert store._dir == expected
-        assert store._approved_path("weixin") == expected / "weixin-approved.json"
+        assert store._approved_path("whatsapp") == expected / "whatsapp-approved.json"
         # Auto-creates the directory
         assert expected.is_dir()
 
@@ -690,15 +690,15 @@ class TestProfileScopedStorage:
             profile_store = PairingStore(profile="yangyang")
 
         # Approve in the profile store
-        profile_store._approve_user("weixin", "yangyang_user", "杨洋")
+        profile_store._approve_user("whatsapp", "yangyang_user", "杨洋")
         # And in the global store, a different user
-        global_store._approve_user("weixin", "global_user", "Default")
+        global_store._approve_user("whatsapp", "global_user", "Default")
 
         # Cross-isolation: each store only sees its own user
-        assert profile_store.is_approved("weixin", "yangyang_user") is True
-        assert profile_store.is_approved("weixin", "global_user") is False
-        assert global_store.is_approved("weixin", "global_user") is True
-        assert global_store.is_approved("weixin", "yangyang_user") is False
+        assert profile_store.is_approved("whatsapp", "yangyang_user") is True
+        assert profile_store.is_approved("whatsapp", "global_user") is False
+        assert global_store.is_approved("whatsapp", "global_user") is True
+        assert global_store.is_approved("whatsapp", "yangyang_user") is False
 
     def test_profile_uses_distinct_rate_limit_file(self, tmp_path, monkeypatch):
         """Rate-limit state is per-profile, not shared globally — otherwise

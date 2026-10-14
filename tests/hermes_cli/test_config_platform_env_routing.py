@@ -14,20 +14,20 @@ def test_platform_env_key_round_trips_without_a_config_yaml_copy(tmp_path, monke
     config_path = tmp_path / "config.yaml"
     config_path.write_text("model:\n  default: test/model\n", encoding="utf-8")
 
-    cfg.set_config_value("FEISHU_HOME_CHANNEL", "oc_ROUTING_TEST")
+    cfg.set_config_value("TELEGRAM_HOME_CHANNEL", "oc_ROUTING_TEST")
 
     assert yaml.safe_load(config_path.read_text(encoding="utf-8")) == {
         "model": {"default": "test/model"}
     }
     assert (tmp_path / ".env").read_text(encoding="utf-8") == (
-        "FEISHU_HOME_CHANNEL=oc_ROUTING_TEST\n"
+        "TELEGRAM_HOME_CHANNEL=oc_ROUTING_TEST\n"
     )
 
-    cfg.get_config_value("FEISHU_HOME_CHANNEL")
+    cfg.get_config_value("TELEGRAM_HOME_CHANNEL")
     assert capsys.readouterr().out.strip().endswith("oc_ROUTING_TEST")
 
-    cfg.unset_config_value("FEISHU_HOME_CHANNEL")
-    assert "FEISHU_HOME_CHANNEL" not in (tmp_path / ".env").read_text(encoding="utf-8")
+    cfg.unset_config_value("TELEGRAM_HOME_CHANNEL")
+    assert "TELEGRAM_HOME_CHANNEL" not in (tmp_path / ".env").read_text(encoding="utf-8")
     assert yaml.safe_load(config_path.read_text(encoding="utf-8")) == {
         "model": {"default": "test/model"}
     }

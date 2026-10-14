@@ -102,12 +102,7 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str | None]]]] = [
         ("user-guide/messaging/discord", "Discord", None),
         ("user-guide/messaging/slack", "Slack", None),
         ("user-guide/messaging/whatsapp", "WhatsApp", None),
-        ("user-guide/messaging/signal", "Signal", None),
         ("user-guide/messaging/email", "Email", None),
-        ("user-guide/messaging/sms", "SMS", None),
-        ("user-guide/messaging/matrix", "Matrix", None),
-        ("user-guide/messaging/mattermost", "Mattermost", None),
-        ("user-guide/messaging/homeassistant", "Home Assistant", None),
         ("user-guide/messaging/webhooks", "Webhooks", None),
     ]),
     ("Integrations", [

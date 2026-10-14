@@ -1,5 +1,5 @@
 """CLI subcommand: ``hermes send`` — pipe text from shell scripts to any configured messaging platform
-(Telegram, Discord, Slack, Signal, SMS, etc.).
+(Telegram, Discord, Slack, etc.).
 """
 
 from __future__ import annotations
@@ -94,7 +94,7 @@ def _list_targets(platform_filter: Optional[str], *, json_mode: bool) -> int:
         return _fail(f"hermes send: failed to read channel directory: {exc}")
     platforms = dict(raw.get("platforms") or {})
 
-    # Merge in configured-but-undiscovered platforms (e.g. a fresh SimpleX setup used only for
+    # Merge in configured-but-undiscovered platforms (e.g. a fresh plugin setup used only for
     # outbound sends) so `--list` never hides a working send target.
     try:
         from gateway.config import load_gateway_config

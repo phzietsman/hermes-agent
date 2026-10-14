@@ -507,11 +507,6 @@ platforms:
 The custom status appears in the **footer beneath the reply composer** ("*BotName* is thinking…"), not inline in the message list. The inline "Generating response…" / "Finding answers…" lines Slack shows in the message area while an AI app works are **Slack's own rotating indicators** — the status API (`agents.sessions.setStatus` / `assistant.threads.setStatus`) does not control those, and both can appear at the same time.
 :::
 
-The same key customizes Google Chat's visible working-state marker message
-(`platforms.google_chat.typing_status_text`, default `"Hermes is thinking…"`) —
-note that on Google Chat it is a real posted message that gets patched into the
-reply, not an ephemeral status.
-
 ### Live Status (per-tool)
 
 By default the status line updates **live as the agent works**: instead of a

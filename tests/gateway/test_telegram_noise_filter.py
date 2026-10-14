@@ -21,7 +21,6 @@ from gateway.run import (
 CHAT_PLATFORMS = [
     "telegram",
     "slack",
-    "feishu",
 ]
 
 NOISY_STATUS_MESSAGES = [
@@ -177,7 +176,7 @@ def test_manual_compress_feedback_and_failure_notices_stay_visible(platform, mes
     assert _prepare_gateway_status_message(platform, "warn", message) == message
 
 
-@pytest.mark.parametrize("platform", ["slack", "matrix"])
+@pytest.mark.parametrize("platform", ["slack", "discord"])
 def test_chat_gateways_redact_secret_in_provider_error(platform):
     """Provider-error bodies carrying secrets must never reach chat users.
 
@@ -199,7 +198,7 @@ def test_chat_gateways_redact_secret_in_provider_error(platform):
     assert "sign-in" in sanitized.lower() and "/login" in sanitized
 
 
-@pytest.mark.parametrize("platform", ["slack", "matrix"])
+@pytest.mark.parametrize("platform", ["slack", "discord"])
 def test_chat_gateways_redact_secret_in_non_error_body(platform):
     """Secrets must be redacted even when no provider-error rewrite fires.
 
@@ -233,7 +232,7 @@ def test_plugin_platform_string_suppresses_noise():
     """Unknown/plugin chat platforms fail closed to the chat-filter path."""
     message = "⏳ Retrying in 4.2s (attempt 1/3)..."
 
-    assert _prepare_gateway_status_message("irc", "warn", message) is None
+    assert _prepare_gateway_status_message("teams", "warn", message) is None
 
 
 @pytest.mark.parametrize("platform", CHAT_PLATFORMS)
@@ -253,7 +252,7 @@ def test_chat_gateways_drop_interrupt_sentinel(platform):
     assert _sanitize_gateway_final_response("local", sentinel) == sentinel
 
 
-@pytest.mark.parametrize("platform", [*CHAT_PLATFORMS, Platform.BLUEBUBBLES])
+@pytest.mark.parametrize("platform", CHAT_PLATFORMS)
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [

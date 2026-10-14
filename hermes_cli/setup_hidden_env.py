@@ -4,12 +4,12 @@ Hiding is a *presentation* decision only: the vars keep working through ``hermes
 ``.env`` and ``config.yaml``, and the gateway reads them exactly as before.
 """
 
-# Suffix match, so plugin adapters nobody enumerated (IRC, SimpleX, LINE, ntfy) get the same
+# Suffix match, so plugin adapters nobody enumerated (any plugin-defined platform) get the same
 # treatment without a code change here.
 #
 #   *_HOME_CHANNEL*        the bot offers /sethome on the first chat
 #   *_ALLOW_ALL_USERS      defaults off; enabling it is a security decision
-#   *_REPLY_TO_MODE / *_REPLY_MODE   cosmetic threading preference (Mattermost spelling too)
+#   *_REPLY_TO_MODE / *_REPLY_MODE   cosmetic threading preference
 #   *_REQUIRE_MENTION / *_AUTO_THREAD   behavior toggles with sane defaults
 #   *_FREE_RESPONSE_* / *_ALLOWED_CHANNELS   per-channel tuning, done once the bot is in a server
 #   *_PROXY                only for networks that block the platform

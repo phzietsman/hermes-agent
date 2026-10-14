@@ -5,15 +5,12 @@ from __future__ import annotations
 
 import logging
 import asyncio
-import hashlib
-import os
 import re
 import time
 from typing import Any
 
 from agent.account_usage import fetch_account_usage, render_account_usage_lines
 from agent.i18n import t
-from gateway.config import Platform
 from gateway.platforms.event import MessageEvent
 from gateway.session_transcript import TranscriptReadError
 from hermes_cli.status_report import build_status_fields
@@ -308,19 +305,6 @@ class GatewayStatusCommandsMixin:
                   t("gateway.status.agent_running", state=state)]
         if queue_depth:
             lines.append(t("gateway.status.queued", count=queue_depth))
-        if source.platform == Platform.MATRIX:
-            scope = getattr(self.adapters.get(Platform.MATRIX), "_matrix_session_scope",
-                            os.getenv("MATRIX_SESSION_SCOPE", "auto"))
-            lines += [
-                "",
-                t("gateway.status.matrix_scope_header"),
-                t("gateway.status.matrix_scope_room", room=source.chat_name or source.chat_id),
-                t("gateway.status.matrix_scope_room_id", room_id=source.chat_id),
-                t("gateway.status.matrix_scope_thread", thread_id=source.thread_id or t("gateway.shared.none_value")),
-                t("gateway.status.matrix_scope_mode", scope=scope),
-                t("gateway.status.matrix_scope_key",
-                  session_key=self._redact_matrix_session_key(session_key)),
-            ]
         lines += ["", t("gateway.status.platforms", platforms=', '.join(p.value for p in self.adapters))]
         return "\n".join(lines)
 
@@ -342,12 +326,6 @@ class GatewayStatusCommandsMixin:
         )
         route = await _quiet(lambda: db.get_recent_session_model_route(session_id))
         return title, session_row, db_total_tokens, route if isinstance(route, dict) else {}
-
-    @staticmethod
-    def _redact_matrix_session_key(session_key: str) -> str:
-        """Return a stable Matrix session-key fingerprint for shared room status."""
-        digest = hashlib.sha256(str(session_key or "").encode("utf-8")).hexdigest()[:12]
-        return f"sha256:{digest}"
 
     async def _handle_context_command(self, event: MessageEvent) -> str:
         """Handle /context — the deep context-window view (/status has the one-line summary).
