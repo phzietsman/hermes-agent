@@ -102,38 +102,35 @@ describe('reconcileUnifiedDesktopHalves', () => {
     expect(fs.existsSync(path.join(appRoot, 'media'))).toBe(false)
   })
 
-  it(
-    'materializes a SYMLINKED dev package and re-syncs on any byte change, even with an older mtime',
-    async () => {
-      // `ln -s ~/src/my-plugin ~/.hermes/plugins/` is how a plugin is developed in
-      // place; the Python loader follows it, but the reconcile skipped the link
-      // (Dirent.isDirectory() is false for a symlink) — the desktop half never loaded.
-      const home = makeHome()
-      const appRoot = path.join(home, 'desktop-plugins')
-      const checkout = path.join(home, 'src', 'media')
-      const source = path.join(checkout, 'desktop', 'plugin.js')
-      write(source, 'v1')
-      fs.mkdirSync(path.join(home, 'plugins'), { recursive: true })
-      fs.symlinkSync(checkout, path.join(home, 'plugins', 'media'))
+  it('materializes a SYMLINKED dev package and re-syncs on any byte change, even with an older mtime', async () => {
+    // `ln -s ~/src/my-plugin ~/.hermes/plugins/` is how a plugin is developed in
+    // place; the Python loader follows it, but the reconcile skipped the link
+    // (Dirent.isDirectory() is false for a symlink) — the desktop half never loaded.
+    const home = makeHome()
+    const appRoot = path.join(home, 'desktop-plugins')
+    const checkout = path.join(home, 'src', 'media')
+    const source = path.join(checkout, 'desktop', 'plugin.js')
+    write(source, 'v1')
+    fs.mkdirSync(path.join(home, 'plugins'), { recursive: true })
+    fs.symlinkSync(checkout, path.join(home, 'plugins', 'media'))
 
-      expect(await reconcileUnifiedDesktopHalves(home, appRoot)).toEqual([path.join(appRoot, 'media')])
-      expect(fs.readFileSync(path.join(appRoot, 'media', 'plugin.js'), 'utf8')).toBe('v1')
-      const marker = JSON.parse(fs.readFileSync(path.join(appRoot, 'media', PACKAGE_MARKER), 'utf8'))
-      expect(marker).toMatchObject({
-        linked: true,
-        package: 'media',
-        source: path.join(home, 'plugins', 'media', 'desktop')
-      })
-      expect(await reconcileUnifiedDesktopHalves(home, appRoot)).toEqual([])
+    expect(await reconcileUnifiedDesktopHalves(home, appRoot)).toEqual([path.join(appRoot, 'media')])
+    expect(fs.readFileSync(path.join(appRoot, 'media', 'plugin.js'), 'utf8')).toBe('v1')
+    const marker = JSON.parse(fs.readFileSync(path.join(appRoot, 'media', PACKAGE_MARKER), 'utf8'))
+    expect(marker).toMatchObject({
+      linked: true,
+      package: 'media',
+      source: path.join(home, 'plugins', 'media', 'desktop')
+    })
+    expect(await reconcileUnifiedDesktopHalves(home, appRoot)).toEqual([])
 
-      // An edit that lands an OLDER mtime (git stash pop, cp -p) still re-syncs.
-      write(source, 'v2')
-      const past = new Date(Date.now() - 3_600_000)
-      fs.utimesSync(source, past, past)
-      expect(await reconcileUnifiedDesktopHalves(home, appRoot)).toEqual([path.join(appRoot, 'media')])
-      expect(fs.readFileSync(path.join(appRoot, 'media', 'plugin.js'), 'utf8')).toBe('v2')
-    }
-  )
+    // An edit that lands an OLDER mtime (git stash pop, cp -p) still re-syncs.
+    write(source, 'v2')
+    const past = new Date(Date.now() - 3_600_000)
+    fs.utimesSync(source, past, past)
+    expect(await reconcileUnifiedDesktopHalves(home, appRoot)).toEqual([path.join(appRoot, 'media')])
+    expect(fs.readFileSync(path.join(appRoot, 'media', 'plugin.js'), 'utf8')).toBe('v2')
+  })
 
   it('keeps the mtime gate for an installed (non-linked) package', async () => {
     const home = makeHome()

@@ -17,12 +17,7 @@ import { Loader } from '@/components/ui/loader'
 import { Progress } from '@/components/ui/progress'
 import { UpdateStatusCard, VersionHero } from '@/components/update-status'
 import { VersionDetails } from '@/components/version-details'
-import type {
-  DesktopUpdateCommit,
-  DesktopUpdateStage,
-  DesktopUpdateStatus,
-  DesktopVersionInfo
-} from '@/global'
+import type { DesktopUpdateCommit, DesktopUpdateStage, DesktopUpdateStatus, DesktopVersionInfo } from '@/global'
 import { useI18n } from '@/i18n'
 import { buildCommitChangelog, type CommitGroup, formatFullChangelogText } from '@/lib/commit-changelog'
 import { AlertCircle, Check, Copy, Terminal } from '@/lib/icons'
@@ -122,9 +117,7 @@ export function UpdatesOverlay() {
         onOpenAutoFocus={preventCloseButtonAutoFocus}
         showCloseButton={phase !== 'applying'}
       >
-        {phase === 'applying' && (
-          <ApplyingView apply={apply} isBackend={isBackend} />
-        )}
+        {phase === 'applying' && <ApplyingView apply={apply} isBackend={isBackend} />}
 
         {phase === 'manual' && (
           <ManualView

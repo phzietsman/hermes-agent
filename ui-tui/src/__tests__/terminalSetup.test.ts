@@ -31,12 +31,8 @@ describe('terminalSetup helpers', () => {
   })
 
   it('computes VS Code style config dirs per platform', () => {
-    expect(getVSCodeStyleConfigDir('Code', 'darwin', '/home/me')).toBe(
-      '/home/me/Library/Application Support/Code/User'
-    )
-    expect(getVSCodeStyleConfigDir('Code', 'linux', '/home/me')).toBe(
-      '/home/me/.config/Code/User'
-    )
+    expect(getVSCodeStyleConfigDir('Code', 'darwin', '/home/me')).toBe('/home/me/Library/Application Support/Code/User')
+    expect(getVSCodeStyleConfigDir('Code', 'linux', '/home/me')).toBe('/home/me/.config/Code/User')
   })
 
   it('strips line comments from keybindings JSON', () => {

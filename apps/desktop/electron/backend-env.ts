@@ -62,10 +62,7 @@ function isProfileHome(resolved, pathModule) {
   return pathModule.basename(pathModule.dirname(resolved)).toLowerCase() === 'profiles'
 }
 
-function normalizeHermesHomeRoot(
-  hermesHome,
-  { pathModule = path.posix, homedir = os.homedir() }: any = {}
-) {
+function normalizeHermesHomeRoot(hermesHome, { pathModule = path.posix, homedir = os.homedir() }: any = {}) {
   if (!hermesHome) {
     return hermesHome
   }
@@ -170,10 +167,7 @@ function profileBackendParentEnv({
  * (nvm, Homebrew, ~/.local/bin) ahead of the inherited PATH, which is where
  * `hermes desktop` put the store dirs.
  */
-function storeFirstPath(
-  pathValue: string,
-  { currentEnv = process.env, homedir = os.homedir() }: any = {}
-) {
+function storeFirstPath(pathValue: string, { currentEnv = process.env, homedir = os.homedir() }: any = {}) {
   const pathModule = path.posix
   const delimiter = PATH_DELIMITER
   const hermesHome = resolveDesktopHermesHome({ home: homedir, env: currentEnv })
@@ -199,10 +193,7 @@ function storeFirstPath(
  * can't make the backend import modules from another checkout. Store dirs
  * already on the inherited PATH stay first (storeFirstPath).
  */
-function buildDesktopBackendEnv({
-  currentEnv = process.env,
-  homedir = os.homedir()
-}: any = {}) {
+function buildDesktopBackendEnv({ currentEnv = process.env, homedir = os.homedir() }: any = {}) {
   const delimiter = PATH_DELIMITER
   const key = PATH_ENV_KEY
   const saneEntries = POSIX_SANE_PATH_ENTRIES

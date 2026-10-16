@@ -68,10 +68,7 @@ export function resolveAppIcon(
  * (packaged `APP_ROOT` vs dev tree) and `unpackedPathFor` maps into
  * `app.asar.unpacked` for builds that leave assets outside the archive.
  */
-export function appIconCandidates(opts: {
-  appRoot: string
-  unpackedPathFor: (p: string) => string
-}): string[] {
+export function appIconCandidates(opts: { appRoot: string; unpackedPathFor: (p: string) => string }): string[] {
   const { appRoot, unpackedPathFor } = opts
 
   return [

@@ -129,9 +129,7 @@ test('real spawn failures finalize before a pending identity claim settles', asy
       const releaseNext = await coordinator.acquire('profile')
       finishClaim()
       await claimed
-      await releaseLocalBackendSlotAfterExit(release, () =>
-        waitForBackendExit(child, {}, 20)
-      )
+      await releaseLocalBackendSlotAfterExit(release, () => waitForBackendExit(child, {}, 20))
       assert.equal(coordinator.activeCount, 1, 'late failed-start cleanup owns only the old lease')
       releaseNext()
     }

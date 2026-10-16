@@ -161,10 +161,9 @@ describe('runMarkerHelper against a real script process', () => {
     fs.writeFileSync(path.join(home, 'helper-sleep'), '5')
     const started = Date.now()
 
-    assert.deepEqual(
-      await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, timeoutMs: 300 }),
-      { kind: 'error' }
-    )
+    assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, timeoutMs: 300 }), {
+      kind: 'error'
+    })
     assert.ok(Date.now() - started < 4000, 'bounded by the timeout')
   })
 

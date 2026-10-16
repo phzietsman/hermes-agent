@@ -292,26 +292,23 @@ test('installer log lines reach the emitter without escape sequences; \\r redraw
   assert.equal(cleanInstallerLogLine('Ready — café ✓ 中文'), 'Ready — café ✓ 中文')
 })
 
-test(
-  'a manifest-step failure surfaces the installer tail without escape sequences',
-  async () => {
-    const home = mkTmpHome()
-    fs.mkdirSync(path.join(home, 'scripts'))
-    fs.writeFileSync(
-      path.join(home, 'scripts', 'install.sh'),
-      '#!/usr/bin/env bash\nprintf "\\033[0;31m\\xe2\\x9c\\x97\\033[0m manifest broke\\n" >&2\nexit 3\n'
-    )
+test('a manifest-step failure surfaces the installer tail without escape sequences', async () => {
+  const home = mkTmpHome()
+  fs.mkdirSync(path.join(home, 'scripts'))
+  fs.writeFileSync(
+    path.join(home, 'scripts', 'install.sh'),
+    '#!/usr/bin/env bash\nprintf "\\033[0;31m\\xe2\\x9c\\x97\\033[0m manifest broke\\n" >&2\nexit 3\n'
+  )
 
-    const result = await runBootstrap({
-      installStamp: null,
-      activeRoot: home,
-      sourceRepoRoot: home,
-      hermesHome: home,
-      logRoot: home,
-      onEvent: () => {}
-    })
+  const result = await runBootstrap({
+    installStamp: null,
+    activeRoot: home,
+    sourceRepoRoot: home,
+    hermesHome: home,
+    logRoot: home,
+    onEvent: () => {}
+  })
 
-    assert.equal(result.ok, false)
-    assert.equal(result.error, 'install.sh --manifest failed: exit 3\n✗ manifest broke')
-  }
-)
+  assert.equal(result.ok, false)
+  assert.equal(result.error, 'install.sh --manifest failed: exit 3\n✗ manifest broke')
+})

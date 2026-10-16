@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process'
 
-
 interface StateDbPreflight {
   python: string | null
   script: string

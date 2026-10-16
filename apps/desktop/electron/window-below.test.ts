@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  type EnumeratedWindow,
-  enumerationFailureNote,
-  pickWindowBelow,
-  resolveOutsideAsar
-} from './window-below'
+import { type EnumeratedWindow, enumerationFailureNote, pickWindowBelow, resolveOutsideAsar } from './window-below'
 
 const win = (pid: number, x = 0, y = 0, width = 800, height = 600, app = `app-${pid}`): EnumeratedWindow => ({
   app,

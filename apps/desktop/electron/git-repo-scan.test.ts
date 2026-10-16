@@ -130,9 +130,7 @@ describe('macOS TCC-protected media exclusions (issue #57611 salvage)', () => {
 
 describe('repository scan path normalization', () => {
   it('expands tilde and resolves relative paths from home', () => {
-    expect(normalizeRepoScanPath('~/src', { homeDir: '/Users/rudi' })?.value).toBe(
-      '/Users/rudi/src'
-    )
+    expect(normalizeRepoScanPath('~/src', { homeDir: '/Users/rudi' })?.value).toBe('/Users/rudi/src')
     expect(normalizeRepoScanPath('src', { homeDir: '/Users/rudi' })?.value).toBe('/Users/rudi/src')
   })
 

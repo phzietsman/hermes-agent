@@ -33,27 +33,24 @@ function deps(root: string, status: SourceUpdate | null): CheckoutStrategyDeps {
   }
 }
 
-it(
-  'posix-handoff reports the checkout commit even when the source probe never supplied one',
-  async (): Promise<void> => {
-    const root: string = fs.mkdtempSync(path.join(os.tmpdir(), 'checkout-sha-'))
+it('posix-handoff reports the checkout commit even when the source probe never supplied one', async (): Promise<void> => {
+  const root: string = fs.mkdtempSync(path.join(os.tmpdir(), 'checkout-sha-'))
 
-    try {
-      // A probe-less checkout (the manual path: no hermes_cli/source_check.py)
-      // previously reported no currentSha at all — the commit showed nowhere.
-      writeStamp(root, STAMPED)
-      const strategy: ReturnType<typeof createCheckoutStrategy> = createCheckoutStrategy(deps(root, null))
+  try {
+    // A probe-less checkout (the manual path: no hermes_cli/source_check.py)
+    // previously reported no currentSha at all — the commit showed nowhere.
+    writeStamp(root, STAMPED)
+    const strategy: ReturnType<typeof createCheckoutStrategy> = createCheckoutStrategy(deps(root, null))
 
-      expect(await strategy.check()).toMatchObject({
-        supported: true,
-        mechanism: 'posix-handoff',
-        currentSha: STAMPED
-      })
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true })
-    }
+    expect(await strategy.check()).toMatchObject({
+      supported: true,
+      mechanism: 'posix-handoff',
+      currentSha: STAMPED
+    })
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
   }
-)
+})
 
 it('fills currentSha from the install stamp when the probe omitted it, but never overrides the probe', async (): Promise<void> => {
   const root: string = fs.mkdtempSync(path.join(os.tmpdir(), 'checkout-sha-'))

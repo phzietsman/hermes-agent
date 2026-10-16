@@ -76,62 +76,56 @@ async function gate(args: string[]) {
   }
 }
 
-test(
-  'the remote gate keeps a dead marker while the default checkout lock is held',
-  async () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-gate-'))
-    const marker = path.join(root, '.hermes-update-in-progress')
+test('the remote gate keeps a dead marker while the default checkout lock is held', async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-gate-'))
+  const marker = path.join(root, '.hermes-update-in-progress')
 
-    try {
-      mkdirSync(path.join(root, 'hermes-agent', '.git'), { recursive: true })
-      deadMarker(marker)
+  try {
+    mkdirSync(path.join(root, 'hermes-agent', '.git'), { recursive: true })
+    deadMarker(marker)
 
-      await withCheckoutLockHeld(path.join(root, 'hermes-agent', '.git', 'hermes-update.lock'), async () => {
-        assert.deepEqual(await gate([marker]), { code: 0, stdout: 'HELD', stderr: '' })
-        assert.ok(existsSync(marker), 'a dead marker beside a held checkout lock must be kept')
-        const refused = await gate([marker, 'echo PAYLOAD-RAN'])
-        assert.deepEqual(refused, { code: 75, stdout: '', stderr: 'HELD' })
-      })
+    await withCheckoutLockHeld(path.join(root, 'hermes-agent', '.git', 'hermes-update.lock'), async () => {
+      assert.deepEqual(await gate([marker]), { code: 0, stdout: 'HELD', stderr: '' })
+      assert.ok(existsSync(marker), 'a dead marker beside a held checkout lock must be kept')
+      const refused = await gate([marker, 'echo PAYLOAD-RAN'])
+      assert.deepEqual(refused, { code: 75, stdout: '', stderr: 'HELD' })
+    })
 
-      assert.deepEqual(await gate([marker]), { code: 0, stdout: 'CLEAR', stderr: '' })
-      assert.ok(!existsSync(marker), 'a dead marker beside a free checkout lock is reclaimed')
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
+    assert.deepEqual(await gate([marker]), { code: 0, stdout: 'CLEAR', stderr: '' })
+    assert.ok(!existsSync(marker), 'a dead marker beside a free checkout lock is reclaimed')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
   }
-)
+})
 
-test(
-  'the remote gate probes the checkout of the hermes executable it is given (linked worktree)',
-  async () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-gate-'))
-    const home = path.join(root, 'home')
-    const marker = path.join(home, '.hermes-update-in-progress')
-    const checkout = path.join(root, 'src', 'hermes-agent')
-    const common = path.join(root, 'repo.git')
+test('the remote gate probes the checkout of the hermes executable it is given (linked worktree)', async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-gate-'))
+  const home = path.join(root, 'home')
+  const marker = path.join(home, '.hermes-update-in-progress')
+  const checkout = path.join(root, 'src', 'hermes-agent')
+  const common = path.join(root, 'repo.git')
 
-    try {
-      mkdirSync(home, { recursive: true })
-      mkdirSync(path.join(checkout, 'venv', 'bin'), { recursive: true })
-      mkdirSync(path.join(common, 'worktrees', 'co'), { recursive: true })
-      writeFileSync(path.join(checkout, '.git'), `gitdir: ${path.join(common, 'worktrees', 'co')}\n`)
-      writeFileSync(path.join(common, 'worktrees', 'co', 'commondir'), '../..\n')
-      writeFileSync(path.join(checkout, 'venv', 'bin', 'hermes'), '')
-      mkdirSync(path.join(root, 'bin'))
-      symlinkSync(path.join(checkout, 'venv', 'bin', 'hermes'), path.join(root, 'bin', 'hermes'))
-      deadMarker(marker)
+  try {
+    mkdirSync(home, { recursive: true })
+    mkdirSync(path.join(checkout, 'venv', 'bin'), { recursive: true })
+    mkdirSync(path.join(common, 'worktrees', 'co'), { recursive: true })
+    writeFileSync(path.join(checkout, '.git'), `gitdir: ${path.join(common, 'worktrees', 'co')}\n`)
+    writeFileSync(path.join(common, 'worktrees', 'co', 'commondir'), '../..\n')
+    writeFileSync(path.join(checkout, 'venv', 'bin', 'hermes'), '')
+    mkdirSync(path.join(root, 'bin'))
+    symlinkSync(path.join(checkout, 'venv', 'bin', 'hermes'), path.join(root, 'bin', 'hermes'))
+    deadMarker(marker)
 
-      await withCheckoutLockHeld(path.join(common, 'hermes-update.lock'), async () => {
-        const hermes = path.join(root, 'bin', 'hermes')
-        assert.deepEqual(await gate([marker, '', hermes]), { code: 0, stdout: 'HELD', stderr: '' })
-        assert.deepEqual((await gate([marker, 'echo PAYLOAD-RAN', hermes])).code, 75)
-        assert.ok(existsSync(marker))
-      })
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
+    await withCheckoutLockHeld(path.join(common, 'hermes-update.lock'), async () => {
+      const hermes = path.join(root, 'bin', 'hermes')
+      assert.deepEqual(await gate([marker, '', hermes]), { code: 0, stdout: 'HELD', stderr: '' })
+      assert.deepEqual((await gate([marker, 'echo PAYLOAD-RAN', hermes])).code, 75)
+      assert.ok(existsSync(marker))
+    })
+  } finally {
+    rmSync(root, { recursive: true, force: true })
   }
-)
+})
 
 // macOS/BSD remotes read creation time from `ps -o lstart=`. Python's judge asks
 // for it in UTC (TZ=UTC0 + calendar.timegm); a local-time parse of the repeated

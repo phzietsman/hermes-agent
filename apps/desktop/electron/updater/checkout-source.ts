@@ -43,9 +43,7 @@ export async function readSourceUpdate(probe: SourceUpdateProbe): Promise<Source
   // A PATH Python can import this checkout yet lack its selected dependencies.
   const managed = existsSync(path.join(probe.updateRoot, 'pm'))
 
-  const launcher = managed
-    ? resolveInstallationLauncher(probe.updateRoot, probe.hermesHome)
-    : null
+  const launcher = managed ? resolveInstallationLauncher(probe.updateRoot, probe.hermesHome) : null
 
   if (managed && !launcher) {
     throw new Error('The source installation launcher is missing; repair this installation before checking updates.')

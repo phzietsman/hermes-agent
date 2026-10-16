@@ -728,8 +728,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
           <div className="flex-shrink-0 bg-card p-4">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">
-                {copy.transcriptSaved}{' '}
-                <code className="font-mono text-(--ui-text-secondary)">$HERMES_HOME/logs/</code>
+                {copy.transcriptSaved} <code className="font-mono text-(--ui-text-secondary)">$HERMES_HOME/logs/</code>
               </span>
               <div className="flex gap-2">
                 <Button onClick={() => setState(EMPTY_STATE)} size="sm" variant="ghost">

@@ -5,11 +5,7 @@ import { test } from 'vitest'
 import { absolutizeProtocolRelativeUrl, looksLikeLocalFilesystemPath } from './local-filesystem-path'
 
 test('recognizes every bare local filesystem path shape', () => {
-  for (const value of [
-    '/tmp/report.pdf',
-    '///tmp/foo',
-    '~/logs/desktop.log'
-  ]) {
+  for (const value of ['/tmp/report.pdf', '///tmp/foo', '~/logs/desktop.log']) {
     assert.equal(looksLikeLocalFilesystemPath(value), true, `expected ${value} to be a local path`)
   }
 })

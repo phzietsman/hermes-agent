@@ -8,10 +8,7 @@ import {
 } from './preview-targets'
 
 describe('previewName', () => {
-  it.each([
-    '/Users/me/report.html',
-    'file:///Users/me/report.html'
-  ])('labels %s by its file name', target => {
+  it.each(['/Users/me/report.html', 'file:///Users/me/report.html'])('labels %s by its file name', target => {
     expect(previewName(target)).toBe('report.html')
   })
 })

@@ -66,143 +66,139 @@ async function ping(port: number, token: string): Promise<unknown> {
   }
 }
 
-test(
-  'a PM source launcher reaches real health and RPC without adopting a legacy venv (POSIX)',
-  async (): Promise<void> => {
-    const temp: string = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-pm-start-'))
-    const home: string = path.join(temp, 'home with spaces')
+test('a PM source launcher reaches real health and RPC without adopting a legacy venv (POSIX)', async (): Promise<void> => {
+  const temp: string = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-pm-start-'))
+  const home: string = path.join(temp, 'home with spaces')
 
-    const env: NodeJS.ProcessEnv = Object.fromEntries(
-      Object.entries(process.env).filter(
-        ([key]: [string, string | undefined]): boolean => !/^(HERMES_|PYTHON|UV_|VIRTUAL_ENV|XDG_)/.test(key)
-      )
+  const env: NodeJS.ProcessEnv = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]: [string, string | undefined]): boolean => !/^(HERMES_|PYTHON|UV_|VIRTUAL_ENV|XDG_)/.test(key)
+    )
+  )
+
+  Object.assign(env, {
+    HOME: home,
+    USERPROFILE: home,
+    HERMES_HOME: path.join(home, '.hermes'),
+    HERMES_RUNTIME_DIR: path.join(temp, 'tools'),
+    HERMES_DISABLE_LAZY_INSTALLS: '1',
+    XDG_CONFIG_HOME: path.join(temp, 'config'),
+    XDG_CONFIG_DIRS: path.join(temp, 'config'),
+    PYTHONDONTWRITEBYTECODE: '1',
+    UV_CACHE_DIR: path.join(temp, 'cache'),
+    UV_OFFLINE: '1'
+  })
+  const python: string = process.env.HERMES_PYTHON || 'python3'
+  const fixtureScript: string = path.join(import.meta.dirname, 'fixtures', 'source-backend.py')
+  const token: string = 'desktop-pm-contract'
+  env.HERMES_DASHBOARD_SESSION_TOKEN = token
+  vi.stubEnv('HOME', home)
+
+  try {
+    const fixture: Fixture = JSON.parse(
+      execFileSync(python, ['-I', fixtureScript, temp], {
+        cwd: temp,
+        env,
+        encoding: 'utf8',
+        timeout: 90_000
+      })
+    ) as Fixture
+
+    assert.equal(fs.existsSync(path.join(fixture.root, 'venv')), false)
+    assert.equal(fs.existsSync(path.join(fixture.root, '.venv')), false)
+
+    const origin: { python: string; module: string; value: string } = JSON.parse(
+      execFileSync(fixture.launcher, ['--run-module', 'desktop_launch_probe'], {
+        cwd: temp,
+        env,
+        encoding: 'utf8',
+        timeout: 15_000
+      })
     )
 
-    Object.assign(env, {
-      HOME: home,
-      USERPROFILE: home,
-      HERMES_HOME: path.join(home, '.hermes'),
-      HERMES_RUNTIME_DIR: path.join(temp, 'tools'),
-      HERMES_DISABLE_LAZY_INSTALLS: '1',
-      XDG_CONFIG_HOME: path.join(temp, 'config'),
-      XDG_CONFIG_DIRS: path.join(temp, 'config'),
-      PYTHONDONTWRITEBYTECODE: '1',
-      UV_CACHE_DIR: path.join(temp, 'cache'),
-      UV_OFFLINE: '1'
-    })
-    const python: string = process.env.HERMES_PYTHON || 'python3'
-    const fixtureScript: string = path.join(import.meta.dirname, 'fixtures', 'source-backend.py')
-    const token: string = 'desktop-pm-contract'
-    env.HERMES_DASHBOARD_SESSION_TOKEN = token
-    vi.stubEnv('HOME', home)
+    assert.equal(origin.python, fixture.python)
+    assert.ok(origin.module.startsWith(`${fixture.selected}${path.sep}`))
+    assert.equal(origin.value, 'selected by PM')
 
-    try {
-      const fixture: Fixture = JSON.parse(
-        execFileSync(python, ['-I', fixtureScript, temp], {
-          cwd: temp,
-          env,
-          encoding: 'utf8',
-          timeout: 90_000
+    for (const poisoned of [false, true]) {
+      const poison: string = path.join(temp, 'legacy-python-used')
+
+      if (poisoned) {
+        const oldPython: string = path.join(fixture.root, 'venv', 'bin', 'python')
+        fs.mkdirSync(path.dirname(oldPython), { recursive: true })
+        fs.writeFileSync(oldPython, `#!/bin/sh\ntouch '${poison}'\nexit 93\n`, { mode: 0o755 })
+      }
+
+      const backend: SourceBackend | null = await resolveSourceInstallationBackend(fixture.root, serveBackendArgs(), {
+        hermesHome: env.HERMES_HOME,
+        env
+      })
+
+      assert.ok(backend, 'a published, runnable PM installation must be accepted')
+      assert.equal(backend.command, fixture.launcher)
+      assert.equal(backend.bootstrap, false)
+
+      const child: ChildProcess = spawn(backend.command, backend.args, {
+        cwd: temp,
+        env: { ...env, ...backend.env },
+        shell: backend.shell,
+        stdio: ['ignore', 'pipe', 'pipe']
+      })
+
+      let output: string = ''
+      child.stdout?.on('data', (data: Buffer): void => {
+        output += data.toString()
+      })
+      child.stderr?.on('data', (data: Buffer): void => {
+        output += data.toString()
+      })
+
+      try {
+        const port: number = (await waitForDashboardPort(child, 45_000)) as number
+
+        const response: Response = await fetch(`http://127.0.0.1:${port}/api/health`, {
+          headers: { 'X-Hermes-Session-Token': token }
         })
-      ) as Fixture
 
-      assert.equal(fs.existsSync(path.join(fixture.root, 'venv')), false)
-      assert.equal(fs.existsSync(path.join(fixture.root, '.venv')), false)
+        assert.equal(response.status, 200, output)
+        assert.deepEqual(await ping(port, token), { jsonrpc: '2.0', id: 1, result: { pong: true } })
+        assert.equal(fs.existsSync(poison), false, 'the stale checkout interpreter must never execute')
+        console.info('PM backend verified', { poisoned, port, health: response.status, origin })
+      } catch (error: unknown) {
+        throw new Error(`${String(error)}\n${output}`)
+      } finally {
+        await stop(child)
+      }
 
-      const origin: { python: string; module: string; value: string } = JSON.parse(
-        execFileSync(fixture.launcher, ['--run-module', 'desktop_launch_probe'], {
-          cwd: temp,
-          env,
-          encoding: 'utf8',
-          timeout: 15_000
-        })
-      )
-
-      assert.equal(origin.python, fixture.python)
-      assert.ok(origin.module.startsWith(`${fixture.selected}${path.sep}`))
-      assert.equal(origin.value, 'selected by PM')
-
-      for (const poisoned of [false, true]) {
-        const poison: string = path.join(temp, 'legacy-python-used')
-
-        if (poisoned) {
-          const oldPython: string = path.join(fixture.root, 'venv', 'bin', 'python')
-          fs.mkdirSync(path.dirname(oldPython), { recursive: true })
-          fs.writeFileSync(oldPython, `#!/bin/sh\ntouch '${poison}'\nexit 93\n`, { mode: 0o755 })
-        }
-
-        const backend: SourceBackend | null = await resolveSourceInstallationBackend(fixture.root, serveBackendArgs(), {
-          hermesHome: env.HERMES_HOME,
+      if (poisoned) {
+        const source: SourceBackend | null = createSourcePythonBackend(fixture.root, fixture.python, ['--version'], {
           env
         })
 
-        assert.ok(backend, 'a published, runnable PM installation must be accepted')
-        assert.equal(backend.command, fixture.launcher)
-        assert.equal(backend.bootstrap, false)
-
-        const child: ChildProcess = spawn(backend.command, backend.args, {
-          cwd: temp,
-          env: { ...env, ...backend.env },
-          shell: backend.shell,
-          stdio: ['ignore', 'pipe', 'pipe']
-        })
-
-        let output: string = ''
-        child.stdout?.on('data', (data: Buffer): void => {
-          output += data.toString()
-        })
-        child.stderr?.on('data', (data: Buffer): void => {
-          output += data.toString()
-        })
-
-        try {
-          const port: number = (await waitForDashboardPort(child, 45_000)) as number
-
-          const response: Response = await fetch(`http://127.0.0.1:${port}/api/health`, {
-            headers: { 'X-Hermes-Session-Token': token }
-          })
-
-          assert.equal(response.status, 200, output)
-          assert.deepEqual(await ping(port, token), { jsonrpc: '2.0', id: 1, result: { pong: true } })
-          assert.equal(fs.existsSync(poison), false, 'the stale checkout interpreter must never execute')
-          console.info('PM backend verified', { poisoned, port, health: response.status, origin })
-        } catch (error: unknown) {
-          throw new Error(`${String(error)}\n${output}`)
-        } finally {
-          await stop(child)
-        }
-
-        if (poisoned) {
-          const source: SourceBackend | null = createSourcePythonBackend(fixture.root, fixture.python, ['--version'], {
-            env
-          })
-
-          assert.ok(source)
-          assert.equal(source.command, fixture.python)
-          assert.match(
-            // The real spawn runs in the user's workspace, never the checkout.
-            execFileSync(source.command, source.args, {
-              cwd: temp,
-              env: { ...env, ...source.env },
-              encoding: 'utf8',
-              timeout: 15_000
-            }),
-            /Hermes/
-          )
-          assert.equal(fs.existsSync(poison), false)
-        }
+        assert.ok(source)
+        assert.equal(source.command, fixture.python)
+        assert.match(
+          // The real spawn runs in the user's workspace, never the checkout.
+          execFileSync(source.command, source.args, {
+            cwd: temp,
+            env: { ...env, ...source.env },
+            encoding: 'utf8',
+            timeout: 15_000
+          }),
+          /Hermes/
+        )
+        assert.equal(fs.existsSync(poison), false)
       }
-
-      fs.unlinkSync(fixture.launcher)
-      assert.equal(
-        await resolveSourceInstallationBackend(fixture.root, serveBackendArgs(), { hermesHome: env.HERMES_HOME, env }),
-        null,
-        'a missing PM command must not fall back to the stale venv'
-      )
-    } finally {
-      fs.rmSync(temp, { recursive: true, force: true })
-      vi.unstubAllEnvs()
     }
-  },
-  150_000
-)
+
+    fs.unlinkSync(fixture.launcher)
+    assert.equal(
+      await resolveSourceInstallationBackend(fixture.root, serveBackendArgs(), { hermesHome: env.HERMES_HOME, env }),
+      null,
+      'a missing PM command must not fall back to the stale venv'
+    )
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true })
+    vi.unstubAllEnvs()
+  }
+}, 150_000)

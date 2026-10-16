@@ -32,34 +32,31 @@ function publishLauncher(dir: string, reported: string): string {
 // The reported machine: setup-hermes.sh published ~/.local/bin/hermes for a
 // clone outside ~/.hermes/hermes-agent, and a Finder/Dock launch inherited
 // launchd's PATH, which has no ~/.local/bin. Desktop must still find it.
-test(
-  'a ~/.local/bin launcher resolves its non-canonical install on a GUI PATH without ~/.local/bin',
-  async (): Promise<void> => {
-    const base: string = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'user-launcher-')))
+test('a ~/.local/bin launcher resolves its non-canonical install on a GUI PATH without ~/.local/bin', async (): Promise<void> => {
+  const base: string = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'user-launcher-')))
 
-    try {
-      const home: string = path.join(base, 'home')
-      const root: string = path.join(home, 'src', 'hermes-agent')
-      sourceTree(root)
-      const launcher: string = publishLauncher(path.join(home, '.local', 'bin'), root)
-      vi.stubEnv('HOME', home)
-      vi.stubEnv('PATH', '/usr/bin:/bin:/usr/sbin:/sbin')
+  try {
+    const home: string = path.join(base, 'home')
+    const root: string = path.join(home, 'src', 'hermes-agent')
+    sourceTree(root)
+    const launcher: string = publishLauncher(path.join(home, '.local', 'bin'), root)
+    vi.stubEnv('HOME', home)
+    vi.stubEnv('PATH', '/usr/bin:/bin:/usr/sbin:/sbin')
 
-      const found = userLauncherInstallRoot(path.join(home, '.hermes'))
-      assert.deepEqual(found, { launcher, root })
+    const found = userLauncherInstallRoot(path.join(home, '.hermes'))
+    assert.deepEqual(found, { launcher, root })
 
-      const backend = await resolveSourceInstallationBackend(root, ['serve'], {
-        hermesHome: path.join(home, '.hermes')
-      })
+    const backend = await resolveSourceInstallationBackend(root, ['serve'], {
+      hermesHome: path.join(home, '.hermes')
+    })
 
-      assert.equal(backend?.command, launcher)
-      assert.equal(backend?.root, root)
-      assert.deepEqual(backend?.args, ['serve'])
-    } finally {
-      fs.rmSync(base, { recursive: true, force: true })
-    }
+    assert.equal(backend?.command, launcher)
+    assert.equal(backend?.root, root)
+    assert.deepEqual(backend?.args, ['serve'])
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true })
   }
-)
+})
 
 test('a user-bin launcher is ignored when it reports no Hermes source tree', (): void => {
   const base: string = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'user-launcher-')))

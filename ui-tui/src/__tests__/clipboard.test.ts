@@ -142,11 +142,7 @@ describe('writeClipboardText', () => {
     const start = vi.fn().mockReturnValue(child)
 
     await expect(writeClipboardText('hello world', 'darwin', start as any)).resolves.toBe(true)
-    expect(start).toHaveBeenCalledWith(
-      'pbcopy',
-      [],
-      expect.objectContaining({ stdio: ['pipe', 'ignore', 'ignore'] })
-    )
+    expect(start).toHaveBeenCalledWith('pbcopy', [], expect.objectContaining({ stdio: ['pipe', 'ignore', 'ignore'] }))
     expect(stdin.end).toHaveBeenCalledWith('hello world')
   })
 

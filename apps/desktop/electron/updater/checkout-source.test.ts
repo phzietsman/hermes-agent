@@ -453,9 +453,7 @@ urllib.request.build_opener = local_build
       updateAvailable: false
     })
     expect(await strategy.apply()).toMatchObject({ ok: true, handedOff: true })
-    expect(spawned.pop()?.args).toEqual(
-      expect.arrayContaining(['--branch', 'feature/gui'])
-    )
+    expect(spawned.pop()?.args).toEqual(expect.arrayContaining(['--branch', 'feature/gui']))
     fs.rmSync(markerPath(home), { force: true })
     fs.rmSync(scriptDirectory, { recursive: true, force: true })
     expect(await strategy.apply()).toMatchObject({ manual: true, command: 'hermes update --branch feature/gui' })

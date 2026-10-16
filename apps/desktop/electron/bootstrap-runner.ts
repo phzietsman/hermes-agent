@@ -76,7 +76,7 @@ function resolveCheckoutHead(
         cwd,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
-        timeout: 15_000,
+        timeout: 15_000
       }).trim())
 
   try {
@@ -487,15 +487,7 @@ function buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit = t
   return args
 }
 
-async function fetchManifest({
-  scriptPath,
-  emit,
-  hermesHome,
-  activeRoot,
-  installStamp,
-  pinCommit,
-  abortSignal
-}) {
+async function fetchManifest({ scriptPath, emit, hermesHome, activeRoot, installStamp, pinCommit, abortSignal }) {
   abortSignal?.throwIfAborted()
   const args = ['--manifest', ...buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit })]
 
@@ -511,9 +503,7 @@ async function fetchManifest({
     // the installer's colour/OSC bytes here too (#112675).
     const tail = stripAnsi(result.stderr || result.stdout).trim()
 
-    throw new Error(
-      `install.sh --manifest failed: exit ${result.code}\n${tail}`
-    )
+    throw new Error(`install.sh --manifest failed: exit ${result.code}\n${tail}`)
   }
 
   // The manifest is the LAST JSON line on stdout (install.sh may print
@@ -533,9 +523,7 @@ async function fetchManifest({
     }
   }
 
-  throw new Error(
-    `install.sh --manifest produced no parseable JSON payload\n${result.stdout}`
-  )
+  throw new Error(`install.sh --manifest produced no parseable JSON payload\n${result.stdout}`)
 }
 
 // Parse the JSON result frame from a stage run. The protocol guarantees
@@ -559,16 +547,7 @@ function parseStageResult(stdout) {
   return null
 }
 
-async function runStage({
-  scriptPath,
-  stage,
-  emit,
-  hermesHome,
-  activeRoot,
-  abortSignal,
-  installStamp,
-  pinCommit
-}) {
+async function runStage({ scriptPath, stage, emit, hermesHome, activeRoot, abortSignal, installStamp, pinCommit }) {
   const startedAt = Date.now()
   emit({ type: 'stage', name: stage.name, state: 'running' })
 
@@ -736,7 +715,7 @@ async function runBootstrap(opts) {
     // 2. Fetch manifest
     const manifest = await fetchManifest({
       scriptPath: scriptInfo.path,
-          emit,
+      emit,
       hermesHome,
       activeRoot,
       installStamp,
@@ -765,7 +744,7 @@ async function runBootstrap(opts) {
 
       const ev = await runStage({
         scriptPath: scriptInfo.path,
-              stage,
+        stage,
         emit,
         hermesHome,
         activeRoot,
