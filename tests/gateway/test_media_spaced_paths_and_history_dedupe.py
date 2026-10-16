@@ -81,8 +81,6 @@ class TestHistoryMediaDedupe:
         monkeypatch,
     ):
         monkeypatch.setenv("HOME", str(tmp_path))
-        # On Windows os.path.expanduser("~") reads USERPROFILE, not HOME.
-        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         history = [
             {
                 "role": "assistant",

@@ -104,7 +104,6 @@ def test_a_borrower_holding_the_checkout_never_becomes_its_owner(tmp_path, monke
     """`install.sh --dir <dir>` puts the default root's checkout in <dir>. Launching it with
     HERMES_HOME=<dir> borrows, and still borrows after that root's own sync leaves state --
     even when an explicit sync points HERMES_RUNTIME_DIR at <dir>'s own store."""
-    import os
 
     import pm
     from hermes_cli import _launchers
@@ -113,7 +112,7 @@ def test_a_borrower_holding_the_checkout_never_becomes_its_owner(tmp_path, monke
     holder = tmp_path / "data" / "dir"
     root = _checkout(tmp_path, monkeypatch, parent=holder)
     entry = default / "tools" / "python-owner"
-    python = entry / ("python.exe" if os.name == "nt" else "bin/python3")
+    python = entry / "bin/python3"
     python.parent.mkdir(parents=True)
     python.touch()
     (default / "tools" / "facts.json").write_text(json.dumps(
@@ -134,8 +133,8 @@ def test_a_borrower_holding_the_checkout_never_becomes_its_owner(tmp_path, monke
 
     # An explicit sync publishes outside prepare_launch, and <dir>/tools matches the owner layout.
     borrowed = holder / "tools" / "python-holder"
-    (borrowed / ("python.exe" if os.name == "nt" else "bin/python3")).parent.mkdir(parents=True)
-    (borrowed / ("python.exe" if os.name == "nt" else "bin/python3")).touch()
+    (borrowed / "bin/python3").parent.mkdir(parents=True)
+    (borrowed / "bin/python3").touch()
     (holder / "tools" / "facts.json").write_text(json.dumps(
         {"schema": 1, "packages": {"python": {"version": "fixture", "entry": borrowed.name}}}), encoding="utf-8")
     monkeypatch.setenv("HERMES_RUNTIME_DIR", str(holder / "tools"))

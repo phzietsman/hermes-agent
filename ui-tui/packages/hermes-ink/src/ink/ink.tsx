@@ -160,7 +160,7 @@ export type Options = {
    * plain-text URL detected by findPlainTextUrlAt). The host is responsible
    * for opening the URL — `child_process.spawn` with an argv array (NOT
    * shell-mode) to the platform's native opener: `open` on macOS,
-   * `xdg-open` on Linux/BSD, `explorer.exe` on Windows. Avoid
+   * `xdg-open` on Linux/BSD. Avoid
    * `cmd.exe /c start` — `start` is a cmd builtin that reparses the URL
    * through cmd's tokenizer (`&` / `|` / `^` / `<` / `>` get split or
    * reinterpreted), which both breaks plain URLs with `&` in query
@@ -2770,12 +2770,6 @@ export function drainStdin(stdin: NodeJS.ReadStream = process.stdin): void {
     }
   } catch {
     /* stream may be destroyed */
-  }
-
-  // No /dev/tty on Windows; CONIN$ doesn't support O_NONBLOCK semantics.
-  // Windows Terminal also doesn't buffer mouse reports the same way.
-  if (process.platform === 'win32') {
-    return
   }
 
   // termios is per-device: flip stdin to raw so canonical-mode line

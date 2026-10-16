@@ -11,55 +11,6 @@ import sys
 import time
 from pathlib import Path, PurePosixPath
 
-# Older installers left renamed launchers behind on failure. The startup
-# orphan sweep still restores them. Generation installs never rename live shims.
-QUARANTINE_RESTORE_BACKOFF_MS: tuple[int, ...] = (0, 100, 250, 500, 1000)
-
-
-def restore_quarantined_shims(
-    moved: list[tuple[Path, Path]], *, stream=None,
-    backoff_ms: tuple[int, ...] = QUARANTINE_RESTORE_BACKOFF_MS,
-) -> list[tuple[Path, Path]]:
-    """Rename quarantined shims back, retrying a lock instead of giving up.
-
-    A pair is not a failure when ``original`` already exists or ``quarantined`` has gone: the
-    installer wrote a fresh shim, or a concurrent sweep won the race. Both are silent, so two
-    processes sweeping the same orphan cannot produce a spurious error.
-    """
-    if stream is None:
-        stream = sys.stderr
-    failed: list[tuple[Path, Path]] = []
-    for original, quarantined in moved:
-        last_exc: OSError | None = None
-        for delay_ms in backoff_ms:
-            try:
-                if os.path.exists(original) or not os.path.exists(quarantined):
-                    last_exc = None
-                    break
-                if delay_ms:
-                    time.sleep(delay_ms / 1000.0)
-                os.rename(quarantined, original)
-                last_exc = None
-                break
-            except OSError as exc:
-                last_exc = exc
-        if last_exc is None:
-            continue
-        failed.append((original, quarantined))
-        name = os.path.basename(str(original))
-        stem = name[:-4] if name.lower().endswith(".exe") else name
-        print(
-            f"  ✖ FAILED to restore {name} "
-            f"({last_exc.__class__.__name__}) — it is still quarantined "
-            f"as {os.path.basename(str(quarantined))}.\n"
-            f"    `{stem}` will NOT be on PATH until it is put back. Run this, "
-            f"then re-run the update:\n"
-            f'      move "{quarantined}" "{original}"',
-            file=stream,
-        )
-    return failed
-
-
 # Set only when this process successfully finishes a deferred core install for an ``update``
 # invocation. The CLI import that follows must not resolve external secret sources: a configured
 # source can map cryptography._rust and immediately recreate the self-lock marker this fresh
@@ -71,8 +22,7 @@ def _should_skip_external_secret_sources() -> bool:
     """True inside any ``hermes update`` process (and its import probes).
 
     Every dotenv load in the process — ``hermes_cli.main``, ``run_agent``, ``cli`` — consults
-    this, so the updater never resolves external secret sources: on Windows they map
-    ``cryptography._rust.pyd`` into the process replacing that venv, and everywhere a slow
+    this, so the updater never resolves external secret sources: a slow
     ``op``/``bws``/command helper (up to 120s per source) would run inside the updater's
     120s critical-module import probe and be reported as an import-health timeout.
     Profile flags are stripped before ``hermes_cli.main`` loads dotenv, so ``argv[1]`` is
@@ -149,36 +99,14 @@ def _process_state(pid: int) -> str | None:
 def _pid_is_running(pid: int) -> bool:
     """Best-effort stdlib-only process liveness probe.
 
-    ``os.kill(pid, 0)`` is not a no-op on Windows, so use the Win32 process handle API there. An
-    access-denied result counts as live: racing an elevated updater is worse than postponing
+    An access-denied result counts as live: racing an elevated updater is worse than postponing
     recovery for one launch. A zombie (exited, un-reaped) counts as dead — see
     :func:`_process_state`.
     """
     if pid <= 0:
         return False
-    if sys.platform == "win32":
-        try:
-            import ctypes
-
-            synchronize = 0x00100000
-            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-            kernel32.OpenProcess.argtypes = [ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
-            kernel32.OpenProcess.restype = ctypes.c_void_p
-            kernel32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
-            kernel32.WaitForSingleObject.restype = ctypes.c_ulong
-            kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
-            kernel32.CloseHandle.restype = ctypes.c_int
-            handle = kernel32.OpenProcess(synchronize, False, pid)
-            if not handle:
-                return ctypes.get_last_error() == 5  # ERROR_ACCESS_DENIED
-            try:
-                return kernel32.WaitForSingleObject(handle, 0) == 258
-            finally:
-                kernel32.CloseHandle(handle)
-        except Exception:
-            return True
     try:
-        os.kill(pid, 0)  # windows-footgun: ok — Windows returns above
+        os.kill(pid, 0)
     except ProcessLookupError:
         return False
     except PermissionError:
@@ -297,36 +225,13 @@ def recovery_closure_verified(closure: Path, pre: str) -> bool:
 
 
 def _git_executable(recorded_by_updater: str = "") -> str:
-    """The git ``hermes update`` runs (``_subprocess_compat.expose_pm_git``), without installing it.
-
-    The absolute git the killed updater recorded in its marker first: finding PM's copy needs
-    ``pm``, which imports ``hermes_constants``, and a merge killed while writing that module (or
-    anything else ``pm`` imports) leaves only this path to the repair. Then PATH's git. A Windows install whose only git is the one install.ps1 staged in PM's store
-    has none on PATH until the updater exposes it, so this falls back to that copy: PM's recorded
-    entry, or the lockfile's pinned entry the installer extracted without recording it. A bare
-    ``git`` there dies with WinError 2 and the torn tree this repair exists for stays torn.
-    """
+    """The git ``hermes update`` runs: the absolute git the killed updater recorded in its marker,
+    else PATH's."""
     import shutil
 
     if recorded_by_updater and os.path.isfile(recorded_by_updater) and _is_git(recorded_by_updater):
         return recorded_by_updater
-    found = shutil.which("git")
-    if found:
-        return found
-    with contextlib.suppress(Exception):  # no PM, no store, no Windows git package: PATH's answer stands
-        import pm
-        from pm import paths
-        from pm.lock import Lockfile
-
-        recorded = pm.installed_package("git", allow_outdated=True)
-        if recorded is not None and recorded.binary is not None and recorded.binary.is_file():
-            return str(recorded.binary)
-        package, target = pm.get_package("git"), pm.current_target()
-        version = Lockfile(paths.lockfile_path()).version("git")
-        staged = package.binary(paths.store_root() / package.store_entry(version, target), target)
-        if staged is not None and staged.is_file():
-            return str(staged)
-    return "git"
+    return shutil.which("git") or "git"
 
 
 def _is_git(path: str) -> bool:
@@ -335,8 +240,7 @@ def _is_git(path: str) -> bool:
     answer the repair's questions: its empty ``rev-parse`` would read as "HEAD moved"."""
     try:
         probe = subprocess.run([path, "--version"], capture_output=True, text=True, encoding="utf-8",
-                               errors="replace", timeout=30, stdin=subprocess.DEVNULL,
-                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                               errors="replace", timeout=30, stdin=subprocess.DEVNULL)
     except (OSError, ValueError, subprocess.SubprocessError):
         return False
     return probe.returncode == 0 and probe.stdout.startswith("git version")
@@ -386,7 +290,7 @@ def _modes_git_wrote(git, root: Path, entries: dict, links: set[str]) -> set[str
     Equal bytes cannot tell a regular file holding ``original`` from a symlink to ``original`` (one
     blob id), nor 644 from 755: only the entry's mode can (review N07). The worktree shows a link
     (lstat), except under ``core.symlinks=false`` where git checks a link out as a plain file holding
-    its target, and the executable bit, except on Windows. The index shows the mode git staged where
+    its target, and the executable bit. The index shows the mode git staged where
     the worktree cannot; git writes it after the files, so it covers a git killed after a whole tree.
     """
     wanted = {path: {m for m, b in new if b == old_blob and m != old_mode}
@@ -407,8 +311,7 @@ def _modes_git_wrote(git, root: Path, entries: dict, links: set[str]) -> set[str
         elif not (root / path).is_file():
             shown = set()  # missing: the caller judges it by absence
         else:
-            shown = set(_REGULAR_FILE_MODES) if sys.platform == "win32" else \
-                {"100755" if (root / path).stat().st_mode & 0o100 else "100644"}
+            shown = {"100755" if (root / path).stat().st_mode & 0o100 else "100644"}
             if not symlinks:
                 shown.add("120000")
         if (entries[path][0] not in shown and shown & modes) or index.get(path) in modes:
@@ -487,8 +390,8 @@ _RESTORE_CLAIM_WAIT_SECONDS = 10.0
 _merge_advice_shown = False
 
 
-# flock's EWOULDBLOCK and msvcrt LK_NBLCK's EACCES/EDEADLOCK: another process holds the claim.
-_CLAIM_HELD_ERRNOS = frozenset({errno.EAGAIN, errno.EWOULDBLOCK, errno.EACCES, errno.EDEADLK})
+# flock's EWOULDBLOCK (EACCES on some systems): another process holds the claim.
+_CLAIM_HELD_ERRNOS = frozenset({errno.EAGAIN, errno.EWOULDBLOCK, errno.EACCES})
 
 
 def _lock_fd(fd: int, lock: bool) -> bool:
@@ -499,15 +402,9 @@ def _lock_fd(fd: int, lock: bool) -> bool:
     from ever repairing a checkout the restore handled fine before claims existed.
     """
     try:
-        if sys.platform == "win32":
-            import msvcrt
+        import fcntl
 
-            os.lseek(fd, 0, os.SEEK_SET)  # msvcrt locks from the file position
-            msvcrt.locking(fd, msvcrt.LK_NBLCK if lock else msvcrt.LK_UNLCK, 1)
-        else:
-            import fcntl
-
-            fcntl.flock(fd, (fcntl.LOCK_EX | fcntl.LOCK_NB) if lock else fcntl.LOCK_UN)
+        fcntl.flock(fd, (fcntl.LOCK_EX | fcntl.LOCK_NB) if lock else fcntl.LOCK_UN)
     except OSError as exc:
         return not (lock and exc.errno in _CLAIM_HELD_ERRNOS)
     return True
@@ -573,10 +470,8 @@ _GIT_LOCATION_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_D
 def _git_program(arg0: str) -> str | None:
     """``git`` or ``git-<sub>`` when ``arg0`` (an argv[0], a comm, a psutil name) runs git, else None.
 
-    Any directory (``/usr/lib/git-core/git-commit``), either separator, ``.exe`` and case folded:
-    Windows runs ``git.exe`` and ``git-commit.exe``."""
-    name = re.split(r"[\\/]", arg0.strip())[-1].lower()
-    name = name[:-4] if name.endswith(".exe") else name
+    Any directory (``/usr/lib/git-core/git-commit``)."""
+    name = arg0.strip().rsplit("/", 1)[-1].lower()
     return name if name == "git" or name.startswith("git-") else None
 
 
@@ -664,12 +559,11 @@ def _held_open(path: Path, root: Path | None = None, *, any_git: bool = False) -
     a guess: Linux reads every process's fds through /proc and, with ``root``, also counts any live git
     working in the checkout (cwd, a path argument or ``GIT_DIR``) that is not a pure reader
     (:data:`_READER_GIT`; ``any_git`` counts readers too), whatever form runs it: ``git commit``
-    waiting in the editor has CLOSED its lock fd, and a dashed ``git-commit``, an alias or ``git.exe``
-    is the same git. A git that could write the git dir but whose cwd or environment cannot be read
+    waiting in the editor has CLOSED its lock fd, and a dashed ``git-commit`` or an alias is the
+    same git. A git that could write the git dir but whose cwd or environment cannot be read
     makes the answer None. macOS/BSD ask ``lsof`` for open fds and ``ps`` for any such git (``ps``
     cannot say where it works, so any counts). Without either check the answer is None and the caller
-    never deletes the lock. Windows needs no answer here: it refuses to unlink a file another process
-    has open, so the caller's unlink is the probe.
+    never deletes the lock.
     """
     if (Path("/proc") / "self" / "fd").is_dir():
         return _held_open_proc(path, root, any_git)
@@ -785,9 +679,9 @@ def _lsof_cwds(lsof: str, pids: list[str]) -> dict[str, str] | None:
 
 
 def _still_running(pid: int) -> bool:
-    """POSIX only (the lsof branch never runs on Windows); stdlib, as this launch-time repair must be."""
+    """Stdlib, as this launch-time repair must be."""
     try:
-        os.kill(pid, 0)  # windows-footgun: ok — lsof/ps branch is macOS/BSD only, Windows never reaches it
+        os.kill(pid, 0)
     except ProcessLookupError:
         return False
     except OSError:  # EPERM: alive, another user's
@@ -803,8 +697,7 @@ def _ps_git_holder(lsof: str, git_dir: Path, root: Path, any_git: bool) -> _Hold
     count, or any commit open in another repository would block every launch-time repair."""
     import shutil
 
-    # The launcher can run with a PATH that has neither git nor ps (a Windows-style install, a
-    # stripped service env): ps lives at /bin/ps on macOS and every BSD.
+    # The launcher can run with a PATH that has neither git nor ps (a stripped service env): ps lives at /bin/ps on macOS and every BSD.
     ps_bin = shutil.which("ps") or next((p for p in ("/bin/ps", "/usr/bin/ps") if os.path.isfile(p)), None)
     if ps_bin is None:
         return None
@@ -853,7 +746,7 @@ def _ps_git_holder(lsof: str, git_dir: Path, root: Path, any_git: bool) -> _Hold
 
 def _index_lock_holder(git_dir: Path, root: Path | None) -> str:
     """Who keeps ``index.lock`` for the user-facing message: ``pid N (name)`` when it can be named."""
-    held = None if sys.platform == "win32" else _held_open(git_dir / "index.lock", root)
+    held = _held_open(git_dir / "index.lock", root)
     return f"a running git ({held})" if isinstance(held, _Holder) else "a running git"
 
 
@@ -867,27 +760,19 @@ def _release_dead_index_lock(git_dir: Path, root: Path | None = None, *, any_git
     lock = git_dir / "index.lock"
     deadline = time.monotonic() + 5
     while lock.exists():
-        held = None if sys.platform == "win32" else _held_open(lock, root, any_git=any_git)
-        if held is False or sys.platform == "win32":
+        held = _held_open(lock, root, any_git=any_git)
+        if held is False:
             try:
                 lock.unlink()
                 return True
             except FileNotFoundError:
                 return True
-            except PermissionError:  # Windows: open in a live process
-                pass
         elif held is None:
             return False
         if time.monotonic() > deadline:
             return False
         time.sleep(0.1)
     return True
-
-
-# The ZIP update's equivalent of the interrupted-pull marker (``_early_recovery_zip``): a journal in the
-# install root naming every entry the swap stages/renames. Its name stays here: the launch fast path
-# stats it without importing the ZIP code.
-ZIP_SWAP_JOURNAL = ".hermes-update-zip-swap"
 
 
 def write_durable_text(path: Path, text: str) -> None:
@@ -944,24 +829,13 @@ def restore_interrupted_pull(project_root: Path | None = None, *, after_failure:
     try:
         root = _project_root() if project_root is None else project_root
         marker = interrupted_pull_marker(root)
-        if not marker.is_file() and not (Path(root) / ZIP_SWAP_JOURNAL).is_file():
+        if not marker.is_file():
             return False  # fast path: nothing to repair, no lock taken
         if _pytest_owns_live_checkout(root):
             return False
         # A live `hermes update` (or its build/completion/git, after its updater died) owns the
         # checkout: its own transaction settles the tree, and repairing under it races its git.
         busy_note = "⚠ Not repairing the checkout now: {}. Launch again once it finishes."
-        if (Path(root) / ZIP_SWAP_JOURNAL).is_file():
-            with _checkout_custody(Path(root)) as busy:
-                if busy:
-                    print(busy_note.format(busy), file=sys.stderr)
-                    return False
-                from hermes_cli._early_recovery_zip import restore_interrupted_zip_swap
-
-                if restore_interrupted_zip_swap(root):
-                    return True
-        if not marker.is_file():
-            return False
         with _restore_claim(marker.parent) as claimed:
             if not claimed:
                 if after_failure:
@@ -992,8 +866,8 @@ def _checkout_custody(root: Path):
 
     Yields ``""`` while this process holds or joined it (the updater's own ``after_failure``
     settle and its children join), else the busy reason: a live update tree owns the checkout and
-    the repair leaves the tree alone. The restore's mutating git children inherit the lock (POSIX)
-    or join this process's kill-on-close job (Windows) through ``update_custody.run_git``, so a
+    the repair leaves the tree alone. The restore's mutating git children inherit the lock
+    through ``update_custody.run_git``, so a
     launch killed mid-restore keeps the checkout locked until its git is gone.
 
     A torn lock module cannot prove custody: an already-running updater retains its imported
@@ -1331,9 +1205,6 @@ def relaunch_after_restore() -> None:
     argv = [sys.executable, *sys.orig_argv[1:]]
     sys.stdout.flush()
     sys.stderr.flush()
-    if sys.platform == "win32":
-        # os.execv on Windows spawns and exits, detaching the console's wait on us.
-        sys.exit(subprocess.call(argv))  # windows-footgun: ok — interactive child keeps our console
     os.execv(sys.executable, argv)
 
 

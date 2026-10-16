@@ -9,7 +9,7 @@ import logging
 import os
 import time
 from contextlib import suppress
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Optional, Tuple
 
 from hermes_constants import get_hermes_home
@@ -80,13 +80,12 @@ _LOOKUP_HINT = "Use a skill name or relative path within the skills directory."
 
 
 def _skill_lookup_path_error(name: str) -> Optional[str]:
-    """Error if lookup *name* could escape the search roots it is joined onto. Windows drive
-    paths are rejected too: their ``:`` would be misread as a plugin namespace separator."""
+    """Error if lookup *name* could escape the search roots it is joined onto."""
     from tools.path_security import has_traversal_component
     if not isinstance(name, str):
         return "Skill name must be a string."
-    win = PureWindowsPath(candidate := name.strip())
-    if PurePosixPath(candidate).is_absolute() or win.is_absolute() or win.drive:
+    candidate = name.strip()
+    if PurePosixPath(candidate).is_absolute():
         return "Skill name must be a relative path within the skills directory."
     if has_traversal_component(candidate):
         return "Skill name cannot contain '..' path traversal components."
@@ -554,8 +553,6 @@ def skill_view(
     skills. ``preprocess`` applies the configured SKILL.md template / inline shell rendering;
     slash/preload callers render the message themselves."""
     try:
-        # Validate before the ':' dispatch so a Windows drive path (C:\skills\foo) can't be
-        # reinterpreted as a plugin namespace.
         if lookup_error := _skill_lookup_path_error(name):
             return _fail(lookup_error, hint=_LOOKUP_HINT)
         local_category_name: str | None = None

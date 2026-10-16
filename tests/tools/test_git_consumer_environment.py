@@ -1,5 +1,4 @@
 """Git consumers use the selected package environment without owning its layout."""
-import importlib
 import shutil
 import subprocess
 
@@ -67,9 +66,8 @@ def test_git_consumers_fall_back_to_system_git(tmp_path, monkeypatch, consumer, 
     subprocess.run([git, "init", str(repo)], check=True, capture_output=True)
     (repo / "new.txt").write_text("system git content\n", encoding="utf-8")
 
-    # Fail at the PM boundary reached by both ensure and env_for, without
-    # pretending this interpreter is running on a different host OS/CPU.
-    resolver = importlib.import_module("pm.install")
+    # PM ships no git package on the supported hosts; whatever ``pm.ensure`` raises,
+    # the consumer must still run the system git.
     calls = []
 
     def unavailable(*args, **kwargs):
@@ -78,8 +76,7 @@ def test_git_consumers_fall_back_to_system_git(tmp_path, monkeypatch, consumer, 
             raise RuntimeError("unsupported architecture")
         raise pm.InstallError("git", "managed Git unavailable")
 
-    boundary = "current_target" if failure == "unsupported-target" else "_installed_location"
-    monkeypatch.setattr(resolver, boundary, unavailable)
+    monkeypatch.setattr(pm, "ensure", unavailable)
     monkeypatch.setattr(checkpoint_manager, "CHECKPOINT_BASE", tmp_path / "checkpoints")
     if consumer == "checkpoint":
         manager = checkpoint_manager.CheckpointManager(enabled=True)

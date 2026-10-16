@@ -7,8 +7,7 @@ import { assertBackendOrigin, localBackendProcess, readInstallationCommit } from
 
 /**
  * Bind an OLD listener to the source tree through the identity from that same
- * Electron app. Windows CIM exposes neither cwd nor environment for this
- * module launch. The verified identity and listener ownership prove provenance.
+ * Electron app. The verified identity and listener ownership prove provenance.
  */
 export function assertUpdateWindowBackendOrigin(backend, identity, root, origin) {
   if (origin === 'source' && fs.realpathSync(identity.hermesRoot) !== fs.realpathSync(root)) {

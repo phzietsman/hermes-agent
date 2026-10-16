@@ -644,7 +644,7 @@ def _pt_print_ansi(text: str) -> None:
     try:
         _pt_print(_PT_ANSI(text))
     except Exception:
-        # NoConsoleScreenBufferError (Windows) / OSError when stdout is e.g. a worker log file.
+        # OSError when stdout is e.g. a worker log file.
         with suppress(Exception):
             print(text)
 

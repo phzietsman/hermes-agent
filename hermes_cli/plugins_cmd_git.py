@@ -279,9 +279,8 @@ def _reapply_stash(git_exe: str, target: Path, stash_sha: str) -> bool:
     """``stash apply`` the autostash commit *stash_sha*; drop it on a clean apply. False when it
     applied with errors or left unmerged paths (the stash entry is kept in that case).
 
-    Git is addressed by the stash's commit sha, never a ``stash@{N}`` selector: on native Windows
-    the MSYS runtime re-parses git.exe's argv and strips the braces, so ``stash@{0}`` reaches git
-    as ``stash@0`` and both the apply and the drop fail (#87542)."""
+    Git is addressed by the stash's commit sha, never a ``stash@{N}`` selector, so a wrapper that
+    re-parses argv cannot mangle the braces (#87542)."""
     restore = _pc()._run_plugin_git(git_exe, target, "stash", "apply", stash_sha)
     unmerged = _pc()._run_plugin_git(git_exe, target, "diff", "--name-only", "--diff-filter=U")
     if restore.returncode != 0 or unmerged.stdout.strip():

@@ -20,8 +20,6 @@ def test_browser_closure_and_bundle_ship_full_chromium_only():
     ("linux-x64", "chrome-linux64/chrome"),
     ("linux-arm64", "chrome-linux/chrome"),
     ("darwin-arm64", "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"),
-    ("win32-x64", "chrome-win64/chrome.exe"),
-    ("win32-arm64", "chrome-win64/chrome.exe"),
 ])
 def test_chromium_binary_and_env_survive_store_relocation(tmp_path, target, relative):
     package = Chromium()

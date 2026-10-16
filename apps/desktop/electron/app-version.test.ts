@@ -53,7 +53,6 @@ describe('artifact version identity', (): void => {
         commit: 'a'.repeat(40),
         sourceVersion: '1.2.3',
         version: '0.0.7',
-        windowsVersion: '0.0.7.0',
         publicBase: 'https://example.com',
         bundleEnv: {},
         identity: {
@@ -62,9 +61,7 @@ describe('artifact version identity', (): void => {
           appId: 'chat.preview',
           appNamePascal: 'Preview',
           artifactNamePascal: 'Preview',
-          cliName: 'preview',
-          windowsExecutableName: 'Preview.exe',
-          msixAppIdWithOrg: 'Nous.Preview'
+          cliName: 'preview'
         }
       }
     }

@@ -60,7 +60,6 @@ async function fixture(): Promise<{
     commit: 'b'.repeat(40),
     sourceVersion: '1.2.3',
     version: '0.0.1',
-    windowsVersion: '0.0.1.0',
     publicBase: `http://127.0.0.1:${address.port}`,
     bundleEnv: {},
     identity: {
@@ -69,13 +68,11 @@ async function fixture(): Promise<{
       appId: 'chat.nous.hermes.h1234567890abcdef',
       appNamePascal: 'HermesH1234567890abcdef',
       artifactNamePascal: 'HermesH1234567890abcdef',
-      cliName: 'hermes-fresh-preview-29',
-      windowsExecutableName: 'HermesH1234567890abcdef.exe',
-      msixAppIdWithOrg: 'NousResearch.HermesH1234567890abcdef'
+      cliName: 'hermes-fresh-preview-29'
     }
   }
 
-  const next = { ...build, buildId: 'c'.repeat(32), sequence: 2, version: '0.0.2', windowsVersion: '0.0.2.0' }
+  const next = { ...build, buildId: 'c'.repeat(32), sequence: 2, version: '0.0.2' }
   const prefix = `releases/channel-builds/${next.buildId}/`
 
   const manifest: ChannelManifest = {
@@ -147,7 +144,6 @@ async function retiredFixture(
     channel: 'stable',
     identity: f.record.identity,
     version: '1.2.3',
-    windowsVersion: '1.2.3.0',
     releaseTag: 'v1.2.3'
   }
   f.manifest.packages[0].identity = f.record.identity.appId
@@ -205,7 +201,7 @@ test('receiver kind mirrors the identity comparison between retired channel and 
 
   const stable = decodeChannelRecord(f.objects.get('/releases/channels/stable.json')!)
   // The fixture destination identity is suffixed away from the preview's, so the
-  // publisher-pinned tier is the one a mismatch implies.
+  // discontinued tier is the one a mismatch implies.
   expect(sameChannelIdentity(read().identity, stable.identity)).toBe(false)
   expect(read().receiver).toEqual({ kind: 'discontinued' })
   // A mainline-like prerelease shares the destination identity: in-place.
@@ -221,53 +217,6 @@ test('receiver kind mirrors the identity comparison between retired channel and 
   }
 })
 
-test('protected canary accepts bounded Windows revisions without relaxing stable', async (): Promise<void> => {
-  const f = await fixture()
-  f.record.policy = 'canary-release'
-  f.manifest.packages = [
-    {
-      platform: 'win32',
-      arch: 'x64',
-      variant: 'bundled',
-      version: '1.2.4.10',
-      identity: f.build.identity.msixAppIdWithOrg,
-      publisher: 'CN=Nous Research',
-      artifact: {
-        key: `releases/channel-builds/${f.manifest.request.buildId}/win32/Hermes.msixbundle`,
-        sha256: 'd'.repeat(64),
-        size: 100
-      },
-      feed: {
-        key: `releases/channel-builds/${f.manifest.request.buildId}/win32/stable.appinstaller`,
-        channel: 'stable'
-      }
-    }
-  ]
-  f.manifest.request.releaseTag = 'v1.2.4+canary.20260913T001000Z'
-  f.manifest.request.version = f.manifest.request.releaseTag.slice(1)
-  f.manifest.request.windowsVersion = '1.2.4.10'
-  f.publish()
-  const resolver = new ChannelResolver({ build: f.build, platform: 'win32', arch: 'x64', signer: 'CN=Nous Research' })
-  expect((await resolver.resolve()).kind).toBe('active')
-
-  for (const version of ['1.2.4.65536', '65536.2.4.0', '1.2.4.-1', '1.2.4.1.0', '1.2.4.x']) {
-    f.manifest.request.windowsVersion = version
-    f.publish()
-    await expect(resolver.resolve()).rejects.toThrow(/[Ww]indows[Vv]ersion|Windows version/)
-  }
-
-  f.record.policy = 'stable-release'
-  f.manifest.request.releaseTag = 'v1.2.4'
-  f.manifest.request.version = '1.2.4'
-  f.manifest.request.windowsVersion = '1.2.4.10'
-  f.publish()
-  await expect(resolver.resolve()).rejects.toThrow(/[Ww]indows[Vv]ersion|Windows version/)
-  f.manifest.request.windowsVersion = '1.2.4.0'
-  f.manifest.packages[0].version = '1.2.4.0'
-  f.publish()
-  expect((await resolver.resolve()).kind).toBe('active')
-})
-
 test.each(['rc.1-v0.21.5', 'rc.12-v1.0.0'] as const)(
   'admits attempt archive ref %j as the protected prefix',
   async (attempt): Promise<void> => {
@@ -276,7 +225,6 @@ test.each(['rc.1-v0.21.5', 'rc.12-v1.0.0'] as const)(
     Object.assign(f.manifest.request, {
       releaseTag: 'v0.21.5',
       version: '0.21.5',
-      windowsVersion: '0.21.5.0',
       archiveRef: attempt
     })
     f.manifest.packages[0].version = '0.21.5'
@@ -298,7 +246,7 @@ test.each(['rc.1-v0.21.5', 'rc.12-v1.0.0'] as const)(
 test('the protected archive prefix falls back closed to the bare release tag', async (): Promise<void> => {
   const f = await fixture()
   f.record.policy = 'stable-release'
-  Object.assign(f.manifest.request, { releaseTag: 'v1.2.3', version: '1.2.3', windowsVersion: '1.2.3.0' })
+  Object.assign(f.manifest.request, { releaseTag: 'v1.2.3', version: '1.2.3' })
   f.manifest.packages[0].version = '1.2.3'
   const attempt = 'rc.2-v1.2.3'
   f.manifest.packages[0].artifact.key = `releases/tag/${attempt}/darwin/Hermes.zip`
@@ -564,7 +512,6 @@ test.each(['floor', 'cycle', 'protocol', 'receiver', 'digest', 'missing', 'unpro
     if (fault === 'unprotected') {
       f.record.policy = 'preview'
       f.manifest.request.version = '0.0.2'
-      f.manifest.request.windowsVersion = '0.0.2.0'
       f.manifest.packages[0].version = '0.0.2'
       f.publish()
     }
@@ -637,46 +584,6 @@ test('refuses public HTTP archive origins before network access', async (): Prom
   }).toThrow('HTTPS')
 })
 
-test('Windows resolves its numeric native version, publisher and immutable descriptor without Python', async (): Promise<void> => {
-  const f = await fixture()
-  f.manifest.packages = [
-    {
-      platform: 'win32',
-      arch: 'x64',
-      variant: 'bundled',
-      version: '0.0.2.0',
-      identity: f.build.identity.msixAppIdWithOrg,
-      publisher: 'CN=Nous Research',
-      artifact: {
-        key: `releases/channel-builds/${f.manifest.request.buildId}/win32/Hermes.msixbundle`,
-        sha256: 'd'.repeat(64),
-        size: 100
-      },
-      feed: {
-        key: `releases/channel-builds/${f.manifest.request.buildId}/win32/stable.appinstaller`,
-        channel: 'stable'
-      }
-    }
-  ]
-  f.publish()
-
-  const result = await new ChannelResolver({
-    build: f.build,
-    platform: 'win32',
-    arch: 'x64',
-    signer: 'CN=Nous Research'
-  }).resolve()
-
-  expect(result.kind).toBe('active')
-
-  if (result.kind !== 'active') {
-    throw new Error('Expected active')
-  }
-
-  expect(result.target.package.version).toBe('0.0.2.0')
-  expect(result.target.feedUrl).toContain('/win32/stable.appinstaller')
-})
-
 test('failed checks clear a previously checked selection, never authorizing a stale apply', async (): Promise<void> => {
   const f = await fixture()
   let applied = false
@@ -711,7 +618,6 @@ test('long-offline previews retain the qualified migration target after stable a
     buildId: 'e'.repeat(32),
     sequence: 3,
     version: '1.3.0',
-    windowsVersion: '1.3.0.0',
     sourceVersion: '1.3.0',
     releaseTag: 'v1.3.0'
   }

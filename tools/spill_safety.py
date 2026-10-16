@@ -15,9 +15,6 @@ from typing import IO
 
 __all__ = ["ensure_spill_dir", "open_exclusive", "write_text_exclusive"]
 
-# O_NOFOLLOW is POSIX-only; on Windows O_EXCL alone already refuses every pre-existing path.
-_O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
-
 
 def ensure_spill_dir(path: Path, *, private: bool = True) -> Path:
     """Create ``path`` (and parents) as a directory, refusing symlinks. ``private=True``
@@ -50,7 +47,7 @@ def open_exclusive(path: Path, *, private: bool = True, overwrite: bool = False,
                 raise OSError(f"refusing to overwrite a directory: {path}")
             os.unlink(path)
     mode = 0o600 if private else 0o666  # non-private honors umask
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_NOFOLLOW, mode)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
     try:
         return os.fdopen(fd, "w", encoding=encoding, errors=errors)
     except Exception:

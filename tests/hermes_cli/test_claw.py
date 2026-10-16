@@ -331,21 +331,6 @@ class TestDetectOpenclawProcesses:
                 proc.wait()
 
 
-    @pytest.mark.platforms("windows")
-    def test_returns_empty_on_windows_when_nothing_found(self):
-        """Faking win32 picked the tasklist/powershell branch on a host that has
-        neither; only a real Windows host resolves those executables.
-
-        ``return_value`` rather than a ``side_effect`` list: the branch's call
-        count is not the assertion, and pinning it breaks whenever the host
-        shells out once more than the dev box did.
-        """
-        with patch.object(claw_mod, "subprocess") as mock_subprocess:
-            mock_subprocess.run.return_value = MagicMock(returncode=0, stdout="")
-            result = claw_mod._detect_openclaw_processes()
-            assert result == []
-
-
 class TestWarnIfOpenclawRunning:
     def test_noop_when_not_running(self, capsys):
         with patch.object(claw_mod, "_detect_openclaw_processes", return_value=[]):

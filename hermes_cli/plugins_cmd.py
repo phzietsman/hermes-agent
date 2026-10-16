@@ -66,18 +66,8 @@ def _resolve_git_executable() -> Optional[str]:
     found = shutil.which("git")
     if found:
         return found
-    if os.name == "nt":
-        roots = [
-            os.environ.get("ProgramFiles", r"C:\Program Files"),
-            os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
-        ]
-        local = os.environ.get("LOCALAPPDATA", "")
-        if local:
-            roots.append(os.path.join(local, "Programs"))
-        candidates = [os.path.join(r, "Git", sub, "git.exe") for r in roots for sub in ("cmd", "bin")]
-    else:
-        candidates = ["/usr/bin/git", "/usr/local/bin/git", "/bin/git"]
-    return next((c for c in candidates if c and os.path.isfile(c)), None)
+    candidates = ["/usr/bin/git", "/usr/local/bin/git", "/bin/git"]
+    return next((c for c in candidates if os.path.isfile(c)), None)
 
 
 class PluginOperationError(Exception):
@@ -800,7 +790,7 @@ def _default_on(dir_path, source: str) -> bool:
     ``model-providers/`` child too, but nothing calls its ``register(ctx)``, so it is not on.
 
     Entry-point rows store ``module:attr`` in the path slot. That string is not a directory;
-    opening it as one is WinError 123 on Windows and aborts the whole plugin list.
+    opening it as one must not abort the whole plugin list.
     """
     path = Path(dir_path)
     if not path.is_dir():

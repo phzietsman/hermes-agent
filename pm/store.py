@@ -9,18 +9,14 @@ import stat
 import sys
 import threading
 import tempfile
-import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import IO
 
-from pm.filesystem import is_junction, long_root, retry_held
 
 
 
 ALL_TARGETS = (
-    "win32-x64",
-    "win32-arm64",
     "linux-x64",
     "linux-arm64",
     "linux-x64-musl",
@@ -44,7 +40,7 @@ def _native_machine() -> str:
 
     # Bootstrap's independent PM runtime contains only pm/, not the app.
     # Consult the OS for translated processes rather than trusting Python's
-    # process architecture (Rosetta and WOW64 both report the wrong target).
+    # process architecture (Rosetta reports the wrong target).
     if sys.platform == "darwin" and platform.machine().lower() in ("x86_64", "amd64"):
         try:
             import ctypes
@@ -56,27 +52,6 @@ def _native_machine() -> str:
                 return "arm64"
         except (AttributeError, OSError):
             pass
-    if sys.platform == "win32":
-        try:
-            import ctypes
-            from ctypes import wintypes
-
-            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-            kernel.GetCurrentProcess.restype = wintypes.HANDLE
-            kernel.IsWow64Process2.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_ushort),
-                                                ctypes.POINTER(ctypes.c_ushort)]
-            kernel.IsWow64Process2.restype = wintypes.BOOL
-            process, native = ctypes.c_ushort(), ctypes.c_ushort()
-            if kernel.IsWow64Process2(kernel.GetCurrentProcess(), ctypes.byref(process), ctypes.byref(native)):
-                if native.value == 0xAA64:
-                    return "arm64"
-                if native.value == 0x8664:
-                    return "x86_64"
-        except (AttributeError, OSError):
-            pass
-        wow = os.environ.get("PROCESSOR_ARCHITEW6432", "").lower()
-        if wow in ("arm64", "amd64"):
-            return wow
     return platform.machine().lower()
 
 
@@ -154,8 +129,6 @@ def current_target() -> str:
         arch = "x64"
     else:
         raise RuntimeError(f"unsupported architecture: {platform.machine()}")
-    if sys.platform.startswith("win"):
-        return f"win32-{arch}"
     if sys.platform == "darwin":
         return f"darwin-{arch}"
     if _is_bionic_libc():
@@ -264,17 +237,13 @@ def _zip_symlink(member: str, target: str, dest: Path) -> None:
     if not resolved.is_relative_to(root):
         return
     link.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        link.symlink_to(target)
-    except OSError:
-        link.write_text(target, encoding="utf-8")
+    link.symlink_to(target)
 
 
 def flatten_single_dir(dest: Path) -> None:
     """Hoist a lone top-level dir's contents unless it IS the layout
-    (bin/, cmd/, lib/...). Refuses on name collisions. The tree was extracted
-    seconds ago, when a Windows scanner still holds it (#131884)."""
-    keep = {"bin", "cmd", "lib", "libexec", "share", "etc", "usr"}
+    (bin/, lib/...). Refuses on name collisions."""
+    keep = {"bin", "lib", "libexec", "share", "etc", "usr"}
     entries = list(dest.iterdir())
     if len(entries) != 1 or not entries[0].is_dir() or entries[0].name in keep:
         return
@@ -283,8 +252,8 @@ def flatten_single_dir(dest: Path) -> None:
         target = dest / item.name
         if target.exists():
             return
-        retry_held(lambda: item.rename(target))
-    retry_held(inner.rmdir)
+        item.rename(target)
+    inner.rmdir()
 
 
 def merge_tree(src: Path, dst: Path) -> None:
@@ -299,15 +268,15 @@ def merge_tree(src: Path, dst: Path) -> None:
         if target.exists():
             raise FileExistsError(f"archives disagree about {rel}")
         target.parent.mkdir(parents=True, exist_ok=True)
-        retry_held(lambda: item.replace(target))
+        item.replace(target)
 
 
 def tree_digest(root: Path) -> str:
     """Deterministic sha256 over a directory tree: walk every file, sort
     by posix relpath, hash `relpath\\0<content>` per entry. No mtimes, no
     mode bits. Symlinks contribute their LINK TARGET TEXT (os.readlink),
-    not the target's bytes — the link is the data. Directory symlinks and
-    junctions are not followed.
+    not the target's bytes — the link is the data. Directory symlinks are
+    not followed.
 
     ``__pycache__`` directories are skipped: CPython writes .pyc caches
     into them the first time the staged interpreter runs (uv venv/uv sync
@@ -320,7 +289,7 @@ def tree_digest(root: Path) -> str:
         descend = []
         for name in sorted(dirnames):
             path = Path(dirpath) / name
-            if path.is_symlink() or is_junction(path):
+            if path.is_symlink():
                 files.append((path.relative_to(root).as_posix(), path))
             elif name != "__pycache__":
                 descend.append(name)
@@ -334,7 +303,7 @@ def tree_digest(root: Path) -> str:
     for rel, path in files:
         digest.update(rel.encode("utf-8"))
         digest.update(b"\0")
-        if path.is_symlink() or is_junction(path):
+        if path.is_symlink():
             digest.update(os.readlink(path).encode("utf-8"))
         else:
             with open(path, "rb") as f:
@@ -348,7 +317,7 @@ class Store:
     Hash-keyed archives survive failed installs. Publication releases them."""
 
     def __init__(self, root: Path):
-        self.root = long_root(root)
+        self.root = root
 
     def entry(self, name: str) -> Path:
         return self.root / name
@@ -413,19 +382,8 @@ class Store:
             shutil.rmtree(path, ignore_errors=True)
 
     def publish(self, staged: Path, name: str) -> Path:
-        """Atomic rename into place, retried for Windows file-lock holds
-        (Defender, indexers). A concurrent winner's entry is kept."""
+        """Atomic rename into place. A concurrent winner's entry is kept."""
         target = self.entry(name)
-        delay = 0.5
-        for _ in range(5):
-            try:
-                os.replace(staged, target)
-                return target
-            except OSError:
-                if target.is_dir():
-                    return target
-                time.sleep(delay)
-                delay *= 2
         try:
             os.replace(staged, target)
         except OSError:

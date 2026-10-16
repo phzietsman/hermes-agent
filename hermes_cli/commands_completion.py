@@ -392,7 +392,7 @@ class SlashCommandCompleter(Completer):
                 try:
                     files.append(os.path.relpath(p, cwd) if os.path.isabs(p) else p)
                 except ValueError:
-                    continue  # Windows: relpath raises across mounts/drive letters
+                    continue
             break
         self._file_cache, self._file_cache_time, self._file_cache_cwd = files, now, cwd
         return files

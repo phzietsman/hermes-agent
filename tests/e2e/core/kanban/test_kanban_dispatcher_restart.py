@@ -78,7 +78,7 @@ def _kill_dispatcher_after(board: Board, kind: str | None) -> None:
             wait_until(lambda: _event_count(board, kind) > before or proc.poll() is not None, 60,
                        f"dispatcher to write a {kind} event", interval=0.01)
     finally:
-        proc.send_signal(signal.SIGKILL)  # windows-footgun: ok — Linux-gated (module skips off Linux)
+        proc.send_signal(signal.SIGKILL)
         proc.wait(timeout=30)
     for row in board.tasks():
         if row["worker_pid"]:

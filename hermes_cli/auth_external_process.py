@@ -24,8 +24,6 @@ def resolve_external_process_command(command: str) -> Optional[str]:
         lookup = os.path.abspath(os.path.expandvars(os.path.expanduser(command)))
     found = locate_command(lookup, known_dirs=user_local_bin()).command
     if found:
-        # Known dirs are written with "/" (%USERPROFILE%/.local/bin); normalize so a Windows hit
-        # reads as one native path in status and in the spawned argv.
         return os.path.normpath(found[0])
     from agent.anthropic_adapter import find_claude_code_cli
 

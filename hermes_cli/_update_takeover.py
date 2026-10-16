@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import re
 import subprocess
 import sys
-import time
 
 _SHA = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 
@@ -177,8 +175,8 @@ def _run_finish_child(request: dict, context: Path, result: Path, python: Path, 
                str(context), str(result)]
     from hermes_cli.update_custody import popen_post_commit
 
-    # update_finish builds the checkout: POSIX lock fd; Windows bound to the job (or leased).
-    with popen_post_commit(command, label="update finish child", cwd=request["root"], env=env) as child:
+    # update_finish builds the checkout: it inherits the lock fd.
+    with popen_post_commit(command, cwd=request["root"], env=env) as child:
         try:
             code = child.wait()
         except BaseException:

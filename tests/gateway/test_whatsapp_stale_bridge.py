@@ -164,9 +164,8 @@ class TestStaleBridgeHandshake:
         ("other", "disconnected", "whatsapp_bridge_foreign_session"),
         ("headers-timeout", None, "whatsapp_bridge_unresponsive"),
         ("body-timeout", None, "whatsapp_bridge_unresponsive"),
-        ("body-timeout-windows", None, "whatsapp_bridge_unresponsive"),
     ], ids=["own-session-adopted", "other-session-connected", "other-session-starting",
-            "health-headers-timeout", "health-body-timeout", "health-body-timeout-windows"])
+            "health-headers-timeout", "health-body-timeout"])
     async def test_bridge_is_adopted_or_left_running_by_its_session(self, tmp_path, holder, status, fatal):
         """Two profiles default to one bridge_port; only this profile's own session may be adopted. Another profile's
         bridge is never killed, even while it reports ``disconnected`` (startup, reconnect, QR wait), and neither is a
@@ -189,7 +188,6 @@ class TestStaleBridgeHandshake:
             },
             raise_on=holder.split("-")[0] if "timeout" in holder else None,
         )
-        windows = holder.endswith("-windows")  # the listener scan must be the platform's own, or Windows still kills
 
         with (
             patch("plugins.platforms.whatsapp.adapter.check_whatsapp_requirements", return_value=True),
@@ -197,9 +195,7 @@ class TestStaleBridgeHandshake:
             patch("plugins.platforms.whatsapp.adapter.asyncio.sleep", new_callable=AsyncMock),
             patch("plugins.platforms.whatsapp.adapter._kill_stale_bridge_by_pidfile") as mock_kill_pidfile,
             patch("plugins.platforms.whatsapp.adapter._kill_port_process") as mock_kill_port,
-            patch("plugins.platforms.whatsapp.adapter._IS_WINDOWS", windows),
-            patch("plugins.platforms.whatsapp.adapter._listener_pids_on_port", return_value=[] if windows else [4242]),
-            patch("plugins.platforms.whatsapp.adapter._windows_listener_pids", return_value=[4242] if windows else []),
+            patch("plugins.platforms.whatsapp.adapter._listener_pids_on_port", return_value=[4242]),
             patch("subprocess.Popen", return_value=MagicMock()) as mock_popen,
             patch.object(adapter, "_acquire_platform_lock", return_value=True, create=True),
         ):

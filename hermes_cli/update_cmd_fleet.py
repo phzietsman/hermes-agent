@@ -209,13 +209,13 @@ def _receipt_reports_stale_runtime(receipt: dict, expected_sha: str | None = Non
 
 
 _SUPERVISED_SERVE_BACKENDS = frozenset(
-    {"manual-serve", "desktop", "desktop-ssh", "systemd", "launchd", "windows-service", "service"}
+    {"manual-serve", "desktop", "desktop-ssh", "systemd", "launchd", "service"}
 )
 # Backends whose supervisor restarts the process without any updater bookkeeping. ``manual-serve``
 # is excluded: it owes a durable handoff (``defer_manual_serve``) before it stops counting.
-# ``systemd``/``windows-service``/``service`` mirror ``_SUPERVISED_SERVE_BACKENDS`` for parity only —
+# ``systemd``/``service`` mirror ``_SUPERVISED_SERVE_BACKENDS`` for parity only —
 # the inventory writer classifies a serve/dashboard row as exactly launchd, desktop, desktop-ssh or manual-serve
-# (``update_inventory._collect_ledger_runtimes``); those three are set for gateway rows alone.
+# (``update_inventory._collect_ledger_runtimes``); those two are set for gateway rows alone.
 _SUPERVISOR_OWNED_SERVE_BACKENDS = _SUPERVISED_SERVE_BACKENDS - {"manual-serve"}
 
 
@@ -367,7 +367,7 @@ def _marker_only_restart_obsolete() -> bool:
     Desktop-only install stops failing every later update (#118742).
 
     A serve/dashboard row whose supervisor owns the restart (Desktop backend, systemd/launchd
-    unit, Windows service) is outside the gateway matrix's evidence, not evidence against it —
+    unit) is outside the gateway matrix's evidence, not evidence against it —
     the same boundary ``_receipt_owed_gateways`` draws for receipts (#115090) and the restart
     phase draws for the Desktop backend (#111494). Counting it made the warning permanently
     undischargeable on every host that runs a dashboard. A manual-serve row still needs its
@@ -539,7 +539,7 @@ def _needs_sudo(scope: str) -> bool:
     return (
         scope == "system"
         and hasattr(os, "geteuid")
-        and os.geteuid() != 0  # windows-footgun: ok — systemd path, Linux-only
+        and os.geteuid() != 0
     )
 
 
@@ -662,7 +662,7 @@ def _restart_identity_sha() -> str:
 def _fleet_restart_skip_reason(plan) -> str | None:
     """Why the completion tail may leave the fleet alone, or ``None`` when a restart is owed.
 
-    Every route (pulled, already-current, ZIP) now finishes through the same completion
+    Every route (pulled, already-current) now finishes through the same completion
     tail, so the guards the old catch-up path carried live here: one host runs ONE
     multiplexing gateway, so a second profile's ``hermes update`` attaches to the restart the
     first one already stamped (#95294), and a fleet already serving the checkout code (a
@@ -1583,7 +1583,6 @@ def _force_kill_stuck_gateways(killed_pids) -> None:
             from gateway.status import get_process_start_time, terminate_pid
             for pid in _stuck:
                 with suppress(ProcessLookupError, PermissionError, OSError):
-                    # taskkill /T /F on Windows (no SIGKILL there), SIGKILL on POSIX.
                     terminate_pid(pid, force=True, expected_start_time=get_process_start_time(pid))
             # Let the OS reap so watchers see the exit and respawn.
             _time.sleep(1.5)
@@ -1678,7 +1677,6 @@ def _restart_gateway_fleet_after_update(_pre_update_plan, gateway_mode: bool):
     Never raises: a phase abort runs fresh-child recovery and fails closed unless
     every planned gateway is verifiably covered.
     """
-    from hermes_cli.update_cmd import _m
     # All bookkeeping is declared before the try so abort recovery and fleet reconciliation
     # can read it even if the phase raises early. ``pre_restart_gateway_pids`` stays empty
     # until we are about to stop/drain, so an early exception has nothing to fail closed on,
@@ -1785,12 +1783,10 @@ def _fleet_probe_expected_runtimes(
     healthy, so zero rows is only proof-of-safety when NOTHING says a gateway existed
     pre-update. Signals: ``restarted_services``/``killed_pids``; ``pre_restart_pids``
     non-empty or None (same contract as ``_restart_phase_failure_is_incomplete``); plan
-    inventoried ≥1 ``kind == "gateway"`` runtime. ``windows_resume_token`` is deliberately EXCLUDED: it is
-    pause/resume bookkeeping, not an inventory, and its entries don't map to probe rows
-    (``unmapped`` Scheduled-Task gateways never publish gateway_state.json; a paused
-    profile resumes DETACHED). Counting it made every Windows update that paused a
-    gateway exit 1 after a long silent wait; a live pre-update Windows gateway is already
-    covered by ``pre_restart_pids`` and the plan. The same condition gates the settle sleep.
+    inventoried ≥1 ``kind == "gateway"`` runtime. ``windows_resume_token`` (the paused-gateway
+    token, historical name) is deliberately EXCLUDED: it is pause/resume bookkeeping, not an
+    inventory; a live pre-update gateway is already covered by ``pre_restart_pids`` and the plan.
+    The same condition gates the settle sleep.
 
     See #93406.
     See #78574.

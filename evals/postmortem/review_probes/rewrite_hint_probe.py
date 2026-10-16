@@ -39,7 +39,7 @@ with tempfile.TemporaryDirectory(dir=root) as d:
  def alarm(sig,frame):
   alarms.append(time.monotonic())
   raise TimeoutError('host FIFO read blocked')
- signal.signal(signal.SIGALRM,alarm)  # windows-footgun: ok — POSIX-only FIFO hazard probe
+ signal.signal(signal.SIGALRM,alarm)
  with patch.object(f,'_get_file_ops',return_value=ops):
   start=time.monotonic();signal.alarm(2)
   try: print('remote_fifo',f.write_file_tool(str(fifo),'x'*20000,task_id='remote-fifo'), 'seconds',time.monotonic()-start,'read_alarm_fired',bool(alarms))

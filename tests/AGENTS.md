@@ -60,11 +60,10 @@ scripts/run_tests.sh -v --tb=long                       # pytest flags pass thro
 ## Don't fake the host OS
 
 Behaviour that genuinely differs per host is tested ON that host with `@pytest.mark.platforms("linux")`
-/ `platforms("macos")` / `platforms("windows")`, never by patching `sys.platform`. Host-independent things stay
-unmarked: pure functions that take the platform as data (`hidden_windows_child_options(opts,
-is_windows=True)`) and declaration/packaging invariants ("pyproject declares `tzdata` with a
-`sys_platform == 'win32'` marker"). Setting a module-level `IS_WINDOWS` flag and calling
-`windows_detach_flags()` IS a fake. The line: **if the test needs the interpreter to believe it
+/ `platforms("macos")`, never by patching `sys.platform`. Host-independent things stay
+unmarked: pure functions that take the platform as data (`child_options(opts, is_macos=True)`) and
+declaration/packaging invariants. Setting a module-level `IS_MACOS` flag and calling
+`macos_only_helper()` IS a fake. The line: **if the test needs the interpreter to believe it
 is on another OS to pass, it belongs on that OS.** A test that walks several platforms in
 sequence is split — host-native arm on Linux, other arms as their own marked tests.
 
@@ -79,39 +78,23 @@ def test_posix_signal_path(): ...
 ```
 
 Other single-marker forms (each is a complete marker on its own):
-`platforms("windows")` (native Windows only), `platforms("not macos")`
-(anywhere except macOS), `platforms("windows", arch="arm64")` (native Windows
-on arm64), `platforms("posix")` (Linux or macOS).
+`platforms("macos")` (macOS only), `platforms("not macos")`
+(anywhere except macOS), `platforms("macos", arch="arm64")` (macOS on arm64),
+`platforms("posix")` (Linux or macOS).
 
-Specs: `linux`, `macos`, `windows`, `posix`, `any`, and `not <spec>`.
-The historic `linux_only` / `macos_only` / `windows_only` markers have been
+Specs: `linux`, `macos`, `posix`, `any`, and `not <spec>`.
+The historic `linux_only` / `macos_only` markers have been
 fully replaced — `platforms` is the only host-gating marker in the tree.
-
-**Live Windows process-topology E2E: the `wine2e` lane.** For claims about
-real Windows process behavior that mocks cannot reproduce (venv-holder
-scans, process-tree parentage, launcher/worker chains, detach semantics),
-there is an on-demand workflow `windows-venv-e2e.yml` that runs
-`tests/hermes_cli/test_venv_holder_windows_live.py` on a real
-`windows-latest` runner — spawning actual processes and driving the real
-detection code, no mocked psutil. It fires ONLY on pushes to `wine2e/**`
-branches (inert on PRs and main; costs nothing on normal work). The proven
-workflow: write probes that pin CORRECT behavior, push to a `wine2e/`
-branch to reproduce the bugs live on unfixed code, build the fix, iterate
-until the lane is green, then open the PR — the live receipt on the exact
-head is the Windows proof reviewers ask for. Extend the live suite when
-touching that subsystem; assert against the gateway ANCESTOR found by
-argv, not the direct parent (the venv shim makes every spawn a
-launcher/worker chain).
 
 **Use the marker, never a bare `skipif`.** `scripts/ci/list_os_marked_tests.py`
 decides which files an OS lane imports by resolving the quoted specs inside
 `platforms(...)` (`"posix"` reaches the macOS lane, `"not linux"` reaches
 both others), and the lane then selects with `-m platforms` while the
 conftest's per-test host skips do the actual gating. A test gated with
-`@pytest.mark.skipif(sys.platform != "win32")` therefore runs on no host at
+`@pytest.mark.skipif(sys.platform != "darwin")` therefore runs on no host at
 all, silently — it is never imported by the lane that would run it, and the
-full-suite lanes skip it. `skipif(sys.platform == "win32")` becomes
-`platforms("posix")`; a non-host condition (`os.geteuid() == 0`) stays a
+full-suite lanes skip it. `skipif(sys.platform == "darwin")` becomes
+`platforms("not macos")`; a non-host condition (`os.geteuid() == 0`) stays a
 separate `skipif` beside the marker. A misspelt spec is a collection error,
 not a skip. Don't stack a module-level `pytestmark =
 platforms(...)` on a file whose tests carry their own host marker — the
@@ -140,12 +123,12 @@ A test that reads a `.py`/`.ts`/`.tsx` file's text tests the *shape of the sourc
 behavior — banned outright. It passes when the implementation is subtly broken (regex matches
 a mis-wired call site) and fails on correct refactors; it can't run against bundled/minified
 artifacts; it blocks structural cleanup; it gives false confidence. Don't
-`fs.readFileSync('main.ts')` + `assert.match(source, /spawn\(...hiddenWindowsChildOptions/)`.
+`fs.readFileSync('main.ts')` + `assert.match(source, /spawn\(...detachedChildOptions/)`.
 Do extract the logic into a pure/DI-testable function and call it:
 ```ts
-export function hiddenWindowsChildOptions(options = {}, isWindows = process.platform === 'win32') {
-  if (!isWindows || 'windowsHide' in options) return options
-  return { ...options, windowsHide: true }
+export function detachedChildOptions(options = {}, isMac = process.platform === 'darwin') {
+  if (!isMac || 'detached' in options) return options
+  return { ...options, detached: true }
 }
 ```
 If the logic lives inline in a god-file and extraction feels disruptive, that is the signal to

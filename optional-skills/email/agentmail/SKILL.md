@@ -4,7 +4,7 @@ description: Use when an agent needs AgentMail CLI email inboxes.
 version: 1.0.0
 author: Haakam Aujla (Haakam21), AgentMail
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Email, CLI, AgentMail, Communication]

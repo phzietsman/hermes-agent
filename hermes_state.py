@@ -153,12 +153,8 @@ def _compression_lock_holder_process_is_dead(holder: str) -> bool:
             return not psutil.pid_exists(pid)  # recycled PIDs read as alive (conservative)
         except Exception:
             return False
-    # psutil-less fallback is POSIX-only: on Windows os.kill(pid, 0) maps sig=0 to
-    # CTRL_C_EVENT and can kill the target's console group.
-    if os.name == "nt":
-        return False
     try:
-        os.kill(pid, 0)  # windows-footgun: ok — nt early-returns just above
+        os.kill(pid, 0)
     except ProcessLookupError:
         return True
     except (OSError, OverflowError):  # PermissionError is an OSError: alive but foreign
@@ -256,9 +252,6 @@ def _secure_state_db_files(db_path: Path, *, create_main: bool = False) -> None:
     close, checkpoint, and unlink the sidecars while long-lived holders
     (gateway, desktop ``hermes serve``) keep using the deleted inodes.
     """
-    if os.name == "nt":
-        return
-
     main_path = db_path
     if create_main:
         # O_EXCL: only a brand-new inode gets a descriptor. Opening an existing
@@ -419,7 +412,6 @@ _repair_attempt_lock = threading.Lock()
 # Cross-process schema-surgery lock timeout (``_repair_attempt_lock`` covers one interpreter
 # only); sized for the slowest legitimate holder (VACUUM, multi-GB DB).
 _REPAIR_LOCK_TIMEOUT_SECONDS = 120.0
-_IS_WINDOWS = sys.platform == "win32"
 
 
 def _close_time_checkpoint_configurable() -> bool:

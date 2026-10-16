@@ -78,11 +78,7 @@ def test_a_pre_apply_exit_reads_its_own_class_in_process_and_parked(rows, stop, 
 def test_a_failed_git_call_names_its_class_from_the_argv_and_fixed_phrases(stderr, argv, code, expected):
     import subprocess
 
-    from hermes_cli.update_cmd_zip import _zip_stop_class
-
     assert update_receipt.git_error_stop_class(subprocess.CalledProcessError(code, argv, stderr=stderr)) == expected
-    assert _zip_stop_class(OSError(28, "No space left on device"), downloaded=True) == "disk_full"
-    assert _zip_stop_class(ValueError("x"), downloaded=False) == "download_failed"
 
 
 def test_exits_before_the_receipt_opens_count_once_and_leave_the_holders_receipt_alone(rows, monkeypatch):
@@ -152,7 +148,7 @@ def test_an_exit_before_the_receipt_reads_desktop_only_under_its_own_hand_off(ro
         ("lock_held", "desktop"), ("git_in_progress", "desktop"), ("lock_held", "cli"), ("managed_install", "cli")]
 
 
-@pytest.mark.skipif(sys.platform == "win32" or os.geteuid() == 0, reason="POSIX permissions; root ignores them")
+@pytest.mark.skipif(os.geteuid() == 0, reason="POSIX permissions; root ignores them")
 def test_a_checkout_move_names_a_held_index_lock_apart_from_a_permission_error(rows, tmp_path, monkeypatch):
     """Invariant: the fast-forward's git error goes through the shared classifier: an index.lock that
     exists is ``git_index_locked``; git refused permission to create one is ``permission_denied``."""

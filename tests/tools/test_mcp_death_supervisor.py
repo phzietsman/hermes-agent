@@ -447,8 +447,6 @@ def test_supervisor_is_released_once_nothing_is_left_to_reap(monkeypatch, all_gr
 
 def test_supervisor_survives_the_real_eof_release():
     """End to end: closing the control pipe with nothing registered exits cleanly."""
-    if os.name != "posix":
-        pytest.skip("POSIX-only supervisor")
     child = subprocess.Popen(_VICTIM, start_new_session=True)
     try:
         mcp_tool._update_death_supervisor("register", [os.getpgid(child.pid)])

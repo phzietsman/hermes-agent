@@ -1,5 +1,3 @@
-import { isWindowsAbsolutePath } from '@/lib/path-compare'
-
 import type { ToolPart } from './types'
 
 export function looksLikeUrl(value: string): boolean {
@@ -7,7 +5,7 @@ export function looksLikeUrl(value: string): boolean {
 }
 
 export function looksLikePath(value: string): boolean {
-  return /^file:\/\//i.test(value) || /^(?:\/|\.{1,2}\/|~\/).+/.test(value) || isWindowsAbsolutePath(value)
+  return /^file:\/\//i.test(value) || /^(?:\/|\.{1,2}\/|~\/).+/.test(value)
 }
 
 export function isPreviewableTarget(target: string): boolean {

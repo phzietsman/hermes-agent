@@ -5,6 +5,7 @@ remote environments transactionally.  Used by SSH, Modal, and Daytona.
 Docker and Singularity use bind mounts (live host FS view) and don't need this.
 """
 
+import fcntl
 import hashlib
 import logging
 import os
@@ -16,11 +17,6 @@ import tarfile
 import tempfile
 import threading
 import time
-
-try:
-    import fcntl
-except ImportError:
-    fcntl = None  # Windows — file locking skipped
 from pathlib import Path
 from typing import Callable
 
@@ -56,7 +52,7 @@ _SYNC_BACK_TEMP_PREFIX = "hermes-sync-back-"
 # A sync-back temp entry (the downloaded tar or the extraction staging dir) is only leaked by
 # a hard kill (SIGKILL/OOM/power loss — the ``finally`` never runs). Entry names embed the
 # owning PID, so a dead owner's entry is reclaimed at once; the age cutoff covers the rest
-# (live or recycled PIDs, pre-ownership names, Windows where a PID cannot be probed). The
+# (live or recycled PIDs, pre-ownership names). The
 # download is bounded by a 120 s subprocess timeout, so a live transfer is minutes old at
 # most; the old 6 h window let a crash loop pile up tens of GB before anything was reclaimed.
 _SYNC_BACK_STALE_SECONDS = 30 * 60
@@ -353,17 +349,11 @@ class FileSyncManager:
             if on_main_thread and original_handler is not None:
                 signal.signal(signal.SIGINT, original_handler)
                 if deferred_sigint:
-                    # Re-deliver the deferred Ctrl+C to the restored handler. ``os.kill(os.getpid(),
-                    # SIGINT)`` is NOT graceful on Windows (routes to TerminateProcess, hard-killing
-                    # the CLI); ``raise_signal`` invokes the handler everywhere.
+                    # Re-deliver the deferred Ctrl+C to the restored handler.
                     signal.raise_signal(signal.SIGINT)
 
     def _sync_back_locked(self, lock_path: Path) -> None:
         """Sync-back under file lock (serializes concurrent gateways)."""
-        if fcntl is None:
-            # Windows: no flock — run without serialization
-            self._sync_back_impl()
-            return
         lock_fd = open(lock_path, "w", encoding="utf-8")
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_EX)
@@ -390,8 +380,7 @@ class FileSyncManager:
         # prefix before allocating another full-tree download.
         _cleanup_stale_sync_back_temp()
 
-        # mkstemp + close: NamedTemporaryFile keeps an exclusive handle on Windows, so the
-        # backend's open(dest, "wb") / write_bytes on the same path raised PermissionError.
+        # mkstemp + close: the backend reopens the path itself (open(dest, "wb") / write_bytes).
         fd, tar_path = tempfile.mkstemp(prefix=_sync_back_temp_prefix(), suffix=".tar")
         os.close(fd)
         try:
@@ -418,7 +407,6 @@ class FileSyncManager:
                 for dirpath, _dirnames, filenames in os.walk(staging):
                     for fname in filenames:
                         staged_file = os.path.join(dirpath, fname)
-                        # Remote keys are POSIX; relpath uses host separators (backslashes on Windows).
                         remote_path = "/" + Path(os.path.relpath(staged_file, staging)).as_posix()
                         applied += self._apply_staged_file(staged_file, remote_path, file_mapping, upload_only)
 
@@ -476,7 +464,7 @@ class FileSyncManager:
         for host, remote in file_mapping or []:
             if self._is_upload_only_host_path(host, upload_only_host_paths):
                 continue
-            remote_dir = posixpath.dirname(remote)  # remote paths are POSIX even on a Windows host
+            remote_dir = posixpath.dirname(remote)
             if remote_path.startswith(remote_dir + "/"):
                 return str(Path(host).parent / remote_path[len(remote_dir) + 1:])
         return None

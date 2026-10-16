@@ -154,19 +154,12 @@ export const SSH_CLIENT_FAILED = 'ssh-client-failed'
 
 /**
  * Wrap a failed local `ssh -G` probe as a terminal, tagged boot failure that
- * names the client binary. On Windows the message points at
- * `desktop.ssh_path`, the only way past a broken in-box OpenSSH (#103288).
- */
-export function sshClientFailedError(sshBinary: string, cause: unknown, platform: string = process.platform): Error {
+ * names the client binary. */
+export function sshClientFailedError(sshBinary: string, cause: unknown): Error {
   const detail = cause instanceof Error ? cause.message : String(cause ?? '')
 
-  const hint =
-    platform === 'win32'
-      ? " Set desktop.ssh_path in config.yaml to a working ssh.exe (for example Git for Windows' usr\\bin\\ssh.exe) and retry."
-      : ''
-
   const error = new Error(
-    `The local SSH client (${sshBinary}) failed to resolve the connection config: ${detail}.${hint}`
+    `The local SSH client (${sshBinary}) failed to resolve the connection config: ${detail}.`
   ) as Error & {
     kind: string
   }

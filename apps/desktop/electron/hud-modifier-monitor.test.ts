@@ -66,11 +66,10 @@ test('support policy excludes Wayland even when Xwayland supplies DISPLAY', () =
   assert.equal(hudModifierMonitorSupported('linux', { DISPLAY: ':0', XDG_SESSION_TYPE: 'x11' }), true)
   assert.equal(hudModifierMonitorSupported('linux', {}), false)
   assert.equal(hudModifierMonitorSupported('darwin', {}), true)
-  assert.equal(hudModifierMonitorSupported('win32', {}), true)
   assert.equal(hudModifierMonitorSupported('freebsd', {}), false)
   const path = resolveHudModifierMonitorPath('/apps/app.asar')
   assert.ok(path.includes('app.asar.unpacked'))
-  assert.ok(path.endsWith(process.platform === 'win32' ? 'hud-modifier-monitor.exe' : 'hud-modifier-monitor'))
+  assert.ok(path.endsWith('hud-modifier-monitor'))
 })
 
 test('a missing helper is distinguished from a helper that cannot start', () => {

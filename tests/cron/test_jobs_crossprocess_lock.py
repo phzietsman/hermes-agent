@@ -28,7 +28,6 @@ from cron import jobs
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(jobs.__file__)))
 
 
-@pytest.mark.skipif(jobs.fcntl is None, reason="POSIX fcntl/flock required")
 def test_jobs_lock_excludes_another_process(tmp_path, monkeypatch):
     cron_dir = tmp_path / "cron"
     output_dir = cron_dir / "output"

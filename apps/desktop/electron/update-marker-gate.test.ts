@@ -47,7 +47,7 @@ function helperCalls(home: string): string[] {
   }
 }
 
-describe.skipIf(process.platform === 'win32')('gate over a dead marker (R6)', () => {
+describe('gate over a dead marker (R6)', () => {
   function gate(
     root: string,
     home: string,
@@ -60,7 +60,7 @@ describe.skipIf(process.platform === 'win32')('gate over a dead marker (R6)', ()
   ) {
     return liveMarkerProbe({
       hermesHome: home,
-      reclaim: () => runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, isWindows: false }),
+      reclaim: () => runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home }),
       now,
       ...extra
     })
@@ -190,7 +190,7 @@ describe.skipIf(process.platform === 'win32')('gate over a dead marker (R6)', ()
   })
 
   // Review K132345 (helper failure on a dead marker blocks boot): a helper that
-  // can never run (bash / PowerShell blocked) must not park every boot after a
+  // can never run (bash blocked) must not park every boot after a
   // crashed update; main proceeded over a dead marker.
   test('a helper that never answers for a dead marker is retried, then the gate proceeds for every wait', async () => {
     const { root, home } = fakeHelperCheckout()
@@ -331,8 +331,8 @@ describe.skipIf(process.platform === 'win32')('gate over a dead marker (R6)', ()
     const probe = () =>
       liveMarkerProbe({
         hermesHome: home,
-        reclaim: () => runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, isWindows: false }),
-        checkoutLockMayBeHeld: () => checkoutLockMayBeHeld(root, false)
+        reclaim: () => runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home }),
+        checkoutLockMayBeHeld: () => checkoutLockMayBeHeld(root)
       })()
 
     assert.equal(await probe(), false)

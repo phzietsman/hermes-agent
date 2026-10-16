@@ -202,7 +202,7 @@ Cron 运行的会话已禁用 `cronjob` 工具集。这可防止：
 
 ## 锁机制
 
-调度器使用跨进程文件锁（Unix 上的 `fcntl.flock`，Windows 上的 `msvcrt.locking`）防止重叠的 tick 对同一批到期任务执行两次——即使在 gateway 的进程内 ticker 与独立的 `hermes cron` / 手动 `tick()` 调用之间也如此。若无法获取锁，`tick()` 立即返回 0。
+调度器使用跨进程文件锁（`fcntl.flock`）防止重叠的 tick 对同一批到期任务执行两次——即使在 gateway 的进程内 ticker 与独立的 `hermes cron` / 手动 `tick()` 调用之间也如此。若无法获取锁，`tick()` 立即返回 0。
 
 ## CLI 接口
 

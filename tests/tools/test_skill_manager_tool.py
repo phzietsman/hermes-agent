@@ -2,7 +2,6 @@
 
 import json
 import os
-import sys
 import threading
 from contextlib import contextmanager
 from contextvars import copy_context
@@ -160,8 +159,8 @@ class TestValidateFilePath:
 
 
 def _can_make_unreadable_dir() -> bool:
-    # chmod 0 is ignored for root and has no directory-listing effect on Windows.
-    return sys.platform != "win32" and hasattr(os, "geteuid") and os.geteuid() != 0
+    # chmod 0 is ignored for root.
+    return os.geteuid() != 0
 
 
 class TestCreateSkill:

@@ -6,7 +6,6 @@ Config + Server + asyncio.run to capture kwargs without starting an event loop.
 
 import asyncio
 import contextlib
-import sys
 
 import pytest
 import uvicorn
@@ -160,67 +159,6 @@ def test_start_server_enables_ws_ping_for_half_open_detection(monkeypatch):
     assert captured["ws_ping_timeout"] >= captured["ws_ping_interval"]
 
 
-@pytest.mark.platforms("windows")
-def test_start_server_runs_on_uvicorns_loop_factory(monkeypatch):
-    """The dashboard/desktop backend must serve uvicorn on the loop *uvicorn*
-    selects, not the interpreter default.
-
-    On Windows ``asyncio.run`` defaults to a ProactorEventLoop, but uvicorn's
-    socket-serving stack forces a SelectorEventLoop on win32
-    (``uvicorn/loops/asyncio.py``). Serving on the proactor loop binds a socket
-    that never accepts — the backend prints "Skipping web UI build" and hangs
-    forever with the port LISTENING but no TCP handshake (#50641). We fix that
-    by routing the serve call through ``uvicorn._compat.asyncio_run`` with
-    ``config.get_loop_factory()`` — exactly what ``uvicorn.Server.run`` does.
-
-    This asserts the behavioral contract: on Windows the loop factory the runner
-    receives is the one uvicorn's own Config produced, and bare ``asyncio.run``
-    is never the serve path when the loop-factory runner exists.
-
-    Windows-only: faking ``sys.platform`` selected the branch but left the
-    proactor/selector loop policy this exists for entirely absent.
-    """
-    _stub_uvicorn(monkeypatch)
-
-    # The fake Config (installed by _stub_uvicorn) returns its ``_loop_factory``
-    # from get_loop_factory(). Pin a sentinel so we can assert it is threaded
-    # through to the runner unchanged.
-    sentinel_factory = object()
-    monkeypatch.setattr(uvicorn.Config, "_loop_factory", sentinel_factory, raising=False)
-
-    seen: dict = {}
-
-    def _fake_runner(coro, *, loop_factory=None):
-        seen["loop_factory"] = loop_factory
-        coro.close()  # drain without an event loop
-
-    monkeypatch.setattr("uvicorn._compat.asyncio_run", _fake_runner, raising=False)
-
-    # Bare asyncio.run must NOT be the serve path on Windows when the
-    # loop-factory runner is importable.
-    called_bare = {"hit": False}
-
-    def _guard_asyncio_run(coro):
-        called_bare["hit"] = True
-        coro.close()
-        return None
-
-    monkeypatch.setattr(asyncio, "run", _guard_asyncio_run)
-
-    web_server.start_server(host="127.0.0.1", port=0, open_browser=False)
-
-    assert seen.get("loop_factory") is sentinel_factory, (
-        "start_server must pass uvicorn's get_loop_factory() result to the "
-        "runner so Windows serves on a SelectorEventLoop"
-    )
-    assert called_bare["hit"] is False, (
-        "start_server must not fall back to bare asyncio.run when uvicorn's "
-        "loop-factory runner is available"
-    )
-
-
-
-
 def test_start_server_treats_posix_keyboardinterrupt_as_clean_shutdown(monkeypatch):
     """Ctrl+C is the normal foreground-dashboard shutdown path.
 
@@ -245,73 +183,6 @@ def test_start_server_treats_posix_keyboardinterrupt_as_clean_shutdown(monkeypat
         pytest.fail(
             "start_server must treat serve-time KeyboardInterrupt as a clean "
             "shutdown, not propagate it"
-        )
-
-
-@pytest.mark.platforms("windows")
-def test_start_server_treats_windows_keyboardinterrupt_as_clean_shutdown(monkeypatch):
-    """Console Ctrl+C on the Windows loop-factory branch is a clean exit too.
-
-    Same bug class as the POSIX branch: ``capture_signals()`` re-raises the
-    captured SIGINT after graceful shutdown, which surfaces as
-    ``KeyboardInterrupt`` out of the loop-factory runner.  The serve call must
-    swallow exactly that and return.
-
-    Windows-only per the no-platform-faking rule (tests/conftest.py): the
-    branch is selected by the real host, and the runner import
-    (``uvicorn._compat.asyncio_run``) resolves inside ``start_server``, after
-    the monkeypatch below is installed.
-    """
-    _stub_uvicorn(monkeypatch)
-
-    def _raise_keyboard_interrupt(coro, *, loop_factory=None):
-        coro.close()
-        raise KeyboardInterrupt
-
-    monkeypatch.setattr(
-        "uvicorn._compat.asyncio_run", _raise_keyboard_interrupt, raising=False
-    )
-
-    try:
-        web_server.start_server(host="127.0.0.1", port=0, open_browser=False)
-    except KeyboardInterrupt:
-        pytest.fail(
-            "start_server must treat serve-time KeyboardInterrupt as a clean "
-            "shutdown on the Windows branch, not propagate it"
-        )
-
-
-@pytest.mark.platforms("windows")
-def test_start_server_treats_windows_fallback_keyboardinterrupt_as_clean_shutdown(
-    monkeypatch,
-):
-    """The pre-0.36 fallback runner shares the clean Ctrl+C contract.
-
-    When ``uvicorn._compat.asyncio_run`` is unavailable (uvicorn predates the
-    loop-factory API), the Windows branch falls back to bare ``asyncio.run``
-    under a hand-installed selector policy — still inside the same
-    ``capture_signals()`` re-raise, so its ``KeyboardInterrupt`` must be
-    swallowed identically. Forcing the ``_compat`` import to fail (None in
-    ``sys.modules`` halts the import) is what actually selects the fallback:
-    merely patching ``asyncio.run`` alongside a successful import would leave
-    this path untested.
-    """
-    _stub_uvicorn(monkeypatch)
-
-    monkeypatch.setitem(sys.modules, "uvicorn._compat", None)
-
-    def _raise_keyboard_interrupt(coro):
-        coro.close()
-        raise KeyboardInterrupt
-
-    monkeypatch.setattr(asyncio, "run", _raise_keyboard_interrupt)
-
-    try:
-        web_server.start_server(host="127.0.0.1", port=0, open_browser=False)
-    except KeyboardInterrupt:
-        pytest.fail(
-            "start_server must treat serve-time KeyboardInterrupt as a clean "
-            "shutdown on the Windows pre-0.36 fallback, not propagate it"
         )
 
 

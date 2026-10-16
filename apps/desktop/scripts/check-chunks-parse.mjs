@@ -2,10 +2,10 @@
 //
 // assert-dist-built.mjs used to spawn `node --input-type=module --check` once per
 // chunk. With ~1000 emitted chunks the update's desktop build therefore depended on
-// ~1000 successful process creations, and on Windows a single spawn can stall for
+// ~1000 successful process creations, and a single spawn can stall for
 // minutes under AV scanning or memory pressure. One such stall aborted the whole
 // update (2026-09-27: `could not run node to syntax-check nord-*.js: spawnSync
-// ...node.exe ETIMEDOUT`, which failed the update with exit 1 even though vite had
+// ...node ETIMEDOUT`, which failed the update with exit 1 even though vite had
 // built the bundle cleanly). Measured on the failing tree: 960 chunks, ~80 s of
 // sequential spawns, worst single spawn 0.45 s on an idle box.
 //

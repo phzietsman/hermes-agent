@@ -38,8 +38,8 @@ async function writeAsar(resources, source) {
 }
 
 it('resolves the asar path per platform, including the branded macOS bundle', () => {
-  expect(resolvePackagedAsarPath({ appOutDir: '/out/win', electronPlatformName: 'win32' }))
-    .toBe(path.join('/out/win', 'resources', 'app.asar'))
+  expect(resolvePackagedAsarPath({ appOutDir: '/out/linux', electronPlatformName: 'linux' }))
+    .toBe(path.join('/out/linux', 'resources', 'app.asar'))
   expect(resolvePackagedAsarPath({
     appOutDir: '/out/mac',
     electronPlatformName: 'darwin',

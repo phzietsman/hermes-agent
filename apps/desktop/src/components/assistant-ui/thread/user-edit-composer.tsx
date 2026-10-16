@@ -480,7 +480,7 @@ export const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sess
         try {
           const uploaded = await uploadComposerAttachment(
             { detail: path, id: attachmentId(kind, path), kind, label: pathLabel(path), path },
-            { backendCwd: cwd, remote, requestGateway, sessionId, terminalBackend: $terminalBackend.get() }
+            { remote, requestGateway, sessionId, terminalBackend: $terminalBackend.get() }
           )
 
           const ref = attachmentDisplayText(uploaded)
@@ -560,7 +560,6 @@ export const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sess
     // unless the backend resolves this machine's paths as-is, in which case
     // the drop keeps its original-path inline ref too (#52427).
     const { inAppRefs, osDrops } = partitionDroppedFiles(candidates, {
-      backendCwd: cwd,
       remote: isSessionRemote(sessionId),
       terminalBackend: $terminalBackend.get()
     })

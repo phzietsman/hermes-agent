@@ -14,7 +14,7 @@ export interface PetZoomAnchor {
 
 /**
  * Wire Alt/Option+wheel-to-scale onto a pet element: hold Alt and scroll up to
- * grow the pet, down to shrink — identical on Mac and Windows. The modifier is
+ * grow the pet, down to shrink — identical on Mac and Linux. The modifier is
  * required so a plain scroll over the pet still scrolls the page underneath
  * (we only `preventDefault` while Alt is held).
  *

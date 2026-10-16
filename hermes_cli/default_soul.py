@@ -26,8 +26,8 @@ _SCAFFOLD_TAIL = (
 )
 
 # Auto-seeded SOUL.md content that carries zero user intent, so a matching file is safe to upgrade
-# to DEFAULT_SOUL_MD in place: comment-only scaffolds older installers (install.sh / install.ps1 /
-# docker/SOUL.md) wrote, plus earlier generations of the auto-seeded default text. Compared on
+# to DEFAULT_SOUL_MD in place: comment-only scaffolds older installers (install.sh, the retired
+# Windows installer, docker/SOUL.md) wrote, plus earlier generations of the auto-seeded default text. Compared on
 # normalized content (stripped, line endings unified). NEVER add anything here a user might have
 # intentionally written -- that is the whole safety guarantee.
 _LEGACY_TEMPLATE_SOULS = (
@@ -48,8 +48,7 @@ _LEGACY_TEMPLATE_SOULS = (
         "being verbose unless otherwise directed below. Be targeted and efficient in your exploration and "
         "investigations."
     ),
-    # ASCII-dashed variant seeded by scripts/install.ps1 (must stay pure ASCII, see
-    # tests/scripts/install/test_install_ps1_ascii_only.py); upgrading converges Windows installs on the em-dash text.
+    # ASCII-dashed variant an earlier installer seeded; upgrading converges it on the em-dash text.
     DEFAULT_SOUL_MD.replace("\u2014", "--"),
 )
 

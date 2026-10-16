@@ -453,13 +453,6 @@ DEFAULT_CONFIG = {
         # Firefox etc. fails closed. Also gates the browser_exec `local` argument (real-profile
         # local session even under a cloud backend). Desktop Settings -> Browser.
         "use_real_profile": False,
-        # Windows only: a running Chrome/Edge/Brave locks its cookie DB, so the profile can't be
-        # copied. When on, a locked profile still blocks and the agent ASKS first; on approval it
-        # runs `hermes browser close-profile` (kills that profile's browser tree, unsaved tabs lost)
-        # and retries once; still locked -> stays blocked, no auto-kill. No effect on macOS/Linux,
-        # where a running browser instead makes the Login Data / Web Data SQLite backups miss
-        # their deadline; quit the browser by hand there.
-        "real_profile_autoclose": False,
         # Pin WHICH source profile directory is snapshotted for real-profile browsing (e.g. "Profile
         # 2"). Empty = browser's last-used profile, which on multi-profile machines can hand the
         # agent the wrong identity. A pin naming a missing directory FAILS CLOSED.
@@ -1900,13 +1893,13 @@ DEFAULT_CONFIG = {
         "default_assignee": "",
         # Global cap: positive int = the HOST never has more than N tasks 'running' across all
         # boards and both dispatch lanes. None = ~MemTotal / 512 MiB clamped to [2, 8]; where
-        # MemTotal is unreadable (macOS/Windows) None means no cap.
+        # MemTotal is unreadable (macOS) None means no cap.
         # Global concurrency cap (#33488): when set to a positive int, the HOST never has more than N tasks
         # in 'running' at once — counted across every active board and across both the ready and review
         # dispatch lanes (workers are OS processes sharing one machine's memory, so the cap bounds the
         # machine, not each board; OOF-30). Unset (None) means "derive from system memory" (OOF-30/OOF-77):
         # the dispatcher caps concurrency at roughly MemTotal / 512 MiB, clamped to [2, 8] — e.g. 2 workers
-        # on a 1 GiB VM. On hosts where total memory can't be read (macOS/Windows), unset falls back to no
+        # on a 1 GiB VM. On hosts where total memory can't be read (macOS), unset falls back to no
         # cap. Set an explicit value to override the derived default in either direction.
         "max_in_progress": None,
         # Per-profile cap: positive int = no single profile runs more than N workers even if the
@@ -2531,12 +2524,6 @@ DEFAULT_CONFIG = {
         # cua-driver's upstream PostHog telemetry defaults ON; Hermes sets
         # CUA_DRIVER_RS_TELEMETRY_ENABLED=0 in every child env unless this is true.
         "cua_telemetry": False,
-        # Windows only: opt IN to the per-boot cua-driver-serve logon task. False (default)
-        # keeps the driver on-demand — Computer Use starts it per session, exactly as on
-        # macOS/Linux, and install/enable flows register no scheduled task (#97389). True
-        # registers (or repairs) the task at install time — needed to drive Windows over SSH,
-        # where Session 0 has no interactive desktop (see the computer-use guide).
-        "autostart": False,
         "native_wayland": False,
         # Cap driver screenshot longest edge (pixels) via set_config at session start; shrinks SOM
         # multimodal payloads. 0 disables.
@@ -2634,7 +2621,7 @@ DEFAULT_CONFIG = {
         # gnome-libsecret|kwallet|kwallet5|kwallet6|basic force one (basic = unencrypted). Bridged
         # to HERMES_DESKTOP_PASSWORD_STORE; ignored off-Linux.
         "password_store": "auto",
-        # Expose the renderer's accessibility tree to the OS (macOS/Windows) so dictation/IME tools
+        # Expose the renderer's accessibility tree to the OS (macOS) so dictation/IME tools
         # that insert text via the accessibility APIs can reach the composer (#118271, #92607).
         # False bridges to HERMES_DESKTOP_RENDERER_ACCESSIBILITY=0 and skips the tree (perf opt-out).
         "renderer_accessibility": True,
@@ -2645,11 +2632,6 @@ DEFAULT_CONFIG = {
         # locally rebuilt apps so the Designated Requirement — and thus TCC grants — survives
         # updates. Empty = default ad-hoc identifier-pinned signing.
         "macos_signing_identity": "",
-        # Windows only: explicit ssh client for SSH connections, the -G config probe and SSH
-        # terminals, e.g. "C:\\Program Files\\Git\\usr\\bin\\ssh.exe" when the in-box OpenSSH is
-        # missing or broken. Empty = System32 OpenSSH, then Git for Windows' ssh.exe, then PATH.
-        # Read by the app before its first window; restart to apply. Ignored off-Windows.
-        "ssh_path": "",
         # Auto-continue a turn killed by a crash: resuming re-submits the interrupted prompt if
         # fresh; a stale one just shows the recovered partial transcript.
         "auto_continue": {

@@ -1,14 +1,13 @@
 """Strict gateway identity against a REAL process holding ``gateway.lock``.
 
-``hermes update`` on Windows maps live gateways to profiles through
+Lifecycle callers map live gateways to profiles through
 ``get_running_pid_identity_strict``. A live gateway whose ``gateway.pid`` was
 unlinked still holds its runtime lock, and the lock carries the same identity
-record, so the updater must identify it from the lock instead of aborting the
-whole update. Every other ambiguity (garbled lock, disagreeing PID file, a lock
+record, so it must be identified from the lock instead of failing. Every other ambiguity (garbled lock, disagreeing PID file, a lock
 holder that is not a gateway) still fails closed.
 
 The holder is a real child process that takes the lock through
-``acquire_gateway_runtime_lock`` (msvcrt on Windows, flock on POSIX), so the
+``acquire_gateway_runtime_lock`` (flock), so the
 probe exercises the platform's actual lock semantics, not a stub.
 """
 
@@ -39,8 +38,7 @@ from gateway import status
 if not status.acquire_gateway_runtime_lock():
     sys.exit("could not acquire gateway.lock")
 status.write_pid_file()
-# Print the interpreter's own PID: a Windows venv python.exe is a launcher whose
-# child is the real interpreter, so Popen.pid is not the lock holder.
+# Print the interpreter's own PID: Popen.pid can be a launcher, not the lock holder.
 print(os.getpid(), flush=True)
 sys.stdin.read()
 """
@@ -117,8 +115,7 @@ def home(gateway_holder, monkeypatch):
     lock_bytes = (home / "gateway.lock").read_bytes()
     yield home
     (home / "gateway.pid").write_bytes(pid_bytes)
-    # The holder's lock is one byte at a far offset (Windows) or advisory (POSIX), so the record
-    # stays writable. Overwriting without truncating is safe: a leftover tail is the spaces a
+    # The holder's lock is advisory, so the record stays writable. Overwriting without truncating is safe: a leftover tail is the spaces a
     # test wrote, which the record reader strips.
     with open(home / "gateway.lock", "r+b") as handle:
         handle.write(lock_bytes)

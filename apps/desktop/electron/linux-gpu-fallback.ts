@@ -21,14 +21,14 @@
  * and never when `HERMES_DESKTOP_DISABLE_GPU=0` keeps the GPU on.
  *
  * Pure + dependency-free so it can be unit-tested and called before app ready.
- * `--disable-gpu` argv helpers are reused from windows-stack-cookie-fallback
+ * `--disable-gpu` argv helpers are reused from gpu-flags
  * (one spelling per concept) — they are platform-agnostic despite the name.
  */
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { alreadyHasDisableGpu, isHermesDesktopGpuOverrideOff } from './windows-stack-cookie-fallback'
+import { alreadyHasDisableGpu, isHermesDesktopGpuOverrideOff } from './gpu-flags'
 
 export const LINUX_GPU_FALLBACK_MARKER_FILENAME = 'linux-gpu-fallback.json'
 
@@ -173,9 +173,8 @@ export interface LinuxGpuLaunchDecision {
 /**
  * Single launch-time transition: decide whether this Linux launch disables
  * GPU hardware acceleration AND what the marker becomes for crash-detection
- * on the next launch. Same lifecycle as the Windows sandbox fallback:
- * sticky per app version, two-strike boot-loop detection, one post-update
- * re-probe.
+ * on the next launch. Lifecycle: sticky per app version, two-strike
+ * boot-loop detection, one post-update re-probe.
  */
 export function decideLinuxGpuLaunch(
   options: {

@@ -43,8 +43,7 @@ def main():
     wire = os.fdopen(os.dup(sys.stdout.fileno()), "w", encoding="utf-8", buffering=1)
     os.dup2(sys.stderr.fileno(), sys.stdout.fileno())
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    # A pending read on inherited control stdin can block child Python startup
-    # on Windows. Keep the protocol private and give every ordinary child EOF.
+    # Keep the protocol private and give every ordinary child EOF on stdin.
     controls = os.dup(0)
     os.set_inheritable(controls, False)
     with open(os.devnull, "rb") as null:

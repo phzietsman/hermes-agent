@@ -5,7 +5,6 @@ postinstall sets the exec bit, and pm runs no postinstall.
 """
 
 import io
-import os
 import stat
 import tarfile
 
@@ -24,7 +23,6 @@ def _npm_tarball(path, names):
             tar.addfile(info, io.BytesIO(data))
 
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX exec bit")
 @pytest.mark.parametrize("target", ["linux-arm64", "linux-x64", "darwin-arm64"])
 def test_staged_native_binary_is_executable(tmp_path, target):
     package = get_package("agent-browser")

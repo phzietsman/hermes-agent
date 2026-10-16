@@ -101,7 +101,7 @@ def test_cold_worker_bootstrap_reuses_the_requests_cache(tmp_path, monkeypatch):
     assert dict(os.environ) == before
 
 
-@pytest.mark.platforms("macos", "windows")
+@pytest.mark.platforms("macos")
 def test_sealed_worker_command_uses_only_its_recorded_site(tmp_path, monkeypatch):
     from pm import paths
     from pm.runtime import runtime_command
@@ -113,17 +113,13 @@ def test_sealed_worker_command_uses_only_its_recorded_site(tmp_path, monkeypatch
     site = runtime / "site"
     site.mkdir(parents=True)
     base = repo.parent / "python"
-    if os.name == "nt":
-        shutil.copytree(Path(sys.base_prefix), base)
-        python = base / "python.exe"
-    else:
-        # The guard resolves symlinks (a python linked outside the payload IS an escape), so the
-        # interpreter is a real copy inside the payload. A relocatable/framework build locates its
-        # stdlib beside the executable: supply the host's library tree the way the bundle test does.
-        (base / "bin").mkdir(parents=True)
-        python = base / "bin" / "python"
-        shutil.copy2(Path(sys._base_executable).resolve(), python)
-        (base / "lib").symlink_to(Path(sys.base_prefix) / "lib", target_is_directory=True)
+    # The guard resolves symlinks (a python linked outside the payload IS an escape), so the
+    # interpreter is a real copy inside the payload. A relocatable/framework build locates its
+    # stdlib beside the executable: supply the host's library tree the way the bundle test does.
+    (base / "bin").mkdir(parents=True)
+    python = base / "bin" / "python"
+    shutil.copy2(Path(sys._base_executable).resolve(), python)
+    (base / "lib").symlink_to(Path(sys.base_prefix) / "lib", target_is_directory=True)
     (runtime / "pm-runtime.json").write_text(json.dumps({
         "python": os.path.relpath(python, runtime), "sitePackages": "site",
     }))

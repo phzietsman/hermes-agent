@@ -43,17 +43,15 @@ def _is_orphaned(original_ppid, getppid=os.getppid) -> bool:
     return getppid() != original_ppid
 
 
-def _watchdog_parent(parent_pid: int, *, is_windows: bool, getppid=os.getppid) -> int:
+def _watchdog_parent(parent_pid: int, *, getppid=os.getppid) -> int:
     """Return the PID the parent-death watchdog should treat as our parent.
 
     The gateway passes its PID at spawn so a fast exit cannot make this child
     mistake a subreaper for its original parent before the watchdog starts.
     The watchdog compares the kernel's live PPID against it, so a reused PID
-    can never pass for the parent. Windows never reparents, and a venv
-    python.exe redirector makes the launcher (not the gateway) our direct
-    parent there, so keep the observed PPID or the worker would exit at once.
+    can never pass for the parent.
     """
-    if is_windows or not parent_pid:
+    if not parent_pid:
         return getppid()
     return parent_pid
 
@@ -168,7 +166,7 @@ def main():
     args = p.parse_args()
     os.environ["HERMES_SESSION_KEY"] = args.session_key
     os.environ["HERMES_INTERACTIVE"] = "1"
-    _start_parent_death_watchdog(_watchdog_parent(args.parent_pid, is_windows=sys.platform == "win32"))
+    _start_parent_death_watchdog(_watchdog_parent(args.parent_pid))
     # Keep the heavyweight CLI import behind the watchdog (importing it at module
     # load left a reparenting window before main() could snapshot PPID), but ahead
     # of MCP discovery: importing cli loads ~/.hermes/.env and sets HERMES_QUIET,

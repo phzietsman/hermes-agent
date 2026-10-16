@@ -4199,15 +4199,6 @@ export const esOverrides = {
     availableBodyRelease: tag => `La versión ${tag} está lista para instalarse.`,
     releaseAvailable: tag => `La versión ${tag} está disponible.`,
     checkingShort: 'Comprobando…',
-    availableBodyAppInstaller:
-      'Hay una nueva versión de Hermes. Hermes se cerrará, Windows terminará la actualización y Hermes volverá a abrirse automáticamente.',
-    applyingBodyAppInstaller:
-      'Hermes se cerrará y Windows terminará la actualización. Hermes volverá a abrirse al finalizar; no tienes que hacer nada.',
-    applyingCloseAppInstaller:
-      'Esta ventana se cerrará; Windows terminará la actualización y Hermes volverá a abrirse automáticamente.',
-    checkUnknownTitleAppInstaller: 'No se pudieron buscar actualizaciones',
-    checkUnknownBodyAppInstaller:
-      'Windows no pudo buscar actualizaciones ahora. También se instalan automáticamente al reiniciar Hermes.',
     versionDetailsTitle: 'Detalles de la versión',
     versionDetailsBody:
       'Esta instalación se administra fuera de la app. Actualízala de la misma forma en que la instalaste.',
@@ -4216,13 +4207,11 @@ export const esOverrides = {
     versionDetailsBuildOrigin: 'Origen de la compilación',
     versionDetailsDistribution: 'Distribución',
     versionDetailsDistributionDesktop: 'Aplicación de escritorio',
-    versionDetailsDistributionDesktopMsix: 'Aplicación de escritorio (MSIX)',
     versionDetailsDistributionDesktopInstaller: 'Aplicación de escritorio (instalador)',
     versionDetailsDistributionSourceInstaller: 'Código fuente (script de instalación)',
     versionDetailsDistributionSourceInstallerDesktop: 'Código fuente (script de instalación) + hermes desktop',
     versionDetailsDistributionSource: 'Código fuente',
     versionDetailsDistributionSourceDesktop: 'Código fuente + hermes desktop',
-    versionDetailsDistributionStore: 'Microsoft Store',
     versionDetailsRuntime: 'Entorno de ejecución',
     versionDetailsRuntimeEmbedded: 'Entorno de ejecución integrado',
     versionDetailsRuntimeExternal: 'Externo (usa el entorno de ejecución del equipo)',

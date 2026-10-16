@@ -186,20 +186,10 @@ def _backup_operation_lock(hermes_home: Path, timeout_seconds: float = 0.25):
     acquired = False
     deadline = time.monotonic() + max(0.0, timeout_seconds)
     try:
-        if os.name == "nt":
-            import msvcrt
-            if lock_path.stat().st_size == 0:
-                handle.write(b" ")
-                handle.flush()
-            def _lock_op(flag: int) -> None:
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), flag, 1)
-            lock_flag, unlock_flag = msvcrt.LK_NBLCK, msvcrt.LK_UNLCK
-        else:
-            import fcntl
-            def _lock_op(flag: int) -> None:
-                fcntl.flock(handle.fileno(), flag)
-            lock_flag, unlock_flag = fcntl.LOCK_EX | fcntl.LOCK_NB, fcntl.LOCK_UN
+        import fcntl
+        def _lock_op(flag: int) -> None:
+            fcntl.flock(handle.fileno(), flag)
+        lock_flag, unlock_flag = fcntl.LOCK_EX | fcntl.LOCK_NB, fcntl.LOCK_UN
         while not acquired:
             try:
                 _lock_op(lock_flag)
@@ -298,16 +288,11 @@ def _is_non_regular_path(path: Path) -> bool:
 
 
 def _is_link_path(path: Path) -> bool:
-    """True for symlinks and Windows junctions/reparse points — the only
-    directory entries a strict walk must never descend (os.walk already
-    refuses POSIX dir symlinks; this also covers junctions, which it follows)."""
+    """True for symlinks — the only directory entries a strict walk must never descend."""
     try:
-        info = path.lstat()
+        return stat.S_ISLNK(path.lstat().st_mode)
     except OSError:
         return False
-    if stat.S_ISLNK(info.st_mode):
-        return True
-    return os.name == "nt" and bool(getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
 
 
 def _should_exclude(rel_path: Path) -> bool:
@@ -1270,8 +1255,7 @@ def _create_quick_snapshot_locked(
     staging_dir = root / f".{snap_id}.{os.getpid()}.partial"
     shutil.rmtree(staging_dir, ignore_errors=True)
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if os.name != "nt":
-        os.chmod(root, 0o700)
+    os.chmod(root, 0o700)
     staging_dir.mkdir(mode=0o700, exist_ok=False)
     logger.info("quick snapshot phase=copy status=started id=%s", snap_id)
 
@@ -1407,14 +1391,13 @@ def _create_quick_snapshot_locked(
     # be normalized safely before the final atomic rename exposes the
     # snapshot. Permission failures are intentionally fatal: publishing a
     # readable recovery bundle is worse than reporting a failed snapshot.
-    if os.name != "nt":
-        os.chmod(root, 0o700)
-        os.chmod(staging_dir, 0o700)
-        for path in staging_dir.rglob("*"):
-            if path.is_dir():
-                os.chmod(path, 0o700)
-            elif path.is_file():
-                os.chmod(path, 0o600)
+    os.chmod(root, 0o700)
+    os.chmod(staging_dir, 0o700)
+    for path in staging_dir.rglob("*"):
+        if path.is_dir():
+            os.chmod(path, 0o700)
+        elif path.is_file():
+            os.chmod(path, 0o600)
 
     os.replace(staging_dir, snap_dir)
 
@@ -1613,7 +1596,7 @@ def _count_cron_jobs(path: Path) -> Optional[int]:
     if not path.is_file():
         return None
     try:
-        # utf-8-sig: same dialect as cron/jobs.load_jobs — Windows editors
+        # utf-8-sig: same dialect as cron/jobs.load_jobs — editors
         # may leave a UTF-8 BOM that plain utf-8 json.load rejects. Without
         # it a BOM'd jobs.json counts as "unreadable" (None) and the
         # post-update cron-loss auto-restore safety net silently disables.
@@ -1709,7 +1692,7 @@ def _load_cron_jobs_doc(path: Path) -> Optional[Any]:
     """Parse ``path`` as the canonical ``{"jobs": [...]}`` doc (legacy bare list honoured).
 
     ``None`` = missing/unreadable/non-dict-with-list — same dialect rules as
-    :func:`_count_cron_jobs` (utf-8-sig for Windows BOMs). Never raises.
+    :func:`_count_cron_jobs` (utf-8-sig for BOMs). Never raises.
     """
     if not path.is_file():
         return None

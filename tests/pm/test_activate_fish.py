@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.pm.activation_support import fake_store, posix, sync_checkout
+from tests.pm.activation_support import fake_store, sync_checkout
 
 # Spawns children with a home it builds itself; the parent's must stay real.
 pytestmark = [
@@ -24,7 +24,7 @@ pytestmark = [
 
 def _fish(root: Path, env: dict, script: str, tmp_path: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["fish", "--no-config", "-c", script.replace("@ACTIVATE@", posix(root / "activate.fish"))],
+        ["fish", "--no-config", "-c", script.replace("@ACTIVATE@", str(root / "activate.fish"))],
         cwd=tmp_path, env=env, capture_output=True, text=True, timeout=60,
     )
 

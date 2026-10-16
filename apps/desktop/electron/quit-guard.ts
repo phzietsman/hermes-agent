@@ -131,7 +131,7 @@ export function quitPromptFor(
  * Whether a window's 'close' event should be intercepted to show the
  * active-work confirmation.
  *
- * On Windows and Linux, closing the last window triggers app.quit() →
+ * On Linux, closing the last window triggers app.quit() →
  * before-quit, but by then the renderer's webContents is already destroyed
  * and its entry has been removed from the active-work map — so the existing
  * before-quit guard finds nothing and the app exits silently. Intercepting

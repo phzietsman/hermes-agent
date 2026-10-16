@@ -49,7 +49,6 @@ import hashlib
 import json
 import os
 import sqlite3
-import stat
 import sys
 from pathlib import Path
 
@@ -99,17 +98,11 @@ def _sha256_file(path: str) -> str:
 
 
 def _is_link(path: str) -> bool:
-    """True for symlinks everywhere, and for NTFS junctions on Windows
-    (st.islink() is False for junctions, but readlink() works)."""
-    if os.path.islink(path):
-        return True
-    st = os.lstat(path)
-    reparse = getattr(st, "st_file_attributes", 0)
-    return bool(reparse & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+    return os.path.islink(path)
 
 
 def _lexists(path: str) -> bool:
-    """Exists including dangling symlinks/junctions (os.path.exists resolves)."""
+    """Exists including dangling symlinks (os.path.exists resolves)."""
     try:
         os.lstat(path)
         return True

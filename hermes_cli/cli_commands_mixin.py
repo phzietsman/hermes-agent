@@ -2091,7 +2091,7 @@ class CLICommandsMixin(CLICommandsSessionToolsMixin):
         ``#!`` comment lines stripped; "" if the editor failed or the buffer was left empty.
         Factored out so the read-back/strip logic is unit-testable."""
         editor = (os.environ.get("VISUAL") or os.environ.get("EDITOR")
-                  or ("notepad" if os.name == "nt" else "nano"))
+                  or "nano")
         fd, path = tempfile.mkstemp(suffix=".md", prefix="hermes_prompt_")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
@@ -2402,7 +2402,7 @@ class CLICommandsMixin(CLICommandsSessionToolsMixin):
             return False
         _say_block(f"  {_t('update.launching')}")
         # run() execs this on the main thread after prompt_toolkit restores terminal modes;
-        # relaunching from this daemon thread would skip cleanup (POSIX) / only end the thread (Windows).
+        # relaunching from this daemon thread would skip cleanup.
         self._pending_relaunch = ["update"]
         return True
 

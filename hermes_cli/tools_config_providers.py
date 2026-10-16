@@ -127,7 +127,7 @@ _PLUGIN_ROW_BUILDERS = {
     "Web Search & Extract": _plugin_web_search_providers,
     "Browser Automation": _plugin_browser_providers,
     "Text-to-Speech": _plugin_tts_providers,
-    "Computer Use (macOS/Windows/Linux)": lambda: _computer_use_provider_rows()}
+    "Computer Use (macOS/Linux)": lambda: _computer_use_provider_rows()}
 
 
 def _computer_use_provider_rows() -> list[dict]:

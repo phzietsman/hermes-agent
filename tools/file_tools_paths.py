@@ -8,7 +8,6 @@ edits to the agent process cwd, e.g. the main repo during a worktree session).
 
 import os
 import posixpath
-import sys
 import time
 from pathlib import Path, PurePosixPath
 
@@ -140,29 +139,13 @@ def _authoritative_workspace_root(task_id: str = "default") -> str | None:
     return recorded or _registered_task_cwd_override(task_id) or _configured_terminal_cwd()
 
 
-def _host_text(text: str, container_paths: bool) -> str:
-    """Expand ``~``; on host backends also translate Git Bash ``/c/Users/...`` drive
-    paths before Path sees them. Container/WSL Linux paths are never rewritten."""
-    if not container_paths:
-        from tools.environments.local import _msys_to_windows_path
-
-        text = _msys_to_windows_path(text)
-    return _expand_tilde(text)
-
-
 def _anchor(text: str, base, container_paths: bool) -> Path | PurePosixPath:
     """Return *text* as an absolute, normalized path, joining it onto ``base()`` when
-    relative. Container: pure-posix, no host deref. Host: resolve() (win32: ntpath normpath)."""
+    relative. Container: pure-posix, no host deref. Host: resolve()."""
     if container_paths:
         if not posixpath.isabs(text):
             text = posixpath.join(str(base()), text)
         return _normalize_without_host_deref(text)
-    if sys.platform == "win32":
-        import ntpath
-
-        if not ntpath.isabs(text):
-            text = ntpath.join(str(base()), text)
-        return Path(ntpath.normpath(text))
     p = Path(text)
     if not p.is_absolute():
         p = Path(base()) / p
@@ -174,8 +157,7 @@ def _ssh_remote_anchor(task_id: str) -> str:
     expands ``~`` on the Hermes host, which names a directory the remote does not have.
 
     Same precedence (session record, registered override, ``$TERMINAL_CWD``); a
-    value that is neither ``~``-prefixed nor POSIX-absolute (a Windows or relative
-    host path) is skipped. ``coerce_ssh_remote_cwd`` maps the host subprocess home back to ``~``.
+    value that is neither ``~``-prefixed nor absolute (a relative host path) is skipped. ``coerce_ssh_remote_cwd`` maps the host subprocess home back to ``~``.
     """
     from agent.runtime_cwd import scope_terminal_cwd
     from tools.terminal_tool import get_session_cwd, resolve_task_overrides
@@ -261,7 +243,7 @@ def _resolve_base_dir(
         container_paths = _uses_container_paths(task_id)
     root = _authoritative_workspace_root(task_id)
     # A backend's relative cwd is anchored to the process cwd once, here.
-    return _anchor(_host_text(root or os.getcwd(), container_paths), os.getcwd, container_paths)
+    return _anchor(_expand_tilde(root or os.getcwd()), os.getcwd, container_paths)
 
 
 def _resolve_path_for_task(filepath: str, task_id: str = "default") -> Path | PurePosixPath:
@@ -270,7 +252,7 @@ def _resolve_path_for_task(filepath: str, task_id: str = "default") -> Path | Pu
     if _terminal_env_type_for_task(task_id) == "ssh":
         return _resolve_ssh_path(filepath, task_id)
     container_paths = _uses_container_paths(task_id)
-    return _anchor(_host_text(filepath, container_paths),
+    return _anchor(_expand_tilde(filepath),
                    lambda: _resolve_base_dir(task_id, container_paths=container_paths), container_paths)
 
 

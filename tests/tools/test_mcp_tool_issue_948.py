@@ -1,6 +1,5 @@
 import asyncio
 import os
-import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -9,8 +8,7 @@ import pytest
 from tools.mcp_tool import MCPServerTask, _MCP_AVAILABLE
 from tools.mcp_tool_errors import _format_connect_error
 from tools.mcp_tool_common import _prepend_path
-from tools.mcp_tool_config import _first_user_which_hit, _resolve_stdio_command
-from tools.mcp_tool_config import _which_with_config_pathext
+from tools.mcp_tool_config import _resolve_stdio_command
 
 # Ensure the mcp module symbols exist for patching even when the SDK isn't installed
 if not _MCP_AVAILABLE:
@@ -86,34 +84,6 @@ def test_resolve_stdio_command_empty_path_is_a_miss(monkeypatch, tmp_path):
     command, _env = _resolve_stdio_command("other-mcp-server", {"PATH": ""})
 
     assert command == "other-mcp-server"  # cwd-only lookup: no ambient fallback
-
-
-def test_config_pathext_lookup_never_touches_parent_environ(tmp_path, monkeypatch):
-    """Resolving under a configured PATHEXT must not mutate the parent's ``os.environ``:
-    a multiplexed gateway resolves servers for several profiles from one process, and
-    any thread reading PATHEXT (or inheriting env for its own subprocess) inside the
-    lookup window would otherwise see this server's per-profile value."""
-    server_dir = tmp_path / "bin"
-    server_dir.mkdir()
-    (server_dir / "server.cmd").write_text("@echo off\r\n", encoding="utf-8")
-    (server_dir / "server.cmd").chmod(0o755)
-    monkeypatch.delenv("PATHEXT", raising=False)
-    monkeypatch.setenv("PATH", str(server_dir))
-    seen = {}
-
-    import tools.mcp_tool_config as _cfg
-
-    def _spy(cmd, path=None):
-        seen["PATHEXT"] = os.environ.get("PATHEXT")
-        raise AssertionError("shutil.which must not be the lookup engine here")
-
-    with patch.object(_cfg.shutil, "which", side_effect=_spy):
-        cfg_env = {"PATHEXT": ".cmd;.exe"}
-        hit = _which_with_config_pathext("server", str(server_dir), cfg_env)
-
-    assert hit == str(server_dir / "server.cmd")
-    assert "PATHEXT" not in os.environ  # not written, not left behind
-    assert seen == {}  # and never consulted mid-lookup either
 
 
 # ---------------------------------------------------------------------------
@@ -251,14 +221,6 @@ def test_bare_uvx_resolves_pm_uv_and_an_absolute_command_stays_the_users(tmp_pat
 
 
 def _bare_exe(directory, name):
-    """Platform-shaped fixture executable: Windows resolves bare names through PATHEXT
-    and an extensionless file is not executable there, so the file carries `.exe` (the
-    exec-bit chmod is skipped — os.access(X_OK) is an existence check on win32); POSIX
-    keeps the bare name with 0o755."""
-    if sys.platform == "win32":
-        exe = directory / f"{name}.exe"
-        exe.write_text("", encoding="utf-8")
-        return exe
     exe = directory / name
     exe.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     exe.chmod(0o755)
@@ -311,31 +273,6 @@ def test_bare_python3_keeps_the_managed_hit_when_the_user_has_none(tmp_path, mon
         reset_hermes_home_override(token)
 
     assert command == str(managed_exe)
-
-
-def test_first_user_which_hit_follows_the_child_env_pathext(tmp_path):
-    """Candidate extensions come from the child env's PATHEXT (``shutil.which`` reads the
-    PARENT's), so a user install that only ships a ``.bat`` wrapper — the usual
-    conda/npm shape — is a hit, not just the ``.cmd``/``.exe`` pair the npx cache layout
-    guarantees. A command that already carries a PATHEXT suffix is matched as written."""
-    user_bin = tmp_path / "user-bin"
-    user_bin.mkdir()
-    # srv.BAT spelled as PATHEXT spells it: a bare `srv` hits the PATHEXT-spelled join
-    # (real Windows filesystems are case-insensitive; a case-sensitive host needs the
-    # exact spelling to keep this branch observable). wrap.cmd keeps the lowercase,
-    # as-written spelling its own assertion looks up.
-    bat = user_bin / "srv.BAT"
-    bat.write_text("@echo off\r\n", encoding="utf-8")
-    bat.chmod(0o755)  # real exec-bit check on POSIX test hosts; a no-op on Windows
-    wrapper = user_bin / "wrap.cmd"
-    wrapper.write_text("@echo off\r\n", encoding="utf-8")
-    wrapper.chmod(0o755)
-    pathext = {"PATHEXT": ".COM;.EXE;.BAT;.CMD"}
-
-    assert _first_user_which_hit("srv", str(user_bin), pathext, windows=True) == str(bat)
-    # No double extension (wrap.cmd.exe) for a command that already carries a suffix
-    assert _first_user_which_hit("wrap.cmd", str(user_bin), pathext, windows=True) == str(wrapper)
-    assert _first_user_which_hit("missing", str(user_bin), pathext, windows=True) is None
 
 
 def test_bare_launcher_commands_keep_the_managed_first_resolution(tmp_path, monkeypatch):

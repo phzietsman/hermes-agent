@@ -153,7 +153,7 @@ def test_completion_runs_under_a_parents_claim_without_releasing_it(tmp_path):
     )
     parent = (
         "import os, subprocess, sys, time\n"
-        f"open({str(marker)!r}, 'w', encoding='utf-8').write(f'{{os.getpid()}}\\n{{int(time.time())}}\\n')\n"  # windows-footgun: ok — a write
+        f"open({str(marker)!r}, 'w', encoding='utf-8').write(f'{{os.getpid()}}\\n{{int(time.time())}}\\n')\n"
         "sys.exit(subprocess.call([sys.executable, '-c', sys.argv[1]]))\n"
     )
     run = subprocess.run([sys.executable, "-c", parent, tail], capture_output=True, timeout=120,
@@ -176,7 +176,7 @@ def test_publishing_checkout_identity_moves_an_installer_receipt_to_head(tmp_pat
     root = _repo(tmp_path)
     release = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
     branch = subprocess.run(["git", "branch", "--show-current"], cwd=root, capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
-    # What install.sh / install.ps1's complete stage leaves behind at the installed release.
+    # What install.sh's complete stage leaves behind at the installed release.
     (root / ".hermes-bootstrap-complete").write_text(json.dumps({
         "schemaVersion": 1, "pinnedCommit": release, "pinnedBranch": branch, "completedAt": "2026-06-19T00:00:00.000Z",
     }), encoding="utf-8")

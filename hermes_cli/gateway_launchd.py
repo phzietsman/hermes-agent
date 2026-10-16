@@ -32,7 +32,7 @@ def _probe_launchd_domain_for_label(label: str) -> str:
     """Launchd domain managing ``label`` (uncached): ``gui/<uid>`` (Aqua), then ``user/<uid>``
     (Background/SSH), else the ``launchctl managername`` heuristic. Sibling profiles may live in
     different domains, so never reuse the cached ``_launchd_domain()`` for another label."""
-    uid = os.getuid()  # windows-footgun: ok — POSIX launchd (macOS) helper, never invoked on Windows
+    uid = os.getuid()
     gui_domain, user_domain = f"gui/{uid}", f"user/{uid}"
 
     launchctl_errors = (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError)
@@ -283,7 +283,6 @@ def _spawn_detached_gateway() -> bool:
     gateway.log, stderr is timestamped into gateway.error.log, and the PID is tracked via the gateway.pid
     file that `run_gateway` writes, so stop/status/restart keep working.
     """
-    from hermes_cli._subprocess_compat import windows_detach_popen_kwargs
     from hermes_constants import get_hermes_home
     from tools.environments.local import served_profile_child_env
     log_dir = _gw().get_hermes_home() / "logs"
@@ -298,7 +297,7 @@ def _spawn_detached_gateway() -> bool:
                 _timestamped_stderr_gateway_command(log_dir / "gateway.error.log"),
                 stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.DEVNULL,
                 env=child_env,
-                **windows_detach_popen_kwargs(),
+                start_new_session=True,
             )
     except OSError:
         return False
@@ -561,10 +560,7 @@ def refresh_launchd_plist_if_needed() -> bool:
 
     # POSIX ancestry is NOT a reliable "bootout will kill us" test (coalition membership survives
     # reparenting), so always prefer the detached helper; in-process is only the spawn-failure fallback.
-    if (
-        gateway_pid is not None
-        and hasattr(os, "setsid")  # POSIX-only; launchd is macOS so always true here
-    ) and _spawn_deferred_launchd_reload(
+    if gateway_pid is not None and _spawn_deferred_launchd_reload(
         domain=domain, label=label, target=target, plist_path=plist_path, gateway_pid=gateway_pid
     ):
         print(

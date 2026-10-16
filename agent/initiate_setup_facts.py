@@ -31,11 +31,6 @@ FORK_QUESTION = "Know what you'd like it to make?"
 _APP_STATE_DEADLINE_S = 5
 
 _BLENDER_TASK = {"id": "plugin:blender", "label": "Help me make something in Blender", "plugins": ["blender"]}
-_NVIDIA_TASK = {
-    "id": "plugin:nvidia",
-    "label": "Set up my games and streaming",
-    "plugins": ["nvidia-app", "nvidia-broadcast"],
-}
 
 
 def skill_dir() -> Path:
@@ -49,30 +44,14 @@ def _posix_account() -> tuple[str, str]:
     """Return (login, full name) from the user database."""
     import pwd
 
-    entry = pwd.getpwuid(os.getuid())  # windows-footgun: ok — only called off Windows (_account)
+    entry = pwd.getpwuid(os.getuid())
     return entry.pw_name, entry.pw_gecos.split(",", 1)[0].strip()
-
-
-def _windows_account() -> tuple[str, str]:
-    """Return (login, display name) from Win32 account APIs."""
-    import ctypes
-    from ctypes import wintypes
-
-    login_buf = ctypes.create_unicode_buffer(257)
-    login_len = wintypes.DWORD(len(login_buf))
-    login = login_buf.value if ctypes.windll.advapi32.GetUserNameW(login_buf, ctypes.byref(login_len)) else ""
-
-    # EXTENDED_NAME_FORMAT NameDisplay = 3. Local accounts without a display name fail here.
-    name_buf = ctypes.create_unicode_buffer(257)
-    name_len = wintypes.ULONG(len(name_buf))
-    full = name_buf.value if ctypes.windll.secur32.GetUserNameExW(3, name_buf, ctypes.byref(name_len)) else ""
-    return login, full
 
 
 def _account() -> tuple[str, str]:
     try:
-        return _windows_account() if sys.platform == "win32" else _posix_account()
-    except (AttributeError, ImportError, KeyError, OSError):
+        return _posix_account()
+    except (ImportError, KeyError, OSError):
         return "", ""
 
 
@@ -122,13 +101,6 @@ def _darwin_locale() -> str:
         cf.CFRelease(languages)
 
 
-def _windows_locale() -> str:
-    import ctypes
-
-    buffer = ctypes.create_unicode_buffer(85)
-    return buffer.value if ctypes.windll.kernel32.GetUserDefaultLocaleName(buffer, 85) else ""
-
-
 def _linux_locale() -> str:
     """System locale from its config file; the shell's LANG is deliberately not read."""
     for path in ("/etc/locale.conf", "/etc/default/locale"):
@@ -147,8 +119,6 @@ def _locale() -> str:
     try:
         if sys.platform == "darwin":
             return _darwin_locale()
-        if sys.platform == "win32":
-            return _windows_locale()
         return _linux_locale()
     except (AttributeError, OSError, TypeError, ValueError):
         return ""
@@ -157,16 +127,15 @@ def _locale() -> str:
 # --- the facts block ------------------------------------------------------------------
 
 
-def _is_spark(os_family: str, arch: str, gpu: str, cpu: str) -> bool:
-    """RTX Sparks by platform, architecture and GPU; DGX Sparks by model string."""
-    rtx = os_family == "win32" and arch == "arm64" and gpu == "nvidia"
-    return rtx or products.is_nvidia_arm_soc() or bool(_SPARK_MODEL.search(cpu.replace("_", " ")))
+def _is_spark(cpu: str) -> bool:
+    """DGX Sparks by SoC or model string."""
+    return products.is_nvidia_arm_soc() or bool(_SPARK_MODEL.search(cpu.replace("_", " ")))
 
 
 def _machine_kind(os_family: str, spark: bool) -> str:
     if spark:
         return "Spark"
-    return {"darwin": "Mac", "win32": "PC"}.get(os_family, "computer")
+    return "Mac" if os_family == "darwin" else "computer"
 
 
 def facts() -> dict:
@@ -175,7 +144,7 @@ def facts() -> dict:
     model only when the user picks it."""
     os_family, arch, gpu, cpu = host.os_family(), host.native_arch(), host.gpu_class(), host.cpu_model()
     ram = host.ram_total_bytes()
-    spark = _is_spark(os_family, arch, gpu, cpu)
+    spark = _is_spark(cpu)
     machine = {
         "os_family": os_family,
         "os_release": platform.release(),
@@ -270,13 +239,7 @@ def _app_states(names: list[str]) -> dict[str, str]:
 def _plugin_tasks(states: dict[str, str]) -> list[dict]:
     """The fork's plugin rows, each offered only when the app its plugins need is there (*states* from
     ``_app_states``): the installer refuses a plugin whose app is missing, so the card never offers one."""
-    tasks = []
-    nvidia_plugins = [name for name in _NVIDIA_TASK["plugins"] if states.get(name, "missing_app") != "missing_app"]
-    if nvidia_plugins:
-        tasks.append({**_NVIDIA_TASK, "plugins": nvidia_plugins})
-    if states["blender"] != "missing_app":
-        tasks.append(_BLENDER_TASK)
-    return tasks
+    return [_BLENDER_TASK] if states["blender"] != "missing_app" else []
 
 
 def _description(block: dict) -> str:
@@ -304,8 +267,7 @@ def setup_cards(block: dict) -> dict:
     Blender preselect, the handoff text the fork result carries, and the machine line ``start_chat`` appends
     to the task chat's first message."""
     kind, description = block["machine_kind"], _description(block)
-    nvidia = block.get("has_nvidia_gpu") and block["machine"].get("os_family") == "win32"
-    states = _app_states(["blender", *(_NVIDIA_TASK["plugins"] if nvidia else [])])
+    states = _app_states(["blender"])
     plugin_tasks, blender = _plugin_tasks(states), states["blender"]
     ram = f", {block['machine']['ram_gb']} GB RAM" if block["machine"].get("ram_gb") else ""
     return {

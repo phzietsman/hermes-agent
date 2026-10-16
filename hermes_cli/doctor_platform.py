@@ -499,32 +499,6 @@ def _check_required_packages(should_fix: bool, f: Finding) -> None:
                 _fail_and_issue(name, "(missing)", f"Repair {name}: {_python_repair_hint()}", f.issues)
 
 
-def _check_windows_gateway_autostart(should_fix: bool, f: Finding) -> None:
-    """Windows: the gateway must start at logon from ONE mechanism — a Scheduled Task and a
-    Startup-folder entry side by side launch it twice (#80569)."""
-    if sys.platform != "win32":
-        return
-    from hermes_cli import gateway_windows
-    redundant = gateway_windows.redundant_autostart_entries()
-    if not redundant:
-        return
-    _section("Windows Gateway Autostart")
-    if not should_fix:
-        for path in redundant:
-            check_warn("Redundant gateway login item", f"({path})")
-        f.issues.append("Remove duplicate Windows gateway autostart entries: hermes doctor --fix")
-        return
-    done, warnings = gateway_windows.reconcile_autostart_launchers()
-    for message in done:
-        check_ok(message)
-    for message in warnings:
-        check_warn(message)
-    if done and not warnings:
-        f.fixed += 1
-    if warnings:
-        f.manual_issues.extend(warnings)
-
-
 @doctor_check()
 def _check_web_dashboard_import(should_fix: bool, f: Finding) -> None:
     """Import the dashboard web surface in a subprocess so an import-time crash lands in the report.
@@ -580,15 +554,12 @@ def _check_web_dashboard_import(should_fix: bool, f: Finding) -> None:
 def _check_gateway_supervision(should_fix: bool, f: Finding) -> None:
     _check_gateway_service_linger(f.issues)
     _check_s6_supervision(f.issues)
-    _check_windows_gateway_autostart(should_fix, f)
 
 
 @doctor_check()
 def _check_command_installation(should_fix: bool, f: Finding) -> None:
     """Check the install-owned launch contract without replacing custom commands."""
     from hermes_cli.doctor import PROJECT_ROOT
-    if sys.platform == "win32":
-        return
     _section("Command Installation")
     from hermes_cli.config import detect_install_method
 

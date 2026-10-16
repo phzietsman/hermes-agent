@@ -4,7 +4,7 @@ description: "Neutral arbiter for merge conflicts between two agents."
 version: 1.0.0
 author: Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Multi-Agent, Git, Merge-Conflict, Kanban, Arbitration]

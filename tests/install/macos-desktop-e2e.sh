@@ -2,8 +2,7 @@
 # Prove a macOS user who installed OLD via the published desktop installer
 # (Hermes-Setup.dmg from the website) can reach HEAD.
 #
-# The macOS sibling of tests/install/windows-e2e.ps1's desktop-installer
-# arm, sharing the staging trick: every git process is pointed at a local
+# The staging trick: every git process is pointed at a local
 # bare clone via url.<file://serve.git>.insteadOf in a driver-owned
 # GIT_CONFIG_GLOBAL. The published dmg carries no commit pin - it installs
 # whatever `main` serves - so parking serve.git's main at OLD stages the
@@ -12,7 +11,7 @@
 # resolved install.sh must come from OLD too: git's redirect does not cover
 # raw.githubusercontent.com. The published GUI still owns every install stage.
 #
-# Phases (state shared via the workroot, mirroring the windows driver):
+# Phases (state shared via the workroot):
 #   stage    bare-clone this checkout to serve.git, park main at OLD
 #   install  download the dmg, hdiutil attach, run the installer app's
 #            binary DIRECTLY (env inheritance: an `open`-launched app sees

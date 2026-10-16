@@ -707,7 +707,7 @@ def is_local_endpoint(base_url: str) -> bool:
 
 
 def _localhost_to_ipv4(url: str) -> str:
-    """``localhost`` HOST -> ``127.0.0.1`` (Windows dual-stack resolves ::1 first and pays a ~2s IPv6
+    """``localhost`` HOST -> ``127.0.0.1`` (dual-stack resolvers may try ::1 first and pay a ~2s IPv6
     connect timeout on IPv4-only servers). Scheme-anchored so ``?upstream=http://localhost`` is untouched."""
     if not url or not isinstance(url, str):
         return url  # non-string values (test doubles, lazy config) pass through

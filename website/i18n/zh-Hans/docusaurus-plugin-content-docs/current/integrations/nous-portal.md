@@ -64,10 +64,6 @@ Portal 代理了来自整个生态系统的精选 agentic 模型目录——统�
 
 由于所有请求都通过一个经 OAuth 认证的 Portal 会话路由，你不会积累一个包含十几个长期 API 密钥的 `.env` 文件。磁盘上唯一的凭证是 `~/.hermes/auth.json` 中的 refresh token（刷新令牌），Hermes 会在每次请求时从中生成短期 JWT——详见下方[令牌处理](#token-handling)。
 
-### 跨平台一致性
-
-[原生 Windows](../user-guide/windows-native.md) 上，逐个配置 API 密钥是其最大痛点——在 Windows 上分别安装网页搜索账号、FAL 账号、Browser Use 账号、OpenAI 密钥，是整个 agent 配置过程中摩擦最高的部分。Portal 订阅消除了这一问题：一次 OAuth 覆盖模型和所有 gateway 工具，Windows 用户无需手动配置四个后端，即可获得与 macOS/Linux 相同的体验。
-
 ## 关于 Hermes 4 的说明
 
 Nous Research 自家的 **Hermes 4** 系列（Hermes-4-70B、Hermes-4-405B）通过 Portal 提供，享有大幅折扣。这些是**前沿混合推理对话模型**——在数学、科学、指令遵循、schema 遵从、角色扮演和长文写作方面表现出色。

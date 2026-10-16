@@ -51,7 +51,7 @@ export interface HostBackendAttachDeps {
   /** Reject unless `/api/ws` accepts the token — the leg the renderer uses. */
   probeWebSocket: (wsUrl: string) => Promise<{ ok: boolean; reason?: string }>
   /**
-   * PID liveness probe (real: `isPidAliveWindows`). Records whose backend is
+   * PID liveness probe (real: `isPidAlive`). Records whose backend is
    * already gone are skipped before any network I/O (#123586). Absent, every
    * record is probed as before.
    */

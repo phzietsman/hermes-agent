@@ -393,7 +393,7 @@ def _transcribe_local(
         try:
             segments, info = model.transcribe(file_path, **transcribe_kwargs)
             # faster-whisper's transcribe() is lazy: the decode (and with it the
-            # dlopen-on-first-use of the CUDA runtime on Windows) happens while
+            # dlopen-on-first-use of the CUDA runtime) happens while
             # ITERATING segments, after this call has already returned (#103793).
             # Consume inside the guard so a first-use cuBLAS/cuDNN load failure
             # retries on CPU exactly like a load-time failure does.

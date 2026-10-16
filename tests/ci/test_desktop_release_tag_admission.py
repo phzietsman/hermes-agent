@@ -103,40 +103,12 @@ bash = shutil.which("bash")
 pytestmark = pytest.mark.skipif(bash is None, reason="bash is required to run the admission script")
 
 
-def _native_tool(name: str) -> str:
-    """Resolve *name* to an executable CreateProcess can actually start.
-
-    run_tests.sh / conftest blank SystemRoot/ComSpec for hermeticity, and on
-    this host PATH can point ``git``/``bash`` at the MSIX payload copy under
-    ``C:\\Program Files\\WindowsApps\\...`` — a store-app location that
-    fails CreateProcess with WinError 5 outside its package context. Prefer
-    a conventional install; give children a complete environment too.
-    """
-    candidates = [hit for hit in (shutil.which(name),) if hit]
-    if sys.platform == "win32":
-        git_base = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git"
-        for rel in (("cmd", f"{name}.exe"), ("bin", f"{name}.exe"), ("usr", "bin", f"{name}.exe")):
-            p = git_base.joinpath(*rel)
-            if p.exists():
-                candidates.append(str(p))
-    for cand in candidates:
-        if "windowsapps" not in cand.lower():
-            return cand
-    return candidates[0]
-
-
 def _child_env(**overrides: str) -> dict:
-    env = os.environ.copy()
-    if sys.platform == "win32":
-        env.setdefault("SystemRoot", r"C:\Windows")
-        env.setdefault("ComSpec", r"C:\Windows\system32\cmd.exe")
-        env.setdefault("PATHEXT", ".COM;.EXE;.BAT;.CMD")
-    env.update(overrides)
-    return env
+    return {**os.environ, **overrides}
 
 
-_GIT = _native_tool("git")
-_BASH = _native_tool("bash")
+_GIT = shutil.which("git")
+_BASH = shutil.which("bash")
 
 
 def _git(*args: str, cwd: Path) -> str:
@@ -254,9 +226,8 @@ def _builds(step: dict) -> bool:
 
 @pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
 def test_downloadable_native_builds_refuse_to_ship_unsigned(tmp_path: Path):
-    """The Windows signer only warns without AZURE_SIGN_*; every native build
-    leg whose artifacts are downloadable must therefore fail before building,
-    under one gate shared with the macOS signing-credential check."""
+    """Every native build leg whose artifacts are downloadable must fail before
+    building when its signing/notarization credentials are missing."""
     jobs = _workflow()["jobs"]
     legs = native_builds(jobs)
     for name in legs.values():
@@ -268,12 +239,11 @@ def test_downloadable_native_builds_refuse_to_ship_unsigned(tmp_path: Path):
             assert gate(step["if"], inputs, {}, job_if=False), (name, dispatch)
         assert not gate(step["if"], DRY_DISPATCH, {}, job_if=False), name
 
-    windows = {credential_gate(jobs[name])["run"]: credential_gate(jobs[name])
-               for (target, _), name in legs.items() if target.startswith("win32-")}
-    assert windows, "walk broken: no Windows build legs"
-    for step in windows.values():
-        names = list(step["env"])
-        assert {"AZURE_SIGN_ENDPOINT", "AZURE_SIGN_ACCOUNT", "AZURE_SIGN_PROFILE", "AZURE_CLIENT_ID"} <= set(names)
+    gates = {credential_gate(jobs[name])["run"]: credential_gate(jobs[name]) for name in legs.values()}
+    assert gates, "walk broken: no native build legs"
+    for step in gates.values():
+        names = [*step["env"], "CLOUDFLARE_R2_PUBLIC_URL", "CLOUDFLARE_R2_BUCKET"]
+        assert {"CSC_LINK", "APPLE_API_KEY_P8", "APPLE_API_ISSUER"} <= set(names)
 
         def run(**values: str) -> subprocess.CompletedProcess:
             env = {"PATH": os.environ["PATH"], "RUNNER_TEMP": str(tmp_path)}
@@ -283,7 +253,7 @@ def test_downloadable_native_builds_refuse_to_ship_unsigned(tmp_path: Path):
                                   capture_output=True, text=True, timeout=60)
 
         proc = run()
-        assert proc.returncode != 0 and "::error::" in proc.stdout and "AZURE_SIGN_ENDPOINT" in proc.stdout
+        assert proc.returncode != 0 and "::error::" in proc.stdout and "CSC_LINK" in proc.stdout
         assert run(**{name: "x" for name in names}).returncode == 0
-        partial = run(**{name: "x" for name in names if name != "AZURE_CLIENT_ID"})
-        assert partial.returncode != 0 and "AZURE_CLIENT_ID" in partial.stdout
+        partial = run(**{name: "x" for name in names if name != "APPLE_API_ISSUER"})
+        assert partial.returncode != 0 and "APPLE_API_ISSUER" in partial.stdout

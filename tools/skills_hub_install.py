@@ -29,10 +29,9 @@ logger = logging.getLogger("tools.skills_hub")
 
 
 def _is_path_redirect(path: Path) -> bool:
-    """True when ``path`` is a symlink or (on Windows) a directory junction —
-    either lets a writer in ``skills/`` redirect a later ``rmtree`` outside it.
-    ``is_junction`` only exists on Python 3.12+ Windows; gate with ``hasattr``."""
-    return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
+    """True when ``path`` is a symlink — it lets a writer in ``skills/`` redirect a later
+    ``rmtree`` outside it."""
+    return path.is_symlink()
 
 
 def _resolve_lock_install_path(install_path: str, skill_name: str) -> Path:
@@ -74,9 +73,7 @@ def quarantine_bundle(bundle: SkillBundle) -> Path:
         if isinstance(file_content, bytes):
             file_dest.write_bytes(file_content)
         else:
-            # newline="" keeps the bundle's LF bytes verbatim; the default None mode would
-            # translate to os.linesep on Windows and desync content_hash from bundle_content_hash.
-            file_dest.write_text(file_content, encoding="utf-8", newline="")
+            file_dest.write_text(file_content, encoding="utf-8")
     return dest
 
 
@@ -228,9 +225,9 @@ def bundle_content_hash(bundle: SkillBundle) -> str:
     """Deterministic hash of an in-memory bundle.
 
     MUST stay symmetric with ``tools.skills_guard.content_hash`` (same skill
-    from disk), which keys files by POSIX relative path. Windows bundle keys
-    carry backslashes, which changed both bytes and sort order and made every
-    skill report ``update_available`` forever — normalize before hashing. The
+    from disk), which keys files by POSIX relative path. Bundle keys carrying
+    backslashes changed both bytes and sort order and made every skill report
+    ``update_available`` forever — normalize before hashing. The
     path is hashed too so swapping contents between two files changes the hash.
 
     That function keys files by ``relative_to(...).as_posix()`` — forward slashes on every OS. See #62310.

@@ -4,7 +4,7 @@ description: Plan-in-code fan-outs, adversarial verification, waves.
 version: 2.0.0
 author: Teknium + Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [orchestration, fan-out, subagents, delegation, verification, migration, audit, research, campaign]

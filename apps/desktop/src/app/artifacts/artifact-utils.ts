@@ -35,7 +35,6 @@ const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g
 const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(([^)\s]+)\)/g
 const URL_RE = /https?:\/\/[^\s<>"')`]+/g
 const PATH_RE = /(^|[\s("'`])((?:\/|~[\\/]|\.\.?[\\/]|\\\\)[^\s"'`<>]+(?:\.[a-z0-9]{1,8})?)/gi
-const WINDOWS_PATH_RE = /(^|[\s("'`])([A-Za-z]:[\\/][^\s"'`<>]+(?:\.[a-z0-9]{1,8})?)/gi
 const IMAGE_EXT_RE = /\.(?:png|jpe?g|gif|webp|svg|bmp)(?:\?.*)?$/i
 
 const FILE_EXT_RE =
@@ -209,10 +208,6 @@ function parseToolPayloads(text: string): unknown[] {
   return payloads
 }
 
-function isWindowsPath(value: string): boolean {
-  return /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\')
-}
-
 function looksLikePathOrUrl(value: string): boolean {
   return (
     value.startsWith('http://') ||
@@ -239,7 +234,7 @@ function artifactHref(value: string): string {
     return value
   }
 
-  if (value.startsWith('file://') || value.startsWith('/') || isWindowsPath(value)) {
+  if (value.startsWith('file://') || value.startsWith('/')) {
     return mediaExternalUrl(value)
   }
 
@@ -360,10 +355,6 @@ function collectArtifactsFromText(text: string, pushValue: PushValue): void {
   }
 
   for (const match of text.matchAll(PATH_RE)) {
-    pushValue(match[2] || '')
-  }
-
-  for (const match of text.matchAll(WINDOWS_PATH_RE)) {
     pushValue(match[2] || '')
   }
 }

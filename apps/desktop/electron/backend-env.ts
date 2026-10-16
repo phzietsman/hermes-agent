@@ -19,21 +19,8 @@ const POSIX_SANE_PATH_ENTRIES = Object.freeze([
   '/bin'
 ])
 
-function delimiterForPlatform(platform = process.platform) {
-  return platform === 'win32' ? ';' : ':'
-}
-
-function pathModuleForPlatform(platform = process.platform) {
-  return platform === 'win32' ? path.win32 : path.posix
-}
-
-function pathEnvKey(env = process.env, platform = process.platform) {
-  if (platform !== 'win32') {
-    return 'PATH'
-  }
-
-  return Object.keys(env || {}).find(key => key.toUpperCase() === 'PATH') || 'PATH'
-}
+const PATH_DELIMITER = ':'
+const PATH_ENV_KEY = 'PATH'
 
 function appendUniquePathEntries(entries, { delimiter = path.delimiter } = {}) {
   const seen = new Set()
@@ -64,7 +51,7 @@ function resolveHermesHomePath(hermesHome, { pathModule, homedir = os.homedir() 
   // would pin it under cwd and the Python backend inherits that absolute path via HERMES_HOME.
   let raw = String(hermesHome)
 
-  if (raw === '~' || raw.startsWith('~/') || (pathModule === path.win32 && raw.startsWith('~\\'))) {
+  if (raw === '~' || raw.startsWith('~/')) {
     raw = pathModule.join(homedir, raw.slice(1))
   }
 
@@ -77,7 +64,7 @@ function isProfileHome(resolved, pathModule) {
 
 function normalizeHermesHomeRoot(
   hermesHome,
-  { pathModule = pathModuleForPlatform(process.platform), homedir = os.homedir() }: any = {}
+  { pathModule = path.posix, homedir = os.homedir() }: any = {}
 ) {
   if (!hermesHome) {
     return hermesHome
@@ -90,25 +77,20 @@ function normalizeHermesHomeRoot(
 
 // OS/interpreter names a dotenv may redeclare that no child can run without.
 const PROCESS_ENV_NAMES = new Set([
-  'APPDATA',
-  'COMSPEC',
   'HERMES_HOME',
   'HOME',
   'LANG',
   'LC_ALL',
-  'LOCALAPPDATA',
   'PATH',
   'PWD',
   'PYTHONPATH',
   'SHELL',
   'SSL_CERT_FILE',
-  'SYSTEMROOT',
   'TEMP',
   'TMP',
   'TMPDIR',
   'TZ',
   'USER',
-  'USERPROFILE',
   'VIRTUAL_ENV'
 ])
 
@@ -147,9 +129,8 @@ function profileBackendParentEnv({
   hermesHome,
   profile,
   currentEnv = process.env,
-  platform = process.platform,
   fsModule = fs,
-  pathModule = pathModuleForPlatform(platform)
+  pathModule = path.posix
 }: any = {}) {
   const env = { ...(currentEnv || {}) }
 
@@ -157,13 +138,12 @@ function profileBackendParentEnv({
     return env
   }
 
-  const fold = platform === 'win32' ? (value: string) => value.toUpperCase() : (value: string) => value
   const inheritedHome = currentEnv?.HERMES_HOME ? resolveHermesHomePath(currentEnv.HERMES_HOME, { pathModule }) : null
   const launchHome = inheritedHome && isProfileHome(inheritedHome, pathModule) ? inheritedHome : hermesHome
   const name = profile || readTextOrEmpty(fsModule, pathModule.join(hermesHome, 'active_profile')).trim()
   const targetHome = !name || name === 'default' ? hermesHome : pathModule.join(hermesHome, 'profiles', name)
 
-  if (fold(pathModule.resolve(launchHome)) === fold(pathModule.resolve(targetHome))) {
+  if (pathModule.resolve(launchHome) === pathModule.resolve(targetHome)) {
     return env
   }
 
@@ -171,11 +151,10 @@ function profileBackendParentEnv({
     ['.env', '.op.env']
       .flatMap(file => dotenvKeyNames(readTextOrEmpty(fsModule, pathModule.join(launchHome, file))))
       .filter(key => !PROCESS_ENV_NAMES.has(key.toUpperCase()))
-      .map(fold)
   )
 
   for (const key of Object.keys(env)) {
-    if (launchOwned.has(fold(key))) {
+    if (launchOwned.has(key)) {
       delete env[key]
     }
   }
@@ -193,11 +172,11 @@ function profileBackendParentEnv({
  */
 function storeFirstPath(
   pathValue: string,
-  { currentEnv = process.env, platform = process.platform, homedir = os.homedir() }: any = {}
+  { currentEnv = process.env, homedir = os.homedir() }: any = {}
 ) {
-  const pathModule = pathModuleForPlatform(platform)
-  const delimiter = delimiterForPlatform(platform)
-  const hermesHome = resolveDesktopHermesHome({ home: homedir, env: currentEnv, platform })
+  const pathModule = path.posix
+  const delimiter = PATH_DELIMITER
+  const hermesHome = resolveDesktopHermesHome({ home: homedir, env: currentEnv })
   const roots = [currentEnv?.HERMES_RUNTIME_DIR, pathModule.join(hermesHome, 'tools')].filter(Boolean)
 
   const owned = (entry: string) =>
@@ -222,20 +201,18 @@ function storeFirstPath(
  */
 function buildDesktopBackendEnv({
   currentEnv = process.env,
-  platform = process.platform,
   homedir = os.homedir()
 }: any = {}) {
-  const delimiter = delimiterForPlatform(platform)
-  const key = pathEnvKey(currentEnv, platform)
-  const saneEntries = platform === 'win32' ? [] : POSIX_SANE_PATH_ENTRIES
-  const inherited = storeFirstPath(currentEnv?.[key] || '', { currentEnv, platform, homedir })
+  const delimiter = PATH_DELIMITER
+  const key = PATH_ENV_KEY
+  const saneEntries = POSIX_SANE_PATH_ENTRIES
+  const inherited = storeFirstPath(currentEnv?.[key] || '', { currentEnv, homedir })
 
   return {
     PYTHONPATH: '',
     PYTHONHOME: '',
     // Force PEP 540 UTF-8 mode in the spawned Python backend so its stdio and
-    // subprocess defaults are UTF-8 even on non-UTF-8 Windows locales (GBK,
-    // cp1252, ...). hermes_bootstrap sets this inside the child too, but only
+    // subprocess defaults are UTF-8 even on non-UTF-8 locales. hermes_bootstrap sets this inside the child too, but only
     // after import — anything emitted earlier (interpreter startup errors,
     // pre-bootstrap tracebacks) still decodes with the locale default without
     // this. User's explicit setting wins. Re-port of PR #56499 (echoriver89).
@@ -251,8 +228,7 @@ function buildDesktopBackendEnv({
  * serves ANOTHER profile (`--profile X`): stamping the app-global cwd makes
  * that profile's placeholder/unset `terminal.cwd` sessions inherit the launch
  * (or another) profile's workspace (#87584). Drop TERMINAL_CWD from the
- * inherited env AND from any runtime-provided mapping (case-insensitively on
- * Windows); the `--profile` child re-resolves its own cwd from its profile
+ * inherited env AND from any runtime-provided mapping; the `--profile` child re-resolves its own cwd from its profile
  * config, the same way a standalone `hermes -p X serve` would. The launch
  * profile's own (primary) backend keeps the pin in main.ts.
  */
@@ -261,13 +237,11 @@ function pooledProfileBackendEnv({
   profile,
   currentEnv = process.env,
   backendEnv = {},
-  platform = process.platform,
   fsModule = fs,
-  pathModule = pathModuleForPlatform(platform)
+  pathModule = path.posix
 }: any = {}) {
-  const parent = profileBackendParentEnv({ hermesHome, profile, currentEnv, platform, fsModule, pathModule })
-  const fold = platform === 'win32' ? (value: string) => value.toUpperCase() : (value: string) => value
-  const isTerminalCwd = (key: string) => fold(key) === 'TERMINAL_CWD'
+  const parent = profileBackendParentEnv({ hermesHome, profile, currentEnv, fsModule, pathModule })
+  const isTerminalCwd = (key: string) => key === 'TERMINAL_CWD'
 
   const env = { ...parent }
 
@@ -277,8 +251,7 @@ function pooledProfileBackendEnv({
     }
   }
 
-  // The resolved root, not process.env's: on Windows it can come from the user
-  // registry, and the --profile child resolves its home under it.
+  // The resolved root, not process.env's: the --profile child resolves its home under it.
   env.HERMES_HOME = hermesHome
 
   for (const [key, value] of Object.entries(backendEnv || {})) {
@@ -295,9 +268,9 @@ function pooledProfileBackendEnv({
 export {
   appendUniquePathEntries,
   buildDesktopBackendEnv,
-  delimiterForPlatform,
   normalizeHermesHomeRoot,
-  pathEnvKey,
+  PATH_DELIMITER,
+  PATH_ENV_KEY,
   pooledProfileBackendEnv,
   POSIX_SANE_PATH_ENTRIES,
   profileBackendParentEnv,

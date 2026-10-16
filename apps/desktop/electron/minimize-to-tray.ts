@@ -66,10 +66,6 @@ export function createMinimizeToTray(options: Options) {
       return false
     }
 
-    if (process.platform === 'win32') {
-      win.setSkipTaskbar(false)
-    }
-
     showDock()
 
     return true
@@ -91,15 +87,7 @@ export function createMinimizeToTray(options: Options) {
         win.restore()
       }
 
-      if (process.platform === 'win32') {
-        // showInactive() never activates the window. A restored-but-inactive
-        // window can come back painted yet dead to input (AppHangB1, #119252),
-        // so genuinely activate it like focusWindow in main.ts does.
-        win.show()
-        win.focus()
-      } else {
-        win.showInactive()
-      }
+      win.showInactive()
     }
   }
 
@@ -225,15 +213,6 @@ export function createMinimizeToTray(options: Options) {
 
       hidden.add(win)
 
-      if (process.platform === 'win32') {
-        win.setSkipTaskbar(true)
-        // A hidden Chromium window on Windows neither emits blur nor releases
-        // the UI thread's keyboard focus: keys keep going to the invisible
-        // page, trapping keyboard navigation and screen readers in it. Release
-        // focus before hiding -- once hidden it no longer takes (#126570).
-        win.blur()
-      }
-
       win.hide()
       syncDock()
 
@@ -241,9 +220,7 @@ export function createMinimizeToTray(options: Options) {
     }
 
     // Hide past the native minimize dispatch, not inside it: hiding
-    // synchronously here re-enters window-state changes mid-flight and on
-    // Windows wedges isMinimized(), so the later restore takes the
-    // restore-on-hidden path back to a painted-but-dead window (#119252).
+    // synchronously here re-enters window-state changes mid-flight.
     // Guards are re-evaluated at fire time inside hide(); the close handler
     // below keeps its synchronous hide so preventDefault still works.
     win.on('minimize', () => {
@@ -266,26 +243,8 @@ export function createMinimizeToTray(options: Options) {
       })
     }
 
-    // Windows session ending need not emit app.before-quit. Never hold it open.
-    win.on('query-session-end', () => {
-      quitting = true
-    })
-
-    // A relaunch, a deep link or a notification click can restore a tray-hidden
-    // window without the tray. restore() alone paints the window on Windows but
-    // does not make it the foreground window, so it drops all input (#127349).
-    // Finish the activation like restoreHidden() does. Defer it, because the
-    // native restore must finish first (same reason as the deferred hide).
     const release = () => {
-      if (released(win) && process.platform === 'win32') {
-        setImmediate(() => {
-          if (!win.isDestroyed() && !win.isMinimized() && win.isVisible()) {
-            win.show()
-            win.focus()
-          }
-        })
-      }
-
+      released(win)
       syncDock()
     }
 

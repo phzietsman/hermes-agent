@@ -192,18 +192,12 @@ def check_package_for_malware(command: str, args: list) -> Optional[str]:
     return result
 
 
-_ECOSYSTEM_BY_COMMAND = {
-    "npx": "npm", "npx.cmd": "npm",
-    "uvx": "PyPI", "uvx.cmd": "PyPI", "uvx.exe": "PyPI",
-    "pipx": "PyPI", "pipx.exe": "PyPI",
-}
+_ECOSYSTEM_BY_COMMAND = {"npx": "npm", "uvx": "PyPI", "pipx": "PyPI"}
 
 
 def _infer_ecosystem(command: str) -> Optional[str]:
-    # Split on BOTH separators: os.path.basename leaves ``C:\...\uvx.exe`` intact on POSIX
-    # (config authored for Windows) and the preflight would silently skip. Only the shim
-    # names each runner actually installs are listed; lookalikes stay fail-open.
-    return _ECOSYSTEM_BY_COMMAND.get(re.split(r"[\\/]", command)[-1].lower())
+    # Only the names each runner actually installs are listed; lookalikes stay fail-open.
+    return _ECOSYSTEM_BY_COMMAND.get(os.path.basename(command).lower())
 
 
 def _parse_package_from_args(args: list, ecosystem: str) -> Tuple[Optional[str], Optional[str]]:

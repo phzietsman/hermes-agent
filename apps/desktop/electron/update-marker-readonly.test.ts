@@ -16,8 +16,7 @@ import {
   EMPTY_MARKER_GRACE_MS,
   markerPath,
   readLiveUpdateMarker,
-  updateHandoffConflict,
-  writeUpdateMarker
+  updateHandoffConflict
 } from './update-marker'
 import { cleanupMarkerFixtures, deadPid, minutesAgo, tmpHome } from './update-marker.test-helpers'
 
@@ -66,18 +65,6 @@ test('claimBridgeMarker over a dead marker does not reclaim it: no claim, bytes 
     const claim = await claimBridgeMarker(home, { startedAt: 1 })
 
     assert.equal(claim.ok, false, `${label}: the exclusive create loses to any existing marker`)
-    assert.equal(fs.readFileSync(markerPath(home), 'utf8'), body, `${label}: bytes unchanged`)
-  }
-})
-
-test('writeUpdateMarker (staged pre-write) over a dead marker skips: bytes unchanged', async () => {
-  for (const [label, body] of await deadMarkerBodies()) {
-    const home = tmpHome('ro-prewrite')
-    fs.writeFileSync(markerPath(home), body)
-
-    const prewrite = await writeUpdateMarker(home, process.pid, { startedAt: 1 })
-
-    assert.equal(prewrite.ok, false, label)
     assert.equal(fs.readFileSync(markerPath(home), 'utf8'), body, `${label}: bytes unchanged`)
   }
 })

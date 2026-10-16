@@ -265,13 +265,10 @@ class MemoryStore:
     def release_all_under(cls, directory: "str | Path") -> int:
         """Force-close every shared connection whose database lives under ``directory``; returns the count.
         close() is refcount-driven, so a live holder (e.g. an agent's provider) keeps a profile's SQLite handle
-        open, which on Windows makes rmtree of the profile fail. The directory is going away, so later use by a
-        stale holder is expected to fail.
-
-        That is exactly what a profile delete must break on Windows: the desktop's main ``serve`` process
-        opens ``memory_store.db`` for every known profile, and ``rmtree`` of the profile directory fails
-        with ``WinError 32`` while any of those handles is open (#88347). In a process that holds none (e.g.
-        the CLI deleting from outside serve) this is a harmless no-op returning 0.
+        open after the profile is deleted: the desktop's main ``serve`` process opens ``memory_store.db`` for
+        every known profile (#88347). The directory is going away, so later use by a stale holder is expected
+        to fail. In a process that holds none (e.g. the CLI deleting from outside serve) this is a harmless
+        no-op returning 0.
         """
         root = os.path.normcase(str(Path(directory).expanduser().resolve())) + os.sep
         with cls._shared_guard:

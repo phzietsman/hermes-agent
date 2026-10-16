@@ -40,37 +40,6 @@ def _process_start_marker(pid: int) -> str:
             raise OSError(f"invalid /proc stat data for PID {pid}")
         return f"linux:{fields[19]}"
 
-    if os.name == "nt":
-        import ctypes
-        from ctypes import wintypes
-
-        process_query_limited_information = 0x1000
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-        kernel32.OpenProcess.restype = wintypes.HANDLE
-        kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
-        kernel32.GetProcessTimes.restype = wintypes.BOOL
-        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-        kernel32.CloseHandle.restype = wintypes.BOOL
-        handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
-        if not handle:
-            error = ctypes.get_last_error()
-            if error in (87, 1168):  # invalid parameter / not found
-                raise ProcessLookupError(pid)
-            raise OSError(error, f"OpenProcess failed for PID {pid}")
-
-        creation, exit_time, kernel, user = (wintypes.FILETIME() for _ in range(4))
-        try:
-            if not kernel32.GetProcessTimes(
-                handle, ctypes.byref(creation), ctypes.byref(exit_time), ctypes.byref(kernel), ctypes.byref(user)
-            ):
-                raise OSError(ctypes.get_last_error(), f"GetProcessTimes failed for PID {pid}")
-        finally:
-            kernel32.CloseHandle(handle)
-
-        filetime = (creation.dwHighDateTime << 32) | creation.dwLowDateTime
-        return f"win:{filetime + 504911232000000000}"
-
     result = subprocess.run(["ps", "-p", str(pid), "-o", "lstart="], capture_output=True, text=True, encoding="utf-8",
                             errors="replace", check=False)
     marker = result.stdout.strip()
@@ -87,7 +56,7 @@ def _valid_parent_start_marker(marker: str) -> bool:
     prefix, separator, value = marker.partition(":")
     if not separator or not value or value != value.strip():
         return False
-    if prefix in ("linux", "win", "winms"):
+    if prefix == "linux":
         return value.isdigit()
     if prefix != "ps":
         return False
@@ -104,8 +73,8 @@ def _valid_parent_start_marker(marker: str) -> bool:
 def _parent_start_marker_mismatch_is_conclusive(actual: str, expected: str) -> bool:
     """Whether a marker mismatch proves the Desktop parent was replaced.
 
-    ``linux:`` jiffies and ``win:``/``winms:`` FILETIME markers are machine
-    values; a mismatch there is PID-reuse evidence. The POSIX fallback (macOS
+    ``linux:`` jiffies are a machine value; a mismatch there is PID-reuse
+    evidence. The POSIX fallback (macOS
     has no ``/proc``) is ``ps -o lstart=`` -- a wall-clock string rendered in
     the current TZ/locale. Electron caches it once per app lifetime while the
     backend re-renders it per spawn, so a timezone change (or DST, or column
@@ -115,34 +84,10 @@ def _parent_start_marker_mismatch_is_conclusive(actual: str, expected: str) -> b
     return not (actual.startswith("ps:") or expected.startswith("ps:"))
 
 
-def _parent_start_markers_match(actual: str, expected: str) -> bool:
-    """Compare parent markers across Desktop generations.
-
-    Old Windows Desktop sends .NET ticks (``win:``); new builds send Electron's
-    creation time in Unix ms (``winms:``) to avoid launching PowerShell. The
-    backend reads the exact FILETIME and normalizes only for ``winms``.
-    """
-    if actual == expected:
-        return True
-    if not actual.startswith("win:") or not expected.startswith("winms:"):
-        return False
-
-    try:
-        dotnet_ticks = int(actual.removeprefix("win:"))
-        expected_unix_ms = int(expected.removeprefix("winms:"))
-    except ValueError:
-        return False
-
-    dotnet_ticks_at_unix_epoch = 621_355_968_000_000_000
-    actual_unix_ms = (dotnet_ticks - dotnet_ticks_at_unix_epoch) // 10_000
-    return actual_unix_ms == expected_unix_ms
-
-
 def _warm_gateway_module() -> None:
     """Pre-import heavy modules so the event loop is not stalled on first use.
 
-    Cold Windows installs pay .pyc compilation + Defender scans (15-30s) on
-    these chains; the first WS RPC burst (setup.status, setup.runtime_check,
+    Cold installs pay .pyc compilation on these chains; the first WS RPC burst (setup.status, setup.runtime_check,
     gateway.ready→resolve_skin, model.options) pulled them in on the loop
     thread (#60800). Warm them all off-loop while the socket is already open.
     """
@@ -204,8 +149,7 @@ def _read_bound_port(server: "uvicorn.Server", fallback: int) -> int:
 def _write_dashboard_ready_file(actual_port: int) -> None:
     """Publish the port through an atomic ready file when ``HERMES_DESKTOP_READY_FILE`` is set.
 
-    Windows Desktop launches via ``pythonw.exe`` (no console flash) cannot use
-    stdout for the port announcement, so Electron waits for this JSON instead.
+    Electron waits for this JSON when it cannot read the port announcement from stdout.
     """
     target = os.environ.get("HERMES_DESKTOP_READY_FILE")
     if not target:
@@ -263,8 +207,8 @@ def _is_serve_orphaned(
 ) -> bool:
     """True when the exact Desktop process that owns this backend is gone.
 
-    ``HERMES_PARENT_PID`` is the Electron PID, not necessarily our PPID (the
-    Windows ``hermes.exe`` launcher adds shims), so never compare getppid().
+    ``HERMES_PARENT_PID`` is the Electron PID, not necessarily our PPID (launcher
+    shims may sit between), so never compare getppid().
     The start marker (newer Desktops) defeats PID recycling; PID-only probing
     stays for older ones. Any inconclusive failure keeps serving (fail-safe).
     """
@@ -279,7 +223,7 @@ def _is_serve_orphaned(
                 actual_marker = None
 
             if actual_marker is not None:
-                if _parent_start_markers_match(actual_marker, expected_start_marker):
+                if actual_marker == expected_start_marker:
                     return False
                 if _parent_start_marker_mismatch_is_conclusive(actual_marker, expected_start_marker):
                     return True
@@ -311,8 +255,6 @@ def _request_orphan_shutdown() -> threading.Timer:
     Raise SIGTERM instead, and keep the reap guaranteed the way ``cli.py``'s
     ``_arm_exit_watchdog`` does: a daemon timer that ``os._exit``\\ s if the
     unwind stalls (it survives ``Py_FinalizeEx``'s non-daemon thread joins).
-    ``raise_signal`` reaches Python's handler on Windows too, where
-    ``os.kill(pid, SIGTERM)`` would terminate the process without running it.
 
     Returns the armed ceiling timer.
     """
@@ -390,8 +332,8 @@ def _is_addr_in_use_error(exc: OSError) -> bool:
     """True when ``exc`` is the platform's address-in-use bind failure."""
     import errno
 
-    # POSIX, Linux, macOS, WinSock; WSAEADDRINUSE also surfaces as winerror.
-    return exc.errno in {errno.EADDRINUSE, 98, 48, 10048} or getattr(exc, "winerror", None) == 10048
+    # Linux (98) and macOS (48) numbers, for errors re-raised across a platform boundary.
+    return exc.errno in {errno.EADDRINUSE, 98, 48}
 
 
 def _port_bind_conflict(host: str, port: int) -> bool:
@@ -411,16 +353,9 @@ def _port_bind_conflict(host: str, port: int) -> bool:
     except OSError:
         return False
     try:
-        _exclusive = getattr(_socket, "SO_EXCLUSIVEADDRUSE", None)
-        if sys.platform == "win32" and _exclusive is not None:
-            # Windows SO_REUSEADDR binds over a live LISTEN socket and can never
-            # detect a conflict; SO_EXCLUSIVEADDRUSE fails with 10048 exactly
-            # when another socket holds the port (#93608).
-            probe.setsockopt(_socket.SOL_SOCKET, _exclusive, 1)
-        else:
-            # Match uvicorn's own bind flags so the probe conflicts exactly when
-            # its bind would: TIME_WAIT remnants pass, a live LISTEN fails.
-            probe.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+        # Match uvicorn's own bind flags so the probe conflicts exactly when
+        # its bind would: TIME_WAIT remnants pass, a live LISTEN fails.
+        probe.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
         probe.bind((host, port))
     except OSError as exc:
         return _is_addr_in_use_error(exc)
@@ -436,9 +371,8 @@ def _write_machine_sentinel_line(line: str) -> None:
 
     ``tui_gateway.server`` redirects ``sys.stdout`` to stderr at import (#94724),
     so a ``print()`` sentinel never reaches the Desktop's stdout pipe; fd 1 is
-    untouched. If fd 1 is unwritable (pythonw.exe) fall back to ``print()`` for
-    humans only — pythonw spawns discover the port via the ready file. Never
-    raises.
+    untouched. If fd 1 is unwritable fall back to ``print()`` for humans only —
+    such spawns discover the port via the ready file. Never raises.
     """
     try:
         os.write(1, (line + "\n").encode())

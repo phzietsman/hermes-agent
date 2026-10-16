@@ -10,7 +10,7 @@ import { pinnedPackageRoot } from './prepare-packaging-tools.mjs'
 
 const source = path.resolve(import.meta.dirname, '../../..')
 const app = path.join(source, 'apps/desktop')
-const platformFlags = new Map([['--win', 'win32'], ['-w', 'win32'], ['--windows', 'win32'],
+const platformFlags = new Map([
   ['--mac', 'darwin'], ['--macos', 'darwin'], ['-m', 'darwin'], ['-o', 'darwin'], ['--linux', 'linux'], ['-l', 'linux']])
 const architectures = ['--x64', '--arm64', '--ia32', '--armv7l', '--universal']
 
@@ -59,15 +59,15 @@ export function validatePreparedBuilderArgs(args, inputs) {
       continue
     }
     if (arg === '--dir' || arg === '--publish=never' || arg === '--') continue
-    if (/^(?:-c|--config)\.(?:extraMetadata\.(?:version|shortVersion|shortVersionWindows)|directories\.output|mac\.identity)=/.test(arg)) continue
+    if (/^(?:-c|--config)\.(?:extraMetadata\.version|directories\.output|mac\.identity)=/.test(arg)) continue
     if (!arg.startsWith('-') && inputs.formats.includes(arg)) continue
     throw preparationRequired(`Argument is not admitted by prepared packaging: ${arg}`)
   }
 }
 
 /**
- * Copy mutable toolsets into the build resources directory: upstream's custom
- * Windows tool contract requires containment there. Never chmod/sign the cache.
+ * Copy mutable toolsets into the build resources directory: upstream's tool contract requires containment there.
+ * Never chmod/sign the cache.
  * @param {import('./prepared-packaging.mjs').PreparedPackaging} inputs
  * @returns {string[]}
  */
@@ -158,7 +158,6 @@ export function runElectronBuilder(args, { spawn = spawnSync } = {}) {
   const env = { ...process.env, NODE_OPTIONS: builderNodeOptions(), HERMES_PREPARED_PACKAGING: manifest,
     HERMES_PREPARED_NATIVE_DEPS: nativeDeps, HERMES_PREPARED_TARGET: inputs.target }
   if (inputs.dmgbuild) env.CUSTOM_DMGBUILD_PATH = inputs.dmgbuild
-  if (inputs.windows?.dotnetRoot) env.DOTNET_ROOT = inputs.windows.dotnetRoot
   const result = spawn(process.execPath, [...preloads, path.join(builder, bin), ...args,
     '--config', 'electron-builder.config.cjs', '--publish', 'never', `-c.electronDist=${inputs.electron}`,
     ...toolsetArguments(inputs)], { cwd: app, stdio: 'inherit', env })
@@ -169,9 +168,9 @@ export function runElectronBuilder(args, { spawn = spawnSync } = {}) {
 /** @param {string[]} args @returns {string[]} */
 function sourceFormats(args) {
   if (args.includes('--dir')) return ['dir']
-  const formats = args.filter(arg => ['dmg', 'zip', 'msix', 'AppImage', 'deb', 'rpm'].includes(arg))
+  const formats = args.filter(arg => ['dmg', 'zip', 'AppImage', 'deb', 'rpm'].includes(arg))
   const platform = selectedPlatform(args)
-  return formats.length ? formats : platform === 'darwin' ? ['dmg', 'zip'] : platform === 'win32' ? ['msix'] : ['AppImage']
+  return formats.length ? formats : platform === 'darwin' ? ['dmg', 'zip'] : ['AppImage']
 }
 
 if (isMain(import.meta.url)) process.exitCode = runElectronBuilder(process.argv.slice(2))

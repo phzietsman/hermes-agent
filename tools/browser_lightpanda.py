@@ -61,10 +61,7 @@ def _home_candidates() -> list:
 
 def find_lightpanda_binary() -> Optional[str]:
     """Return the lightpanda executable, or None. Order: PATH (with agent-browser's Homebrew/managed-node
-    fallbacks), then installer/agent-browser locations, then ``$HERMES_HOME/bin``. No Windows build."""
-    if os.name == "nt":
-        logger.debug("Lightpanda has no Windows build")
-        return None
+    fallbacks), then installer/agent-browser locations, then ``$HERMES_HOME/bin``."""
     path_env = os.environ.get("PATH", "")
     try:
         from tools.browser_tool_install import _merge_browser_path
@@ -198,9 +195,6 @@ def launch_lightpanda(session_name: str, *, block_private_networks: bool = False
     else ``(None, error)``. stderr goes to ``<state_dir>/<session>.log`` so a chatty child never blocks on a pipe."""
     binary = find_lightpanda_binary()
     if not binary:
-        if os.name == "nt":
-            return None, ("browser.engine is 'lightpanda' but Lightpanda has no Windows "
-                          "build. Set browser.engine to auto (or run Hermes under WSL2).")
         return None, ("browser.engine is 'lightpanda' but no lightpanda binary was found on PATH, ~/.lightpanda "
                       f"or ~/.local/bin. {LIGHTPANDA_INSTALL_HINT}, or set browser.engine to auto.")
 

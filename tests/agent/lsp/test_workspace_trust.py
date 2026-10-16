@@ -44,7 +44,6 @@ def _checkout_shipping_its_own_toolchain(root) -> None:
     (root / ".git").mkdir(parents=True)
     _write(root / "pyproject.toml")
     _write(root / ".venv" / "bin" / "python")
-    _write(root / ".venv" / "Scripts" / "python.exe")
     _write(root / "node_modules" / "typescript" / "lib" / "typescript.js")
     _write(root / "node_modules" / "typescript" / "lib" / "tsserver.js")
     _write(root / "node_modules" / ".bin" / "tsc")
@@ -173,5 +172,4 @@ def test_only_operator_workspaces_and_listed_directories_are_trusted(tmp_path, m
     monkeypatch.delenv("HERMES_KANBAN_TASK")
     # ...and never $HOME: a dotfiles repo there would trust every directory below it.
     monkeypatch.setenv("HOME", str(sibling))
-    monkeypatch.setenv("USERPROFILE", str(sibling))
     assert shell_linted(sibling) == 0

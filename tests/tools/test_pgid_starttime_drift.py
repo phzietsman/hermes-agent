@@ -19,7 +19,6 @@ from types import SimpleNamespace
 
 import pytest
 
-pytestmark = pytest.mark.skipif(os.name == "nt", reason="POSIX-only process-group teardown")
 
 RECORDED = 178864182760  # spawn-time baseline (start ticks / psutil centiseconds — same scale)
 

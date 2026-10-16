@@ -38,7 +38,6 @@ export interface HostTokenIo {
 export interface HostRendezvousEnv {
   home: string
   lockDir?: string
-  platform: string
   stateHome?: string
 }
 
@@ -61,13 +60,9 @@ function tokenFingerprint(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex').slice(0, 16)
 }
 
-function isPrivateEntry(stat: HostTokenStat, platform: string, uid: number | null): boolean {
+function isPrivateEntry(stat: HostTokenStat, uid: number | null): boolean {
   if (stat.isSymbolicLink()) {
     return false
-  }
-
-  if (platform === 'win32') {
-    return true
   }
 
   if ((stat.mode & 0o077) !== 0) {
@@ -127,11 +122,11 @@ export function publishedTokenForRecord(record: HostBackendRecord, publications:
 }
 
 /** Read owner-only host-serve and host-desktop-serve token pairs. Never throws. */
-export function readPublishedHostTokens(directory: string, io: HostTokenIo, platform: string): PublishedHostToken[] {
+export function readPublishedHostTokens(directory: string, io: HostTokenIo): PublishedHostToken[] {
   try {
     const directoryStat = io.lstat(directory)
 
-    if (!directoryStat.isDirectory() || !isPrivateEntry(directoryStat, platform, io.uid)) {
+    if (!directoryStat.isDirectory() || !isPrivateEntry(directoryStat, io.uid)) {
       return []
     }
   } catch {
@@ -151,8 +146,8 @@ export function readPublishedHostTokens(directory: string, io: HostTokenIo, plat
       if (
         !recordStat.isFile() ||
         !tokenStat.isFile() ||
-        !isPrivateEntry(recordStat, platform, io.uid) ||
-        !isPrivateEntry(tokenStat, platform, io.uid)
+        !isPrivateEntry(recordStat, io.uid) ||
+        !isPrivateEntry(tokenStat, io.uid)
       ) {
         continue
       }
@@ -175,5 +170,5 @@ export function lookupPublishedSessionToken(
   env: HostRendezvousEnv,
   io: HostTokenIo
 ): string | null {
-  return publishedTokenForRecord(record, readPublishedHostTokens(hostRendezvousDirectory(env), io, env.platform))
+  return publishedTokenForRecord(record, readPublishedHostTokens(hostRendezvousDirectory(env), io))
 }

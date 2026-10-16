@@ -9,7 +9,7 @@ import pytest
 from tools import browser_use_cli as bu
 
 
-@pytest.mark.platforms("posix", "windows")
+@pytest.mark.platforms("posix")
 def test_harness_runs_on_an_interpreter_without_its_own_site_packages(monkeypatch):
     """The Desktop bundle boots its store interpreter with no venv to activate (``-S`` emulates
     that); the harness and its daemon must import from the PYTHONPATH the tool env supplies,
@@ -25,7 +25,7 @@ def test_harness_runs_on_an_interpreter_without_its_own_site_packages(monkeypatc
     assert result.stdout.strip() == importlib.metadata.version("browser-harness")
 
 
-@pytest.mark.platforms("posix", "windows")
+@pytest.mark.platforms("posix")
 def test_browser_exec_child_environment(tmp_path, monkeypatch):
     from tools import browser_tool_session, browser_supervisor
 

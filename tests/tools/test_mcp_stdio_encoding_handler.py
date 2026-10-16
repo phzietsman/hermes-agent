@@ -1,7 +1,6 @@
 """Tests for MCP stdio encoding error handler fix (issue #46099).
 
-On Windows, pipe I/O can produce non-UTF-8 bytes at chunk boundaries,
-causing UnicodeDecodeError when the MCP SDK's TextReceiveStream uses
+A server emitting non-UTF-8 bytes caused UnicodeDecodeError when the MCP SDK's TextReceiveStream uses
 errors="strict". This test verifies that StdioServerParameters is created
 with encoding_error_handler="replace".
 """
@@ -22,9 +21,7 @@ class TestStdioEncodingErrorHandler:
     def test_stdio_server_params_uses_replace_encoding_handler(self):
         """StdioServerParameters must use encoding_error_handler='replace'.
 
-        On Windows, pipe chunk boundaries can split multi-byte UTF-8 sequences,
-        producing bytes that fail with errors='strict'. Using 'replace' ensures
-        undecodable bytes become U+FFFD instead of crashing.
+        Using 'replace' ensures undecodable bytes become U+FFFD instead of crashing.
         """
         mock_session = MagicMock()
         mock_session.initialize = AsyncMock()

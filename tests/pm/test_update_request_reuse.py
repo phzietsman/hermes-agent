@@ -100,9 +100,6 @@ def test_resolution_reuses_successful_responses_but_refreshes_next_operation(ups
             btbn_assets = []
             for arch in ("64", "arm64"):
                 btbn_assets.append(
-                    {"name": f"ffmpeg-n{version}-1-gabcdef-win{arch}-gpl-9.1.zip"})
-                # Linux comes from BtbN too (Windows .zip, Linux .tar.xz).
-                btbn_assets.append(
                     {"name": f"ffmpeg-n{version}-1-gabcdef-linux{arch}-gpl-9.1.tar.xz"})
             btbn_tag = f"autobuild-2026-{generation:02d}-28-12-00"
             payloads["/repos/BtbN/FFmpeg-Builds/releases?per_page=30&page=1"] = [

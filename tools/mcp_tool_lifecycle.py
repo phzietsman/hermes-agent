@@ -20,7 +20,7 @@ _orphan_stdio_pids: set = set()
 _orphan_stdio_pid_servers: Dict[int, str] = {}
 # pid -> pgid captured at spawn. The SDK spawns with start_new_session=True (PGID == PID);
 # grandchildren keep that PGID after the direct child exits, so killpg still reaches them.
-# Separate from _stdio_pids so the PGID survives the child's removal. Empty on Windows.
+# Separate from _stdio_pids so the PGID survives the child's removal.
 _stdio_pgids: Dict[int, int] = {}
 # Spawn-time start-time fingerprints of each stdio child's pgroup leader, captured
 # alongside the PGID (the psutil fallback means every platform has a baseline, macOS
@@ -38,7 +38,7 @@ _stdio_starttimes: Dict[int, int] = {}  # pid -> leader start ticks
 def _leader_start_time(pid: int) -> Optional[int]:
     """Start-time fingerprint of the pgroup leader (PGID == leader PID on setsid spawn);
     ``None`` only when the reading is genuinely unavailable (already-reaped PID, no
-    /proc AND no psutil) — the psutil fallback covers macOS/Windows."""
+    /proc AND no psutil) — the psutil fallback covers macOS."""
     from gateway.status import get_process_start_time
     try:
         return get_process_start_time(pid)
@@ -289,8 +289,7 @@ def _signal_mcp_process(pid: int, sig: int, server_name: str, pgid: Optional[int
                     return
             except (TypeError, ValueError):
                 pass  # junk fingerprints: best-effort, never break signalling
-    killpg = getattr(os, "killpg", None)
-    if pgid is not None and killpg is not None:
+    if pgid is not None:
         if my_pgid is not None and pgid == my_pgid:
             # Child shares the gateway's pgroup: killpg would kill the gateway too, so use
             # per-pid kill. Warn because per-pid kill can't reach grandchildren in this group.
@@ -303,7 +302,7 @@ def _signal_mcp_process(pid: int, sig: int, server_name: str, pgid: Optional[int
                            "grandchildren in this group may not be reaped", server_name, pgid)
         else:
             try:
-                killpg(pgid, sig)
+                os.killpg(pgid, sig)
                 return
             except (ProcessLookupError, PermissionError, OSError) as exc:
                 # Pgroup gone or refused — still try the direct child.
@@ -313,45 +312,15 @@ def _signal_mcp_process(pid: int, sig: int, server_name: str, pgid: Optional[int
         os.kill(pid, sig)
     except (ProcessLookupError, PermissionError, OSError):
         pass
-    if os.name == "nt":  # Windows has no pgid reaching reparented grandchildren — kill the tree
-        _kill_windows_process_tree(pid, sig)
-
-
-def _kill_windows_process_tree(pid: int, sig: int) -> None:
-    """Windows counterpart of the POSIX killpg path (#61059): after the direct child is signalled,
-    terminate every still-alive descendant (npx.cmd → node.exe) so graceful teardown cannot leave
-    orphans reparented with ParentId=null. Best-effort, per-descendant; never raises."""
-    import signal as _signal
-    try:
-        import psutil
-    except ImportError:
-        return
-    try:
-        parent = psutil.Process(pid)
-        descendants = parent.children(recursive=True)
-    except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
-        return
-    for child in descendants:
-        try:
-            child.terminate()
-        except Exception:  # noqa: BLE001 - raced away or refused; sweep continues
-            pass
-    if sig == getattr(_signal, "SIGKILL", _signal.SIGTERM):  # force pass: don't wait for graceful exit
-        _, alive = psutil.wait_procs(descendants, timeout=0)
-        for child in alive:
-            try:
-                child.kill()
-            except Exception:  # noqa: BLE001
-                pass
 
 
 def _group_alive(pgid: Optional[int], my_pgid: Optional[int]) -> bool:
     """A reaped leader's descendants that ignored SIGTERM keep its group alive, so the
     SIGKILL pass must probe the group, not only the leader PID."""
-    if pgid is None or pgid == my_pgid or not hasattr(os, "killpg"):
+    if pgid is None or pgid == my_pgid:
         return False
     try:
-        os.killpg(pgid, 0)  # windows-footgun: ok — POSIX-only, guarded by hasattr
+        os.killpg(pgid, 0)
         return True
     except OSError:
         return False
@@ -368,17 +337,14 @@ def _kill_orphaned_mcp_children(include_active: bool = False, server_name: Optio
     if not pids:  # skip the 2s sleep every MCP-free shutdown would otherwise pay
         return
 
-    try:  # our own pgid, so we never killpg() the gateway itself
-        my_pgid = os.getpgrp()
-    except (AttributeError, OSError):
-        my_pgid = None  # Windows or restricted environment
+    my_pgid = os.getpgrp()  # our own pgid, so we never killpg() the gateway itself
 
     for pid, owner in pids.items():
         _signal_mcp_process(pid, _signal.SIGTERM, owner, pgids.get(pid), my_pgid, starts.get(pid))
         logger.debug("Sent SIGTERM to orphaned MCP process %d (%s)", pid, owner)
     time.sleep(2)
-    sigkill = getattr(_signal, "SIGKILL", _signal.SIGTERM)
-    from gateway.status import _pid_exists  # ``os.kill(pid, 0)`` is NOT a no-op on Windows
+    sigkill = _signal.SIGKILL
+    from gateway.status import _pid_exists
     for pid, owner in pids.items():
         if _pid_exists(pid) or _group_alive(pgids.get(pid), my_pgid):  # leader or descendants survived SIGTERM
             _signal_mcp_process(pid, sigkill, owner, pgids.get(pid), my_pgid, starts.get(pid))

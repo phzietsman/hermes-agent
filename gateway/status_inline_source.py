@@ -77,7 +77,7 @@ _Q = r"""['"]?"""
 _MAIN = rf"{_Q}__main__{_Q}"
 _RUN_MODULE = rf"runpy\.run_module\(\s*{_Q}(?P<target>[\w.]+){_Q}\s*,\s*run_name\s*=\s*{_MAIN}\s*,\s*alter_sys\s*=\s*True\s*\)"
 _BOOTSTRAPS = (
-    # hermes_cli._launchers.runtime_command (store launcher, the Windows updater's relaunch)
+    # hermes_cli._launchers.runtime_command (store launcher)
     ("module", re.compile(rf"import os, sys, runpy;.*\b{_RUN_MODULE}", re.S)),
     # hermes_cli.venv_sync.relaunch_command: argv is assigned inside the source
     ("module", re.compile(rf"import sys, runpy; sys\.path\.insert\(.*\b{_RUN_MODULE}", re.S)),
@@ -87,16 +87,13 @@ _BOOTSTRAPS = (
     # hermes_cli.venv_sync.relaunch_command re-entering a ``-c`` launcher: the launcher's source is
     # exec'd as a string literal, its argv assigned before it; resolved through the rows above/below
     ("exec", re.compile(r"import sys, runpy; sys\.path\.insert\(.*?;\s*exec\((?P<target>.+)\)", re.S)),
-    # hermes_cli._launchers._launcher_script (the published POSIX shell / Windows .cmd launcher)
+    # hermes_cli._launchers._launcher_script (the published shell launcher)
     ("entry", re.compile(r"import os, re, sys\s.*\bfrom\s+(?P<target>[\w.]+)\s+import\s+(?P<func>\w+)\b.*\bsys\.exit\(\s*(?P=func)\(\)\s*\)", re.S)),
-    # hermes_cli._launchers._write_cmd_launcher: the launcher script, base64-encoded
-    ("base64", re.compile(rf"import base64; exec\(base64\.b64decode\({_Q}(?P<target>[A-Za-z0-9+/=]+){_Q}\)\)")),
 )
 _ASSIGNED_ARGV = re.compile(r"\bsys\.argv\s*=\s*\[(.*?)\]\s*;")
 _EXEC_LAUNCHER = re.compile(
     # no ``\b`` before ``from``/``sys``: an escaped newline normalizes to ``/n`` and abuts them
     r"import os, re, sys\W.*?from\s+(?P<target>[\w.]+)\s+import\s+(?P<func>\w+)\b.*sys\.exit\(\s*(?P=func)\(\)\s*\)", re.S)
-_EXEC_BASE64 = re.compile(r"import base64; exec\(base64\.b64decode\(\W*(?P<b64>[A-Za-z0-9+/=]+)")
 
 
 def _bootstrap_entry(source: str, argv: list[str]) -> list[str] | None:
@@ -106,25 +103,11 @@ def _bootstrap_entry(source: str, argv: list[str]) -> list[str] | None:
     if match is None:
         return None
     target = match["target"]
-    if kind == "base64":
-        import base64
-        import binascii
-        try:
-            return _bootstrap_entry(base64.b64decode(target, validate=True).decode("utf-8"), argv)
-        except (binascii.Error, UnicodeDecodeError):
-            return None
     if kind == "exec":
         # The launcher source is a string literal here, and readers normalize its escapes (``\\n`` ->
         # ``/n``), so it is matched in place by the launcher row's anchors, never decoded.
         if assigned := _ASSIGNED_ARGV.search(source):
             argv = [item.strip().strip("'\"") for item in assigned.group(1).split(",")][1:]
-        if wrapped := _EXEC_BASE64.search(target):  # the .cmd launcher: its script, base64-encoded
-            import base64
-            import binascii
-            try:
-                return _bootstrap_entry(base64.b64decode(wrapped["b64"], validate=True).decode("utf-8"), argv)
-            except (binascii.Error, UnicodeDecodeError):
-                return None
         launcher = _EXEC_LAUNCHER.search(target)
         if launcher is None:
             return None

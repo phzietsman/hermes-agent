@@ -3,7 +3,7 @@
 One or two invariant tests per Round 5 finding:
   R3  every marker mutation is decided under the sidecar kernel lock (flock(1) and perl);
   R4  an OLD packaged Desktop's bridge (its launcher's pid, v1) is adopted by lineage only, by
-      the one launcher rule bash and PowerShell share (lineage_rule_cases.py);
+      the one launcher rule (lineage_rule_cases.py);
   R5  with --handoff-run only the Desktop's live bridge carrying that run is adopted;
   R6  the marker outlives a survivor still holding the checkout lock; the Desktop's reclaim
       helper answers `held` for it;
@@ -14,6 +14,7 @@ One or two invariant tests per Round 5 finding:
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -26,9 +27,6 @@ import time
 
 import pytest
 
-# linux-only module (platforms("linux")): skip the module where it is absent instead of
-# failing collection on Windows
-fcntl = pytest.importorskip("fcntl")  # windows-footgun: ok
 
 from tests.scripts.desktop_update.legacy_desktop_reader import legacy_read
 from tests.scripts.desktop_update.lineage_rule_cases import ENV_CASES, RULE_CASES
@@ -116,7 +114,7 @@ def _old_desktop_handoff(tmp_path: Path, home: Path, install: Path, procs, *, br
         "import subprocess, sys, time, os\n"
         f"x = subprocess.Popen(['bash', '-c', {launcher!r}], env=dict(os.environ, HERMES_UPDATE_STARTED_AT='{started}'))\n"
         f"bridge = {bridge!r}\n"
-        f"if bridge == 'launcher': open({str(marker)!r}, 'w', encoding='utf-8').write(f'{{x.pid}}\\n{started}\\n')\n"  # windows-footgun: ok — a write, inside generated code
+        f"if bridge == 'launcher': open({str(marker)!r}, 'w', encoding='utf-8').write(f'{{x.pid}}\\n{started}\\n')\n"
         "x.wait()\n"
     )
     body = None
@@ -150,7 +148,7 @@ def test_old_desktop_handoff_never_adopts_an_unrelated_live_claim(tmp_path, proc
 
 
 def test_launcher_lineage_rule_matches_the_shared_table(tmp_path):
-    """One lineage rule for bash and PowerShell (round 5 D11): the same table runs in both."""
+    """One lineage rule (round 5 D11): the shared table runs against marker.sh."""
     calls = [f"log() {{ :; }}; MARKER=/dev/null INSTALL_ROOT=/dev/null; . {shlex.quote(str(MARKER_SH))}"]
     for case in RULE_CASES:
         args = " ".join("1" if case["facts"][name] else "0" for name in LINEAGE_FACTS)
@@ -233,7 +231,7 @@ def test_withdraw_removes_only_this_desktops_bridge_and_reports_a_taker(tmp_path
     assert not marker.exists()
 
 
-# ── parity with marker-claim.ps1: identity-exact and checked removals ────────
+# ── identity-exact and checked removals ────────
 
 
 def _sourced(marker: Path, desktop: int, run: str, body: str, *, blind_ct: bool) -> str:
@@ -248,9 +246,9 @@ def _sourced(marker: Path, desktop: int, run: str, body: str, *, blind_ct: bool)
 
 @pytest.mark.parametrize("blind_ct", [False, True], ids=["ct-readable", "ct-unreadable"])
 def test_adopt_withdraw_and_taken_need_an_exact_identity(tmp_path, procs, blind_ct):
-    """marker-claim.ps1 adopts a run, withdraws a bridge and reports `taken` only for
-    Test-ProcessIdentityExact (both creation times known). posix accepted an alive pid whose
-    creation time it could not read: that pid may be a reuse, so it must fail closed."""
+    """A run is adopted, a bridge withdrawn and `taken` reported only for an exact identity
+    (both creation times known). posix accepted an alive pid whose creation time it could
+    not read: that pid may be a reuse, so it must fail closed."""
     home = tmp_path / "home"; home.mkdir()
     marker = home / ".hermes-update-in-progress"
     desktop = subprocess.Popen(["sleep", "60"]); procs.append(desktop)
@@ -273,8 +271,8 @@ def test_adopt_withdraw_and_taken_need_an_exact_identity(tmp_path, procs, blind_
 
 @pytest.mark.skipif(getattr(os, "geteuid", lambda: 1)() == 0, reason="root unlinks inside a read-only directory")
 def test_reclaim_reports_busy_when_the_dead_marker_cannot_be_removed(tmp_path):
-    """marker-claim.ps1 answers `busy` when Remove-MarkerLocked fails; posix printed `reclaimed`
-    after an `rm -f` that could not unlink, so the Desktop went on as if the marker were gone."""
+    """`busy` when the marker cannot be removed; posix printed `reclaimed` after an `rm -f`
+    that could not unlink, so the Desktop went on as if the marker were gone."""
     home, install = _install(tmp_path)
     marker = home / ".hermes-update-in-progress"
     dead = f"99999999\n{int(time.time())}\nct:1.000\n"
@@ -310,13 +308,13 @@ def test_marker_outlives_a_survivor_that_still_holds_the_checkout_lock(tmp_path)
         custodian = _custodian(home)
         assert script.poll() is None and marker.read_text(encoding="utf-8-sig").splitlines()[0] == custodian
         assert _helper(tmp_path, home, install, "reclaim") == f"live {custodian}"
-        os.killpg(script.pid, signal.SIGKILL); script.wait()  # windows-footgun: ok — linux-only test  # the script dies too: dead marker, lock still held
+        os.killpg(script.pid, signal.SIGKILL); script.wait()  # the script dies too: dead marker, lock still held
         assert _helper(tmp_path, home, install, "reclaim") == "held"
         assert marker.exists()
     finally:
         completion.touch()
         if script.poll() is None:
-            os.killpg(script.pid, signal.SIGKILL); script.wait()  # windows-footgun: ok — linux-only test
+            os.killpg(script.pid, signal.SIGKILL); script.wait()
     deadline = time.monotonic() + 10
     while _helper(tmp_path, home, install, "reclaim") == "held":
         assert time.monotonic() < deadline

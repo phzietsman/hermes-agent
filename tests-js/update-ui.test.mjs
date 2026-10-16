@@ -115,18 +115,12 @@ test('test-only source probe pins staged main without changing other Python invo
   expect(sourceBranchProbe.branchProbeArgs(['--run-module', 'hermes_cli.config', ...managed.slice(2)], root, '/real/git')).toEqual(['--run-module', 'hermes_cli.config', ...managed.slice(2)])
   expect(sourceBranchProbe.branchProbeArgs([...probe, '--branch', 'topic'], root, '/real/git')).toEqual([...probe, '--branch', 'topic'])
   expect(sourceBranchProbe.branchProbeArgs(probe, root, '')).toBe(probe)
-  const cmd = ['/d', '/v:off', '/s', '/c', `""C:\\fixture\\hermes.cmd" "--run-module" "hermes_cli.source_check" "--install-root" "${root}" "--home" "/profile with spaces" "--git" "/shim/git" "--force""`]
-  const rewritten = sourceBranchProbe.branchProbeArgs(cmd, root, '/real/git')
-  expect(rewritten.slice(0, 4)).toEqual(cmd.slice(0, 4))
-  expect(rewritten[4]).toContain('"--git" "/real/git" "--force" "--branch" "main"')
-  expect(sourceBranchProbe.branchProbeArgs(cmd, '/other/install', '/real/git')).toBe(cmd)
-  expect(sourceBranchProbe.branchProbeArgs(cmd, root, '/real&git')).toBe(cmd)
 })
 
-test.skipIf(process.platform === 'win32')('probe Git reaches the staged main even with global Git config isolated', () => {
+test('probe Git reaches the staged main even with global Git config isolated', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-staged-git-'))
   const git = process.env.HERMES_E2E_REAL_GIT || process.env.PATH.split(path.delimiter)
-    .map(dir => path.join(dir, process.platform === 'win32' ? 'git.exe' : 'git')).find(file => fs.existsSync(file))
+    .map(dir => path.join(dir, 'git')).find(file => fs.existsSync(file))
   try {
     const checkout = path.join(root, 'checkout')
     const bare = path.join(root, 'serve.git')
@@ -151,7 +145,7 @@ test.skipIf(process.platform === 'win32')('probe Git reaches the staged main eve
     const capturedEnv = { ...process.env, GIT_CONFIG_GLOBAL: cfg }
     const launchEnv = { HERMES_DESKTOP_USER_DATA_DIR: root }
     sourceBranchProbe.prepareSourceBranchEnvironment(checkout, sha, git, capturedEnv, launchEnv)
-    const env = { ...process.env, GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null',
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null',
       PYTHONPATH: source, GIT_ALLOW_PROTOCOL: 'file' }
     const home = path.join(root, 'profile')
     fs.mkdirSync(home)
@@ -172,7 +166,7 @@ test.skipIf(process.platform === 'win32')('probe Git reaches the staged main eve
   }
 })
 
-test.skipIf(process.platform === 'win32')('historical venv install without a PM launcher still checks staged Git main', () => {
+test('historical venv install without a PM launcher still checks staged Git main', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-legacy-branch-'))
   const git = execFileSync('which', ['git'], { encoding: 'utf8' }).trim()
   try {
@@ -214,7 +208,7 @@ test.skipIf(process.platform === 'win32')('historical venv install without a PM 
   }
 })
 
-test.skipIf(process.platform === 'win32')('preloaded historical Desktop Git check reads staged origin rather than the public API', () => {
+test('preloaded historical Desktop Git check reads staged origin rather than the public API', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-historical-probe-'))
   const git = execFileSync('which', ['git'], { encoding: 'utf8' }).trim()
   try {

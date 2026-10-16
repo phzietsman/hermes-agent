@@ -34,14 +34,12 @@ hermes_sync() {
 # any dependency is importable. It only emits the environment; it installs nothing.
 hermes_bootstrap_python() {
     local repo="$1" store candidate
-    for candidate in "$repo/.venv/bin/python" "$repo/.venv/Scripts/python.exe" \
-                     "$repo/venv/bin/python" "$repo/venv/Scripts/python.exe"; do
+    for candidate in "$repo/.venv/bin/python" "$repo/venv/bin/python"; do
         [ -x "$candidate" ] && { printf '%s\n' "$candidate"; return 0; }
     done
     for store in "${HERMES_RUNTIME_DIR:-}" "$repo/../tools" "${HERMES_HOME:-$HOME/.hermes}/tools"; do
         [ -n "$store" ] || continue
-        for candidate in "$store"/python-*/bin/python3 "$store"/python-*/python.exe \
-                         "$store"/python-*/bin/python "$store"/python-*/bin/python.exe; do
+        for candidate in "$store"/python-*/bin/python3 "$store"/python-*/bin/python; do
             [ -x "$candidate" ] && { printf '%s\n' "$candidate"; return 0; }
         done
     done
@@ -66,21 +64,7 @@ hermes_compose_env() {
 
 # hermes_apply_env SCRIPT: evaluate a script from `hermes_compose_env REPO sh`.
 hermes_apply_env() {
-    # Resolved before the eval replaces PATH.
-    local cygpath name
-    cygpath="$(command -v cygpath 2>/dev/null || :)"
     eval "$1"
-    # The MSYS/Cygwin runtime hands a native Windows Python these variables in
-    # Windows form (`C:\a;C:\b`) and converts them back only for its own
-    # children. Exported verbatim, bash splits PATH on ':' and finds no commands.
-    if [ -n "$cygpath" ]; then
-        PATH="$("$cygpath" -u -p "$PATH")"
-        for name in HOME TMPDIR TMP TEMP; do
-            if [ -n "${!name-}" ]; then
-                printf -v "$name" '%s' "$("$cygpath" -u "${!name}")"
-            fi
-        done
-    fi
 }
 
 # hermes_activation_current REPO: status 0 when the inherited environment
@@ -88,19 +72,12 @@ hermes_apply_env() {
 hermes_activation_current() {
     local repo="$1" sentinel stamps stamp input stamped=0
     [ -n "${__HERMES_ACTIVATED:-}" ] && [ -e "${__HERMES_ACTIVATED}" ] || return 1
-    # activate.ps1 records a Windows path; Git Bash accepts it with slashes.
-    sentinel="${__HERMES_ACTIVATED//\\//}"
+    sentinel="$__HERMES_ACTIVATED"
     stamps="${sentinel%/*}/inputs"
     [ -f "$stamps/.project-root" ] && [ -f "$stamps/.test-environment" ] || return 1
     local owner="$repo" recorded
     recorded="$(< "$stamps/.project-root")"
-    if command -v cygpath >/dev/null 2>&1; then
-        owner="$(cygpath -am "$repo")" || return 1
-        recorded="${recorded//\\//}"
-        [ "${owner,,}" = "${recorded,,}" ] || return 1
-    else
-        [ "$(cd "$owner" && pwd -P)" = "$recorded" ] || return 1
-    fi
+    [ "$(cd "$owner" && pwd -P)" = "$recorded" ] || return 1
     for stamp in "$stamps"/* "$stamps"/*/*; do
         [ -f "$stamp" ] || continue
         stamped=1

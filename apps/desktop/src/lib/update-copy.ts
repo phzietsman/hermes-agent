@@ -20,8 +20,6 @@ export interface UpdateCopyStrings {
   availableBodyNoChangelog: string
   /** Stable channel: names the release instead of describing commits. */
   availableBodyRelease: (tag: string) => string
-  /** App-installer mechanism: the OS owns the apply, so the body says so. */
-  availableBodyAppInstaller: string
 }
 
 export interface ResolveUpdateCopyInput {
@@ -37,17 +35,8 @@ export interface ResolveUpdateCopyInput {
   /** Stable channel: the release tag the update moves to, when known. */
   latestTag?: null | string
   /**
-   * 'app-installer': the OS App Installer owns the apply (out-of-store MSIX)
-   * — the body names Windows as the finisher, never commit vocabulary.
    */
-  mechanism?:
-    | 'app-installer'
-    | 'electron-updater'
-    | 'external'
-    | 'microsoft-store'
-    | 'windows-handoff'
-    | 'posix-handoff'
-    | 'manual'
+  mechanism?: 'electron-updater' | 'external' | 'posix-handoff' | 'manual'
   copy: UpdateCopyStrings
 }
 
@@ -65,13 +54,6 @@ export function resolveUpdateCopy({
   copy
 }: ResolveUpdateCopyInput): UpdateCopyResult {
   const title = target === 'backend' ? copy.availableTitleBackend : copy.availableTitle
-
-  // App-installer: the OS owns the apply, and there is no commit list by
-  // construction (the OS checker answers yes/no). Name Windows as the
-  // finisher; the tag is named when known.
-  if (mechanism === 'app-installer' || mechanism === 'microsoft-store') {
-    return { title, body: latestTag ? copy.availableBodyRelease(latestTag) : copy.availableBodyAppInstaller }
-  }
 
   if (channel === 'stable' || mechanism === 'electron-updater') {
     // No-changelog copy would be wrong here: the absence of commit rows is

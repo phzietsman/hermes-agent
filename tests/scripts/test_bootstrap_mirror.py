@@ -49,55 +49,6 @@ def fixture_bytes(server, mode, body):
     return base + "/primary", base + "/mirror", hashlib.sha256(body).hexdigest()
 
 
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize("mode", ["primary", "missing", "corrupt", "both-missing"])
-def test_windows_download_uses_only_verified_candidates(tmp_path, server, mode):
-    body = b"exact archive bytes"
-    primary, mirror, digest = fixture_bytes(server, mode, body)
-    if mode == "both-missing":
-        server[0].files.clear()
-    destination = tmp_path / "out.zip"
-    script = tmp_path / "driver.ps1"
-    script.write_text(
-        f". '{ROOT / 'scripts/install.ps1'}' -HermesHome '{tmp_path / 'home'}' -InstallDir '{tmp_path / 'repo'}'\n"
-        f"Invoke-VerifiedDownload -Url '{primary}' -MirrorUrl '{mirror}' -Sha256 '{digest}' -OutFile '{destination}'\n",
-        encoding="utf-8",
-    )
-    result = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                            capture_output=True, text=True, timeout=60)
-    if mode in ("primary", "missing"):
-        assert result.returncode == 0, result.stdout + result.stderr
-        assert destination.read_bytes() == body
-    else:
-        assert result.returncode != 0
-        assert primary in result.stdout + result.stderr
-        if mode == "both-missing":
-            assert mirror in result.stdout + result.stderr
-    assert server[0].requests == (["/primary", "/mirror"] if mode in ("missing", "both-missing") else ["/primary"])
-
-
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize("name", ["uv", "git"])
-def test_windows_bootstrap_rejects_corrupt_bytes_before_extract(tmp_path, server, name):
-    primary, mirror, digest = fixture_bytes(server, "corrupt", b"expected archive")
-    script = tmp_path / "caller.ps1"
-    script.write_text(
-        f". '{ROOT / 'scripts/install.ps1'}' -HermesHome '{tmp_path / 'home'}'\n"
-        f"$env:HERMES_RUNTIME_DIR = '{tmp_path / 'tools'}'\n"
-        "function Get-Command { param($Name) return $null }\n"
-        "$target = 'win32-' + (Get-WindowsArch)\n"
-        f"$pin = @{{Url='{primary}'; MirrorUrl='{mirror}'; Sha256='{digest}'}}\n"
-        + ("$script:UvPinFiles[$target] = $pin\nGet-Uv\n" if name == "uv" else "$script:GitPinFiles[$target] = $pin\nGet-PinnedGit\n"),
-        encoding="utf-8",
-    )
-    result = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                            capture_output=True, text=True, timeout=60)
-    assert result.returncode != 0
-    assert "digest mismatch" in result.stdout + result.stderr
-    assert server[0].requests == ["/primary"]
-    assert not (tmp_path / "tools").exists()
-
-
 def uv_archive():
     data = b"#!/bin/sh\n[ \"$1\" = --version ] && { printf 'fixture uv\\n'; exit 0; }; exit 73\n"
     buffer = io.BytesIO()
@@ -128,26 +79,6 @@ ensure_uv
     if mode == "both-missing":
         assert primary in result.stderr and mirror in result.stderr
     assert server[0].requests == (["/primary", "/mirror"] if mode in ("missing", "both-missing") else ["/primary"])
-
-
-@pytest.mark.platforms("windows")
-def test_generated_windows_pins_match_the_shared_authority(tmp_path):
-    from pm.artifact_mirror import mirror_url
-    script = tmp_path / "pins.ps1"
-    script.write_text(
-        f". '{ROOT / 'scripts/install.ps1'}' -HermesHome '{tmp_path / 'home'}'\n"
-        "@{uv=$script:UvPinFiles; git=$script:GitPinFiles} | ConvertTo-Json -Depth 5 -Compress\n",
-        encoding="utf-8",
-    )
-    result = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-File", str(script)], capture_output=True, text=True, timeout=30)
-    assert result.returncode == 0, result.stderr
-    emitted = json.loads(result.stdout)
-    lock = json.loads((ROOT / "pm/lock.json").read_text(encoding="utf-8"))["packages"]
-    for name, targets in emitted.items():
-        assert targets
-        for target, pin in targets.items():
-            authority = lock[name]["artifacts"][target]
-            assert (pin["Url"], pin["Sha256"], pin["MirrorUrl"]) == (authority["url"], authority["sha256"], mirror_url(authority["sha256"]))
 
 
 @pytest.mark.platforms("posix")

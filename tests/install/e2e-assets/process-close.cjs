@@ -6,8 +6,8 @@ function observeProcessClose(child) {
     closed = true
     resolve()
   }))
-  // Windows descendants can inherit pipe handles and postpone 'close' after
-  // the launch process exits. Release our handles, never kill descendants.
+  // Descendants can inherit pipe handles and postpone 'close' after the
+  // launch process exits. Release our handles, never kill descendants.
   const releasePipes = () => {
     for (const stream of child.stdio) stream?.destroy()
   }

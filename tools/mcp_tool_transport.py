@@ -46,7 +46,7 @@ def _mcp_proxy_mounts(httpx_mod, url: str, ssl_verify, client_cert, server_name:
 
     httpx auto-detects proxies only when ``transport is None``
     (``allow_env_proxies = trust_env and transport is None``). The wire-body cap is exactly that
-    custom transport, so HTTP_PROXY / HTTPS_PROXY and the OS (Windows-registry / macOS) proxy were
+    custom transport, so HTTP_PROXY / HTTPS_PROXY and the OS (macOS) proxy were
     silently ignored for every HTTP/SSE MCP server: on a network that reaches the MCP host only
     through a proxy, the connect failed with ``All connection attempts failed`` and the server was
     parked. Rebuild httpx's own behaviour as explicit ``mounts`` — same source order (environment
@@ -56,7 +56,7 @@ def _mcp_proxy_mounts(httpx_mod, url: str, ssl_verify, client_cert, server_name:
     NO_PROXY goes through ``agent.proxy_bypass.should_bypass_proxy`` — the one matcher the LLM
     transport and the gateway adapters use (CIDR ranges and ``*.host`` forms the stdlib check
     does not understand) — plus ``urllib.request.proxy_bypass`` for the OS bypass list
-    (Windows ``ProxyOverride`` / macOS exceptions). Loopback is never dialed through a proxy
+    (macOS exceptions). Loopback is never dialed through a proxy
     (``agent.proxy_bypass.is_loopback_host``), NO_PROXY or not.
 
     A mount wins over ``transport=`` for the URLs it matches, so each proxy transport is wrapped in
@@ -79,11 +79,11 @@ def _mcp_proxy_mounts(httpx_mod, url: str, ssl_verify, client_cert, server_name:
 
 
 def _pgroup_alive(pgid: Optional[int]) -> bool:
-    """Signal 0 to the group succeeds iff any member is alive (POSIX only)."""
+    """Signal 0 to the group succeeds iff any member is alive."""
     try:
-        os.killpg(pgid, 0)  # windows-footgun: ok — guarded by AttributeError below
+        os.killpg(pgid, 0)
         return True
-    except (AttributeError, TypeError, OSError):  # non-POSIX / pgid None / gone
+    except (TypeError, OSError):  # pgid None / gone
         return False
 
 
@@ -305,7 +305,7 @@ class MCPServerTransportMixin:
                 # descendant it left behind still has to be reaped; the prune forgets the group
                 # once nothing in it is alive.
                 new_pgids[pid] = pid
-            except (AttributeError, OSError):  # Windows (os.getpgid is POSIX-only)
+            except OSError:
                 pass
             # Record the leader's start time so a later sweep can detect PID/PGID
             # recycling before signalling (see _stdio_starttimes, #43044).
@@ -340,7 +340,7 @@ class MCPServerTransportMixin:
         with _core._lock:
             for pid in new_pids:
                 _stdio_pids.pop(pid, None)
-                # Windows-safe pid probe; the child may be gone while descendants remain in its pgroup.
+                # The child may be gone while descendants remain in its pgroup.
                 if _pid_exists(pid) or _pgroup_alive(_stdio_pgids.get(pid)):
                     _orphan_stdio_pids.add(pid)
                     _orphan_stdio_pid_servers[pid] = self.name
@@ -370,20 +370,8 @@ class MCPServerTransportMixin:
         command, args = await _core._preflight_stdio_command(self.name, command, config.get("args", []))
         server_params = _core.StdioServerParameters(
             command=command, args=args, env=safe_env or None, cwd=stdio_cwd,
-            # Windows pipes can split non-UTF-8 bytes at chunk boundaries; substitute, don't raise.
+            # A server may emit non-UTF-8 bytes; substitute, don't raise.
             encoding_error_handler="replace")
-        # Windows has no POSIX parent-death supervisor / killpg safety net (#61059): when this
-        # process dies ungracefully (crash, force-quit), the stdio child trees — npx.cmd →
-        # node.exe — survive as orphans with ParentId=null and pile up across restarts. Attaching
-        # THIS process to a KILL_ON_JOB_CLOSE job before the spawn makes every child (and
-        # grandchild) created after it die with the parent at the kernel level, so no orphan can
-        # outlive us. Idempotent; BREAKAWAY_OK keeps deliberate breakaway children escaping.
-        # Self-guards: a cheap no-op returning False on non-Windows.
-        try:
-            from hermes_cli.process_identity import attach_self_to_kill_on_close_job
-            attach_self_to_kill_on_close_job()
-        except Exception:
-            logger.debug("job-object self-attach failed before stdio spawn", exc_info=True)
         # Reap orphans of prior attempts first (else retries pile up zombie pairs); unscoped on purpose;
         # off-loop because the reaper blocks up to 2s.
         await asyncio.to_thread(_lifecycle._kill_orphaned_mcp_children)

@@ -51,7 +51,7 @@ _DESKTOP_APPLY_MODES = {
 # ``finalize_pending_update_receipt`` stores ``f"{type(exc).__name__}: {exc}"`` as the stop reason of
 # a run that ended on an exception (main.cmd_update, update_completion._finish). Only the leading
 # type name is read, never the message; other stop reasons ("sys.exit(1)", "completion exited 1",
-# "Windows gateway recovery failed: ...") do not start with a bare CamelCase name and a colon
+# "Paused gateway recovery failed: ...") do not start with a bare CamelCase name and a colon
 # (the fixed prefixes Hermes writes are matched by _STOP_REASON_PREFIX_CLASSES).
 _EXCEPTION_STOP_REASON = re.compile(r"([A-Z][A-Za-z0-9_]*):(?: |$)")
 # pm's own failure types (pm/package.py, pm/environment.py, pm/downloader.py, pm/lock.py, ...).
@@ -59,7 +59,7 @@ _PM_ERROR_TYPES = frozenset({
     "BuildFailure", "DownloadError", "DownloadPaused", "DownloadTransportError", "FeatureProbeError",
     "HashError", "InstallError", "PinMismatch", "ResolutionConflict", "StaleLockRow",
 })
-# Built-in OSError and its subclasses (disk full, permissions, a file held open on Windows).
+# Built-in OSError and its subclasses (disk full, permissions, ...).
 _OS_ERROR_TYPES = frozenset(
     name for name, value in vars(builtins).items() if isinstance(value, type) and issubclass(value, OSError))
 # subprocess.SubprocessError and its subclasses that reached the command boundary uncaught.
@@ -70,12 +70,14 @@ _EXCEPTION_TYPE_CLASSES = (
     (_OS_ERROR_TYPES, "os_error"), (_SUBPROCESS_ERROR_TYPES, "subprocess_failed"),
 )
 # Fixed stop-reason prefixes Hermes itself writes (only the prefix is read, never what follows):
-# _update_takeover's preparation failure and update_completion's Windows gateway resume failure.
+# _update_takeover's preparation failure and update_completion's paused-gateway resume failure
+# (receipts written by Windows-era releases carry the "Windows gateway" wording).
 _STOP_REASON_PREFIX_CLASSES = (
-    ("historical takeover preparation failed", "deps_failed"), ("Windows gateway recovery failed", "restart_failed"),
+    ("historical takeover preparation failed", "deps_failed"), ("Paused gateway recovery failed", "restart_failed"),
+    ("Windows gateway recovery failed", "restart_failed"),
 )
 # An OSError that ended the run, read by its errno token alone (never the text after it):
-# ENOSPC (28 on every platform), Windows ERROR_HANDLE_DISK_FULL (39) / ERROR_DISK_FULL (112).
+# ENOSPC (28); historical receipts can carry Windows ERROR_HANDLE_DISK_FULL (39) / ERROR_DISK_FULL (112).
 _DISK_FULL_ERRNO = re.compile(r"[A-Z][A-Za-z0-9_]*: \[(?:Errno 28|WinError (?:39|112))\]")
 # ---- end iuf c1 ----
 
@@ -207,7 +209,7 @@ def _receipt_stages(receipt: dict[str, Any]) -> list[dict[str, Any]]:
         # ``partial`` is written only by update_cmd_fleet._verify_fleet_after_update, which also
         # writes it for a failed build or restart; with no failed stage mark, verification itself
         # failed even when every fleet row reads current (zero rows expected, an unaccounted
-        # runtime, a dashboard that did not come back, a Windows resume failure).
+        # runtime, a dashboard that did not come back, a paused-gateway resume failure).
         bad = _fleet_bad(receipt) or (
             receipt.get("outcome") == "partial" and not any(s.get("outcome") == "failed" for s in stages))
         # ---- end iuf c1 ----
@@ -230,7 +232,7 @@ def _failed_stage(stages: list[dict[str, Any]]) -> str:
         failed = [s["name"] for s in stages if s.get("outcome") == "failed"]
         # ---- iuf c1 ----
         # A failed run whose last mark is a skipped restart failed AT the restart: the completion
-        # exits 1 when a skipped restart leaves the fleet owing one, or the Windows resume fails.
+        # exits 1 when a skipped restart leaves the fleet owing one, or the paused-gateway resume fails.
         return failed[-1] if failed else last["name"]
         # ---- end iuf c1 ----
     index = UPDATE_STAGE_ORDER.index(last["name"])

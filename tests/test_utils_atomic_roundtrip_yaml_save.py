@@ -5,7 +5,6 @@ yaml.safe_dump and silently clobber user-edited config files on every
 TUI/gateway setting change (e.g. /personality, /reasoning, /details_mode).
 """
 
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -271,9 +270,6 @@ class TestAtomicRoundtripYamlSave:
         """Mirrors atomic_roundtrip_yaml_update_restores_owner — the write path
         must preserve the config file's original owner across the temp-file +
         atomic-replace swap, not just its mode."""
-        if os.name != "posix":
-            pytest.skip("POSIX-only")
-
         config_path.write_text("model:\n  default: test-model\n", encoding="utf-8")
 
         chown_calls: list[tuple[Path, int, int]] = []

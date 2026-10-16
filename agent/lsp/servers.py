@@ -43,7 +43,6 @@ _EXTS_BY_LANGUAGE: Dict[str, Sequence[str]] = {
     "nix": (".nix",), "typst": (".typ", ".typc"), "haskell": (".hs", ".lhs"),
     "julia": (".jl",), "elixir": (".ex", ".exs"), "zig": (".zig", ".zon"),
     "dockerfile": (".dockerfile",),
-    "powershell": (".ps1", ".psm1", ".psd1"),
 }
 LANGUAGE_BY_EXT: Dict[str, str] = {ext: lang for lang, exts in _EXTS_BY_LANGUAGE.items() for ext in exts}
 
@@ -171,11 +170,9 @@ def _spawn_pyright(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     bin_path = _find_binary(ctx, "pyright", ("pyright-langserver", "pyright"), "pyright")
     if bin_path is None:
         return None
-    # If we got the cli ``pyright``, the langserver is its sibling — same suffix, since on Windows
-    # the bare sibling is npm's unrunnable POSIX shim.
-    stem, suffix = os.path.splitext(os.path.basename(bin_path))
-    if stem == "pyright":
-        sibling = os.path.join(os.path.dirname(bin_path), f"pyright-langserver{suffix}")
+    # If we got the cli ``pyright``, the langserver is its sibling.
+    if os.path.basename(bin_path) == "pyright":
+        sibling = os.path.join(os.path.dirname(bin_path), "pyright-langserver")
         if os.path.exists(sibling):
             bin_path = sibling
     # Point pyright at the project venv; its default "python on PATH" rarely is.  Pyright executes
@@ -189,7 +186,7 @@ def _detect_python(root: Optional[str]) -> Optional[str]:
     # operator's own environment; ``root`` (the project's .venv/venv) is None for an untrusted workspace.
     project = (os.path.join(root, ".venv"), os.path.join(root, "venv")) if root else ()
     venvs = [v for v in (os.environ.get("VIRTUAL_ENV"), *project) if v]
-    paths = (os.path.join(v, sub) for v in venvs for sub in ("bin/python", "bin/python3", "Scripts/python.exe"))
+    paths = (os.path.join(v, sub) for v in venvs for sub in ("bin/python", "bin/python3"))
     project_python = next((p for p in paths if os.path.exists(p)), None)
     if project_python is not None:
         return project_python
@@ -306,69 +303,6 @@ def _spawn_typescript(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     return _make_spec(root, ctx, "typescript", [bin_path, "--stdio"], base, seed=True)
 
 
-def _find_pses_bundle(ctx: ServerContext) -> Optional[str]:
-    """Locate the PowerShellEditorServices bundle dir (release zip, manual install).  Resolution order:
-    ``lsp.servers.powershell.command[0]`` when a directory, ``init_overrides["powershell"]["bundlePath"]``,
-    ``PSES_BUNDLE_PATH`` env, then ``<HERMES_HOME>/lsp/PowerShellEditorServices``."""
-    from hermes_constants import get_hermes_home
-    override = ctx.binary_overrides.get("powershell")
-    init = ctx.init_overrides.get("powershell", {})
-    candidates = [
-        override[0] if override else None,
-        str(init["bundlePath"]) if isinstance(init, dict) and init.get("bundlePath") else None,
-        os.environ.get("PSES_BUNDLE_PATH"),
-        os.path.join(str(get_hermes_home()), "lsp", "PowerShellEditorServices"),
-    ]
-    for cand in filter(None, candidates):
-        # Accept either the bundle root or the inner module dir.
-        if os.path.isfile(os.path.join(cand, "PowerShellEditorServices", "Start-EditorServices.ps1")):
-            return cand
-        if os.path.isfile(os.path.join(cand, "Start-EditorServices.ps1")):
-            return os.path.dirname(cand)
-    return None
-
-
-_PSES_MISSING_MSG = (
-    "powershell: pwsh found but the PowerShellEditorServices bundle is missing. Download the release zip from "
-    "https://github.com/PowerShell/PowerShellEditorServices/releases, extract it, and either set "
-    "lsp.servers.powershell.command to the bundle path or unzip it to <HERMES_HOME>/lsp/PowerShellEditorServices."
-)
-
-
-def _spawn_powershell_es(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
-    """Spawn PowerShellEditorServices: needs a ``pwsh``/``powershell`` host plus the module bundle."""
-    pwsh = _which("pwsh", "powershell")
-    if pwsh is None:
-        return None
-    bundle = _find_pses_bundle(ctx)
-    if bundle is None:
-        _warn_once("pses-bundle", _PSES_MISSING_MSG)
-        return None
-    start_script = os.path.join(bundle, "PowerShellEditorServices", "Start-EditorServices.ps1")
-    # PSES writes connection info to the session details file on startup.
-    session_dir = hermes_lsp_session_dir()
-    inner = (
-        f"& '{start_script}' -BundledModulesPath '{bundle}' "
-        f"-LogPath '{os.path.join(session_dir, 'pses.log')}' "
-        f"-SessionDetailsPath '{os.path.join(session_dir, f'pses-session-{os.getpid()}.json')}' "
-        f"-FeatureFlags @() -AdditionalModules @() "
-        f"-HostName Hermes -HostProfileId hermes -HostVersion 1.0.0 -Stdio -LogLevel Normal"
-    )
-    return SpawnSpec(
-        [pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", inner],
-        root, root, env=ctx.env_overrides.get("powershell", {}),
-        initialization_options={k: v for k, v in ctx.init_overrides.get("powershell", {}).items() if k != "bundlePath"},
-    )
-
-
-def hermes_lsp_session_dir() -> str:
-    """Return (and create) the dir for PSES session/log scratch files."""
-    from hermes_constants import get_hermes_home
-    d = os.path.join(str(get_hermes_home()), "lsp", "pses")
-    os.makedirs(d, exist_ok=True)
-    return d
-
-
 # ---- workspace trust ----
 
 # The only servers that start in an untrusted workspace (``workspace.is_trusted_workspace``): with the
@@ -469,9 +403,6 @@ SERVERS: List[ServerDef] = [
     # jdtls has a complex install flow; we look for the wrapper script a manual install produces.
     _server("jdtls", (".java",), "Java — Eclipse JDT Language Server",
             markers=["pom.xml", "build.gradle", "build.gradle.kts", ".project", ".classpath", "settings.gradle"]),
-    # No universal PowerShell root marker; nearest_root is exact-name only (no globs).
-    _server("powershell", (".ps1", ".psm1", ".psd1"), "PowerShell — PowerShellEditorServices (manual bundle)",
-            markers=["PSScriptAnalyzerSettings.psd1"], build_spawn=_spawn_powershell_es),
 ]
 
 

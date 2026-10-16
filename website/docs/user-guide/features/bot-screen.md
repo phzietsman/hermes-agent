@@ -43,7 +43,7 @@ reverse proxy's access log may record an already-spent ticket.
 
 ## Requirements
 
-- The gateway host runs Linux. macOS and Windows hosts already have a real
+- The gateway host runs Linux. macOS hosts already have a real
   display; the pane is not offered there.
 - TigerVNC's `Xvnc` and the Xfce core components are installed on the host.
   Nothing installs them silently: `hermes update` and fresh installs leave every

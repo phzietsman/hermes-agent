@@ -4,7 +4,6 @@
 #
 #   source ./activate       (bash / zsh, repo root)
 #   source ./activate.fish  (fish)
-#   .\activate.ps1          (PowerShell)
 #
 # Applies the composed pm env (PATH + tool vars) to the CURRENT shell, with
 # save/restore: `deactivate` undoes exactly what activation changed.
@@ -109,12 +108,8 @@ hermes() {
         cd "$__HERMES_WORKTREE" || exit 1
         if [ -n "${PYTHON-}" ]; then
             exec "$PYTHON" hermes "$@"
-        elif [ -x .venv/Scripts/python.exe ]; then
-            exec .venv/Scripts/python.exe hermes "$@"
         elif [ -x .venv/bin/python ]; then
             exec .venv/bin/python hermes "$@"
-        elif [ -x venv/Scripts/python.exe ]; then
-            exec venv/Scripts/python.exe hermes "$@"
         elif [ -x venv/bin/python ]; then
             exec venv/bin/python hermes "$@"
         else

@@ -19,8 +19,8 @@ from typing import Any, Dict, List, Optional
 from hermes_cli.config import cfg_get, get_process_hermes_home
 from utils import env_var_enabled
 
-# Serve assets with explicit MIME types: the host's map (on Windows the
-# registry can map .js -> text/plain) must not decide the Content-Type of
+# Serve assets with explicit MIME types: the host's map (which can map
+# .js -> text/plain) must not decide the Content-Type of
 # dashboard bundles (#28987). Runs before any StaticFiles/FileResponse below
 # serves a request, and is idempotent.
 from hermes_cli.web_asset_mime_types import normalize_web_asset_mime_types

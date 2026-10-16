@@ -94,7 +94,6 @@ it('leaves Linux alone and reports a missing framework without failing packaging
   const root = await mkdtemp(path.join(os.tmpdir(), 'hermes-locale-pack-'))
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
   try {
-    // win32 is not a no-op here: the same hook sanitizes and batch-signs the PE tree.
     const linuxCtx = { appOutDir: root, electronPlatformName: 'linux' }
     await seedPackagedMain(linuxCtx)
     await configuredHook(linuxCtx)

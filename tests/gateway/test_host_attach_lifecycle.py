@@ -266,7 +266,6 @@ def test_served_profiles_ignores_the_retired_opt_out_but_honours_an_explicit_arg
     assert asked == [True, False]
 
 
-@pytest.mark.platforms("posix")  # POSIX ownership check; Windows has no st_uid to compare
 def test_a_foreign_record_is_not_a_record(tmp_path, monkeypatch, owner_pid):
     """A record this OS user did not write must never decide our lifecycle (forgery/DoS)."""
     _publish(owner_pid, tmp_path / "root", ("default", "other"))

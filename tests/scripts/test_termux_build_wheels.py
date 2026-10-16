@@ -70,7 +70,7 @@ def test_source_pin_survives_resolution_build_and_offline_install(tmp_path):
     wheels.mkdir()
     build_env = tmp_path / "build-env"
     venv.EnvBuilder(with_pip=True).create(build_env)
-    python = build_env / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = build_env / "bin/python"
     subprocess.run([str(python), "-m", "pip", "install", "pip==26.2.1"],
                    check=True, capture_output=True)
     builder.build_wheels(list(specs), specs, wheels, python=str(python))

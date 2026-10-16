@@ -4,7 +4,7 @@ description: Launch video from a project or URL, upstream-maintained.
 version: 0.4.0
 author: Shunit Haviv Hakimi (shunithaviv)
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [video, launch-video, marketing, motion-graphics, share-copy]

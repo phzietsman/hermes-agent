@@ -19,7 +19,7 @@ _AUDIT_RAN = False
 
 
 def _is_root() -> bool:
-    """True when the process runs as POSIX uid 0. Always False on Windows."""
+    """True when the process runs as uid 0."""
     getuid = getattr(os, "geteuid", None) or getattr(os, "getuid", None)
     try:
         return getuid is not None and getuid() == 0

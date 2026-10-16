@@ -39,9 +39,7 @@ const LEGACY_KEY = 'hermes.desktop.translucency.v1'
 
 // The book is per-appearance; the tests below drive one appearance at a time.
 // Dark is the store's initial appearance, so it is also the reset target.
-// This suite pins navigator.platform to a Mac before import, so the Mac table
-// is the one in play — `GLASS_IS_WINDOWS` resolves false throughout.
-const DARK = defaultTranslucencyValues('dark', false)
+const DARK = defaultTranslucencyValues('dark')
 
 const glassAttr = () => document.documentElement.hasAttribute('data-hermes-glass')
 const clearAttr = () => document.documentElement.hasAttribute('data-hermes-clear')

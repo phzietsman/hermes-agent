@@ -41,8 +41,8 @@ import { FirstRunRemoteSetup } from './remote-setup/first-run'
  * getBootstrapState() call will resync the picture on the next render.
  *
  * Stages flagged needs_user_input render with a deliberately subdued style:
- * they're expected to come back as skipped=true (install.ps1 short-circuits
- * them under -NonInteractive). The post-install configuration flow that
+ * they're expected to come back as skipped=true (install.sh short-circuits
+ * them under --non-interactive). The post-install configuration flow that
  * those stages cover (API key, model, persona, gateway autostart) is handled
  * by the existing DesktopOnboardingOverlay, NOT by the install overlay.
  */
@@ -358,7 +358,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
   }, [state.log.length, logOpen])
 
   // Auto-expand the log panel when a bootstrap fails so the user immediately
-  // sees the install.ps1 output. Without this, the failure block shows just
+  // sees the install.sh output. Without this, the failure block shows just
   // the top-level error message and the user has to click "Show installer
   // output" to see WHY the stage failed.
   useEffect(() => {
@@ -729,7 +729,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">
                 {copy.transcriptSaved}{' '}
-                <code className="font-mono text-(--ui-text-secondary)">%LOCALAPPDATA%\hermes\logs\</code>
+                <code className="font-mono text-(--ui-text-secondary)">$HERMES_HOME/logs/</code>
               </span>
               <div className="flex gap-2">
                 <Button onClick={() => setState(EMPTY_STATE)} size="sm" variant="ghost">
@@ -768,7 +768,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
                     // Tell main.ts to clear its latched failure BEFORE we
                     // reload. Otherwise the renderer reload calls getConnection
                     // and main short-circuits to the latched error without
-                    // re-running install.ps1.
+                    // re-running install.sh.
                     try {
                       await window.hermesDesktop?.resetBootstrap?.()
                     } catch {

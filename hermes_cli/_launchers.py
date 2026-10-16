@@ -1,12 +1,11 @@
-"""Source-install launchers shared by setup, installers, and Windows repair.
+"""Source-install launchers shared by setup and installers.
 
 Launchers execute store Python in isolated mode. They set the install's
 default home and load hermes_bootstrap before the entry point. Bootstrap
 reads the selected dependency generation at each start.
 
-Windows uses distlib executables or a command-file fallback. POSIX uses
-an executable shell wrapper. The standalone writer requires PM's store
-interpreter before it publishes either command.
+Each launcher is an executable shell wrapper. The standalone writer requires
+PM's store interpreter before it publishes a command.
 """
 
 from __future__ import annotations
@@ -27,14 +26,6 @@ from pm.environments import owning_home_root, store_root
 PIN_DEFAULT_HOME_FLAG = "_hermes_pin_default_home"
 
 
-def _inline_string_literal(value: str) -> str:
-    """Keep inline Python source intact through Windows PowerShell's native argv quoting."""
-    if os.name != "nt":
-        return repr(value)
-    escaped = value.encode("unicode_escape").decode("ascii")
-    return "'" + escaped.replace("'", "\\x27").replace('"', "\\x22") + "'"
-
-
 def runtime_command(repo_root: Path, args=(), *, module: str = "hermes_cli.main",
                     code: str | None = None, python: str | Path | None = None,
                     home: str | Path | None = None) -> list[str]:
@@ -46,14 +37,14 @@ def runtime_command(repo_root: Path, args=(), *, module: str = "hermes_cli.main"
     """
     root = Path(repo_root).resolve()
     python = python or resolve_store_python(root) or Path(sys.executable)
-    entry = f"exec({_inline_string_literal(code)})" if code is not None else (
-        f"runpy.run_module({_inline_string_literal(module)}, run_name='__main__', alter_sys=True)")
+    entry = f"exec({repr(code)})" if code is not None else (
+        f"runpy.run_module({repr(module)}, run_name='__main__', alter_sys=True)")
     # A literal home is pinned up front; the default one needs ``hermes_constants`` from the
     # checkout, so it is pinned only after ``hermes_bootstrap``'s launch-time repair (see
     # ``_launcher_script``), here again for a bootstrap that predates that hook.
     if home is not None:
         pin, settle = (f"os.environ['HERMES_HOME'] = os.environ.get('HERMES_HOME') or "
-                       f"{_inline_string_literal(str(home))}; "), ""
+                       f"{repr(str(home))}; "), ""
     else:
         pin = f"sys.{PIN_DEFAULT_HOME_FLAG} = True; "
         settle = ("os.environ.get('HERMES_HOME') or os.environ.__setitem__('HERMES_HOME', "
@@ -62,7 +53,7 @@ def runtime_command(repo_root: Path, args=(), *, module: str = "hermes_cli.main"
         "import os, sys, runpy; "
         "os.environ.pop('PYTHONHOME', None); os.environ.pop('PYTHONPATH', None); "
         "os.environ.pop('VIRTUAL_ENV', None); "
-        f"sys.path.insert(0, {_inline_string_literal(str(root))}); "
+        f"sys.path.insert(0, {repr(str(root))}); "
         + pin
         + "import hermes_bootstrap; "
         + settle
@@ -97,9 +88,8 @@ def installation_command(repo_root: Path, args=(), *, module: str = "hermes_cli.
     prefix = [] if module == "hermes_cli.main" else ["--run-module", module]
     return [str(root / ".hermes" / "bin" / "hermes"), *prefix, *args]
 
-#: Launcher command names — keep in lockstep with scripts/install.ps1
-#: Publish-UserCommand and hermes_cli/_install_repair.py.
-WINDOWS_BIN_LAUNCHERS = ("hermes", "hermes-acp")
+#: Launcher command names published into ``<checkout>/.hermes/bin``.
+LAUNCHER_NAMES = ("hermes", "hermes-acp")
 
 #: command name -> (entry module, callable) — mirrors pyproject.toml
 #: [project.scripts].
@@ -107,10 +97,6 @@ ENTRY_POINTS = {
     "hermes": ("hermes_cli.main", "main"),
     "hermes-acp": ("acp_adapter.entry", "main"),
 }
-
-
-def _is_windows() -> bool:
-    return os.name == "nt"
 
 
 def resolve_store_python(repo_root: Path, *, publication: bool = False) -> Path | None:
@@ -131,7 +117,7 @@ def resolve_store_python(repo_root: Path, *, publication: bool = False) -> Path 
 
 
 def _store_python(runtime: Path) -> Path | None:
-    rel = "python.exe" if _is_windows() else "bin/python3"
+    rel = "bin/python3"
 
     facts = runtime / "facts.json"
     if facts.is_file():
@@ -150,44 +136,13 @@ def _store_python(runtime: Path) -> Path | None:
     return None
 
 
-def _load_script_maker():
-    """distlib's ScriptMaker — standalone first, then pip's vendored copy."""
-    try:
-        from distlib.scripts import ScriptMaker
-
-        return ScriptMaker
-    except ImportError:
-        pass
-    try:
-        from pip._vendor.distlib.scripts import ScriptMaker
-
-        return ScriptMaker
-    except ImportError:
-        return None
-
-
 def exe_is_venv_bound(exe: Path, venv_dir: Path | None) -> bool:
-    """True when an existing launcher exe embeds the venv interpreter —
-    i.e. it is a copied venv console-script trampoline from the pre-pm
-    installer, which boots through ``venv\\Scripts\\python.exe`` and must be
-    replaced. distlib launchers append the interpreter shebang after the zip
-    payload; both encodings are scanned to be safe."""
+    """True when an existing launcher embeds the venv interpreter — a copied
+    venv console-script trampoline from the pre-pm installer, which must be
+    replaced."""
     if venv_dir is None:
         return False
-    needles = set()
-    for interpreter in (
-        venv_dir / "Scripts" / "hermes.exe",
-        venv_dir / "Scripts" / "hermes-acp.exe",
-        venv_dir / "Scripts" / "python.exe",
-        venv_dir / "bin" / "python3",
-        venv_dir / "bin" / "hermes",
-        venv_dir / "bin" / "hermes-acp",
-    ):
-        for enc in ("utf-8", "utf-16-le"):
-            try:
-                needles.add(str(interpreter).encode(enc))
-            except Exception:
-                continue
+    needles = {str(venv_dir / "bin" / name).encode("utf-8") for name in ("python3", "hermes", "hermes-acp")}
     try:
         data = Path(exe).read_bytes()
     except OSError:
@@ -219,90 +174,9 @@ def mint_launcher(
     site_packages: Path | None,
 ) -> Path | None:
     """Write a native launcher with the shared bootstrap script, or return None."""
-    module, func = ENTRY_POINTS[name]
     out_dir = Path(out_dir)
     script = _launcher_script(name, Path(repo_root), site_packages)
-
-    if not _is_windows():
-        return _mint_shell_launcher(name, out_dir, python_exe, script)
-
-    script_maker_cls = _load_script_maker()
-    if script_maker_cls is not None:
-        class _PathedScriptMaker(script_maker_cls):  # type: ignore[misc,valid-type]
-            def _get_script_text(self, entry):
-                return script
-
-        import tempfile
-        from zipfile import BadZipFile, ZipFile
-
-        def make(directory: Path) -> list[str]:
-            maker = _PathedScriptMaker(None, str(directory), add_launchers=True)
-            maker.executable = str(python_exe)
-            maker.variants = {""}
-            maker.clobber = True
-            return maker.make(f"{name} = {module}:{func}", {"interpreter_args": ["-I"]})
-
-        # distlib's exe ZIP records the current time, so byte equality cannot
-        # detect an unchanged launcher. Compare its loader + shebang and script;
-        # leave an active executable alone when only the ZIP timestamp changed.
-        with tempfile.TemporaryDirectory(prefix=f".{name}-", dir=out_dir) as staging:
-            try:
-                candidate = next((Path(p) for p in make(Path(staging))
-                                  if Path(p).suffix.lower() == ".exe"), None)
-            except Exception:
-                candidate = None
-            if candidate is not None:
-                target = out_dir / candidate.name
-                try:
-                    with ZipFile(target) as old, ZipFile(candidate) as new:
-                        if (old.namelist() == new.namelist() == ["__main__.py"]
-                                and target.read_bytes()[:old.infolist()[0].header_offset]
-                                == candidate.read_bytes()[:new.infolist()[0].header_offset]
-                                and old.read("__main__.py") == new.read("__main__.py")):
-                            return target
-                except (OSError, BadZipFile, KeyError):
-                    pass
-                # For changed launchers, distlib's .deleteme replacement can
-                # move an executable Windows still has mapped in memory.
-                try:
-                    written = make(out_dir)
-                except Exception:
-                    written = []
-                for path in written:
-                    if Path(path).suffix.lower() == ".exe":
-                        return Path(path)
-        # distlib ran but produced no exe (unexpected) — fall through to cmd.
-
-    # A prepared app environment need not include distlib, even when the
-    # installer used it to publish a native exe. Keep that executable if its
-    # embedded interpreter and script still match; replacing it with a cmd
-    # would require unlinking the currently running exe on Windows.
-    existing = out_dir / f"{name}.exe"
-    from zipfile import BadZipFile, ZipFile
-    try:
-        with ZipFile(existing) as archive:
-            if archive.namelist() == ["__main__.py"]:
-                prefix = existing.read_bytes()[:archive.infolist()[0].header_offset]
-                shebangs = (f"#!{python_exe} -I\n".encode("utf-8"),
-                            f'#!"{python_exe}" -I\n'.encode("utf-8"))
-                # Vendored distlib trails the shebang with an extra CRLF
-                # before the zip; compare the shebang line itself.
-                tail = prefix.rstrip(b"\r\n")
-                if (any(tail.endswith(shebang.rstrip(b"\r\n")) for shebang in shebangs)
-                        and archive.read("__main__.py") == script.encode("utf-8")):
-                    return existing
-    except (OSError, BadZipFile, KeyError):
-        pass
-
-    # The script is data to Python, not interpolated shell source.
-    import base64
-    encoded = base64.b64encode(script.encode("utf-8")).decode("ascii")
-    code = f"import base64; exec(base64.b64decode('{encoded}'))"
-    body = (
-        "@echo off\r\n"
-        f'"{python_exe}" -I -c "{code}" %*\r\n'
-    )
-    return _write_atomic(out_dir / f"{name}.cmd", lambda p: p.write_text(body, encoding="utf-8"))
+    return _mint_shell_launcher(name, out_dir, python_exe, script)
 
 
 # A killed move can tear the repair's own code (``hermes_bootstrap``, ``hermes_cli``). With the
@@ -346,15 +220,14 @@ def _hermes_closure_repair():
     if not verified():
         exe = fields.get('git', '').strip()
         if not (os.path.isabs(exe) and os.path.isfile(exe)):
-            names = ('git.exe',) if os.name == 'nt' else ('git',)
-            exe = next((os.path.join(d, n) for d in os.environ.get('PATH', '').split(os.pathsep) if os.path.isabs(d)
-                        for n in names if os.path.isfile(os.path.join(d, n))), '')
+            exe = next((os.path.join(d, 'git') for d in os.environ.get('PATH', '').split(os.pathsep)
+                        if os.path.isabs(d) and os.path.isfile(os.path.join(d, 'git'))), '')
         if not exe:
             return
 
         def git_out(*args):
             done = subprocess.run([exe, '--no-replace-objects', '-C', str(root), *args], capture_output=True, timeout=60,
-                                  stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                                  stdin=subprocess.DEVNULL)
             if done.returncode != 0:
                 raise OSError(done.stderr)
             return done.stdout
@@ -477,7 +350,6 @@ def _launcher_script(name: str, repo_root: Path, dependencies: Path | None) -> s
         "    runpy.run_module(module, run_name='__main__', alter_sys=True)\n"
         "    sys.exit(0)\n"
         f"from {module} import {func}\n"
-        "sys.argv[0] = re.sub(r'(-script\\.pyw|\\.exe)?$', '', sys.argv[0])\n"
         f"sys.exit({func}())\n"
     )
 
@@ -555,33 +427,8 @@ def stage_launcher(name: str, repo_root: Path, out_dir: Path) -> Path | None:
     # runtime override must not displace the tree's own interpreter.
     store_python = resolve_store_python(repo_root, publication=True)
     if store_python is not None:
-        path = mint_launcher(name, repo_root, out_dir, store_python, None)
-        if path is not None and path.suffix == ".cmd":
-            # cmd.exe prefers .exe. An older launcher must not shadow the
-            # newly published command when distlib is unavailable.
-            try:
-                (Path(out_dir) / f"{name}.exe").unlink(missing_ok=True)
-            except OSError:
-                return None
-        return path
+        return mint_launcher(name, repo_root, out_dir, store_python, None)
     return None
-
-
-def _first_token(line: str) -> Path | None:
-    """First whitespace-delimited token of *line*, honoring one quote pair.
-
-    The published launchers always carry the interpreter as the first token
-    (quoted only when the path holds spaces), so full shell lexing — which
-    would also eat Windows backslashes as escapes — is the wrong tool."""
-    text = line.strip()
-    if not text:
-        return None
-    if text[0] in "\"'":
-        end = text.find(text[0], 1)
-        if end == -1:
-            return None
-        return Path(text[1:end])
-    return Path(text.split(None, 1)[0])
 
 
 def _launcher_python(target: Path) -> Path | None:
@@ -589,62 +436,23 @@ def _launcher_python(target: Path) -> Path | None:
 
     Fail-open: an unrecognized layout republishes exactly as before."""
     try:
-        data = Path(target).read_bytes()
-    except OSError:
+        text = Path(target).read_bytes().decode("utf-8-sig")
+    except (OSError, UnicodeDecodeError):
         return None
-    line: str | None = None
-    suffix = Path(target).suffix.lower()
-    if suffix == ".exe":
-        # distlib native launcher: loader stub, "#!<python> -I" shebang, zip.
-        # The shebang follows the loader's last NUL byte. distlib leaves
-        # ScriptMaker.executable unquoted, and a Windows path may hold a space
-        # or "#!", so take the whole line up to " -I".
-        from zipfile import BadZipFile, ZipFile
-        try:
-            with ZipFile(target) as archive:
-                prefix = data[:archive.infolist()[0].header_offset]
-        except (BadZipFile, IndexError, OSError):
-            return None
-        start = prefix.find(b"#!", prefix.rfind(b"\0") + 1)
-        shebang = prefix[start + 2:].rstrip(b"\r\n") if start != -1 else b""
-        if not shebang.endswith(b" -I") or b"\n" in shebang:
-            return None
-        try:
-            return Path(shebang[:-3].decode("utf-8").strip('"'))
-        except UnicodeDecodeError:
-            return None
-    else:
-        try:
-            text = data.decode("utf-8-sig")
-        except UnicodeDecodeError:
-            return None
-        lines = text.splitlines()
-        if suffix == ".cmd":
-            # "@echo off", then '"<python>" -I -c "<code>" %*'. The file's
-            # own \r\n pair gains a translated extra \r on Windows writes,
-            # so the command may sit past a blank line — never assume its index.
-            line = next((entry for entry in lines[1:] if entry.strip()), None)
-            if line is None:
-                return None
-        else:
-            # POSIX shell wrapper: "#!/bin/sh", then "exec <python> -I -c ...".
-            line = next((entry for entry in lines if entry.startswith("exec ")), None)
-            if line is None:
-                return None
-            # The writer quotes with shlex.join, which splices an apostrophe in as
-            # '"'"', so read the first token the way sh does. Only the first: the
-            # rest of the line opens a multi-line -c argument.
-            lexer = shlex.shlex(line.removeprefix("exec "), posix=True)
-            lexer.whitespace_split = True
-            try:
-                token = lexer.get_token()
-            except ValueError:
-                return None
-            return Path(token) if token else None
+    # Shell wrapper: "#!/bin/sh", then "exec <python> -I -c ...".
+    line = next((entry for entry in text.splitlines() if entry.startswith("exec ")), None)
+    if line is None:
+        return None
+    # The writer quotes with shlex.join, which splices an apostrophe in as
+    # '"'"', so read the first token the way sh does. Only the first: the
+    # rest of the line opens a multi-line -c argument.
+    lexer = shlex.shlex(line.removeprefix("exec "), posix=True)
+    lexer.whitespace_split = True
     try:
-        return _first_token(line)
-    except (ValueError, OSError):
+        token = lexer.get_token()
+    except ValueError:
         return None
+    return Path(token) if token else None
 
 
 def _kept_shared_launcher(name: str, local: Path, store: Path, own: Path | None) -> Path | None:
@@ -654,47 +462,30 @@ def _kept_shared_launcher(name: str, local: Path, store: Path, own: Path | None)
     data root must never repoint them at another root's interpreter (#123238):
     once that root is deleted, every hermes breaks. Keep the file when it
     execs a live interpreter outside *store*. Missing launchers, dead
-    interpreters and same-store repins still publish. A launcher whose
-    interpreter is gone is never left in front of a kept one: PATHEXT resolves
-    the ``.exe`` first, so the kept ``.cmd`` would not be the file that runs."""
+    interpreters and same-store repins still publish."""
     if own is None:
         # No interpreter recorded for this root: nothing says whether the
         # launcher is ours, and callers read the returned count as success, so
         # a keep here would report a half-finished store as healthy.
         return None
-    candidates = [local / name] if not _is_windows() else [local / f"{name}.exe", local / f"{name}.cmd"]
-    dead: list[Path] = []
-    for target in candidates:
-        try:
-            present = target.is_file() or target.is_symlink()
-        except OSError:
-            continue
-        if not present:
-            continue
-        python = _launcher_python(target)
-        if python is None or python == own:
-            continue
-        if not python.is_file():
-            dead.append(target)
-            continue
-        try:
-            # Resolve the store's directories, not the interpreter: a store
-            # Python may link to one shared outside it.
-            store_dir = store.resolve()
-            foreign = not any(parent.resolve() == store_dir for parent in python.parents)
-        except (OSError, RuntimeError, ValueError):
-            continue
-        if foreign:
-            for stale in dead:
-                # cmd.exe picks the .exe first; leaving a dead one would run
-                # instead of the command just kept. stage_launcher drops the
-                # same shadow when it has to mint a .cmd.
-                try:
-                    stale.unlink(missing_ok=True)
-                except OSError:
-                    pass
-            return target
-    return None
+    target = local / name
+    try:
+        present = target.is_file() or target.is_symlink()
+    except OSError:
+        return None
+    if not present:
+        return None
+    python = _launcher_python(target)
+    if python is None or python == own or not python.is_file():
+        return None
+    try:
+        # Resolve the store's directories, not the interpreter: a store
+        # Python may link to one shared outside it.
+        store_dir = store.resolve()
+        foreign = not any(parent.resolve() == store_dir for parent in python.parents)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return target if foreign else None
 
 
 def ensure_install_launchers(repo_root: Path, out_dir: Path) -> list[str]:
@@ -714,7 +505,7 @@ def ensure_install_launchers(repo_root: Path, out_dir: Path) -> list[str]:
     owner = (root.parent == home and store.resolve() == (home / "tools").resolve()
              and owning_home_root(root) is None)
     written = []
-    for name in WINDOWS_BIN_LAUNCHERS:
+    for name in LAUNCHER_NAMES:
         # ponytail: one guard here covers every caller (launch, sync, repair,
         # install); per-home outputs below stay unguarded. Upgrade to a stamped
         # owning store if shared checkouts ever need cross-home repins.
@@ -726,13 +517,9 @@ def ensure_install_launchers(repo_root: Path, out_dir: Path) -> list[str]:
             written.append(str(path))
     if Path(out_dir).resolve() == local:
         return written
-    if len(written) != len(WINDOWS_BIN_LAUNCHERS):
+    if len(written) != len(LAUNCHER_NAMES):
         return []
-    if not _is_windows():
-        return [str(path) for path in _publish_conveniences(root, Path(out_dir), WINDOWS_BIN_LAUNCHERS)]
-    Path(out_dir).mkdir(parents=True, exist_ok=True)
-    return [str(path) for name in WINDOWS_BIN_LAUNCHERS
-            if (path := stage_launcher(name, root, Path(out_dir))) is not None]
+    return [str(path) for path in _publish_conveniences(root, Path(out_dir), LAUNCHER_NAMES)]
 
 
 def expose_cli(project_root: Path | None = None, *, create: bool = True) -> dict:
@@ -745,17 +532,9 @@ def expose_cli(project_root: Path | None = None, *, create: bool = True) -> dict
     Before dependency sync succeeds, create=False maintains only commands we
     already own, without loading application config or enabling new exposure.
     """
-    # Resolved before the platform branch: the Windows path needs it too.
     from pm.paths import install_root
 
     root = Path(project_root or install_root()).resolve()
-    if _is_windows():
-        # The installer stages the user-facing commands into $HERMES_HOME\bin
-        # and registers that directory in the User PATH. An update skipped both
-        # (this used to answer "windows-installer-owned"), so a machine updated
-        # from a release predating that convention kept the old
-        # venv\Scripts entry and never converged on it. Mirror the installer.
-        return _expose_windows_user_bin(root, create=create)
     if create:
         try:
             from hermes_cli.config import load_config
@@ -777,7 +556,7 @@ def expose_cli(project_root: Path | None = None, *, create: bool = True) -> dict
         return {"ok": True, "skipped": "no-store-python"}
     try:
         local = root / ".hermes" / "bin"
-        if len(ensure_install_launchers(root, local)) != len(WINDOWS_BIN_LAUNCHERS):
+        if len(ensure_install_launchers(root, local)) != len(LAUNCHER_NAMES):
             return {"ok": False, "error": "source launcher publication failed"}
         dirs = [Path.home() / ".local" / "bin"]
         # Repair existing FHS/custom-home exposure, but never create new global
@@ -788,83 +567,9 @@ def expose_cli(project_root: Path | None = None, *, create: bool = True) -> dict
                 dirs.append(directory)
         written = []
         for directory in dirs:
-            published = _publish_conveniences(root, directory, (*WINDOWS_BIN_LAUNCHERS, "hermes-agent"), create=create)
+            published = _publish_conveniences(root, directory, (*LAUNCHER_NAMES, "hermes-agent"), create=create)
             written.extend(path.name for path, changed in published.items() if changed)
         return {"ok": True, "written": written}
-    except OSError as exc:
-        return {"ok": False, "error": str(exc)}
-
-
-def _merge_user_path(existing: str, entry: str) -> str | None:
-    """``entry`` first, or None when the PATH already names it.
-
-    Windows paths are case-insensitive and may carry a trailing separator, so
-    compare that way rather than by exact string.
-    """
-    wanted = entry.rstrip("\\/")
-    parts = [part for part in (existing or "").split(";") if part]
-    if any(part.rstrip("\\/").casefold() == wanted.casefold() for part in parts):
-        return None
-    return ";".join([entry, *parts])
-
-
-def _register_windows_user_path(entry: Path) -> str:
-    """Put ``entry`` on the User PATH. Returns 'present' or 'added'.
-
-    Preserves the stored value type: install.ps1 writes expandable entries
-    (``%LOCALAPPDATA%\\...``), and rewriting the value as a plain string would
-    freeze those.
-    """
-    import winreg  # type: ignore
-
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0,
-                        winreg.KEY_QUERY_VALUE | winreg.KEY_SET_VALUE) as key:
-        try:
-            current, kind = winreg.QueryValueEx(key, "Path")
-        except FileNotFoundError:
-            current, kind = "", winreg.REG_EXPAND_SZ
-        merged = _merge_user_path(str(current), str(entry))
-        if merged is None:
-            return "present"
-        if kind not in (winreg.REG_SZ, winreg.REG_EXPAND_SZ):
-            kind = winreg.REG_EXPAND_SZ
-        winreg.SetValueEx(key, "Path", 0, kind, merged)
-    _broadcast_environment_change()
-    return "added"
-
-
-def _broadcast_environment_change() -> None:
-    """Tell running processes the environment changed (best effort)."""
-    import ctypes
-
-    try:
-        ctypes.windll.user32.SendMessageTimeoutW(0xFFFF, 0x1A, 0, "Environment", 0x0002, 5000, None)  # type: ignore[attr-defined]
-    except Exception:  # noqa: BLE001 - never fail an update over the broadcast
-        pass
-
-
-def _expose_windows_user_bin(root: Path, *, create: bool) -> dict:
-    """Windows twin of expose_cli's POSIX half.
-
-    Stage the user-facing commands into ``$HERMES_HOME\\bin`` and register that
-    directory in the User PATH -- the same two things scripts/install.ps1 does --
-    so an update converges a machine installed under the older venv\\Scripts
-    convention instead of leaving it there forever.
-    """
-    from hermes_constants import get_default_hermes_root
-
-    directory = get_default_hermes_root() / "bin"
-    try:
-        if not create:
-            # Bootstrap: repair only commands we already own, enable nothing new.
-            published = _publish_conveniences(root, directory, WINDOWS_BIN_LAUNCHERS, create=False)
-            return {"ok": True, "written": [path.name for path, changed in published.items() if changed]}
-        directory.mkdir(parents=True, exist_ok=True)
-        written = ensure_install_launchers(root, directory)
-        if len(written) != len(WINDOWS_BIN_LAUNCHERS):
-            return {"ok": False, "error": "source launcher publication failed"}
-        return {"ok": True, "path": _register_windows_user_path(directory),
-                "written": [Path(path).name for path in written]}
     except OSError as exc:
         return {"ok": False, "error": str(exc)}
 

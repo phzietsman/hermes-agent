@@ -15,18 +15,6 @@ from typing import Dict, Any, List, Optional, Tuple
 from utils import is_truthy_value
 from tools.registry import no_cache_check_fn
 
-# fcntl is Unix-only; Windows uses msvcrt. MemoryStore reads both lazily from
-# this module (tests patch ``memory_tool.fcntl``).
-msvcrt = None
-try:
-    import fcntl
-except ImportError:
-    fcntl = None
-    try:
-        import msvcrt  # noqa: F401
-    except ImportError:
-        pass
-
 logger = logging.getLogger(__name__)
 
 # One tool-definition pass must use ONE config decision for availability and the

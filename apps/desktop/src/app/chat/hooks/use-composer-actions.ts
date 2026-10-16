@@ -319,8 +319,6 @@ function droppedLinkUrls(transfer: DataTransfer): string[] {
  * every OS drop is staged, as before.
  */
 export interface OsDropStagingContext {
-  /** The session's backend cwd — cross-filesystem detection (Windows host → POSIX backend). */
-  backendCwd?: null | string
   /** Whether the connection owning the session is a remote gateway. */
   remote?: boolean
   /** Terminal backend name from session.info (local | docker | ssh | ...). */
@@ -351,7 +349,7 @@ function osDropNeedsStaging(candidate: DroppedFile, staging?: OsDropStagingConte
   }
 
   return (
-    Boolean(staging.remote) || attachmentPathNeedsUpload(candidate.path, staging.backendCwd, staging.terminalBackend)
+    Boolean(staging.remote) || attachmentPathNeedsUpload(staging.terminalBackend)
   )
 }
 

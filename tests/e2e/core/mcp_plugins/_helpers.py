@@ -87,7 +87,7 @@ class E2EHome:
         """Hermetic child env: fake HOME (so no ``~/.hermes`` of the real user is reachable)."""
         import pwd  # the suite is Linux-gated
 
-        real_root = Path(pwd.getpwuid(os.getuid()).pw_dir, ".hermes").resolve()  # windows-footgun: ok — module is skipif(not linux)
+        real_root = Path(pwd.getpwuid(os.getuid()).pw_dir, ".hermes").resolve()
         fixture = self.hermes_home.resolve()
         assert fixture != real_root and fixture.parent != real_root / "profiles", fixture
         assert fixture == (self.home / ".hermes").resolve(), fixture

@@ -17,11 +17,10 @@ RESOURCE_ENV = {
 }
 
 
-def dependency_site(environment: Path, python_version: str, target: str) -> Path:
-    """Providers know the target pin; the builder's interpreter is irrelevant."""
+def dependency_site(environment: Path, python_version: str) -> Path:
+    """Providers know the pinned Python; the builder's interpreter is irrelevant."""
     minor = python_version.split("+")[0].rsplit(".", 1)[0]
-    return environment / ("Lib/site-packages" if target.startswith("win32") else
-                          f"lib/python{minor}/site-packages")
+    return environment / f"lib/python{minor}/site-packages"
 
 
 def project_entries(project: Path) -> dict[str, str]:
@@ -70,7 +69,7 @@ class AgentInputs:
         return cls(**values)
 
     def validate(self, out: Path) -> None:
-        if not re.fullmatch(r"(?:(?:linux|darwin|win32)-(?:x64|arm64)|linux-(?:x64|arm64)-musl|linux-arm64-bionic)", self.target):
+        if not re.fullmatch(r"(?:(?:linux|darwin)-(?:x64|arm64)|linux-(?:x64|arm64)-musl|linux-arm64-bionic)", self.target):
             raise ValueError(f"unsupported target: {self.target}")
         if self.placement not in ("contained", "fixed", "references"):
             raise ValueError(f"unknown placement: {self.placement}")

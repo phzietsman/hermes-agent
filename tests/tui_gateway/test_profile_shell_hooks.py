@@ -1,7 +1,5 @@
 """Profile-bound agent construction must arm real shell policy."""
-import os
 import shlex
-import subprocess
 import sys
 from pathlib import Path
 
@@ -33,9 +31,8 @@ def test_agent_build_arms_only_consented_profile_policy(tmp_path, monkeypatch):
             home.mkdir()
             script = home / 'guard.py'
             script.write_text('import json\nprint(json.dumps({"decision":"block","reason":' + repr(label) + '}))\n', encoding='utf-8')
-            quote_command = subprocess.list2cmdline if os.name == 'nt' else shlex.join
             cfg = {'hooks_auto_accept': consent, 'hooks': {'pre_tool_call': [{
-                'command': quote_command([sys.executable, str(script)]), 'matcher': 'write_file', 'fail_closed': True}]},
+                'command': shlex.join([sys.executable, str(script)]), 'matcher': 'write_file', 'fail_closed': True}]},
                 'toolsets': ['file'], 'memory': {'memory_enabled': False, 'user_profile_enabled': False}}
             (home / 'config.yaml').write_text(yaml.safe_dump(cfg), encoding='utf-8')
         for label in ['alpha', 'beta', 'alpha', 'unapproved']:

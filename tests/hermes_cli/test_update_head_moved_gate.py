@@ -50,8 +50,6 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
     monkeypatch.setattr(
         hermes_main, "_resolve_update_branch", lambda args: "main"
     )
-    monkeypatch.setattr(hermes_main, "_is_windows", lambda: False)
-    monkeypatch.setattr(main_install_repair, "_is_windows", lambda: False)
     monkeypatch.setattr(
         hermes_main, "_get_origin_url",
         lambda *a, **k: "https://github.com/NousResearch/hermes-agent.git",
@@ -70,12 +68,7 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
     monkeypatch.setattr(
         hermes_main, "_run_pre_update_backup", lambda *a, **k: None
     )
-    monkeypatch.setattr(
-        hermes_main, "_pause_windows_gateways_for_update", lambda: None
-    )
-    monkeypatch.setattr(
-        hermes_main, "_resume_windows_gateways_after_update", lambda *a, **k: None
-    )
+    monkeypatch.setattr("hermes_cli.update_cmd_posix_pause.arm_pause", lambda **kw: None)
     # Short-circuit the long tail: dependency install + desktop build.
     monkeypatch.setattr(hermes_main, "_write_update_incomplete_marker", lambda: None)
     monkeypatch.setattr(hermes_main, "_clear_update_incomplete_marker", lambda: None)

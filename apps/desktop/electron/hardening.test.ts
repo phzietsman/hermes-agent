@@ -34,8 +34,7 @@ import {
 /**
  * Real temp dir per test: the property under test IS the on-disk mode after a
  * temp-file-then-rename, which a mocked fs would assert into existence rather
- * than verify. `platform` is still injected so the Windows branch is coverable
- * from a POSIX run.
+ * than verify.
  */
 function withTempDir(run: (dir: string) => void) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-secret-file-'))
@@ -153,7 +152,7 @@ test('encryptDesktopSecret stores safeStorage base64 payload', () => {
 
 // ─── Owner-only credential files (connection.json) ─────────────────────────
 
-test.runIf(process.platform !== 'win32')(
+test(
   'writeSecretFileAtomic creates the file owner-only, not at the 0644 umask default',
   () => {
     withTempDir(dir => {
@@ -241,7 +240,7 @@ test('enableBasicPasswordStoreEncryption ignores non-basic password-store values
 })
 
 test('enableBasicPasswordStoreEncryption never enables plain text off linux even with --password-store=basic', () => {
-  for (const platform of ['win32', 'darwin']) {
+  for (const platform of ['darwin']) {
     const calls: unknown[] = []
 
     const safeStorageApi = {
@@ -443,7 +442,7 @@ test('resolveRemoteTokenPlainText warns only when the token is plain and the mac
   )
 })
 
-test.runIf(process.platform !== 'win32')(
+test(
   'writeSecretFileAtomic does not inherit loose bits from a stale temp file',
   () => {
     // renameSync keeps the TEMP file's permissions, and writeFileSync's `mode`
@@ -474,7 +473,7 @@ function fsWith(overrides: Record<string, unknown>) {
   return { ...fs, ...overrides } as any
 }
 
-test.runIf(process.platform !== 'win32')('the written file is owner-only even where chmod does nothing', () => {
+test('the written file is owner-only even where chmod does nothing', () => {
   // A POSIX filesystem where chmod is unavailable. The create-time `mode` is what
   // covers this — there is no second chance to tighten.
   withTempDir(dir => {
@@ -499,7 +498,7 @@ test.runIf(process.platform !== 'win32')('the written file is owner-only even wh
   })
 })
 
-test.runIf(process.platform !== 'win32')(
+test(
   'the written file is owner-only even when a stale temp cannot be removed',
   () => {
     // The unlink is best-effort; if the stale temp survives, writeFileSync's
@@ -544,13 +543,11 @@ test('writeSecretFileAtomic cannot be redirected through a symlink planted at th
     assert.equal(fs.readFileSync(target, 'utf8'), 'tok-live-42')
     assert.equal(fs.lstatSync(target).isSymbolicLink(), false, 'the target is a real file, not the planted link')
 
-    if (process.platform !== 'win32') {
-      assert.equal(modeOf(target), SECRET_FILE_MODE)
-    }
+    assert.equal(modeOf(target), SECRET_FILE_MODE)
   })
 })
 
-test.runIf(process.platform !== 'win32')(
+test(
   'tightenSecretFileMode tightens a pre-existing world-readable config in place',
   () => {
     // The upgrade path: a connection.json written by an older build sits at 0644
@@ -580,7 +577,7 @@ test.runIf(process.platform !== 'win32')(
   }
 )
 
-test.runIf(process.platform !== 'win32')(
+test(
   'tightenSecretFileMode leaves a non-safeStorage token payload readable',
   () => {
     // A hand-edited config (or one from a pre-release build) can hold a
@@ -605,7 +602,7 @@ test.runIf(process.platform !== 'win32')(
   }
 )
 
-test.runIf(process.platform !== 'win32')(
+test(
   'tightenSecretFileMode is idempotent and never throws on an unusable path',
   () => {
     withTempDir(dir => {
@@ -643,12 +640,12 @@ test('tightenSecretFileMode never changes a symlink target', context => {
       throw error
     }
 
-    assert.equal(tightenSecretFileMode(target), process.platform === 'win32')
+    assert.equal(tightenSecretFileMode(target), false)
     assert.equal(modeOf(victim), victimMode, 'the symlink target keeps its own mode')
   })
 })
 
-test.runIf(process.platform !== 'win32')(
+test(
   'tightenSecretFileMode only touches a regular file the current user owns',
   () => {
     // Directories, sockets, fifos and files owned by another account are all
@@ -668,46 +665,21 @@ test.runIf(process.platform !== 'win32')(
     const uid = typeof process.getuid === 'function' ? process.getuid() : 0
 
     assert.equal(
-      tightenSecretFileMode('/x/connection.json', { fs: fakeFs({ isFile: () => false }), platform: 'linux' }),
+      tightenSecretFileMode('/x/connection.json', { fs: fakeFs({ isFile: () => false }) }),
       false
     )
     assert.equal(
-      tightenSecretFileMode('/x/connection.json', { fs: fakeFs({ uid: uid + 1 }), platform: 'linux' }),
+      tightenSecretFileMode('/x/connection.json', { fs: fakeFs({ uid: uid + 1 }) }),
       false,
       'a file owned by another user is left alone'
     )
     assert.deepEqual(chmodded, [], 'nothing was chmodded on the rejected paths')
 
     // The same fs shape, but ours and loose: now it tightens.
-    assert.equal(tightenSecretFileMode('/x/connection.json', { fs: fakeFs({ uid }), platform: 'linux' }), true)
+    assert.equal(tightenSecretFileMode('/x/connection.json', { fs: fakeFs({ uid }) }), true)
     assert.deepEqual(chmodded, ['/x/connection.json'])
   }
 )
-
-test('tightenSecretFileMode leaves Windows alone rather than flipping the read-only bit', () => {
-  const chmods: string[] = []
-
-  const fakeFs = {
-    chmodSync: (filePath: string) => void chmods.push(filePath),
-    lstatSync: () => ({
-      isFile: () => true,
-      isSymbolicLink: () => false,
-      mode: 0o644,
-      uid: typeof process.getuid === 'function' ? process.getuid() : 0
-    }),
-    renameSync: () => void 0,
-    rmSync: () => void 0,
-    writeFileSync: () => void 0
-  } as any
-
-  assert.equal(tightenSecretFileMode('C:\\Users\\me\\connection.json', { fs: fakeFs, platform: 'win32' }), true)
-  assert.deepEqual(chmods, [], 'no chmod on win32')
-
-  // Same fs, POSIX: the chmod does happen, proving the platform gate is what
-  // suppressed it above.
-  assert.equal(tightenSecretFileMode('/home/me/connection.json', { fs: fakeFs, platform: 'linux' }), true)
-  assert.ok(chmods.includes('/home/me/connection.json'), 'the POSIX path was tightened')
-})
 
 test('a token is never persisted in plaintext when safeStorage is unavailable', () => {
   // The defined degradation for `isEncryptionAvailable() === false` (Linux with
@@ -977,7 +949,7 @@ test('resolveDirectoryForIpc accepts directory symlinks or junctions', async () 
     fs.mkdirSync(directory)
 
     try {
-      fs.symlinkSync(directory, linkPath, process.platform === 'win32' ? 'junction' : 'dir')
+      fs.symlinkSync(directory, linkPath, 'dir')
     } catch (error) {
       if (error?.code === 'EPERM' || error?.code === 'EACCES') {
         // directory symlink creation is not permitted on this platform — skip
@@ -1010,16 +982,6 @@ test('homeRelativeAttachmentCandidates tries the home dir and the HERMES_HOME at
     path.join('/Users/alice', 'AppData/Local/hermes/attachments/foo.xlsx'),
     path.join('/Users/alice/AppData/Local/hermes', 'attachments', 'foo.xlsx')
   ])
-})
-
-test('homeRelativeAttachmentCandidates normalizes Windows backslashes before joining', () => {
-  const candidates = homeRelativeAttachmentCandidates(
-    'AppData\\Local\\hermes\\attachments\\foo.xlsx',
-    '/Users/alice',
-    '/Users/alice/.hermes'
-  )
-
-  assert.equal(candidates[0], path.join('/Users/alice', 'AppData/Local/hermes/attachments/foo.xlsx'))
 })
 
 test('homeRelativeAttachmentCandidates returns nothing for an absolute path', () => {

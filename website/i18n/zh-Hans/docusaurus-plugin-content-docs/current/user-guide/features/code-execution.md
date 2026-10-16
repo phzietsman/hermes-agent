@@ -237,4 +237,4 @@ Hermes 始终将脚本和自动生成的 `hermes_tools.py` RPC 存根写入临�
 
 ## 平台支持
 
-代码执行依赖 Unix 域套接字，仅在 **Linux 和 macOS** 上可用。在 Windows 上会自动禁用——agent 回退至常规的顺序工具调用。
+代码执行依赖 Unix 域套接字，仅在 **Linux 和 macOS** 上可用。

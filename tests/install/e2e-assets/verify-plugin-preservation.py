@@ -8,7 +8,7 @@ the explicit seed command creates controlled fixtures in a disposable home.
             ``plugins/**`` plus each ``profiles/<name>/plugins/**`` tree,
             overridable with --profiles-dir) and record, per entry —
             including EMPTY DIRECTORIES and the tree roots themselves —
-            kind (file/dir/symlink/junction), byte size + sha256 for
+            kind (file/dir/symlink), byte size + sha256 for
             regular files, link target, and a recursive fingerprint of a
             symlink's external target (so an externally-owned sidecar
             witness file cannot be tampered with unnoticed) -> JSON file.
@@ -32,7 +32,6 @@ import argparse
 import hashlib
 import json
 import os
-import stat
 import sys
 from pathlib import Path
 
@@ -62,18 +61,11 @@ def _sha256_file(path: str) -> str:
 
 
 def _is_link(path: str) -> bool:
-    """True for symlinks everywhere, and for NTFS junctions on Windows
-    (st.islink() is False for junctions, but readlink() works). POSIX
-    behavior is untouched: FILE_ATTRIBUTE_REPARSE_POINT only exists on NT."""
-    if os.path.islink(path):
-        return True
-    st = os.lstat(path)
-    reparse = getattr(st, "st_file_attributes", 0)
-    return bool(reparse & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+    return os.path.islink(path)
 
 
 def _lstat_exists(path: str) -> bool:
-    """Exists including dangling symlinks/junctions (os.path.exists hides
+    """Exists including dangling symlinks (os.path.exists hides
     those by resolving)."""
     try:
         os.lstat(path)
@@ -223,11 +215,7 @@ def seed_fixtures(home: Path, external: Path) -> None:
     (profile / "data.bin").write_bytes(b"profile-plugin-bytes\n")
     (external / "sidecar-witness.txt").write_text("external-sidecar-witness-v1\n", encoding="utf-8")
     (external / "engine.bin").write_bytes(b"\x00\x01\x02external-engine\n")
-    if os.name == "nt":
-        import _winapi
-        _winapi.CreateJunction(str(external.resolve()), str(wrapper / "runtime"))
-    else:
-        (wrapper / "runtime").symlink_to(external.resolve(), target_is_directory=True)
+    (wrapper / "runtime").symlink_to(external.resolve(), target_is_directory=True)
 
 
 def main(argv: list[str] | None = None) -> int:

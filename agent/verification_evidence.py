@@ -26,9 +26,7 @@ _MAX_TOTAL_UNREFERENCED_EVENTS = 10_000
 _AD_HOC_SCRIPT_NAME_PREFIXES = ("hermes-verify-", "hermes-ad-hoc-")
 _VERIFY_SCHEMA_VERSION = 1
 
-_INTERPRETERS = {"python", "python3", "py", "node", "bash", "sh", "ruby", "perl"}
-# Windows spells the same interpreters `python.exe` / `py.exe` (a venv's absolute Scripts path).
-_WINDOWS_EXE_SUFFIX_RE = re.compile(r"\.(?:exe|bat|cmd)$", re.IGNORECASE)
+_INTERPRETERS = {"python", "python3", "node", "bash", "sh", "ruby", "perl"}
 # The same interpreter is reached as `python3`, `python3.12`, `/usr/bin/python3.12`, or
 # `env python3`. Matching only the bare token recorded no evidence for the invocation shapes
 # the verify-on-stop nudge itself hands the agent, so a passing run left the workspace
@@ -149,7 +147,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def _split_shell_segments(command: str, *, posix: bool = True) -> list[_ShellSegment]:
+def _split_shell_segments(command: str) -> list[_ShellSegment]:
     """Tokenize top-level shell commands while preserving their control operators.
 
     Returns ``[]`` for anything unparseable (unbalanced quotes, empty segment,
@@ -204,7 +202,7 @@ def _split_shell_segments(command: str, *, posix: bool = True) -> list[_ShellSeg
         return []
 
     try:
-        segments = [_ShellSegment(shlex.split(raw, posix=posix), operator) for raw, operator in raw_segments]
+        segments = [_ShellSegment(shlex.split(raw), operator) for raw, operator in raw_segments]
     except ValueError:
         return []
     return segments if all(s.tokens for s in segments) else []
@@ -318,9 +316,7 @@ def _is_interpreter_token(token: str) -> bool:
     only the bare token left the ad-hoc branch blind to the invocation shapes the nudge hands
     the agent, so a passing run recorded no evidence and the workspace stayed ``unverified``.
     """
-    # Basename by hand: on POSIX ``Path`` treats a Windows backslash path as one component.
-    name = token.replace("\\", "/").rsplit("/", 1)[-1]
-    return bool(_INTERPRETER_NAME_RE.match(_WINDOWS_EXE_SUFFIX_RE.sub("", name)))
+    return bool(_INTERPRETER_NAME_RE.match(token.rsplit("/", 1)[-1]))
 
 
 def _ad_hoc_script_args(tokens: list[str], root: str | Path | None) -> Optional[list[str]]:
@@ -344,13 +340,11 @@ def _ad_hoc_script_args(tokens: list[str], root: str | Path | None) -> Optional[
 
 
 def _find_ad_hoc_match(command: str, root: str | Path | None, exit_code: int = 0) -> Optional[list[str]]:
-    # posix=False is retried so Windows backslash script paths survive splitting.
-    for posix in (True, False):
-        segments = _split_shell_segments(command, posix=posix)
-        for index, segment in enumerate(segments):
-            trailing_args = _ad_hoc_script_args(segment.tokens, root)
-            if trailing_args is not None and _exit_status_is_attributable(segments, index, exit_code):
-                return trailing_args
+    segments = _split_shell_segments(command)
+    for index, segment in enumerate(segments):
+        trailing_args = _ad_hoc_script_args(segment.tokens, root)
+        if trailing_args is not None and _exit_status_is_attributable(segments, index, exit_code):
+            return trailing_args
     return None
 
 

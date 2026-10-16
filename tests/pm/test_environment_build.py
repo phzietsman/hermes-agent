@@ -23,34 +23,23 @@ from tests.pm._fixtures import (
 def test_prune_site_pth_keeps_only_load_bearing_pth(tmp_path):
     """The payload venv must not carry uv's venv-marker or editable-install
     .pth files: the launcher addsitedirs the venv, and those two would repoint
-    sys.prefix / shadow the repo snapshot with build-machine paths. Everything
-    else (pywin32.pth!) must survive — it is what makes `import pywintypes`
-    resolve on Windows bundles."""
+    sys.prefix / shadow the repo snapshot with build-machine paths. Every
+    other .pth must survive."""
     from pm.environment import prune_site_pth
 
-    # Windows layout (Scripts/ present).
-    win_venv = tmp_path / "win-venv"
-    (win_venv / "Scripts").mkdir(parents=True)
-    win_site = win_venv / "Lib" / "site-packages"
-    win_site.mkdir(parents=True)
-    # POSIX layout (bin/ present, versioned site-packages).
-    posix_venv = tmp_path / "posix-venv"
-    (posix_venv / "bin").mkdir(parents=True)
-    posix_site = posix_venv / "lib" / "python3.14" / "site-packages"
-    posix_site.mkdir(parents=True)
+    venv = tmp_path / "venv"
+    (venv / "bin").mkdir(parents=True)
+    site = venv / "lib" / "python3.14" / "site-packages"
+    site.mkdir(parents=True)
+    (site / "distutils-precedence.pth").write_text("import os\n", encoding="utf-8")
+    (site / "_virtualenv.pth").write_text("import _virtualenv\n", encoding="utf-8")
+    (site / "__editable__.hermes_agent-0.21.1.pth").write_text(
+        "import __editable___hermes_agent_0_21_1_finder\n", encoding="utf-8"
+    )
 
-    for site in (win_site, posix_site):
-        (site / "pywin32.pth").write_text("win32\nwin32\\lib\nimport pywin32_bootstrap\n", encoding="utf-8")
-        (site / "_virtualenv.pth").write_text("import _virtualenv\n", encoding="utf-8")
-        (site / "__editable__.hermes_agent-0.21.1.pth").write_text(
-            "import __editable___hermes_agent_0_21_1_finder\n", encoding="utf-8"
-        )
+    prune_site_pth(venv)
 
-    prune_site_pth(win_venv)
-    prune_site_pth(posix_venv)
-
-    assert sorted(p.name for p in win_site.glob("*.pth")) == ["pywin32.pth"]
-    assert sorted(p.name for p in posix_site.glob("*.pth")) == ["pywin32.pth"]
+    assert sorted(p.name for p in site.glob("*.pth")) == ["distutils-precedence.pth"]
 
 
 @pytest.fixture
@@ -232,7 +221,7 @@ def test_first_bundle_extension_preserves_shipped_extras(locked_project, build_w
     (home / "config.yaml").write_text(f"security:\n  allow_lazy_installs: {str(lazy).lower()}\n", encoding="utf-8")
     assert selected_venv(source) == base
     assert Facts(runtime_facts_path(source)).get("venv") is None
-    python_relative = "Scripts/python.exe" if os.name == "nt" else "bin/python"
+    python_relative = "bin/python"
     assert _run([str(base / python_relative), "-I", "-c",
                  "import chosen_dep; print(chosen_dep.__version__)"], cwd=tmp_path, env=env) == "1.0"
     locked = (source / "uv.lock").read_bytes()
@@ -287,7 +276,7 @@ def test_worker_sync_reuses_unions_and_reports_real_lock_drift(locked_project, b
     pm.sync_venv(["chosen"], explicit=True, plugins=Members([]))
     assert selected_venv(source) == first
     assert Facts(runtime_facts_path(source)).get("venv") == first_fact
-    assert _run([str(first / ("Scripts/python.exe" if os.name == "nt" else "bin/python")), "-I", "-c",
+    assert _run([str(first / "bin/python"), "-I", "-c",
                  "import base_dep, chosen_dep, importlib.util; assert importlib.util.find_spec('other_dep') is None; print(chosen_dep.__version__)"],
                 cwd=tmp_path, env=env) == "1.0"
 
@@ -297,7 +286,7 @@ def test_worker_sync_reuses_unions_and_reports_real_lock_drift(locked_project, b
     assert Facts(runtime_facts_path(source)).get("venv")["extras"] == ["chosen", "other"]
     pm.sync_venv(["chosen"], explicit=True, plugins=Members([]))
     assert selected_venv(source) == second
-    assert _run([str(second / ("Scripts/python.exe" if os.name == "nt" else "bin/python")), "-I", "-c",
+    assert _run([str(second / "bin/python"), "-I", "-c",
                  "import chosen_dep, other_dep; print(chosen_dep.__version__, other_dep.__version__)"],
                 cwd=tmp_path, env=env) == "1.0 1.0"
     assert pm.check() == []
@@ -363,7 +352,7 @@ build_editable = build_wheel
         monkeypatch.setattr("pm._uv._toolchain", lambda **kwargs: (uv, Path(sys.executable)))
         monkeypatch.setattr(sys, "stderr", output)
         result = Venv(source).apply([], plugin_dirs=[], explicit=True)
-        executable = result["environment"] / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        executable = result["environment"] / "bin/python"
     else:
         environment.create()
         if operation == "sync":

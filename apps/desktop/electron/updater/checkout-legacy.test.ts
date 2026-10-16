@@ -26,20 +26,16 @@ it('moves a checkout without a source probe to main, but surfaces a broken probe
   const deps: CheckoutStrategyDeps = {
     readSourceUpdate: probe,
     hermesHome: home,
-    isWindows: process.platform === 'win32',
     isMac: process.platform === 'darwin',
     defaultUpdateBranch: 'main',
     updateHandoffDwellMs: 0,
     resolveUpdateRoot: (): string => root,
     // No staged updater and no repo hand-off script: apply ends on the manual
     // command card, which exposes the target without spawning anything.
-    resolveUpdaterBinary: vi.fn((): null => null),
     remoteGatewayActive: (): boolean => false,
     emitUpdateProgress: vi.fn(),
     rememberLog: vi.fn(),
     startHermes: vi.fn(async (): Promise<void> => {}),
-    stopBackendsForUpdate: vi.fn(async (): Promise<void> => {}),
-    repairMacUpdaterHelper: vi.fn(),
     preflightStateDb: vi.fn(),
     runningAppBundle: (): null => null,
     markQuittingForHandoff: vi.fn(),
@@ -64,13 +60,12 @@ it('moves a checkout without a source probe to main, but surfaces a broken probe
     await expect(strategy.apply()).rejects.toThrow('invalid channel configuration')
     fs.writeFileSync(modulePath, 'import missing_probe_dependency\n')
     await expect(probe()).rejects.toThrow('missing_probe_dependency')
-    expect(deps.stopBackendsForUpdate).not.toHaveBeenCalled()
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
 })
 
-it.skipIf(process.platform === 'win32')(
+it(
   'uses the install-scoped PM launcher rather than a system Python for source checks',
   async (): Promise<void> => {
     const root: string = fs.mkdtempSync(path.join(os.tmpdir(), 'pm-source-check-'))
@@ -95,41 +90,6 @@ it.skipIf(process.platform === 'win32')(
       }
 
       await expect(readSourceUpdate(probe)).resolves.toMatchObject({ supported: true, channel: 'stable', behind: null })
-      fs.rmSync(launcher)
-      await expect(readSourceUpdate(probe)).rejects.toThrow('installation launcher is missing')
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true })
-    }
-  }
-)
-
-it.skipIf(process.platform !== 'win32')(
-  'runs a PM .cmd source check with quoted paths and refuses a missing launcher',
-  async (): Promise<void> => {
-    const root: string = fs.mkdtempSync(path.join(os.tmpdir(), 'pm source check '))
-    const home: string = path.join(root, 'profile with spaces')
-    const launcher: string = path.join(root, '.hermes', 'bin', 'hermes.cmd')
-    fs.mkdirSync(path.dirname(launcher), { recursive: true })
-    fs.mkdirSync(path.join(root, 'pm'))
-    fs.mkdirSync(home)
-    fs.writeFileSync(
-      launcher,
-      '@echo off\r\nif not "%~1"=="--run-module" exit /b 5\r\nif not "%~2"=="hermes_cli.source_check" exit /b 6\r\necho {"supported":true,"channel":"stable","behind":-1}\r\n'
-    )
-
-    try {
-      const probe = {
-        python: 'nonexistent-system-python',
-        git: 'git',
-        updateRoot: root,
-        hermesHome: home,
-        channel: 'stable' as const
-      }
-
-      await expect(readSourceUpdate(probe)).resolves.toMatchObject({ supported: true, channel: 'stable', behind: null })
-      await expect(readSourceUpdate({ ...probe, branch: 'main&echo INJECTED' })).rejects.toThrow(
-        'unsafe Windows command argument'
-      )
       fs.rmSync(launcher)
       await expect(readSourceUpdate(probe)).rejects.toThrow('installation launcher is missing')
     } finally {

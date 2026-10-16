@@ -19,7 +19,7 @@
 // bypasses the compositor entirely — nothing short of injecting into the
 // game's render pipeline (what Discord's native overlay does) draws over it.
 // Detection still works there; the HUD is simply behind until the user
-// alt-tabs, which Windows answers by flipping the game to composited output.
+// alt-tabs.
 
 import type { EnumeratedWindow } from './window-below'
 
@@ -45,15 +45,11 @@ const COVER_EPSILON_PX = 2
 
 /**
  * Desktop-shell windows that legitimately report display-sized bounds and must
- * never read as a game: the Windows desktop (Progman/WorkerW both belong to
- * Explorer), the macOS Dock/desktop layers. Matched on the OWNER name — titles
+ * never read as a game: the macOS Dock/desktop layers. Matched on the OWNER name — titles
  * are localized, unavailable without permissions on macOS, and empty for most
  * of these anyway.
  */
 const SHELL_APPS = [
-  /^windows explorer$/i,
-  /^explorer(\.exe)?$/i,
-  /^program manager$/i,
   /^finder$/i,
   /^dock$/i,
   /^window ?server$/i,

@@ -4,7 +4,7 @@ description: Build comparable-company valuation workbooks in Excel.
 version: 1.0.0
 author: Anthropic (adapted by Nous Research)
 license: Apache-2.0
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [finance, valuation, comps, excel, openpyxl, modeling, investment-banking]

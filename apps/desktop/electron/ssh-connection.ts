@@ -177,7 +177,7 @@ function redactSecrets(text) {
 //
 // OpenSSH binds a temporary listener at `<ControlPath>.<16 random chars>`.
 // The home (and macOS's os.tmpdir()) can be too deep even when the socket
-// itself fits sun_path. Windows has no AF_UNIX sun_path limit.
+// itself fits sun_path.
 function controlSocketPath(user, host, port, baseDir?, identity: any = {}) {
   const dir = baseDir || defaultControlDir()
   const keyPathIdentity = path.normalize(String(identity.keyPath || ''))
@@ -203,10 +203,6 @@ function shortControlDir(): string {
 }
 
 function defaultControlDir(): string {
-  if (process.platform === 'win32') {
-    return path.join(os.tmpdir(), 'hermes-desktop-ssh')
-  }
-
   const homeDir = path.join(platformDefaultHermesHome(os.homedir()), 'desktop-ssh')
 
   // Include the filename and OpenSSH's temporary-listener suffix in the byte budget.
@@ -233,8 +229,7 @@ function checkShortControlParent(): void {
 // Command construction (pure — the unit tests exercise these directly)
 
 // Mux (POSIX): ControlMaster options so exec/forward share one authenticated
-// connection. No-mux (Windows OpenSSH never implemented mux sockets): plain
-// per-invocation options — each ssh call authenticates on its own.
+// connection. No-mux: plain per-invocation options — each ssh call authenticates on its own.
 function baseSshOptions(controlPath, connectTimeoutMs?) {
   const connectSecs = Math.max(1, Math.round((connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS) / 1000))
 
@@ -711,11 +706,10 @@ class SshConnection {
     this.user = cfg.user || ''
     this.port = port
     this.keyPath = cfg.keyPath || ''
-    // Windows OpenSSH has no ControlMaster (mux sockets were never implemented
-    // on Win32) — fall back to one ssh invocation per operation and a
+    // Without ControlMaster, fall back to one ssh invocation per operation and a
     // persistent `ssh -N -L` child per tunnel. Empty controlPath routes the
     // pure builders onto their no-mux form.
-    this._mux = opts.mux ?? process.platform !== 'win32'
+    this._mux = opts.mux ?? true
     this.controlPath = this._mux
       ? controlSocketPath(this.user, this.host, this.port, opts.controlDir, {
           keyPath: this.keyPath,
@@ -831,22 +825,20 @@ class SshConnection {
     if (this._mux) {
       const controlDir = path.dirname(this.controlPath)
 
-      if (process.platform !== 'win32' && controlDir === shortControlDir()) {
+      if (controlDir === shortControlDir()) {
         checkShortControlParent()
       }
 
       fs.mkdirSync(controlDir, { recursive: true, mode: 0o700 })
 
-      if (process.platform !== 'win32') {
-        const st = fs.lstatSync(controlDir)
+      const st = fs.lstatSync(controlDir)
 
-        if (st.isSymbolicLink() || !st.isDirectory() || st.uid !== process.getuid!()) {
-          throw new Error(`Unsafe SSH control dir: ${controlDir} is not a directory owned by this user (no symlinks).`)
-        }
+      if (st.isSymbolicLink() || !st.isDirectory() || st.uid !== process.getuid!()) {
+        throw new Error(`Unsafe SSH control dir: ${controlDir} is not a directory owned by this user (no symlinks).`)
+      }
 
-        if ((st.mode & 0o777) !== 0o700) {
-          fs.chmodSync(controlDir, 0o700)
-        }
+      if ((st.mode & 0o777) !== 0o700) {
+        fs.chmodSync(controlDir, 0o700)
       }
     }
 
@@ -968,8 +960,8 @@ class SshConnection {
     this._controlKeepaliveTimer = null
   }
 
-  // A real exec through the master (`exit 0` works under POSIX shells and
-  // cmd.exe); a wedged mux hangs to the timeout.
+  // A real exec through the master (`exit 0` works under POSIX
+  // shells); a wedged mux hangs to the timeout.
   async _verifyMuxChannel({ signal }: any = {}) {
     try {
       const result: any = await runSsh(buildExecArgs(this, 'exit 0', this._connectTimeoutMs), {
@@ -1017,7 +1009,7 @@ class SshConnection {
   // rejects with a classified error on non-zero exit or timeout.
   //
   // sshd hands the command to the user's LOGIN shell. Payloads are POSIX sh, so
-  // fish rejects `help="$(…)"`. On Linux/Darwin wrap in `sh -c`; Windows stays raw.
+  // fish rejects `help="$(…)"`. On Linux/Darwin wrap in `sh -c`.
   async exec(remoteCommand, { timeoutMs, stdinData }: any = {}) {
     if (this._posixRemote === null) {
       try {

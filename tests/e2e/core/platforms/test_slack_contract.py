@@ -9,17 +9,13 @@ pattern, reason); see ``_suite.py``: xfail only on that message, pass once the f
 
 from __future__ import annotations
 
-import sys
 
 import pytest
 
 from tests.e2e.core.platforms._drv_slack import SlackDriver
 from tests.e2e.core.platforms._suite import rig_fixtures, run_scenario, scenario_params
 
-pytestmark = [
-    pytest.mark.spawns_gateway_lookalike,
-    pytest.mark.skipif(sys.platform == "win32", reason="POSIX process-group gateway harness"),
-]
+pytestmark = pytest.mark.spawns_gateway_lookalike
 
 _MIDWORD = (r"the continuation after a rejected finalize resumed mid-word",
             "#124219 a stream reopened after message_not_in_streaming_state resumes mid-word (word split across "

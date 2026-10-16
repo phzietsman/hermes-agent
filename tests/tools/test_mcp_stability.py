@@ -378,7 +378,7 @@ class TestStdioPgroupReaping:
 
 
     def test_no_pgid_uses_per_pid_kill(self, monkeypatch):
-        """When no pgid is recorded (e.g. Windows), fall back to os.kill."""
+        """When no pgid is recorded (capture raced the exit), fall back to os.kill."""
         from tools.mcp_tool_lifecycle import _kill_orphaned_mcp_children, _orphan_stdio_pids
         from tools.mcp_tool import _lock
 
@@ -391,7 +391,6 @@ class TestStdioPgroupReaping:
         with patch("tools.mcp_tool.os.kill") as mock_kill, \
              patch("gateway.status._pid_exists", return_value=False), \
              patch("time.sleep"):
-            # killpg may or may not exist; either way the no-pgid path skips it.
             _kill_orphaned_mcp_children()
 
         mock_kill.assert_any_call(fake_pid, signal.SIGTERM)

@@ -23,7 +23,6 @@ from hermes_cli.plugin_catalog import (
     find_removed, get_live_catalog_entry, load_catalog_live, match_removed, resolved_removed_entries,
     _NAME_RE, _normalize_repo,
 )
-from pm.filesystem import is_junction
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +212,7 @@ def removed_annotation(name: str, dir_path, removed_entries: List[RemovedEntry])
 
 # ── Catalog-aware install / update ───────────────────────────────────────────
 
-_PLATFORM_ALIASES = {"windows": "win32", "macos": "darwin"}
+_PLATFORM_ALIASES = {"macos": "darwin"}
 
 
 def normalized_platforms(platforms: List[str]) -> set[str]:
@@ -396,7 +395,7 @@ def _carry_user_files(old: Path, new: Path, local: Optional[list[str]]) -> list[
             if (_skip_preserve(name) or name in EXCLUDED_DIRS
                     or (local is None and here == old and name in _NO_GIT_REVISION_DIRS)):
                 continue
-            if (here / name).is_symlink() or is_junction(here / name):
+            if (here / name).is_symlink():
                 _user_link((here / name).relative_to(old))
                 continue
             walk.append(name)
@@ -428,8 +427,6 @@ def _carry_user_files(old: Path, new: Path, local: Optional[list[str]]) -> list[
 
             dst = new / rel
             if os.path.lexists(dst):
-                if is_junction(dst):
-                    raise _conflict(rel)
                 # A file -> directory clash cannot be skipped: that would delete a user-state file,
                 # so keep the live install intact and make the user resolve it.
                 if dst.is_dir() and not dst.is_symlink():
@@ -444,12 +441,12 @@ def _carry_user_files(old: Path, new: Path, local: Optional[list[str]]) -> list[
                 parent /= part
                 source_parent /= part
                 if os.path.lexists(parent):
-                    if is_junction(parent) or parent.is_symlink() or not parent.is_dir():
+                    if parent.is_symlink() or not parent.is_dir():
                         raise _conflict(rel)
                     continue
                 try:
                     source_info = source_parent.lstat()
-                    if is_junction(source_parent) or not stat.S_ISDIR(source_info.st_mode):
+                    if not stat.S_ISDIR(source_info.st_mode):
                         raise _conflict(rel, "its source path changed during the update")
                     mode = stat.S_IMODE(source_info.st_mode)
                     parent.mkdir(mode=mode)

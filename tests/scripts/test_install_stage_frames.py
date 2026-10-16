@@ -62,7 +62,7 @@ run_stage "$STAGE"
         assert "install complete" not in result.stdout
 
 
-@pytest.mark.platforms("windows", "posix")
+@pytest.mark.platforms("posix")
 def test_real_single_stage_cli_reports_admission_or_execution_failure(tmp_path, real_bash):
     stage = 'unknown"\\\n\x1fstage'
     env = dict(_env(tmp_path), PROBE_STAGE=stage)

@@ -4,7 +4,7 @@ description: Review Kanban handoffs and route verified outcomes.
 version: 1.1.0
 author: Jakub Wolniewicz (@frizikk) + Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [kanban, review, quality, verification]

@@ -10,7 +10,6 @@ import contextlib
 import hmac
 import os
 import re
-import sys
 import tempfile
 import threading
 import urllib.request
@@ -26,20 +25,16 @@ _log = logging.getLogger("hermes_cli.web_server")
 
 
 # /api/pty spawns ``hermes --tui`` behind a pseudo-terminal and forwards bytes +
-# resize escapes to xterm.js.  POSIX uses pty_bridge (fcntl/termios); native
-# Windows uses win_pty_bridge (pywinpty/ConPTY); same surface, no handler guards.
+# resize escapes to xterm.js.
 try:
-    if sys.platform.startswith("win"):
-        from hermes_cli.win_pty_bridge import WinPtyBridge as PtyBridge, PtyUnavailableError
-    else:
-        from hermes_cli.pty_bridge import PtyBridge, PtyUnavailableError
+    from hermes_cli.pty_bridge import PtyBridge, PtyUnavailableError
     _PTY_BRIDGE_AVAILABLE = True
-except ImportError:  # pragma: no cover - pywinpty / ptyprocess missing
+except ImportError:  # pragma: no cover - ptyprocess missing
     PtyBridge = None  # type: ignore[assignment]
     _PTY_BRIDGE_AVAILABLE = False
 
     class PtyUnavailableError(RuntimeError):  # type: ignore[no-redef]
-        """Stub when the platform PTY bridge cannot be imported."""
+        """Stub when the PTY bridge cannot be imported."""
 _RESIZE_RE = re.compile(rb"\x1b\[RESIZE:(\d+);(\d+)\]")
 _PTY_READ_CHUNK_TIMEOUT = 0.2
 

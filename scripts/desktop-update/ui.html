@@ -1,8 +1,8 @@
 <!doctype html>
 <!--
-  Quiet shim page for the desktop update hand-off (Windows + POSIX).
+  Quiet shim page for the desktop update hand-off.
 
-  Served over loopback by the orchestrator (windows.ps1 / posix.sh) into a
+  Served over loopback by the orchestrator (posix.sh) into a
   chromeless browser app window. Pure veneer: polls /progress for the current
   hand-off stage or a terminal event and reacts; owns nothing (relaunch,
   result file, marker hygiene all live in the orchestrator, which runs
@@ -10,8 +10,7 @@
 
   The visual is PR #75895's update hand-off screen, ported verbatim:
   - Loader: the desktop's "Fourier Flow" curve. Math + tuning lifted from
-    apps/bootstrap-installer/src/components/loader.tsx (itself lifted from
-    apps/desktop/src/components/ui/loader.tsx 'fourier-flow'). Keep the
+    apps/desktop/src/components/ui/loader.tsx 'fourier-flow'. Keep the
     constants in sync if the desktop's curve is retuned.
   - Layout: loader (size-20) + one title + one muted stage/elapsed line. No
     progress bar, stage list, log pane, or cancel (see #75895 for the
@@ -267,12 +266,6 @@
       }
       failures = 0
       apply(state)
-      // The Windows server can now wait for delivery instead of guessing
-      // that one polling interval was enough. Older/POSIX servers omit this
-      // receipt. Apply first so a failed acknowledgement cannot hide a result.
-      if (settled && typeof state.receipt === 'string' && state.receipt) {
-        await request(`/ack/${encodeURIComponent(state.receipt)}`, { method: 'POST' })
-      }
     } catch {
       if (!settled && ++failures >= 3) {
         // A vanished server is not evidence of success OR failure. Leave an

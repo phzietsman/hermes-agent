@@ -6,7 +6,7 @@ sidebar_position: 16
 # Computer Use
 
 Hermes Agent can drive your desktop — clicking, typing, scrolling,
-dragging — in the **background** on **macOS, Windows, and Linux**. Your
+dragging — in the **background** on **macOS and Linux**. Your
 cursor doesn't move, keyboard focus doesn't change, and your virtual
 desktops / Spaces don't switch on you. You and the agent co-work on the
 same machine.
@@ -27,7 +27,6 @@ input stack under the hood:
 | Platform | Accessibility tree | Input dispatch |
 |---|---|---|
 | macOS | AX (private SkyLight SPIs) | `SLPSPostEventRecordTo` — pid-scoped, no cursor warp |
-| Windows | UIAutomation | `SendInput` + `PostMessage` — no focus steal |
 | Linux | AT-SPI (X11 + Wayland) | XTest (X11) / virtual-keyboard (Wayland) |
 
 The result is the same on every platform: the agent can read the
@@ -56,10 +55,10 @@ runs](./bot-screen.md#where-the-screen-runs).
 
 **The driver ships with Hermes.** `cua-driver` is pinned in `pm/lock.json`
 and is a default PM package: the installers, a bare `hermes pm install`, and
-`hermes update` install it on every macOS, Windows, and glibc Linux target
+`hermes update` install it on every macOS and glibc Linux target
 (cua-driver publishes no musl or Android build). The desktop app's bundle
-carries it too. To leave it out, pass `--skip-computer-use` on POSIX or
-`-SkipComputerUse` on Windows (or run `hermes pm install --without cua-driver`);
+carries it too. To leave it out, pass `--skip-computer-use`
+(or run `hermes pm install --without cua-driver`);
 Hermes remembers the choice, and `hermes pm install cua-driver` undoes it.
 
 If the download failed or you opted out earlier, any of these installs it:
@@ -103,7 +102,6 @@ platform-appropriate prereqs:
 | Platform | Prereqs |
 |---|---|
 | **macOS** | System Settings → Privacy & Security → **Accessibility** + **Screen Recording**. Grant the identity named by `hermes computer-use doctor` (CuaDriver, `com.trycua.driver`, in every permission mode — the driver daemon always launches through `CuaDriver.app`). |
-| **Windows** | None at install time. If you're driving over SSH (not RDP / console), you need the autostart pattern — see [cua.ai/docs/how-to-guides/driver/windows-ssh](https://cua.ai/docs/how-to-guides/driver/windows-ssh) for the Session 0 ↔ Session 1+ proxy. |
 | **Linux** | A reachable display server: `DISPLAY` set for X11, or `XDG_SESSION_TYPE=wayland`. Wayland sessions need an XWayland bridge for capture. AT-SPI must be on (default on GNOME/KDE/Xfce). |
 
 Then start a session with the toolset enabled:
@@ -218,8 +216,8 @@ Useful flags:
   `tools/call health_report` MCP response
 
 The check matrix is platform-aware: `bundle_identity` / `tcc_*` are
-`skip` on Windows + Linux because those concepts don't apply.
-`ax_capability` checks AX on macOS, UIA on Windows, AT-SPI on Linux —
+`skip` on Linux because those concepts don't apply.
+`ax_capability` checks AX on macOS and AT-SPI on Linux —
 each with the right diagnostic hint when it can't reach.
 
 On Linux, where the daemon is a hand-written systemd user unit or XDG
@@ -248,7 +246,7 @@ without it. Hermes disables it automatically where it is a known failure
 mode: macOS (idle CPU burn), headless Linux / WSL2 / containers, and
 **Linux X11 desktops** (the overlay is a fullscreen always-on-top window
 that can get stuck over every workspace after an unclean session end,
-wedging desktop input). Linux Wayland and Windows keep the overlay. Set
+wedging desktop input). Linux Wayland keeps the overlay. Set
 `computer_use.no_overlay: false` in `config.yaml` to force the cursor on
 (or `true` to force it off) on any platform.
 
@@ -282,15 +280,14 @@ pack contains:
 |---|---|
 | `SKILL.md` | The cross-platform core (snapshot invariant, no-foreground contract, click dispatch, AX-tree mechanics) |
 | `MACOS.md` | macOS specifics: no-foreground contract, AXMenuBar navigation, SkyLight click dispatch, Apple Events JS bridge |
-| `WINDOWS.md` | Windows specifics: UIA tree, UWP / `ApplicationFrameHost` hosting, Session 0 isolation, autostart pattern |
 | `LINUX.md` | Linux specifics: AT-SPI tree, X11 / Wayland, terminal-emulator detection |
 | `RECORDING.md` | Trajectory + video recording semantics |
 | `WEB_APPS.md` | Browser-page interaction tips |
 | `TESTS.md` | Replay-by-trajectory workflow |
 
 These are **platform deep dives, not duplicates of the Hermes skill** —
-when an agent reports "on Windows, my click landed on the wrong
-element," it reads `WINDOWS.md` for the UIA / UWP context that
+when an agent reports "on Linux, my click landed on the wrong
+element," it reads `LINUX.md` for the AT-SPI context that
 explains why and what to do differently.
 
 `cua-driver skills status` shows what's installed and which agent
@@ -305,7 +302,7 @@ it into your usual skill space).
 
 User prompt: *"Find my latest email from Stripe and summarise what they want me to do."*
 
-The agent's plan (this is the same shape on macOS / Windows / Linux —
+The agent's plan (this is the same shape on macOS / Linux —
 the model substitutes the platform's idiomatic shortcut and app name):
 
 1. `computer_use(action="capture", mode="som", app="Mail")` — gets a
@@ -415,49 +412,22 @@ of screenshot context, not ~600K.
 ## Limitations
 
 - **Performance.** Background mode is slower than foreground —
-  accessibility-routed events take ~5–20 ms on macOS, ~3–10 ms on
-  Windows UIA, ~5–15 ms on Linux AT-SPI vs direct HID posting. Not
+  accessibility-routed events take ~5–20 ms on macOS,
+  ~5–15 ms on Linux AT-SPI vs direct HID posting. Not
   noticeable for agent-speed clicking; noticeable if you try to record
   a speed-run.
 - **No keyboard password entry.** `type` has hard-block patterns on
   command-shell payloads; for passwords, use the system's autofill
-  (macOS Keychain / Windows Credential Manager / GNOME Keyring /
+  (macOS Keychain / GNOME Keyring /
   KWallet).
-- **Some apps don't expose an accessibility tree.** Modern UWP apps on
-  Windows, Electron < 28 on Linux, and a few macOS apps with custom
+- **Some apps don't expose an accessibility tree.** Electron < 28 on Linux, and a few macOS apps with custom
   drawing (Logic, Final Cut, some games) have sparse or empty AX trees.
   Fall back to pixel coordinates if the tree is empty — or skip the
   task entirely.
-- **Windows: elevated (admin) windows can't be driven from a normal
-  agent.** Windows UIPI (User Interface Privilege Isolation) enforces
-  integrity-level boundaries: a Medium-integrity process (the default
-  Hermes agent) cannot enumerate the UIA tree of, or inject mouse input
-  into, a window owned by a High-integrity (Administrator) process.
-  Symptom: `capture(mode='som')` returns 0 elements and `click(...)`
-  reports success while doing nothing, even though the screenshot
-  renders fine (GDI capture sits below the integrity check). Keyboard
-  events partially bypass UIPI, so Tab / Enter can still navigate an
-  elevated dialog. This is an OS constraint, not a cua-driver bug — it
-  affects every Windows automation stack. To drive elevated windows,
-  run the Hermes agent itself at High integrity (launch from an
-  elevated terminal); otherwise target non-elevated windows.
-- **Windows: `hermes computer-use doctor` fails with "Access is denied"
-  while the tool works.** A cua-driver installed under
-  `C:\Program Files\WindowsApps` cannot be executed by the Hermes venv
-  interpreter (WinError 5 from `CreateProcess`), even though the shell
-  resolves the same binary fine. The doctor now reports this as a
-  diagnosis instead of a traceback. Fix once: reinstall with the upstream
-  installer (lands under your user profile) or set
-  `HERMES_CUA_DRIVER_CMD` to a copy outside `WindowsApps`.
 - **Platform-specific deployment gotchas:**
   - **macOS** uses private SkyLight SPIs. Apple can change them in any
     OS update. Hermes warns when the installed cua-driver is older than
     the version it was tested against.
-  - **Windows** SSH sessions run in **Session 0**, which has no
-    interactive desktop. Drive Hermes from inside the RDP / console
-    session, or set up cua-driver's autostart Scheduled Task —
-    [windows-ssh](https://cua.ai/docs/how-to-guides/driver/windows-ssh)
-    has the recipe.
   - **Linux** requires a reachable display server. Headless servers
     get one from [Bot Screen](./bot-screen.md): a per-profile Xfce
     desktop over TigerVNC, streamed into Hermes Desktop, where you can
@@ -500,30 +470,6 @@ Override the driver binary path (tests / CI / local builds):
 HERMES_CUA_DRIVER_CMD=/path/to/your/cua-driver
 ```
 
-### Windows auto-start (opt-in)
-
-On Windows, cua-driver can run from a per-boot Scheduled Task
-(`cua-driver-serve`) so it is already listening when Hermes needs it. This
-task is **opt-in**: by default Computer Use starts the driver on demand,
-per session — exactly as on macOS and Linux — and no scheduled task is
-registered when you install or enable the toolset (#97389).
-
-Set this in `config.yaml` to opt in (the task is registered — or repaired —
-the next time the driver is installed or the toolset is enabled):
-
-```yaml
-computer_use:
-  autostart: true   # default: false (on-demand; no scheduled task)
-```
-
-You need this when driving Windows over SSH: Session 0 has no interactive
-desktop, so an on-demand driver cannot reach one
-([windows-ssh](https://cua.ai/docs/how-to-guides/driver/windows-ssh) has the
-recipe). If the task exists but you want it gone, remove it with
-`cua-driver autostart disable` (or `schtasks /Delete /TN cua-driver-serve`)
-from an elevated shell — Hermes does not re-register it once
-`computer_use.autostart` is false.
-
 Swap the driver entirely: `computer_use.backend` in `config.yaml` names the one
 active provider (`cua`, the default, or an installed provider plugin; see
 [computer-use backend plugins](../../developer-guide/plugins/index.md#computer-use-backend-plugins)).
@@ -564,30 +510,19 @@ builds the Rust backend in release mode and drops `cua-driver` into the
 same install layout the production installer uses, adding its bin dir
 to your PATH:
 
-```powershell
-# Windows (PowerShell), from the cua repo root
-./libs/cua-driver/scripts/install-local.ps1 -NoAutoStart
-```
-
 ```bash
 # macOS / Linux, from the cua repo root  (defaults to a debug build without --release)
 ./libs/cua-driver/scripts/install-local.sh --release
 ```
 
-- Windows stages the build under `%USERPROFILE%\.cua-driver\packages\…`
-  and junctions
-  `%LOCALAPPDATA%\Programs\Cua\cua-driver\bin` (added to your User
-  PATH) to it. macOS/Linux symlinks `cua-driver` into `~/.local/bin`
+- The installer symlinks `cua-driver` into `~/.local/bin`
   (override with `--bin-dir <path>`).
-- `-NoAutoStart` skips registering the `cua-driver-serve` logon daemon
-  — you don't need it for Hermes testing (see notes).
 
 Then open a fresh shell (so the PATH change is visible) and confirm:
 
 ```
 cua-driver --version                 # local builds report 0.0.0-local-release
-# Windows:      (Get-Command cua-driver).Source
-# macOS/Linux:  which cua-driver
+which cua-driver
 ```
 
 ### Option B — point Hermes straight at the built binary (fastest loop)
@@ -601,9 +536,7 @@ cargo build -p cua-driver            # add --release for a release build; run fr
 ```
 
 ```
-# Windows (.env)
-HERMES_CUA_DRIVER_CMD=C:\path\to\cua\libs\cua-driver\rust\target\debug\cua-driver.exe
-# macOS / Linux (.env)
+# .env
 HERMES_CUA_DRIVER_CMD=/path/to/cua/libs/cua-driver/rust/target/debug/cua-driver
 ```
 
@@ -621,15 +554,7 @@ HERMES_CUA_DRIVER_CMD=/path/to/cua/libs/cua-driver/rust/target/debug/cua-driver
 - **Hermes spawns a `cua-driver mcp` stdio proxy.** In a normal session the
   proxy connects to (and may start) the standard machine daemon. In explicit
   Hermes YOLO, Hermes instead owns a private `cua-driver serve --embedded`
-  child and points the proxy at its private socket or named pipe. The Windows
-  autostart/UIAccess pattern still matters for interactive Session 1+ input
-  from SSH — see the Limitations section.
-- **Locked binary on Windows.** A running `cua-driver-serve` daemon can
-  hold `cua-driver.exe` and block an overwrite on rebuild.
-  `install-local.ps1` renames the locked binary out of the way
-  automatically; if you `cargo build` manually (Option B), stop it
-  first with `cua-driver autostart disable` (or `schtasks /End /TN
-  cua-driver-serve`).
+  child and points the proxy at its private socket.
 - **Rebuild loop.** After editing cua-driver source, re-run
   `install-local` (rebuilds, restages, flips the `current` junction)
   for Option A, or just re-`cargo build` for Option B — no Hermes
@@ -681,19 +606,14 @@ reconsider.
 Wayland without an XWayland bridge. `hermes computer-use doctor` will
 flag this as `ax_capability: fail` with a `Set DISPLAY (X11)…` hint.
 
-**Empty captures on Windows over SSH** — You're in Session 0 (the
-services session). Drive from RDP / console directly, or set up the
-autostart pattern — see
-[cua.ai/docs/how-to-guides/driver/windows-ssh](https://cua.ai/docs/how-to-guides/driver/windows-ssh).
-
 ## See also
 
 - **Hermes-side skill** — `skills/autonomous-ai-agents/computer-use/SKILL.md` — teaches the
   Hermes `computer_use` action vocabulary; this is what the agent loads.
 - **cua-driver skill pack** — for platform-specific deep dives
-  (macOS no-foreground contract, Windows UIA + Session 0, Linux AT-SPI
+  (macOS no-foreground contract, Linux AT-SPI
   + X11/Wayland, recording, browser pages), run
-  `cua-driver skills install` and read `MACOS.md` / `WINDOWS.md` /
+  `cua-driver skills install` and read `MACOS.md` /
   `LINUX.md` / `RECORDING.md` / `WEB_APPS.md`. Hermes autodetection is a
   planned follow-up; currently point Hermes at the installed pack directory
   or symlink it into your skill space.
@@ -702,7 +622,6 @@ autostart pattern — see
   - [The no-foreground contract](https://cua.ai/docs/explanation/the-no-foreground-contract) — *why* background mode matters
   - [Install reference](https://cua.ai/docs/how-to-guides/driver/install) — cross-platform install details
   - [Personalize the agent cursor](https://cua.ai/docs/how-to-guides/driver/personalize-cursor) — built-in shapes, custom assets, runtime overrides
-  - [Drive Windows over SSH](https://cua.ai/docs/how-to-guides/driver/windows-ssh) — the Session 0 → Session 1+ autostart pattern
   - [Keep cua-driver running](https://cua.ai/docs/how-to-guides/driver/keep-running) — autostart / daemon lifecycle
   - [Connect your agent](https://cua.ai/docs/how-to-guides/driver/connect-your-agent) — register cua-driver with various harnesses (Hermes among them)
 - [cua-driver source (trycua/cua)](https://github.com/trycua/cua)

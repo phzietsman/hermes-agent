@@ -82,8 +82,8 @@ def _proc_fd_targets(pid: int) -> "Iterator[tuple[str, str]]":
 
 
 def _open_fd_count() -> Optional[int]:
-    """Open descriptors in THIS process; None when unmeasurable (Windows: no fd
-    dir, correctly inert); -1 when the probe itself hit EMFILE/ENFILE (no headroom)."""
+    """Open descriptors in THIS process; None when unmeasurable (no fd dir,
+    correctly inert); -1 when the probe itself hit EMFILE/ENFILE (no headroom)."""
     for fd_dir in ("/proc/self/fd", "/dev/fd"):
         try:
             return len(os.listdir(fd_dir))
@@ -94,15 +94,10 @@ def _open_fd_count() -> Optional[int]:
 
 
 def _fd_soft_limit() -> Optional[int]:
-    """The process's soft RLIMIT_NOFILE, or None when there is no usable one."""
-    try:
-        import resource
-    except ImportError:
-        return None
-    try:
-        soft, _hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-    except (AttributeError, OSError, ValueError):
-        return None
+    """The process's soft RLIMIT_NOFILE, or None when it is unlimited."""
+    import resource
+
+    soft, _hard = resource.getrlimit(resource.RLIMIT_NOFILE)
     if soft in (resource.RLIM_INFINITY, -1):
         return None
     return int(soft)

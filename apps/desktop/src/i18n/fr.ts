@@ -4217,15 +4217,6 @@ export const frOverrides = {
     availableBodyRelease: tag => `La version ${tag} est prête à être installée.`,
     releaseAvailable: tag => `La version ${tag} est disponible.`,
     checkingShort: 'Vérification…',
-    availableBodyAppInstaller:
-      'Une nouvelle version de Hermes est prête. Hermes va se fermer, Windows terminera la mise à jour, puis Hermes rouvrira automatiquement.',
-    applyingBodyAppInstaller:
-      "Hermes va se fermer et Windows terminera la mise à jour. Hermes rouvrira ensuite automatiquement — vous n'avez rien à faire.",
-    applyingCloseAppInstaller:
-      'Cette fenêtre va se fermer, Windows terminera la mise à jour et Hermes rouvrira automatiquement.',
-    checkUnknownTitleAppInstaller: 'Impossible de vérifier les mises à jour',
-    checkUnknownBodyAppInstaller:
-      "Windows n'a pas pu rechercher les mises à jour. Elles s'installent également automatiquement au redémarrage de Hermes.",
     versionDetailsTitle: 'Détails de la version',
     versionDetailsBody:
       "Cette installation est gérée hors de l'application. Mettez-la à jour de la même manière que vous l'avez installée.",
@@ -4234,13 +4225,11 @@ export const frOverrides = {
     versionDetailsBuildOrigin: 'Origine de la compilation',
     versionDetailsDistribution: 'Distribution',
     versionDetailsDistributionDesktop: 'Application Desktop',
-    versionDetailsDistributionDesktopMsix: 'Application Desktop (MSIX)',
     versionDetailsDistributionDesktopInstaller: 'Application Desktop (installateur)',
     versionDetailsDistributionSourceInstaller: "Code source (script d'installation)",
     versionDetailsDistributionSourceInstallerDesktop: "Code source (script d'installation) + hermes desktop",
     versionDetailsDistributionSource: 'Code source',
     versionDetailsDistributionSourceDesktop: 'Code source + hermes desktop',
-    versionDetailsDistributionStore: 'Microsoft Store',
     versionDetailsRuntime: "Environnement d'exécution",
     versionDetailsRuntimeEmbedded: "Environnement d'exécution intégré",
     versionDetailsRuntimeExternal: "Externe (utilise l'environnement d'exécution du système)",

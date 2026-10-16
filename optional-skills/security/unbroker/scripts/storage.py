@@ -25,7 +25,7 @@ def locked(target: Path, timeout: float = 10.0, stale: float = 30.0):
     processes - a cron re-scan overlapping a manual run, or multiple tenants -
     so one writer can't clobber another's update. A lock older than `stale`
     seconds is treated as abandoned (crashed writer) and broken, so a dead
-    process can never deadlock the queue. Works on macOS/Linux/Windows (O_EXCL).
+    process can never deadlock the queue. Works on macOS/Linux (O_EXCL).
     """
     ensure_dir(target.parent)
     lock = target.with_name(target.name + ".lock")

@@ -33,11 +33,10 @@ _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".tif"
 _IMAGE_EXT_PATTERN = "|".join(e.lstrip(".") for e in _IMAGE_EXTS)
 
 # Absolute / home-relative local image path. Matches the same shape gateway's
-# extract_local_files() uses: anchors to ``~/``, ``/``, or a Windows drive
-# (``C:\``), ignores matches inside URLs (the ``(?<![/:\w.])`` lookbehind), and
-# case-insensitive on the extension.
+# extract_local_files() uses: anchors to ``~/`` or ``/``, ignores matches inside URLs
+# (the ``(?<![/:\w.])`` lookbehind), and case-insensitive on the extension.
 _LOCAL_IMAGE_PATH_RE = re.compile(
-    r"(?<![/:\w.])(?:~/|/|[A-Za-z]:[\\/])(?:[\w.\-]+[\\/])*[\w.\-]+\.(?:"
+    r"(?<![/:\w.])(?:~/|/)(?:[\w.\-]+/)*[\w.\-]+\.(?:"
     + _IMAGE_EXT_PATTERN
     + r")\b",
     re.IGNORECASE,
@@ -57,8 +56,7 @@ def _matches_outside_code(pattern: re.Pattern, text: str) -> Iterable[str]:
 def _existing_file(candidate: str) -> Optional[str]:
     """Normalized path when it is a regular file; None otherwise (incl. OSError on pathological input).
     The return value is the OS-canonical spelling of the real file (same norm class as
-    ``str(Path(...))``), so callers can compare it against actual paths — ``~`` expansion
-    alone would leave the textual ``/`` separators of the source text in place on Windows."""
+    ``str(Path(...))``), so callers can compare it against actual paths."""
     expanded = os.path.expanduser(candidate)
     try:
         return os.path.normpath(expanded) if os.path.isfile(expanded) else None

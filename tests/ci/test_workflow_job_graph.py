@@ -2,7 +2,7 @@
 
 GitHub rejects a job graph that references an unknown job or needs itself, so
 cycles are the platform's own validation. What it does not fail closed on is a
-result read from a job that was never declared: `needs.build-win32-release.result`
+result read from a job that was never declared: `needs.build-darwin-release.result`
 resolves to nothing when the result job's `needs` list only names itself, and the
 dispatch burns its whole fan-out before anything reports a problem.
 """

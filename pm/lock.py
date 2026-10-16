@@ -6,8 +6,8 @@ facts.json: {"schema": 1, "packages": {name: {"entry": ..., "version": ..., "env
 
 A target's value is one {"url", "sha256"} object, or a LIST of them when the
 package is split across several archives that must land in one directory
-(llama.cpp's engine zip and its cudart zip: Windows resolves a DLL from the
-loading executable's own directory). Both shapes read back as a list.
+(llama.cpp's engine archive and its cudart archive: the engine's RUNPATH is
+$ORIGIN). Both shapes read back as a list.
 
 lock.json artifacts carry the RESOLVED url beside the hash: the lockfile is
 the complete machine interface (nix reads it as pure data), and the python
@@ -52,10 +52,8 @@ def _read(path: Path, *, strict: bool = False) -> dict:
         # the next _write would silently discard every installed-state
         # record. Keep the bytes for post-mortem.
         try:
-            from pm.filesystem import long_root
             from pm.paths import store_root
-            # A Store-built facts path carries the store's long spelling; compare like with like.
-            if (long_root(path.parent) == long_root(store_root())
+            if (path.parent == store_root()
                     and (store_root().parent / "manifest.json").is_file()):
                 import logging
                 logging.getLogger(__name__).warning("invalid shipped state file: %s", path)
@@ -163,11 +161,8 @@ class Facts:
         """Publish all tool digests after packaging finishes changing their bytes."""
         from pm.store import tree_digest
 
-        from pm.filesystem import long_root
-
         packages = _read(self.path, strict=True)["packages"]
-        # Digests walk whole tool trees: the long spelling keeps them past MAX_PATH.
-        root = long_root(store_root.resolve())
+        root = store_root.resolve()
         count = 0
         for name, fact in packages.items():
             if not isinstance(fact, dict):

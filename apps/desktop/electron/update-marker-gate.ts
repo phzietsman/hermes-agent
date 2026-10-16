@@ -30,7 +30,7 @@
  * a leaked long-lived one, and it may still be writing the install. `busy` /
  * `error` mean the helper could not establish ownership at all. The one
  * bounded case is a helper that has never answered for this body: after
- * HELPER_ERROR_ATTEMPTS consecutive `error`s (bash / PowerShell blocked, a
+ * HELPER_ERROR_ATTEMPTS consecutive `error`s (bash blocked, a
  * broken script) the gate proceeds as main did for a dead marker, minus the
  * deletion — otherwise such a machine would park every boot after every
  * crashed update. Once the helper has answered for a body, a later `error` is
@@ -86,8 +86,8 @@ export interface LiveMarkerProbeOptions {
   reclaim: (() => Promise<MarkerHelperVerdict>) | null
   /**
    * False when the script would answer "not held" for a missing checkout
-   * lock: with no marker the helper is then not spawned (on Windows a
-   * powershell.exe load on every boot's critical path).
+   * lock: with no marker the helper is then not spawned (a script load on
+   * every boot's critical path).
    */
   checkoutLockMayBeHeld?: () => boolean
   createTime?: CreateTimeProbe
@@ -376,7 +376,7 @@ function keepsGateShut(verdict: MarkerHelperVerdict, absent: boolean): boolean {
 
 /**
  * A v1 marker (no `ct:`, no delegate) reads live on a bare alive pid for up to
- * V1_MAX_AGE_S, so a recycled pid (Windows, #122206) parks boot ~20 min. A
+ * V1_MAX_AGE_S, so a recycled pid (#122206) parks boot ~20 min. A
  * failed receipt that finished after the marker started says that update is
  * over. Only v1: a v2 owner's creation time already tells a reused pid apart,
  * and a retry's marker starts after the old receipt, so a retry still waits

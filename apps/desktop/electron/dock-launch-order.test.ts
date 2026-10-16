@@ -9,7 +9,7 @@ describe('macOS Dock launch order', () => {
   })
 
   it('keeps non-macOS platforms on the lock at module load, with no Dock race', () => {
-    for (const platform of ['win32', 'linux', 'freebsd']) {
+    for (const platform of ['linux', 'freebsd']) {
       expect(preReadyDockLaunchSteps(platform)).toEqual(['single-instance-lock'])
       expect(deepLinkRegistersBeforeSingleInstanceLock(platform)).toBe(false)
     }

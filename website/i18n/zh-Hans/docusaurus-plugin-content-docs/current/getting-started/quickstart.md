@@ -51,7 +51,7 @@ description: "与 Hermes Agent 的第一次对话——从安装到开始聊天�
 
 ## 1. 安装 Hermes Agent
 
-### 在 macOS 或 Windows 上使用 Hermes Desktop 安装器（推荐）
+### 在 macOS 上使用 Hermes Desktop 安装器（推荐）
 
 如需同时安装命令行与桌面应用，请从我们的官网[下载 Hermes Desktop 安装器](https://hermes-agent.nousresearch.com/)并运行。
 
@@ -67,7 +67,6 @@ curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 源码脚本通过 PM 准备运行时。桌面软件包、Docker、Nix 和 Termux APT 是独立的安装方式。
 请勿使用 `pip install hermes-agent` 替代受管理的安装。
 
-Windows 原生安装可在 PowerShell 中运行 `iex (irm https://hermes-agent.nousresearch.com/install.ps1)`，无需 WSL。
 aarch64 Android 设备请使用 [Termux APT 指南](./termux.md)，而非上述脚本。
 
 安装完成后，重新加载 shell：
@@ -256,7 +255,7 @@ hermes config set terminal.backend ssh       # 远程服务器
 
 ```bash
 # 在 Hermes 安装目录下运行（curl 安装器在 Linux/macOS 上将其放置于
-# ~/.hermes/hermes-agent，在 Windows 上为 %LOCALAPPDATA%\hermes\hermes-agent）：
+# ~/.hermes/hermes-agent）：
 cd ~/.hermes/hermes-agent
 python -c "import pm; pm.sync_venv(['voice'], explicit=True)"
 # 包含 faster-whisper，用于免费的本地语音转文字

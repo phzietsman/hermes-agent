@@ -247,7 +247,7 @@ def test_parked_status_still_reports_a_forced_gateway(homes, monkeypatch, capsys
     monkeypatch.setattr(gw, 'get_gateway_runtime_snapshot', lambda system=False: gw.GatewayRuntimeSnapshot(
         manager='manual', gateway_pids=(4242,)))
     monkeypatch.setattr(gw, 'named_profile_served_by_running_multiplexer', lambda: False)
-    monkeypatch.setattr(gw, '_installed_service_kind_for', lambda _check: None)
+    monkeypatch.setattr(gw, '_installed_service_kind', lambda: None)
     gw._cmd_status(SimpleNamespace())
     output = capsys.readouterr().out
     assert 'parked (hermes -p worker gateway start)' in output

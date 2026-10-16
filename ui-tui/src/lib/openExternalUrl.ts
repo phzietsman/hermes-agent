@@ -56,7 +56,7 @@ export function openExternalUrl(rawUrl: string, dependencies: OpenDependencies =
     } satisfies SpawnOptions)
 
     // Async failure path: spawn returns a ChildProcess synchronously even
-    // when the binary is missing (ENOENT on `xdg-open` / `explorer.exe`),
+    // when the binary is missing (ENOENT on `xdg-open`),
     // unreachable (EACCES), or otherwise unusable — the failure surfaces
     // later as an 'error' event. Without a handler, an unhandled 'error'
     // on an EventEmitter crashes Node, which would tear down the whole
@@ -121,18 +121,11 @@ export function parseSafeUrl(value: string): null | URL {
 type OpenCommand = { command: string; args: readonly string[] }
 
 /**
- * Per-platform open command. We deliberately avoid `cmd.exe /c start` on
- * Windows even though it's the canonical example, because `start` is a cmd
- * builtin: the URL string is reparsed by cmd's command-line tokenizer and
- * characters like `&`, `|`, `^`, `<`, `>` either break the command or get
- * interpreted as additional commands. That undermines the protocol
- * allowlist's safety story and also breaks plain http(s) URLs with `&` in
- * query strings. `explorer.exe <url>` is the safe, non-shell alternative —
- * it invokes the registered protocol handler for http(s) without going
- * through cmd. Linux/BSD use `xdg-open` directly with no shell wrapping.
+ * Per-platform open command. macOS uses `open`; Linux/BSD use `xdg-open`
+ * directly with no shell wrapping.
  *
  * Returns null for platforms where we don't know a safe opener (e.g. `aix`,
- * `sunos`, `cygwin`). The caller's `if (!command) return false` path then
+ * `sunos`). The caller's `if (!command) return false` path then
  * surfaces "no opener" instead of optimistically trying `xdg-open` on a
  * platform that probably doesn't have it.
  */
@@ -141,12 +134,8 @@ export function openCommand(platformId: string): OpenCommand | null {
     return { command: 'open', args: [] }
   }
 
-  if (platformId === 'win32') {
-    return { command: 'explorer.exe', args: [] }
-  }
-
   // Linux + the BSD family ship xdg-open via xdg-utils. Everything else
-  // (aix, sunos, cygwin, haiku, etc.) returns null so openExternalUrl's
+  // (aix, sunos, haiku, etc.) returns null so openExternalUrl's
   // command-not-found fallback fires honestly.
   const XDG_OPEN_PLATFORMS = new Set(['linux', 'freebsd', 'openbsd', 'netbsd', 'dragonfly'])
 

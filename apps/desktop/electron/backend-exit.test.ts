@@ -12,7 +12,7 @@ test('backend exit escalation rejects within its bound when no exit or close arr
     const child = Object.assign(new EventEmitter(), { exitCode: null, signalCode: null, kill: vi.fn() })
 
     const waiting = assert.rejects(
-      waitForBackendExit(child, { forceKillProcessTree: (): void => {} }, 20),
+      waitForBackendExit(child, {}, 20),
       /did not exit/
     )
 
@@ -40,7 +40,7 @@ test('a failed escalation is not evidence that the child exited', async () => {
       }
     })
 
-    const outcome = waitForBackendExit(child, { forceKillProcessTree: () => {} }, 20).then(
+    const outcome = waitForBackendExit(child, {}, 20).then(
       () => null,
       error => error
     )

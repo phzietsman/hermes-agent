@@ -41,7 +41,7 @@ def _on_session_end(**kwargs) -> None:
 
 def register(ctx) -> None:
     """Register tools, CLI, and lifecycle hooks (called once by the plugin loader)."""
-    # Windows: no tested audio-routing path and flaky guest-join Chromium — refuse rather than half-work.
+    # Audio routing exists only for Linux (pactl) and macOS (BlackHole).
     system = platform.system().lower()
     if system not in {"linux", "darwin"}:
         logger.info("google_meet plugin: platform=%s not supported (linux/macos only)", system)

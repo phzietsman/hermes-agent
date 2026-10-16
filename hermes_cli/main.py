@@ -8,8 +8,7 @@ Usage:
     hermes <cmd> --help        # Per-command help
 """
 
-# hermes_bootstrap must be the very first import — it sets up UTF-8 stdio on
-# Windows (no-op on POSIX). Guarded: after a ``git pull`` / interrupted
+# hermes_bootstrap must be the very first import (PM activation). Guarded: after a ``git pull`` / interrupted
 # ``hermes update`` the editable install's ``.pth`` may not list it yet; crashing
 # here would block ``hermes update``.
 try:
@@ -27,13 +26,6 @@ from hermes_cli import _early_recovery as _early_recovery_mod
 
 if _early_recovery_mod.restore_interrupted_pull():
     _early_recovery_mod.relaunch_after_restore()
-
-# Windows: neutralize CPython's ``platform._syscmd_ver`` before anything else
-# imports — it shells out ``cmd /c ver`` and flashes a console when this
-# process is windowless (pythonw gateway, kanban workers). No-op on POSIX.
-from hermes_cli._subprocess_compat import suppress_platform_ver_console
-
-suppress_platform_ver_console()
 
 import os
 import re
@@ -211,7 +203,7 @@ def _set_process_title() -> None:
 
     Order: opt-in ``setproctitle`` dep; ctypes ``prctl(PR_SET_NAME)`` (Linux,
     15-char limit); ``pthread_setname_np`` (macOS — lldb/top only, not ``ps
-    aux``); no-op on Windows (the .exe is already ``hermes.exe``). Never fatal.
+    aux``). Never fatal.
     """
     try:
         import setproctitle  # type: ignore[import-untyped]
@@ -393,7 +385,6 @@ from hermes_cli.subcommands.vault import build_vault_parser
 from hermes_cli.subcommands.moa import build_moa_parser
 from hermes_cli.subcommands.fallback import build_fallback_parser
 from hermes_cli.subcommands.worktree import build_worktree_parser
-from hermes_cli.subcommands.browser import build_browser_parser
 from hermes_cli.subcommands.secrets import build_secrets_parser
 from hermes_cli.subcommands.codex_runtime import build_codex_runtime_parser
 from hermes_cli.subcommands.egress import build_egress_parser
@@ -545,7 +536,7 @@ def _under_gateway_supervisor(argv: list) -> bool:
     token already owned by that profile's own gateway (#74872).
 
     Markers (see gateway/restart.py ``is_gateway_supervisor_process``):
-    HERMES_SUPERVISED_CHILD (systemd unit / launchd plist / Windows task),
+    HERMES_SUPERVISED_CHILD (systemd unit / launchd plist),
     HERMES_S6_SUPERVISED_CHILD (legacy s6 container), INVOCATION_ID (systemd
     service children only — consulted ONLY for gateway commands because it is
     inherited by every descendant of a systemd-launched process, e.g.
@@ -678,37 +669,13 @@ if sys.argv[1:2] == ["pm"]:
 
     raise SystemExit(_pm_main(sys.argv[2:]))
 
-# Windows launcher self-heal — the ``hermes`` command is a COPY of the venv
-# console script staged into the managed bin dir (outside the checkout, since
-# ``hermes update``'s autostash once swept ``<checkout>\bin`` copies off disk;
-# venv\Scripts must stay off PATH as it shadows the user's ``python``).
-# Re-staging at process start reaches already-broken installs via the desktop
-# app's ``python -m hermes_cli.main`` spawn. Gates fail toward inaction. Sits
-# AFTER the profile override on purpose — no hermes module may import before
-# profiles resolve; the helper anchors on the DEFAULT root, so profile
-# sessions heal the same shared dir.
-# That dir lives OUTSIDE the git checkout precisely because an earlier layout staged the copies at
-# ``<checkout>\bin``, where ``hermes update``'s autostash (``git stash push --include-untracked``) swept
-# them off disk; with the desktop updater's ``--keep-stash`` nothing restored them and ``hermes`` stopped
-# resolving in every new terminal (venv\Scripts itself must stay off PATH — it shadows the user's
-# ``python``, #83797). Costs a few stat calls when healthy; gates fail toward inaction so source checkouts
-# are untouched.
-if sys.platform == "win32":
-    try:
-        from hermes_cli import _install_repair as _install_repair_mod
-
-        _install_repair_mod.ensure_windows_bin_launchers(_bootstrap_root)
-    except Exception:
-        pass
-
 # Load .env from ~/.hermes/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
 from hermes_cli.config import get_hermes_home
 from hermes_cli.env_loader import load_hermes_dotenv
 
-# ``update`` must not resolve external secret sources (Windows self-lock via cryptography, slow
-# helpers inside the import probe) — ``_early_recovery._should_skip_external_secret_sources``
-# owns that argv check for every dotenv load in the process. See #73381.
+# ``update`` must not resolve external secret sources (slow helpers inside the import probe) —
+# ``_early_recovery._should_skip_external_secret_sources`` owns that argv check for every dotenv load in the process. See #73381.
 load_hermes_dotenv(project_env=PROJECT_ROOT / ".env")
 
 # Bridge security.redact_secrets → HERMES_REDACT_SECRETS BEFORE hermes_logging
@@ -863,7 +830,7 @@ from hermes_cli.old_updater_main import (
     _windows_shim_in_process_chain,
     _write_web_ui_build_stamp,
 )
-from hermes_cli.main_install_repair import _cleanup_quarantined_exes, _recover_update_debts_on_startup
+from hermes_cli.main_install_repair import _recover_update_debts_on_startup
 from hermes_cli.main_install_repair import (  # frozen updater surface: update_cmd*.py resolve these via _m()
     _UPDATE_REEXEC_ENV,
     _clear_lazy_refresh_incomplete_marker,
@@ -1488,11 +1455,7 @@ def _apply_in_dir(args) -> None:
     in_dir = getattr(args, "in_dir", None)
     if not in_dir:
         return
-    # Git Bash / MSYS hands us POSIX-style paths (`--in ~` → `/c/Users/x`);
-    # translate drive-root spellings to native Windows form. No-op elsewhere.
-    from tools.environments.local import _msys_to_windows_path
-
-    _target_dir = os.path.abspath(os.path.expanduser(_msys_to_windows_path(in_dir)))
+    _target_dir = os.path.abspath(os.path.expanduser(in_dir))
     if not os.path.isdir(_target_dir):
         print(f"Error: --in directory not found: {in_dir}")
         sys.exit(1)
@@ -2124,7 +2087,6 @@ def select_provider_and_model(args=None):
 
 def _detect_venv_python_processes(*, exclude_pids: set[int] | None = None) -> list[tuple[int, str, str]]:
     # Shim to stop the old updater doing work until relaunch. Do not scan or kill.
-    # Current Windows checks use the real detector in update_cmd_windows instead.
     return []
 
 
@@ -2137,21 +2099,19 @@ def _detect_venv_python_processes(*, exclude_pids: set[int] | None = None) -> li
 # added here — internal import paths are not a stable API.
 _FROZEN_UPDATER_SURFACE: dict[str, tuple[str, ...]] = {
     "hermes_cli.update_cmd": (
-        "_assess_parked_branch_switch",
-        "_cold_start_windows_gateway_after_update", "_discard_stashed_changes",
+        "_assess_parked_branch_switch", "_discard_stashed_changes",
         "_filter_non_gateway_concurrent_instances", "_fleet_probe_expected_runtimes",
-        "_get_origin_url", "_park_stashed_changes",
-        "_pause_windows_gateways_for_update", "_print_parked_branch_kept_notice",
-        "_print_parked_branch_skip_warning",
-        "_refresh_bootstrap_cache_scripts", "_refresh_windows_gateway_launchers",
-        "_restore_stashed_changes",
-        "_resume_windows_gateways_after_update", "_run_logged_subprocess", "_run_pre_update_backup",
+        "_get_origin_url", "_park_stashed_changes", "_print_parked_branch_kept_notice",
+        "_print_parked_branch_skip_warning", "_refresh_bootstrap_cache_scripts",
+        "_restore_stashed_changes", "_run_logged_subprocess", "_run_pre_update_backup",
         "_stash_local_changes_if_needed", "_sync_with_upstream_if_needed",
-        "_venv_launcher_ancestors",
-        "_wait_for_windows_update_gateway_exit", "_warn_orphaned_update_autostashes",
+        "_warn_orphaned_update_autostashes",
     ),
     "hermes_cli.old_updater_deps": (
-        "_capture_active_lazy_features", "_handoff_reapable_backend_pids",
+        "_capture_active_lazy_features", "_cold_start_windows_gateway_after_update",
+        "_pause_windows_gateways_for_update", "_refresh_windows_gateway_launchers",
+        "_resume_windows_gateways_after_update", "_venv_launcher_ancestors",
+        "_wait_for_windows_update_gateway_exit", "_handoff_reapable_backend_pids",
         "_ledger_manual_serve_holders", "_ledger_reapable_backend_pids",
         "_leftover_pausable_gateway_pids", "_npm_lockfile_changed",
         "_orphaned_desktop_backend_pids", "_refresh_active_lazy_features",
@@ -2330,7 +2290,7 @@ def _update_preflight_handled(args) -> bool:
         sys.exit(0)
     if is_managed():
         managed_error("update Hermes Agent")
-        if not any(getattr(args, flag, False) for flag in ("plan", "check", "list_venv_holders")):
+        if not any(getattr(args, flag, False) for flag in ("plan", "check")):
             _record_stop("managed_install", without_receipt="refused")  # an update attempt: a metrics row only
         return True
 
@@ -2346,19 +2306,6 @@ def _update_preflight_handled(args) -> bool:
         )
 
         print_update_plan(collect_runtime_inventory())
-        return True
-
-    if getattr(args, "list_venv_holders", False):
-        # Read-only twin of the Windows venv-holder refusal (#117246): same scan and classifiers,
-        # machine-readable, exit 3 when holders remain so automation can stop those PIDs and retry.
-        import json
-
-        from hermes_cli.update_cmd_windows import VENV_HOLDERS_EXIT, list_venv_holders
-
-        holders = list_venv_holders()
-        print(json.dumps(holders, indent=2))
-        if holders:
-            sys.exit(VENV_HOLDERS_EXIT)
         return True
 
     # Image/package-managed admission gate (#91277 Phase 3): baked provenance marker first (fail-closed
@@ -2428,17 +2375,10 @@ def cmd_update(args):
     from hermes_cli.update_cmd import _cmd_update_impl
     from pm import InstallError
 
-    def _custody_refusal() -> str | None:
-        # m2: readers swallow an OSError, so a refused update child can end the run as a misleading
-        # downstream error; the refusal is what stopped it. Never on POSIX (nothing refuses there).
-        custody = sys.modules.get("hermes_cli.update_custody")
-        return custody.refusal_notice() if custody is not None else None
-
     try:
         _cmd_update_impl(args, gateway_mode=gateway_mode)
     except (InstallError, OSError, subprocess.SubprocessError) as exc:
-        refusal = _custody_refusal()
-        print(refusal or f"✗ Update failed: {exc}")
+        print(f"✗ Update failed: {exc}")
         _finalize_update_receipt(1, f"{type(exc).__name__}: {exc}")
         if gateway_mode:
             from hermes_cli.update_cmd_fleet import _write_gateway_update_exit_code
@@ -2450,8 +2390,6 @@ def cmd_update(args):
         # reach an inner finalize. Persist any still-open receipt with the real
         # exit code (no-op if already finalized), then let the exit proceed.
         _code = _update_exit.code if isinstance(_update_exit.code, int) else 1
-        if _code and (refusal := _custody_refusal()):
-            print(refusal)
         _finalize_update_receipt(_code, f"sys.exit({_code})")
         if gateway_mode and _code:
             from hermes_cli.update_cmd_fleet import _write_gateway_update_exit_code
@@ -2601,22 +2539,14 @@ def _dashboard_sanitize_desktop_env(headless_backend) -> None:
 
 
 def _require_dashboard_web_deps() -> None:
-    """Exit with the right message when the dashboard's web-server packages can't import.
-
-    A plain missing-package ImportError gets the standard repair guidance; the
-    ``DLL load failed ... _ssl`` signature of Windows Smart App Control blocking the
-    embedded runtime gets the policy guidance instead, so users stop looping on
-    repair for a block repair can never lift (#63796)."""
+    """Exit with the repair guidance when the dashboard's web-server packages can't import."""
     try:
         import fastapi  # noqa: F401
         import uvicorn  # noqa: F401
     except ImportError as e:
-        from hermes_cli.main_dep_hints import (
-            missing_optional_deps_message,
-            smart_app_control_block_message,
-        )
+        from hermes_cli.main_dep_hints import missing_optional_deps_message
 
-        print(smart_app_control_block_message(e) or missing_optional_deps_message(
+        print(missing_optional_deps_message(
             "dashboard", "its web-server packages (fastapi, uvicorn)", "all"))
         print(f"Details: {e}")
         sys.exit(1)
@@ -3116,7 +3046,7 @@ def _try_fast_serve_launch() -> bool:
     """Dispatch an unambiguous built-in ``serve`` without the full CLI tree.
 
     Desktop runs this on every cold start; building every other parser costs
-    thousands of filesystem-backed lookups on Windows. Unknown or global
+    thousands of filesystem-backed lookups. Unknown or global
     arguments fall back to normal parsing so error reporting is unchanged.
     """
     if os.environ.get("HERMES_DISABLE_FAST_SERVE_LAUNCH") == "1":
@@ -3374,7 +3304,6 @@ def _build_cli_parser():
     build_moa_parser(subparsers)
     build_fallback_parser(subparsers)
     build_worktree_parser(subparsers)
-    build_browser_parser(subparsers)
     build_secrets_parser(subparsers)
     # OUTBOUND egress firewall; ``hermes proxy`` (gateway group) is the INBOUND one.
     build_egress_parser(subparsers)
@@ -3463,8 +3392,7 @@ def _build_cli_parser():
         cmd_dashboard=cmd_dashboard,
         cmd_dashboard_register=cmd_dashboard_register,
     )
-    # "desktop" is canonical (Hermes-Setup.exe tells users to run it, so it
-    # must be the name --help shows); "gui" is a deprecated alias.
+    # "desktop" is canonical (the name --help shows); "gui" is a deprecated alias.
     build_gui_parser(subparsers, cmd_gui=cmd_gui)
     build_logs_parser(subparsers, cmd_logs=cmd_logs)
     build_prompt_size_parser(subparsers, cmd_prompt_size=cmd_prompt_size)
@@ -3522,12 +3450,6 @@ def main():
     _warn_if_unsupervised_pid1()
     _advertise_agent_env()
 
-    # Force UTF-8 stdio on Windows before anything prints.  No-op elsewhere.
-    try:
-        from hermes_cli.stdio import configure_windows_stdio
-        configure_windows_stdio()
-    except Exception:
-        pass
     # A non-UTF-8 locale that the package import had to repair would crash Python children the
     # same way. Only on that host, so a healthy UTF-8 locale keeps its children untouched.
     from hermes_cli import _stdio_repaired
@@ -3540,13 +3462,6 @@ def main():
     from agent.ssl_verify import install_truststore
 
     install_truststore()
-
-    # Sweep stale ``hermes.exe.old.*`` quarantine files from previous Windows
-    # updates. No-op elsewhere.
-    try:
-        _cleanup_quarantined_exes()
-    except Exception:
-        pass
 
     # Checkout changed since last launch → sweep stale __pycache__ once so no
     # process resolves fresh source against old bytecode. Never raises.

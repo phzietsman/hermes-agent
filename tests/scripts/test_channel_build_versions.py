@@ -18,13 +18,11 @@ def channel_request(commit: str, sequence: int = 65536) -> dict:
         "schema": 1, "buildId": "a" * 32, "channel": "unregistered-preview",
         "sequence": sequence, "repository": "fixture/project", "commit": commit,
         "sourceVersion": "1.2.3", "version": f"0.0.{sequence}",
-        "windowsVersion": f"0.{sequence // 65536}.{sequence % 65536}.0",
         "identity": {
             "token": token, "displayName": "Hermes unregistered-preview",
             "appId": f"com.nousresearch.hermes-channel-{token}",
             "appNamePascal": f"HermesChannel{token}", "artifactNamePascal": "HermesBundled",
-            "cliName": "hermes-unregistered-preview", "windowsExecutableName": "hermes-unregistered-preview",
-            "msixAppIdWithOrg": f"NousResearch.HermesChannel{token}",
+            "cliName": "hermes-unregistered-preview",
         },
         "bundleEnv": {"HERMES_GUEST_ONBOARDING": "1", "HERMES_HOME": None},
         "publicBase": "https://builds.example.test",
@@ -58,7 +56,7 @@ def test_preparation_preserves_exact_channel_inputs_without_source_version_order
             BuildRequest.create(source, tag=None, commit=commit, variant=variant,
                                 work=tmp_path / "work", cache=tmp_path / "cache",
                                 bundle_env={}, channel_request=channel_request(commit))
-    for args in (["-c.extraMetadata.version=9.9.9"], ["--config.extraMetadata.shortVersionWindows=1.0.0.0"]):
+    for args in (["-c.extraMetadata.version=9.9.9"], ["--config.extraMetadata.shortVersion=1.0.0"]):
         from scripts.bundles.desktop_inputs import validate_builder_identity
         with pytest.raises(ValueError, match="channel"):
             validate_builder_identity(request, args)

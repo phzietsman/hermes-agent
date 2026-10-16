@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ Примусовий вихід..."
     interrupting_again_hint: "⚡ Переривання агента... (натисніть Ctrl+C ще раз для примусового виходу)"
     interrupting: "⚡ Переривання агента..."
-    suspend_unsupported: "Призупинення (Ctrl+Z) не підтримується у Windows."
     suspended: "{agent_name} призупинено. Виконайте `fg`, щоб повернути {agent_name}."
     steer_failed_queued: "Не вдалося скерувати ({error}) — поставлено в чергу на наступний хід."
     steered: "⏩ Скеровано: '{preview}'"

@@ -564,10 +564,7 @@ from tui_gateway.turn_marker import record_turn_start
 home = Path(sys.argv[1])
 record_turn_start(home, "session-key", "interrupted prompt")
 print(f"ready {os.getpid()}", flush=True)
-# Linger until the test drops a sentinel. Self-exit, not terminate(): a venv
-# python.exe on Windows re-execs the real interpreter, so Popen.pid is the
-# launcher and killing it does not reliably reach the process that holds the
-# marker.
+# Linger until the test drops a sentinel, then self-exit.
 deadline = time.time() + 120
 while not (home / "writer-exit").exists() and time.time() < deadline:
     time.sleep(0.05)

@@ -116,18 +116,17 @@ test('explicit relaunch activates a minimized tray-hidden window', () => {
 })
 
 // Regression for #130810: the last-chat `closed` fallback quits on
-// Windows/Linux when no chat surface remains and no quit is already tearing
+// Linux when no chat surface remains and no quit is already tearing
 // down. It must not consult the overlay-suppression latch, must stay quiet
 // on macOS, during handoff, with peers left, or mid-quit.
 test('last-chat fallback quits only for a final non-macOS close outside a quit', () => {
   const cases: [string, boolean, number, boolean, boolean][] = [
     // platform, isQuittingForHandoff, remainingChatWindows, quitInProgress, expected
-    ['win32', false, 0, false, true],
     ['linux', false, 0, false, true],
     ['darwin', false, 0, false, false],
-    ['win32', true, 0, false, false],
-    ['win32', false, 1, false, false],
-    ['win32', false, 0, true, false]
+    ['linux', true, 0, false, false],
+    ['linux', false, 1, false, false],
+    ['linux', false, 0, true, false]
   ]
 
   for (const [platform, isQuittingForHandoff, remainingChatWindows, quitInProgress, expected] of cases) {

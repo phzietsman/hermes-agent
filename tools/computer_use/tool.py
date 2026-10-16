@@ -1,4 +1,4 @@
-"""`computer_use` tool entry point: any-model desktop control (macOS/Windows/Linux) via cua-driver.
+"""`computer_use` tool entry point: any-model desktop control (macOS/Linux) via cua-driver.
 Return contract: text-only results are a JSON string; captures / `capture_after=True` return
 ``{"_multimodal": True, "content": [text, image_url], "text_summary": <fallback>}`` (run_agent.py /
 the Anthropic adapter turn it into provider-specific image tool content)."""
@@ -37,7 +37,7 @@ def set_approval_callback(cb) -> None:
     _approval_callback = cb
 
 # Hard-blocked regardless of approval level (e.g. logout kills the session Hermes runs in). Alt is
-# canonicalized to option, so the Windows variants are blocked before any backend sees them.
+# canonicalized to option, so the PC-keyboard variants are blocked before any backend sees them.
 # See #4562.
 _BLOCKED_KEY_COMBOS = {
     frozenset({"cmd", "shift", "backspace"}), frozenset({"cmd", "option", "backspace"}),  # empty trash / force delete
@@ -802,10 +802,8 @@ def _secure_dir_policy(cache_dir) -> None:
 def _write_private_bytes(path, data: bytes) -> None:
     """Write ``data`` to ``path`` with owner-only (0600) permissions.
 
-    ``Path.write_bytes`` would land 0644 under a default umask. POSIX mode
-    bits are advisory on Windows (``os.chmod`` there only toggles the
-    read-only flag), so this is a best-effort narrowing that falls back to a
-    plain write rather than failing the capture.
+    ``Path.write_bytes`` would land 0644 under a default umask. Best-effort
+    narrowing that falls back to a plain write rather than failing the capture.
     """
     import os as _os_priv
 

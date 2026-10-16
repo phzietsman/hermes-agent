@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def _with_controlling_terminal(tty_path: str):
     """preexec_fn: make this PTY the child's controlling terminal, so /dev/tty opens."""
     def attach() -> None:
-        os.setsid()  # windows-footgun: ok (posix-only test)
+        os.setsid()
         fd = os.open(tty_path, os.O_RDWR)
         try:
             # Opening a PTY slave does not always acquire it on Darwin.

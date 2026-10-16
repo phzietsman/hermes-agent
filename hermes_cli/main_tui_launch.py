@@ -94,14 +94,11 @@ def _find_bundled_tui(hermes_cli_dir: Path | None = None) -> Path | None:
 
 
 def _restore_tui_workspace(tui_dir: Path) -> bool:
-    """Best-effort ``git restore`` of a missing ``ui-tui/`` (Windows AV/NTFS filters can delete
-    tracked files after ``hermes update``); True when the directory exists afterwards.
+    """Best-effort ``git restore`` of a missing ``ui-tui/``; True when the directory exists afterwards.
 
-    On Windows an antivirus / NTFS filter driver can leave tracked ``ui-tui/`` files deleted in the working
-    tree after ``hermes update`` (HEAD stays intact; the files just vanish — see issue #49145). Those files
-    are tracked, so ``git restore`` puts them back deterministically. Best-effort: returns False (rather
-    than raising) when git is unavailable, this isn't a checkout, or the restore leaves the directory still
-    missing — the caller then prints the manual-recovery message.
+    The files are tracked, so ``git restore`` puts them back deterministically (#49145). Best-effort:
+    returns False (rather than raising) when git is unavailable, this isn't a checkout, or the restore
+    leaves the directory still missing — the caller then prints the manual-recovery message.
     """
     git = shutil.which("git")
     if not git or not (tui_dir.parent / ".git").exists():
@@ -117,10 +114,10 @@ def _restore_tui_workspace(tui_dir: Path) -> bool:
 
 def _ensure_tui_workspace(tui_dir: Path) -> None:
     """Ensure ``ui-tui/`` exists before it is used as a subprocess cwd (else ``NotADirectoryError``
-    / ``WinError 267`` with no usable message): git-restore first, then abort with recovery steps.
+    with no usable message): git-restore first, then abort with recovery steps.
 
     Without this, a missing workspace falls through to ``subprocess.run(..., cwd=<missing ui-tui>)``, which
-    crashes with ``NotADirectoryError`` (``WinError 267`` on Windows) instead of a usable message (#49145).
+    crashes with ``NotADirectoryError`` instead of a usable message (#49145).
     We first try to self-heal via ``git restore``; only if that can't recover the directory do we abort with
     concrete manual-recovery steps.
     """

@@ -16,11 +16,11 @@ const XWAYLAND_SESSION = { DISPLAY: ':0', WAYLAND_DISPLAY: 'wayland-0', XDG_SESS
 const input = (platform: string, env: NodeJS.ProcessEnv, argv: readonly string[] = []) =>
   resolveHudWindowing(platform, env, argv).input
 
-test('macOS and Windows share the click-through + renderer-drag profile', () => {
-  for (const platform of ['darwin', 'win32'] as const) {
+test('macOS uses the click-through + renderer-drag profile', () => {
+  for (const platform of ['darwin'] as const) {
     const windowing = resolveHudWindowing(platform, WAYLAND_SESSION, ['--ozone-platform=wayland'])
 
-    assert.equal(windowing.backend, platform === 'darwin' ? 'cocoa' : 'win32')
+    assert.equal(windowing.backend, 'cocoa')
     assert.equal(windowing.input, 'click-through')
     assert.equal(windowing.move, 'renderer')
     assert.equal(windowing.clientPlacement, true)

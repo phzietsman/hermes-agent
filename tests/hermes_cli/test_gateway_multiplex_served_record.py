@@ -158,7 +158,7 @@ def test_service_verbs_do_not_start_a_second_gateway(served_root, monkeypatch, v
     monkeypatch.setattr(gw, "_service_call", lambda backend, v, system: calls.append(v))
     monkeypatch.setattr(gw, "_install_systemd_from_cli", lambda *a, **k: calls.append("install"))
     monkeypatch.setattr(gw, "_dispatch_via_service_manager_if_s6", lambda v: False)
-    monkeypatch.setattr(gw, "_installed_service_kind_for", lambda *a, **k: "systemd")
+    monkeypatch.setattr(gw, "_installed_service_kind", lambda: "systemd")
     monkeypatch.setattr(gw, "is_managed", lambda: False)
     monkeypatch.setattr(gw, "is_termux", lambda: False)
     fn = getattr(gw, f"_cmd_{verb}")

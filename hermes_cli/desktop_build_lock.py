@@ -110,23 +110,9 @@ class DesktopBuildLock:
         # in-flight build it depends on than fail the update).
         print("→ Waiting for another Hermes desktop dependency install or build to finish...")
         print(f"  Lock: {self.path}")
-        from gateway.status import _release_file_lock
+        import fcntl
 
-        try:
-            import fcntl
-
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        except ImportError:
-            # Windows has no fcntl; gateway.status's non-blocking try below is
-            # the best-effort serialization there (msvcrt.locking), so poll it.
-            import time
-
-            while True:
-                if _try_acquire_file_lock(handle):
-                    self._handle = handle
-                    return True
-                _release_file_lock(handle)
-                time.sleep(1.0)
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
         self._handle = handle
         return True
 

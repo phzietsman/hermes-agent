@@ -1,7 +1,6 @@
 """Quick snapshot auth restore must not roll back rotated single-use OAuth grants."""
 
 import json
-import os
 
 
 def _oauth_row(provider, token, *, row_id="shared", priority=0):
@@ -83,8 +82,7 @@ def test_quick_snapshot_restore_keeps_live_oauth_and_restores_static_auth(
         == "refresh-rotated"
     )
     assert restored["credential_pool"]["openrouter"][0]["api_key"] == "snapshot-static"
-    if os.name != "nt":
-        assert (home / "auth.json").stat().st_mode & 0o777 == 0o600
+    assert (home / "auth.json").stat().st_mode & 0o777 == 0o600
 
 
 def test_auth_refusal_is_not_hidden_by_another_restored_file(tmp_path, monkeypatch, capsys):

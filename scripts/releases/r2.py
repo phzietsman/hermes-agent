@@ -457,37 +457,11 @@ def is_full_sha(value: str) -> bool:
     return bool(isinstance(value, str) and _FULL_SHA_RE.fullmatch(value))
 
 
-# Windows reserved names (CPython ntpath parity). COM/LPT superscript forms
-# (COM² etc.) are reserved under NTFS namespace rules, same as the digit forms.
-_WIN_RESERVED_NAMES = frozenset(
-    ["CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"]
-    + [f"COM{i}" for i in range(1, 10)] + ["COM¹", "COM²", "COM³"]
-    + [f"LPT{i}" for i in range(1, 10)] + ["LPT¹", "LPT²", "LPT³"]
-)
-
-
-def _is_windows_reserved(value: str) -> bool:
-    """True if any path component is reserved on Windows.
-
-    Port of ntpath.isreserved() (added in Python 3.13; release CI may run
-    older system Pythons, so inline the semantics rather than depend on it).
-    """
-    for part in reversed(value.split("/")):
-        # Trailing dots and spaces are reserved.
-        if part[-1:] in (".", " ") and part not in (".", ".."):
-            return True
-        stem = part.partition(".")[0].rstrip(" ").upper()
-        if stem in _WIN_RESERVED_NAMES:
-            return True
-    return False
-
-
 def relative_artifact_path(value: str) -> str:
     """Validate the original path before any filesystem normalization."""
     if (not isinstance(value, str) or not value or value.startswith("/")
             or any(part in ("", ".", "..") for part in value.split("/"))
-            or any(c in value for c in "\\:%?#") or any(ord(c) < 32 for c in value)
-            or _is_windows_reserved(value)):
+            or any(c in value for c in "\\:%?#") or any(ord(c) < 32 for c in value)):
         raise ValueError("Invalid release artifact path")
     return value
 
@@ -530,17 +504,13 @@ def commit_page_key_for(commit: str) -> str:
     return commit_prefix_for(commit) + "index.html"
 
 
-def feed_dir_for(platform: str, channel: str) -> str:
-    return f"releases/{platform}/{channel}"
-
-
 def cache_control_for(key: str) -> str | None:
     """APT indexes are mutable; by-hash indexes and versioned packages are not."""
     if key.startswith("releases/channels/"):
         return "no-store"
     if key.startswith(("releases/channel-builds/", "releases/channel-identities/")):
         return "public, max-age=31536000, immutable"
-    if key.endswith((".appinstaller", ".html")) or key.startswith("releases/stable/") or (key.startswith("releases/darwin/") and key.endswith("-mac.yml")):
+    if key.endswith(".html") or key.startswith("releases/stable/") or (key.startswith("releases/darwin/") and key.endswith("-mac.yml")):
         return "no-store"
     if not key.startswith("releases/termux/"):
         return None
@@ -825,92 +795,6 @@ def canary_doomed_keys(keys: list[str], cutoff: str) -> list[str]:
     return doomed
 
 
-def publish_feed_uploads(plan: dict, upload: Callable[[str, str], None]) -> None:
-    """Feed publish order: the immutable .msixbundle FIRST, the pointer LAST."""
-    upload(f"{plan['channelDir']}/{plan['bundleFilename']}", plan["bundleFile"])
-    upload(f"{plan['channelDir']}/{plan['appinstallerName']}", plan["appinstallerFile"])
-
-
-def referenced_feed_bundle_filenames(appinstaller_xml: str | None) -> list[str]:
-    return [uri.rsplit("/", 1)[-1] for uri in _feed_bundle_uris(appinstaller_xml)]
-
-
-def feed_referenced_keys(dir_key: str, appinstaller_xml: str | None) -> list[str]:
-    """Full bucket keys a manifest references: each referenced bundle inside
-    its feed dir, plus any absolute /releases/... path Uri (tag-archive
-    targets), protected by exact key."""
-    keys: list[str] = []
-    for uri in _feed_bundle_uris(appinstaller_xml):
-        keys.append(f"{dir_key}/{uri.rsplit('/', 1)[-1]}")
-        if "/" in uri and uri.startswith(("http://", "https://")):
-            from urllib.parse import urlsplit, unquote
-            path = urlsplit(uri).path
-            if path.startswith("/releases/"):
-                keys.append(unquote(path[1:]))
-    return keys
-
-
-def _feed_bundle_uris(appinstaller_xml: str | None) -> list[str]:
-    """Bundle basenames a .appinstaller manifest still references, parsed
-    from the KNOWN generated shape (MainPackage/MainBundle Uri attributes
-    only — never any Uri=" in the document). Unrecognized/empty -> [] and
-    the pruner treats [] as "block this directory" (fail closed)."""
-    xml = str(appinstaller_xml or "").strip()
-    if not re.fullmatch(
-        r"(?:<\?xml[^?]*\?>\s*)?<AppInstaller\b[^>]*>[\s\S]*</AppInstaller>", xml
-    ):
-        return []
-    elements = re.findall(r"<(?:MainPackage|MainBundle)\b[^>]*/>", xml)
-    if len(elements) != 1:
-        return []
-    uri_match = re.search(r"\bUri=\"([^\"]+)\"", elements[0])
-    if uri_match and re.search(r"\.(?:msixbundle|msix)$", uri_match.group(1), re.I):
-        return [uri_match.group(1)]
-    return []
-
-
-def stale_feed_bundle_keys(
-    keys: list[str],
-    feed_xml_by_dir: dict[str, list[str | None]],
-    last_modified_ms: dict[str, float] | None = None,
-    cutoff_ms: float = float("-inf"),
-) -> list[str]:
-    """Canary feed-dir retention: fail-closed on every unknown. A bundle is
-    doomed when its feed dir's manifests were ALL readable AND it is
-    referenced by none of them AND its list LastModified predates cutoff.
-    Unreadable/unrecognized manifest (zero references) blocks the whole dir;
-    stable dirs and unknown dirs are never pruned; a missing LastModified
-    keeps the object."""
-    doomed: list[str] = []
-    for dir_key, manifests in (feed_xml_by_dir or {}).items():
-        if not re.search(r"/canary$", dir_key.rstrip("/")):
-            continue  # canaries only
-        referenced: set[str] = set()
-        blocked = False
-        for xml in manifests or []:
-            names = referenced_feed_bundle_filenames(xml)
-            if not names:
-                blocked = True
-                print(f"::warning::feed manifest unreadable/unrecognized, skipping feed retention for {dir_key}/")
-                break
-            referenced.update(names)
-        if blocked or not referenced:
-            continue
-        prefix = f"{dir_key.rstrip('/')}/"
-        for key in keys:
-            if not key.startswith(prefix):
-                continue
-            if not re.search(r"\.(?:msixbundle|msix)$", key, re.I):
-                continue  # pointers + metadata stay
-            if key[len(prefix):] in referenced:
-                continue
-            lm = (last_modified_ms or {}).get(key)
-            if lm is None or lm != lm or lm in (float("inf"),) or lm >= cutoff_ms:
-                continue  # keep-days grace (fail-closed)
-            doomed.append(key)
-    return doomed
-
-
 # ---------------------------------------------------------------------------
 # prune-canaries
 # ---------------------------------------------------------------------------
@@ -928,24 +812,11 @@ def prune(
     cutoff_date = time.strftime(
         "%Y%m%d", time.gmtime(current - keep_days * 86400)
     )
-    cutoff_ms = current - keep_days * 86400
-    listing = list_objects(creds=creds, base=base, bucket=bucket, fetcher=fetcher)
-    keys = listing["keys"]
-    last_modified = listing["lastModified"]
+    keys = list_objects(creds=creds, base=base, bucket=bucket, fetcher=fetcher)["keys"]
     now = amz_timestamp()
 
-    feed_xml_by_dir: dict[str, list[str]] = {}
     protected: set[str] = set()
-    for key in [k for k in keys if k.endswith(".appinstaller")]:
-        dir_key = key[: key.rfind("/")]
-        xml = get_object(creds, base, bucket, key, now, fetcher=fetcher)
-        if not _feed_bundle_uris(xml):
-            raise RuntimeError(f"Cannot establish live references from {key}; refusing to prune")
-        feed_xml_by_dir.setdefault(dir_key, []).append(xml or "")
-        for protected_key in feed_referenced_keys(dir_key, xml):
-            protected.add(protected_key)
-
-    # Darwin feeds protect their artifacts (key + .blockmap) too.
+    # Darwin feeds protect their artifacts (key + .blockmap).
     from . import darwin as darwin_module
 
     for key in [k for k in keys if k.startswith("releases/darwin/") and k.endswith("-mac.yml")]:
@@ -957,14 +828,7 @@ def prune(
         for reference in darwin_module.mac_feed_references(text):
             protected.add(reference)
 
-    doomed = [
-        key
-        for key in [
-            *canary_doomed_keys(keys, cutoff_date),
-            *stale_feed_bundle_keys(keys, feed_xml_by_dir, last_modified, cutoff_ms),
-        ]
-        if key not in protected
-    ]
+    doomed = [key for key in canary_doomed_keys(keys, cutoff_date) if key not in protected]
 
     if not doomed:
         print(f"OK r2: no canary objects older than {keep_days} days")
@@ -994,7 +858,7 @@ USAGE = """usage:
   python -m scripts.releases.r2 list [--prefix <p>]
   python -m scripts.releases.r2 prune-canaries --keep-days <n> [--dry-run]
 
-  --key-is-full: the --key is a FULL object key (e.g. releases/win32/stable/...),
+  --key-is-full: the --key is a FULL object key (e.g. releases/darwin/stable/...),
                  not a filename to archive under releases/tag/<tag>/.
   --immutable:   send If-None-Match: * (refuse to overwrite an existing object).
 """

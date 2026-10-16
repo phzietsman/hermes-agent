@@ -102,7 +102,7 @@ describe('reconcileUnifiedDesktopHalves', () => {
     expect(fs.existsSync(path.join(appRoot, 'media'))).toBe(false)
   })
 
-  it.skipIf(process.platform === 'win32')(
+  it(
     'materializes a SYMLINKED dev package and re-syncs on any byte change, even with an older mtime',
     async () => {
       // `ln -s ~/src/my-plugin ~/.hermes/plugins/` is how a plugin is developed in
@@ -150,7 +150,7 @@ describe('reconcileUnifiedDesktopHalves', () => {
     expect(await reconcileUnifiedDesktopHalves(home, appRoot)).toEqual([])
   })
 
-  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+  it.skipIf(process.getuid?.() === 0)(
     'skips a package the app cannot read and still materializes its siblings',
     async () => {
       // #111804: one unreadable plugin folder rejected the whole reconcile, so the
@@ -173,10 +173,10 @@ describe('reconcileUnifiedDesktopHalves', () => {
     }
   )
 
-  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+  it.skipIf(process.getuid?.() === 0)(
     'keeps (and warns about) the desktop half of a package folder it can no longer read',
     async () => {
-      // A source the app cannot stat (Windows ACL EPERM, mode-000 folder) is not
+      // A source the app cannot stat (mode-000 folder) is not
       // an uninstall: the ghost-prune loop must not rm the materialized half.
       const home = makeHome()
       const appRoot = path.join(home, 'desktop-plugins')

@@ -125,18 +125,14 @@ def _poll_readiness(url: str, timeout: float, interval: float = 1.0) -> tuple[bo
 
 
 def _terminate_process_group(proc: subprocess.Popen) -> None:
-    """SIGTERM the app's process group (``start_new_session=True`` on POSIX; just the
-    direct child on Windows, which lacks ``os.killpg``), SIGKILL after 10s."""
+    """SIGTERM the app's process group (``start_new_session=True``), SIGKILL after 10s."""
     if proc.poll() is not None:
         return
-    killpg = getattr(os, "killpg", None)
-    getpgid = getattr(os, "getpgid", None)
     pgid = None
-    if killpg is not None and getpgid is not None:
-        try:
-            pgid = getpgid(proc.pid)
-        except (ProcessLookupError, PermissionError):
-            pass
+    try:
+        pgid = os.getpgid(proc.pid)
+    except (ProcessLookupError, PermissionError):
+        pass
     if pgid is not None and pgid != proc.pid:
         # The child does not lead its own group, so it shares ours: killpg would
         # signal the whole runner process tree. Signal the direct child only.
@@ -144,7 +140,7 @@ def _terminate_process_group(proc: subprocess.Popen) -> None:
 
     def stop(sig: int, fallback: Callable[[], None]) -> None:
         if pgid is not None:
-            killpg(pgid, sig)  # windows-footgun: ok — POSIX-only branch (pgid only set when killpg exists)
+            os.killpg(pgid, sig)
         else:
             fallback()
 

@@ -46,7 +46,7 @@ source ./activate
 python -c "import youtube_transcript_api; print(youtube_transcript_api.__file__)"
 ```
 
-Windows 使用 `. .\activate.ps1` 激活。终端在另一台主机或沙箱中时，
+终端在另一台主机或沙箱中时，
 请在该环境内准备独立的辅助脚本环境，不要修改 agent 的生产环境。
 下面所有命令都使用导入检查成功的 Python。
 

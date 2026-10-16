@@ -26,7 +26,7 @@ def _add_server_runtime_args(parser) -> None:
     parser.add_argument(
         "--skip-build", action="store_true",
         help="Skip the web UI build step and serve the existing dist directly. "
-            "Useful for non-interactive contexts (Windows Scheduled Tasks, CI) "
+            "Useful for non-interactive contexts (schedulers, CI) "
             "where npm may not be available. Pre-build with: cd web && npm run build")
     parser.add_argument(
         "--isolated", action="store_true",

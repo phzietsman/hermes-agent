@@ -60,7 +60,7 @@ def _git_origin_url(plugin_dir: Path) -> Optional[str]:
     repo, config-file parse as the fallback (works for partial/copy
     installs where git refuses)."""
     # fast path: real git repo. Same resolver as install/update: PATH may be minimal
-    # (gateway service, Windows without Git on PATH); no git → straight to the config parse.
+    # (gateway service); no git → straight to the config parse.
     from hermes_cli.plugins_cmd import _resolve_git_executable
 
     git = _resolve_git_executable()

@@ -21,7 +21,7 @@ let
       os =
         if stdenv.hostPlatform.isDarwin then "darwin"
         else if stdenv.hostPlatform.isLinux then "linux"
-        else "win32";
+        else throw "hermes-agent: unsupported host platform ${stdenv.hostPlatform.system}";
     in
     "${os}-${arch}";
 

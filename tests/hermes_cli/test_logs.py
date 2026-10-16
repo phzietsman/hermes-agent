@@ -39,7 +39,7 @@ class TestParseLineTimestamp:
         assert ts == datetime(2026, 4, 11, 10, 23, 45)
 
     def test_iso_t_separated_update_and_handoff_stamps(self):
-        # posix.sh: date +%Y-%m-%dT%H:%M:%S%z; windows.ps1: yyyy-MM-ddTHH:mm:ssK
+        # posix.sh: date +%Y-%m-%dT%H:%M:%S%z
         assert _parse_line_timestamp("2026-09-29T21:36:18+08:00 update| step done") == datetime(
             2026, 9, 29, 21, 36, 18
         )

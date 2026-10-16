@@ -16,7 +16,7 @@ class _SerializedShell:
         self.bash, self.cwd, self.env = bash, str(cwd), env
 
     def execute(self, command, *, cwd=None, timeout=30, **kwargs):
-        # Deliver command text on stdin, without Windows command-line parsing.
+        # Deliver command text on stdin, exactly as serialized.
         script = json.loads(json.dumps({'command': command}))['command']
         result = subprocess.run([self.bash, '--noprofile', '--norc', '-s'],
                                 input=script, cwd=cwd or self.cwd, env=self.env,
@@ -40,7 +40,7 @@ def test_non_path_bytes_survive_real_shell_transport(tmp_path, monkeypatch, seri
         for value in ('', 'two words', "quote'and\"quote", '$() ` : ;',
                       'line\nbreak', *('a' + '\\' * length + '.b' for length in (1, 2, 3, 4, 8)),
                       "a\\'b"):
-            quoted = ops._escape_shell_arg(value, translate_path=False)
+            quoted = ops._escape_shell_arg(value)
             result = ops._exec(f"printf '%s' {quoted} | od -An -v -tx1")
             assert result.exit_code == 0, (value, result.stdout)
             assert bytes.fromhex(result.stdout) == value.encode('utf-8'), (serialized, value, result.stdout)

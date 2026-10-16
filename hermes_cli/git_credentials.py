@@ -36,7 +36,7 @@ import subprocess
 import urllib.parse
 from typing import Iterator, Mapping, Optional
 
-from hermes_cli._subprocess_compat import noninteractive_git_env, windows_hide_flags
+from hermes_cli._subprocess_compat import noninteractive_git_env
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ def _gh_cli_token() -> Optional[str]:
             env.pop(var, None)
         result = subprocess.run(
             [gh, "auth", "token"], capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=10, stdin=subprocess.DEVNULL, env=env, creationflags=windows_hide_flags())
+            timeout=10, stdin=subprocess.DEVNULL, env=env)
     except (OSError, subprocess.TimeoutExpired) as exc:
         logger.debug("gh auth token lookup failed: %s", exc)
         return None
@@ -101,8 +101,7 @@ def _credential_fill(origin: str) -> Optional[tuple[str, str]]:
     try:
         result = subprocess.run(
             [git, "-c", "core.askPass=", "credential", "fill"], input=request, capture_output=True,
-            text=True, encoding="utf-8", errors="replace", timeout=15, env=env,
-            creationflags=windows_hide_flags())
+            text=True, encoding="utf-8", errors="replace", timeout=15, env=env)
     except (OSError, subprocess.TimeoutExpired) as exc:
         logger.debug("git credential fill failed for %s: %s", origin, exc)
         return None

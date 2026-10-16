@@ -46,12 +46,12 @@ def test_interpreter_kill_rejection_names_the_owned_process_route(tmp_path, monk
             session_key="diagnostic-test",
         )
 
-    blocked = json.loads(run("taskkill /F /IM python.exe 2>/dev/null | head -2"))
+    blocked = json.loads(run("pkill -9 python3 2>/dev/null | head -2"))
     assert blocked["exit_code"] == 1
     assert "proc_" in blocked["error"] and "explicit PID" in blocked["error"]
     assert "proc_" in json.loads(run("pkill -9 python3"))["error"]
-    assert run("taskkill /F /IM agent-browser.exe /T") is None
-    assert run("taskkill /F /PID 46544") is None
+    assert run("pkill -9 agent-browser") is None
+    assert run("kill -9 46544") is None
     # Absence on the wrong side: a plain foreground `hermes gateway run` carries no launch marker.
     monkeypatch.delenv("HERMES_SUPERVISED_CHILD")
     assert run("pkill -9 python3") is None

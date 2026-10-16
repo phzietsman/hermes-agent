@@ -17,7 +17,7 @@ with merge base `433f7196760e5d76f77ea6d5464ee7f1b602a4ee`.
 ## Runtime repairs after the documentation audit
 
 The audit found a Python-layout mismatch in Electron, a fixed Python family in
-Nix, contradictory cryptography requirements, and failures in clean Windows setup.
+Nix, and contradictory cryptography requirements.
 The follow-up changes the owning implementations:
 
 - The bundle builder checks the completed payload and publishes its launch paths.
@@ -34,10 +34,7 @@ The follow-up changes the owning implementations:
 - The unused development-shell command is removed. Setup plus activation and
   `deactivate` is the single PM developer path.
 
-A native Windows check started with an empty tool store in a disposable home.
-Setup completed, PM published a dependency generation, and PowerShell activation
-ran the store interpreter and source CLI. A separate PM installation passed
-its real dependency check. These checks do not prove signed-package installation,
+These checks do not prove signed-package installation,
 updates, or Nix builds. The broader PM plugin/config YAML coupling remains unchanged.
 The [developer workflow](../reference/package-management.md#developer-workflow)
 distinguishes runtime activation from independent test and editor environments.
@@ -75,17 +72,11 @@ in `pm/environments.py`.
 | Receipt correlation | PM completions carry the invoking update ID. The updater embeds that completion, including failed steps and refusal reasons. Nested commands and copied contexts cannot finalize an enclosing receipt. |
 | Warning surfaces | Doctor uses the update checker's local provenance rules. The desktop reads sync status and distinguishes a healthy no-op from an embedded failure. |
 | Updater ownership | `electron/updater/checkout.ts` owns checkout checks and handoffs. `main.ts` supplies its dependencies. |
-| Windows relaunch | A detached PowerShell waiter snapshots package identity before quit, waits for the original process to exit, then waits for the installed version to change. A failed registration produces a manual-reopen warning. |
 | Test integrity | TCC behavior uses actual host markers. Installer source-grep assertions were removed. Runtime and installer behavior tests remain. |
 
 ## Verified execution
 
-- The latest complete native-Windows Python run reported 44,557 passed, one
-  failed, and 1,404 skipped tests across 3,746 files. Python source hashes stayed
-  unchanged throughout the run. It also reported one pass-on-retry HTTP test.
-  The install-ID race and HTTP test were then fixed. Their two files passed
-  35 tests without retries. This is not a complete final-tree suite pass.
-- Root `npm run check` completed with exit code zero, including MSIX packaging.
+- Root `npm run check` completed with exit code zero.
   Desktop UI: 7,231 passed. Electron: 2,311 passed and 23 skipped. TUI:
   1,719 passed and eight skipped. Dashboard: 291 passed. Root JS: 77 passed.
   Type checks and lint had no errors. Existing lint warnings remain. This
@@ -100,14 +91,6 @@ in `pm/environments.py`.
   answered HTTP 200, and exited cleanly. Home entries survived relaunch.
 - A real isolated API-server messaging gateway retained its PID and birth time
   after ordinary desktop quit. The desktop backend stopped; the gateway did not.
-- A thin MSIX built with the real packaging toolchain. Windows Sandbox installed
-  version `0.17.0.0`, updated to `0.17.0.1`, and verified absence after uninstall.
-  Test-certificate creation and trust were confined to the disposable guest.
-
-- A separate fresh bundled MSIX was produced from payload tree `60c9fb44...`.
-  The unpacked artifact's own CLI ran, imports resolved inside its payload,
-  and `hermes serve` answered HTTP 200. The Sandbox deployment attempt failed
-  on an incorrect unpacked path. It does not prove bundled installation.
 - Plugin checks now run from the first housekeeping tick, with the configured
   interval gate controlling network checks. A real isolated gateway wrote two
   successful plugin-check receipts one tick apart. Auto-apply was disabled.
@@ -131,14 +114,8 @@ The following limits from the earlier audit are resolved:
 - Docker bootstrap includes the stdlib runtime-path and locking owners that
   PM imports before third-party dependencies exist. Both architecture builds
   passed after this fix.
-- Installer path probes no longer read a missing lockfile. PowerShell 5.1 and
-  7 installer tests passed in CI.
 - Service runtime selection uses the shared selected-environment resolver.
   PM facts supply managed Node paths. Native fixtures use disposable homes.
-- The Windows updater uses its registered App Installer source unless an
-  explicit feed override is configured. It downloads the descriptor before
-  teardown and opens the local file. It does not require the disabled
-  `ms-appinstaller:` protocol.
 
 ## Non-E2E closeout
 
@@ -147,15 +124,6 @@ completed successfully:
 
 - Linux: 46,041 passed, zero failed, 492 skipped. No retry-only flakes.
 - macOS: 94 passed, zero failed, 121 skipped. No retry-only flakes.
-- Windows: 178 passed, zero failed, 174 skipped. One pipe-drain fixture
-  passed only on retry because its cold child exceeded the idle window.
-
-Commit `04182813cfa74111c6e4e10bedcc0f9de6510f55` limits Windows
-nested-process concurrency without relaxing the fixture's assertions.
-It also fixes compute-host stdin framing: a real Windows child received
-its initial turn but did not receive subsequent control frames through the
-text stream. The byte-stream reader passed the actual interrupt and
-second-turn tests. Those tests now run in each native OS lane.
 
 The other test repairs distinguish worker scheduling from the behavior
 under test. Compression waits for engine entry, cron assertions observe
@@ -167,24 +135,9 @@ tests, and 19 real-child/compute protocol tests. These batches overlap;
 they are not a whole-suite total.
 
 The browser BOM regression failed before the read fix and passed after it.
-Its file passed 79 tests with two host skips. The full Windows-footgun and
-plugin-compat checks passed.
+Its file passed 79 tests with two host skips. The plugin-compat checks passed.
 
 ## Bundle acceptance (separate workstream)
-
-The actual bundled Windows ARM64 MSIX built from
-`07ee9299790e5635fd917da1769f969f14fc8030` installed in a disposable
-Windows Sandbox as version `0.17.0.0`. Its registered app presented the UI,
-About identified the embedded runtime, and its own packaged backend
-answered HTTP 200. The unsigned build artifact's SHA-256 is
-`31d3dfb53977e0e8fd662d0ef2475a7be92a31a49d6e514ceed812099867f304`.
-Test signing and trust were confined to the guest.
-
-The guest was terminated before update/relaunch verification completed.
-There is no automatic-update acceptance claim. This artifact also predates
-subsequent upstream integration and the compute-host fix. Bundle E2E work
-belongs to the existing install/update test family, not a second local
-Sandbox pipeline.
 
 ## Remaining gates
 

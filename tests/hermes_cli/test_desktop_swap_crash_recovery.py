@@ -4,10 +4,31 @@ erased: the previous app must survive a crash at the commit point and a failing 
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from hermes_cli import main_desktop
-from tests.hermes_cli.test_desktop_swap_file_lock_retry import _staged_over_live
+
+
+def _packaged_exe_rel() -> Path:
+    if sys.platform == "darwin":
+        return Path("mac-arm64") / "Hermes.app" / "Contents" / "MacOS" / "Hermes"
+    return Path("linux-unpacked") / "hermes"
+
+
+def _staged_over_live(tmp_path: Path, monkeypatch):
+    desktop_dir = tmp_path / "apps" / "desktop"
+    live_exe = desktop_dir / "release" / _packaged_exe_rel()
+    live_exe.parent.mkdir(parents=True)
+    live_exe.write_text("old", encoding="utf-8")
+    staging = main_desktop._desktop_staging_dir(desktop_dir)
+    staged_exe = staging / _packaged_exe_rel()
+    staged_exe.parent.mkdir(parents=True)
+    staged_exe.write_text("new", encoding="utf-8")
+    monkeypatch.setattr(main_desktop, "_stop_desktop_processes_locking_build", lambda d, **kw: [])
+    slept: list[float] = []
+    monkeypatch.setattr(main_desktop._time_mod, "sleep", slept.append)
+    return desktop_dir, staging, live_exe, slept
 
 
 def test_swap_after_a_crash_between_renames_keeps_the_previous_app(tmp_path, monkeypatch):
@@ -26,7 +47,6 @@ def test_swap_after_a_crash_between_renames_keeps_the_previous_app(tmp_path, mon
         return real_rename(src, dst)
 
     monkeypatch.setattr(main_desktop.os, "rename", promotion_fails)
-    monkeypatch.setattr(main_desktop, "_rename_riding_out_file_lock", lambda s, d: os.rename(s, d))
 
     assert main_desktop._swap_staged_desktop_app(desktop_dir, staging) is None
     assert live_exe.read_text(encoding="utf-8-sig") == "old"

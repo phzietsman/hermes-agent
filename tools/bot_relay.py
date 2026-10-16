@@ -14,6 +14,7 @@ when the target is definitively offline (fail fast instead of queueing a DM nobo
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import json
 import logging
 import os
@@ -492,10 +493,6 @@ def waiter_command(root: Path | str, envelope: dict) -> str:
     label = f"@{envelope.get('target_handle', '')} on {envelope.get('target_connection', '')}"
     runner = str(Path(__file__).resolve().with_name("bot_mode_dm.py"))
     argv = [sys.executable or "python3", runner, "--wait-reply", reply_path, label, str(REPLY_WAIT_SECONDS)]
-    if sys.platform == "win32":
-        # Same rewrite as the delivery runner: the tracked local backend uses Git Bash on native
-        # Windows, where forward-slash drive paths run and backslash paths parse as command names.
-        argv = [part.replace("\\", "/") for part in argv]
     return shlex.join(argv)
 
 
@@ -507,13 +504,10 @@ def _hermes_cli() -> str:
     selects current dependencies at child start. Keep the historical fallbacks
     for external/developer installs that have no published launcher (#93590).
     """
-    # Do not select batch shims: cmd.exe reinterprets otherwise literal argv
-    # (for example an ampersand in a query-file path), even with shell=False.
-    name = "hermes.exe" if sys.platform == "win32" else "hermes"
-    published = Path(__file__).resolve().parents[1] / ".hermes" / "bin" / name
+    published = Path(__file__).resolve().parents[1] / ".hermes" / "bin" / "hermes"
     if published.is_file():
         return str(published)
-    sibling = Path(sys.executable or "").parent / name
+    sibling = Path(sys.executable or "").parent / "hermes"
     return str(sibling) if sibling.is_file() else shutil.which("hermes") or "hermes"
 
 
@@ -658,15 +652,7 @@ def acquire_turn_lock(root: Path | str, profile: str, timeout_seconds: float | N
     """Hold ``profile``'s cross-process turn lock for the ``with`` body: non-blocking
     flock probe + short-sleep retry up to the budget (``bot_mode.turn_wait_seconds``
     unless ``timeout_seconds``); raises :class:`TurnBusyError` when exhausted. No
-    ordering among waiters, but every waiter is bounded. Without ``fcntl`` (Windows)
-    the lock is a no-op — those installs never had this race path."""
-    try:
-        import fcntl
-    except ImportError:  # pragma: no cover — Windows
-        logger.debug("bot turn lock disabled: fcntl unavailable on this platform")
-        yield turn_lock_path(root, profile)
-        return
-
+    ordering among waiters, but every waiter is bounded."""
     budget = turn_wait_seconds() if timeout_seconds is None else max(0.0, float(timeout_seconds))
     path = turn_lock_path(root, profile)
     path.parent.mkdir(parents=True, exist_ok=True)

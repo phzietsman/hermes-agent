@@ -13,7 +13,7 @@ inputs:
 
 outputs:
   python:
-    description: Run Python tests / ruff / ty / windows-footguns.
+    description: Run Python tests / ruff / ty.
     value: ${{ steps.classify.outputs.python }}
   python_prod:
     description: Python changes outside tests/.
@@ -57,15 +57,6 @@ outputs:
   npm_lock:
     description: Post/update the semantic package-lock.json diff PR comment.
     value: ${{ steps.classify.outputs.npm_lock }}
-  bootstrap:
-    description: Run the bootstrap installer lane (install.sh sandbox + stamp verification).
-    value: ${{ steps.classify.outputs.bootstrap }}
-  desktop_updater:
-    description: Run the Windows desktop-update hand-off (windows.ps1) integration tests.
-    value: ${{ steps.classify.outputs.desktop_updater }}
-  rust:
-    description: Run `cargo test` for the Tauri bootstrap installer.
-    value: ${{ steps.classify.outputs.rust }}
 
 runs:
   using: composite

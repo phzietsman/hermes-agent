@@ -21,7 +21,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 from tools.tts_command_provider import (
     BUILTIN_TTS_PROVIDERS, DEFAULT_COMMAND_TTS_MAX_TEXT_LENGTH, _get_named_provider_config,
     _is_command_provider_config)
@@ -210,9 +209,9 @@ def _pack_audio_files_for_delivery(audio_paths: List[str], profile: AudioDeliver
 def _ffmpeg_run(
     ffmpeg: str, args: List[str], *, timeout: int = 30, check: bool = False, capture: bool = True,
 ) -> subprocess.CompletedProcess:
-    """Run ``ffmpeg <args>`` headless (no stdin, hidden window on Windows)."""
+    """Run ``ffmpeg <args>`` headless (no stdin)."""
     return subprocess.run([ffmpeg, *args], capture_output=capture, check=check, timeout=timeout,
-                          stdin=subprocess.DEVNULL, creationflags=windows_hide_flags())
+                          stdin=subprocess.DEVNULL)
 
 
 def _remove_quietly(path: Optional[str]) -> None:

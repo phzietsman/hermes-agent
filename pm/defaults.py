@@ -3,8 +3,7 @@
 A ``default`` package (see ``Package.default``) joins the installers' PM stage,
 a bare ``hermes pm install`` and ``hermes update`` on every target it builds
 for. The user can decline one (``install.sh --skip-browser`` /
-``--skip-computer-use``, ``install.ps1 -SkipBrowser`` / ``-SkipComputerUse``,
-``hermes pm install --without NAME``). The choice
+``--skip-computer-use``, ``hermes pm install --without NAME``). The choice
 is recorded per installation beside PM's other install state, so a later
 update or bare install never re-adds it. An explicit
 ``hermes pm install NAME`` clears it.

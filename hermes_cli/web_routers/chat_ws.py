@@ -546,13 +546,13 @@ async def pty_ws(ws: WebSocket) -> None:
     await ws.accept()
     _log.info("pty accepted peer=%s mode=%s cred=%s", peer, mode, cred)
 
-    # Native Windows can't import the POSIX PTY bridge: say so and close cleanly.
+    # Without the PTY bridge (ptyprocess missing) say so and close cleanly.
     if not _PTY_BRIDGE_AVAILABLE:
         await ws.send_text(
-            "\r\n\x1b[31mChat unavailable: the embedded terminal requires a "
-            "POSIX PTY, which native Windows Python doesn't provide.\x1b[0m\r\n"
-            "\x1b[33mInstall Hermes inside WSL2 to use the dashboard's /chat "
-            "tab — the rest of the dashboard works here.\x1b[0m\r\n"
+            "\r\n\x1b[31mChat unavailable: the embedded terminal could not load "
+            "its PTY bridge (ptyprocess is missing).\x1b[0m\r\n"
+            "\x1b[33mRun `hermes pm repair`, then restart Hermes — the rest of "
+            "the dashboard works here.\x1b[0m\r\n"
         )
         await ws.close(code=1011)
         return

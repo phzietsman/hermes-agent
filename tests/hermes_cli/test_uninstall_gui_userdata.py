@@ -34,7 +34,6 @@ def homes(tmp_path, monkeypatch):
     userdata.mkdir()
     (userdata / "connections.json").write_text("{}", encoding="utf-8")
 
-    monkeypatch.setattr(uninstall, "_is_windows", lambda: False)
     monkeypatch.setattr(uninstall, "uninstall_gateway_service", lambda: True)
     for name in ("remove_path_from_shell_configs", "remove_wrapper_script",
                  "remove_node_symlinks", "remove_legacy_runtime_trees",

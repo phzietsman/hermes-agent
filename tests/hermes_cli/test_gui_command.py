@@ -102,13 +102,11 @@ def _make_packaged_executable(root: Path, monkeypatch) -> Path:
     desktop_dir = root / "apps" / "desktop"
     if sys.platform == "darwin":
         exe = desktop_dir / "release" / "mac-arm64" / "Hermes.app" / "Contents" / "MacOS" / "Hermes"
-    elif sys.platform == "win32":
-        exe = desktop_dir / "release" / "win-unpacked" / "Hermes.exe"
     else:
         exe = desktop_dir / "release" / "linux-unpacked" / "hermes"
     exe.parent.mkdir(parents=True, exist_ok=True)
     exe.write_text("", encoding="utf-8")
-    if sys.platform not in ("darwin", "win32"):
+    if sys.platform != "darwin":
         (exe.parent / "chrome-sandbox").write_text("", encoding="utf-8")
     return exe
 
@@ -126,8 +124,6 @@ def _packaged_exe_rel() -> Path:
     """Packaged-exe path relative to electron-builder's output dir on THIS host."""
     if sys.platform == "darwin":
         return Path("mac-arm64") / "Hermes.app" / "Contents" / "MacOS" / "Hermes"
-    if sys.platform == "win32":
-        return Path("win-unpacked") / "Hermes.exe"
     return Path("linux-unpacked") / "hermes"
 
 
@@ -149,7 +145,7 @@ def _pack_into_staging(root: Path, content: str = "", returncode: int = 0):
             exe = _staging_dir_from(cmd) / _packaged_exe_rel()
             exe.parent.mkdir(parents=True, exist_ok=True)
             exe.write_text(content, encoding="utf-8")
-            if sys.platform not in ("darwin", "win32"):
+            if sys.platform != "darwin":
                 (exe.parent / "chrome-sandbox").write_text("", encoding="utf-8")
             return subprocess.CompletedProcess(cmd, returncode)
         return subprocess.CompletedProcess(cmd, 0)
@@ -222,44 +218,6 @@ def test_packaged_launch_opens_the_refreshed_installed_app(tmp_path, monkeypatch
     assert exit_info.value.code == 0
     assert calls == [[str(installed / "Contents" / "MacOS" / "Hermes")]]
     assert (installed / "Contents" / "Resources" / "app.asar").read_bytes() == b"checkout build"
-
-
-def test_packaged_renderer_bom_does_not_bypass_entry_validation(tmp_path):
-    import json
-    import struct
-    from hermes_cli.desktop_update_verify import _verify_packaged_entry
-
-    resources = tmp_path / "resources"
-    dist = resources / "app.asar.unpacked" / "dist"
-    dist.mkdir(parents=True)
-    entry = b"export {};"
-    (dist / "main.mjs").write_bytes(entry)
-    package = json.dumps({"main": "dist/main.mjs"}).encode("utf-8")
-    header = json.dumps({"files": {
-        "package.json": {"size": len(package), "offset": "0"},
-        "dist": {"files": {"main.mjs": {"size": len(entry), "unpacked": True}}},
-    }}).encode("utf-8")
-    padded = header + b"\0" * (-len(header) % 4)
-    (resources / "app.asar").write_bytes(
-        struct.pack("<4I", 4, 8 + len(padded), 4 + len(padded), len(header)) + padded + package)
-    index = dist / "index.html"
-    index.write_text('<title>café</title><script type="module" src="./main.mjs"></script>',
-                     encoding="utf-8-sig")
-    _verify_packaged_entry(resources)
-    index.write_text("<title>café</title>", encoding="utf-8-sig")
-    with pytest.raises(RuntimeError, match="renderer has no local module entry"):
-        _verify_packaged_entry(resources)
-    index.write_bytes(b"\xef\xbb\xbf\xff")
-    with pytest.raises(RuntimeError, match="renderer entry is invalid"):
-        _verify_packaged_entry(resources)
-
-
-# Dependency admission and staging are exercised by test_desktop_source_build.py.
-
-
-# --- package-manager (Homebrew/pip) installs: no desktop source tree -------
-# (#61056: `hermes desktop` under Homebrew looked for apps/desktop inside the
-# Cellar site-packages, which the formula does not ship.)
 
 
 def test_site_packages_install_kind_detects_brew_and_pip():
@@ -817,7 +775,7 @@ def test_promote_staged_desktop_app_refuses_an_unsigned_staging(tmp_path, monkey
     ``_promote_staged_desktop_app`` used to call the fixup for its side effect and
     discard the False, so a configured identity that failed still promoted a staged
     bundle whose signature was never established over the live app. The refusal now
-    follows the same previous-app-kept error path as the integrity check.
+    follows the same previous-app-kept error path as a missing executable.
     """
     root = _make_desktop_tree(tmp_path)
     desktop_dir = root / "apps" / "desktop"
@@ -1393,102 +1351,9 @@ def test_gui_password_store_bridge_is_linux_only(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# #58275: the Windows packaged launch must detach from the parent console
-# (Popen + windows_detach_flags, DEVNULL stdio, immediate exit 0) instead of
-# a console-inheriting subprocess.run that dies with the launching shell.
-# #59848: on the foreground platforms, Ctrl-C in the attached terminal must
+# #59848: Ctrl-C in the attached terminal must
 # exit cleanly instead of raising a KeyboardInterrupt traceback.
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.platforms("windows")
-def test_gui_win32_launches_detached_and_returns(tmp_path, monkeypatch):
-    import hermes_cli._subprocess_compat as _subproc_compat
-
-    root = _make_desktop_tree(tmp_path)
-    monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
-    packaged_exe = _make_packaged_executable(root, monkeypatch)
-    ok = subprocess.CompletedProcess([], 0)
-
-    with patch("hermes_cli.source_build.prepare_source_dependencies", return_value=ok), \
-         patch("hermes_cli.main_desktop._desktop_build_needed", return_value=False), \
-         patch("hermes_cli.main_desktop._desktop_exe_integrity_error", return_value=None), \
-         patch("hermes_cli.config.load_config", return_value={}), \
-         patch("hermes_cli.main.subprocess.Popen") as mock_popen, \
-         patch("hermes_cli.main.subprocess.run") as mock_run, \
-         pytest.raises(SystemExit) as exc:
-        cli_main.cmd_gui(_ns(skip_build=True))
-
-    # Parent returns cleanly so the user can close the launching shell.
-    assert exc.value.code == 0
-    # The blocking, console-inheriting run() path must NOT be used for launch.
-    mock_run.assert_not_called()
-    # Detached spawn happened exactly once, targeting the packaged exe with the
-    # Windows detach creationflags and fully severed stdio.
-    mock_popen.assert_called_once()
-    call = mock_popen.call_args
-    assert call.args[0][0] == str(packaged_exe)
-    assert call.kwargs["creationflags"] == _subproc_compat.windows_detach_flags()
-    assert call.kwargs["stdin"] is subprocess.DEVNULL
-    assert call.kwargs["stdout"] is subprocess.DEVNULL
-    assert call.kwargs["stderr"] is subprocess.DEVNULL
-
-
-@pytest.mark.platforms("windows")
-def test_gui_win32_detach_falls_back_without_breakaway(tmp_path, monkeypatch):
-    import hermes_cli._subprocess_compat as _subproc_compat
-
-    root = _make_desktop_tree(tmp_path)
-    monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
-    _make_packaged_executable(root, monkeypatch)
-    ok = subprocess.CompletedProcess([], 0)
-
-    breakaway_denied = PermissionError("breakaway denied")
-    breakaway_denied.winerror = 5
-
-    with patch("hermes_cli.source_build.prepare_source_dependencies", return_value=ok), \
-         patch("hermes_cli.main_desktop._desktop_build_needed", return_value=False), \
-         patch("hermes_cli.main_desktop._desktop_exe_integrity_error", return_value=None), \
-         patch("hermes_cli.config.load_config", return_value={}), \
-         patch("hermes_cli.main.subprocess.Popen",
-               side_effect=[breakaway_denied, None]) as mock_popen, \
-         pytest.raises(SystemExit) as exc:
-        cli_main.cmd_gui(_ns(skip_build=True))
-
-    assert exc.value.code == 0
-    assert mock_popen.call_count == 2
-    assert (
-        mock_popen.call_args_list[0].kwargs["creationflags"]
-        == _subproc_compat.windows_detach_flags()
-    )
-    assert (
-        mock_popen.call_args_list[1].kwargs["creationflags"]
-        == _subproc_compat.windows_detach_flags_without_breakaway()
-    )
-
-
-@pytest.mark.platforms("windows")
-def test_gui_win32_detach_reraises_non_breakaway_oserror(tmp_path, monkeypatch):
-    root = _make_desktop_tree(tmp_path)
-    monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
-    _make_packaged_executable(root, monkeypatch)
-    ok = subprocess.CompletedProcess([], 0)
-
-    spawn_error = OSError("The system cannot find the file specified")
-    spawn_error.winerror = 2  # ERROR_FILE_NOT_FOUND — unrelated to breakaway.
-
-    with patch("hermes_cli.source_build.prepare_source_dependencies", return_value=ok), \
-         patch("hermes_cli.main_desktop._desktop_build_needed", return_value=False), \
-         patch("hermes_cli.main_desktop._desktop_exe_integrity_error", return_value=None), \
-         patch("hermes_cli.config.load_config", return_value={}), \
-         patch("hermes_cli.main.subprocess.Popen",
-               side_effect=[spawn_error, None]) as mock_popen, \
-         pytest.raises(OSError) as exc:
-        cli_main.cmd_gui(_ns(skip_build=True))
-
-    assert exc.value.winerror == 2
-    # Only the first (breakaway) attempt ran; no doomed retry masked the error.
-    assert mock_popen.call_count == 1
 
 
 @pytest.mark.platforms("macos", "linux")
@@ -1522,7 +1387,6 @@ def test_gui_foreground_launch_ctrl_c_exits_cleanly(tmp_path, monkeypatch, capsy
 
     with patch("hermes_cli.source_build.prepare_source_dependencies", return_value=ok), \
          patch("hermes_cli.main_desktop._desktop_build_needed", return_value=False), \
-         patch("hermes_cli.main_desktop._desktop_exe_integrity_error", return_value=None), \
          patch("hermes_cli.config.load_config", return_value={}), \
          patch("hermes_cli.main.subprocess.run", side_effect=_interrupted_launch) as mock_run, \
          patch("hermes_cli.main.subprocess.Popen") as mock_popen, \
@@ -1547,8 +1411,6 @@ def test_gui_foreground_launch_ctrl_c_exits_cleanly(tmp_path, monkeypatch, capsy
 def _gui_build_patches(root: Path, run_side_effect):
     return [
         patch("hermes_cli.main.shutil.which", return_value="/usr/bin/npm"),
-        # Staging doubles are text; the PE-validation suite owns real binaries.
-        patch("hermes_cli.main_desktop._desktop_exe_integrity_error", return_value=None),
         patch("hermes_cli.source_build.prepare_source_dependencies",
               return_value=subprocess.CompletedProcess(["npm", "ci"], 0)),
         patch("hermes_cli.main_desktop._desktop_build_needed", return_value=True),
@@ -1638,12 +1500,11 @@ def test_swap_staged_desktop_app_stops_live_renderer_before_rename(tmp_path):
         promoted = main_desktop._swap_staged_desktop_app(desktop_dir, staging)
 
     assert promoted == live_exe
-    stop.assert_called_once_with(desktop_dir, also_posix=True)
+    stop.assert_called_once_with(desktop_dir)
 
 
-def test_stop_desktop_processes_locking_build_posix_swap_bypasses_early_return(tmp_path, monkeypatch):
-    """#109643: also_posix=True must run the scan on POSIX (the default pack-time
-    call stays Windows-only — the staging pack never touches the live tree)."""
+def test_stop_desktop_processes_locking_build_stops_the_release_tree_app(tmp_path, monkeypatch):
+    """#109643: the swap stops a Desktop running from the live release tree, nothing else."""
     root = _make_desktop_tree(tmp_path)
     desktop_dir = root / "apps" / "desktop"
     live_exe = desktop_dir / "release" / _packaged_exe_rel()
@@ -1672,11 +1533,10 @@ def test_stop_desktop_processes_locking_build_posix_swap_bypasses_early_return(t
 
     monkeypatch.setitem(sys.modules, "psutil", _FakePsutil)
 
-    assert main_desktop._stop_desktop_processes_locking_build(desktop_dir) == []
-    assert main_desktop._stop_desktop_processes_locking_build(desktop_dir, also_posix=True) == [100]
+    assert main_desktop._stop_desktop_processes_locking_build(desktop_dir) == [100]
 
 
-def _stop_spares_the_desktop_driving_this_update(tmp_path, monkeypatch, *, also_posix):
+def _stop_spares_the_desktop_driving_this_update(tmp_path, monkeypatch):
     """A Desktop's own process tree runs this update (a historical Desktop's piped
     `hermes update` child, or the launch-time tail its backend runs). Stopping that
     Desktop kills the update with it. Its renderer/GPU/zygote helpers run the same
@@ -1728,45 +1588,13 @@ def _stop_spares_the_desktop_driving_this_update(tmp_path, monkeypatch, *, also_
 
     monkeypatch.setitem(sys.modules, "psutil", _FakePsutil)
 
-    assert main_desktop._stop_desktop_processes_locking_build(desktop_dir, also_posix=also_posix) == [300]
+    assert main_desktop._stop_desktop_processes_locking_build(desktop_dir) == [300]
 
 
-@pytest.mark.platforms("posix")
-def test_posix_swap_spares_the_desktop_driving_this_update(tmp_path, monkeypatch):
+def test_swap_spares_the_desktop_driving_this_update(tmp_path, monkeypatch):
     """A historical Desktop runs `hermes update` as a piped child and relaunches
     itself afterwards; stopping it breaks the update's stdout (EPIPE)."""
-    _stop_spares_the_desktop_driving_this_update(tmp_path, monkeypatch, also_posix=True)
-
-
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize("also_posix", [False, True])
-def test_windows_stop_spares_the_desktop_driving_this_update(tmp_path, monkeypatch, also_posix):
-    """A Desktop's own backend runs the launch-time update tail; stopping that Desktop
-    killed the tail before it could clear its markers, so every launch repeated it
-    (#123499). The pack-time call and the swap alike spare it."""
-    _stop_spares_the_desktop_driving_this_update(tmp_path, monkeypatch, also_posix=also_posix)
-
-
-@pytest.mark.platforms("windows")
-def test_windows_build_under_its_own_desktop_skips_instead_of_killing_it(tmp_path, monkeypatch, capsys):
-    """#123499: a Desktop's backend runs the interrupted-update tail at launch. Packing there
-    can only end in a promotion the Desktop's exe lock refuses, and stopping that Desktop
-    kills the tail first. The build is skipped, so the tail finishes and clears its markers."""
-    desktop_dir = _make_desktop_tree(tmp_path) / "apps" / "desktop"
-    live_exe = desktop_dir / "release" / _packaged_exe_rel()
-    live_exe.parent.mkdir(parents=True)
-    live_exe.write_text("old", encoding="utf-8")
-    backend = types.SimpleNamespace(pid=40, exe=lambda: str(tmp_path / "python.exe"))
-    desktop = types.SimpleNamespace(pid=41, exe=lambda: str(live_exe))
-    monkeypatch.setitem(sys.modules, "psutil", types.SimpleNamespace(
-        Process=lambda pid: types.SimpleNamespace(parents=lambda: [backend, desktop])))
-    monkeypatch.setattr(main_desktop, "_stop_desktop_processes_locking_build",
-                        lambda *a, **k: pytest.fail("must not stop the Desktop running this build"))
-    monkeypatch.setattr("pm.progress.run_contained", lambda *a, **k: pytest.fail("must not pack"))
-
-    assert main_desktop.build_prepared_desktop(desktop_dir, source_mode=False, npm="npm", env={}) is None
-    assert "pid 41" in capsys.readouterr().out
-    assert not list(desktop_dir.glob(f"{main_desktop._DESKTOP_STAGING_PREFIX}*"))
+    _stop_spares_the_desktop_driving_this_update(tmp_path, monkeypatch)
 
 
 def test_gui_failed_pack_leaves_previous_app_untouched(tmp_path, monkeypatch, capsys):
@@ -1807,7 +1635,6 @@ def test_gui_failed_pack_leaves_previous_app_untouched(tmp_path, monkeypatch, ca
 
 def test_gui_successful_pack_swaps_new_app_into_release(tmp_path, monkeypatch):
     root = _make_desktop_tree(tmp_path)
-    monkeypatch.setattr(main_desktop, "_desktop_exe_integrity_error", lambda exe: None)
     desktop_dir = root / "apps" / "desktop"
     monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
     live_exe = _make_packaged_executable(root, monkeypatch)

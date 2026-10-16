@@ -3,8 +3,8 @@
  *
  * Pure, electron-free helpers for the desktop Chat GUI uninstaller. These map
  * the three user-facing uninstall modes to the `hermes uninstall` CLI flags,
- * resolve the running app bundle/exe so a detached cleanup script can remove
- * it after the app quits, and build that cleanup script for each OS.
+ * resolve the running app bundle so a detached cleanup script can remove
+ * it after the app quits, and build that cleanup script.
  *
  * Kept electron-free so Vitest can exercise the registered IPC handlers.
  * main.ts supplies the local install stamp and process callbacks.
@@ -19,7 +19,7 @@
  *
  * Why a detached cleanup script: 'lite'/'full' delete the very venv the
  * `hermes` command runs from, and every mode may need to delete the running
- * app bundle (locked on macOS/Windows while the process is alive). So we hand
+ * app bundle (locked on macOS while the process is alive). So we hand
  * the work to a detached child that waits for this app's PID to exit, runs the
  * Python uninstall, then removes the app bundle — then the app quits. Same
  * shape as the self-update swap-and-relaunch flow already in main.ts.
@@ -66,7 +66,6 @@ export interface DesktopUninstallIpcDeps {
   probeSummary: () => Promise<UninstallSummaryDetails>
   runUninstall: (mode: string) => Promise<DesktopUninstallResult>
   removableAppPath: () => string | null
-  openAppsSettings: () => Promise<void>
 }
 
 export function registerDesktopUninstallIpc({
@@ -75,8 +74,7 @@ export function registerDesktopUninstallIpc({
   fallbackSummary,
   probeSummary,
   runUninstall,
-  removableAppPath,
-  openAppsSettings
+  removableAppPath
 }: DesktopUninstallIpcDeps): void {
   const kind: InstallKind = resolveInstallKind(stamp ?? {})
   const codeRemovalAllowed: boolean = installKindAllowsCodeRemoval(kind)
@@ -93,13 +91,6 @@ export function registerDesktopUninstallIpc({
       native_removal_instructions: codeRemovalAllowed
         ? null
         : nativeRemovalInstructions(kind, summary.platform, removableAppPath())
-    }
-  })
-  ipcMain.handle('hermes:uninstall:openAppsSettings', async (): Promise<void> => {
-    // The generic openExternal bridge admits web schemes only; this one
-    // deep link is fixed here so the renderer cannot pass a URL.
-    if (!codeRemovalAllowed && process.platform === 'win32') {
-      await openAppsSettings()
     }
   })
   ipcMain.handle(
@@ -186,8 +177,8 @@ function allowedUninstallModes(kind: InstallKind): string[] {
 
 /**
  * Human instructions for removing the app itself the native way. Used when
- * the install kind forbids code removal: Windows owns the bundled app
- * through Apps & Features, macOS through the Trash, a Linux AppImage is a
+ * the install kind forbids code removal: macOS owns the bundled app
+ * through the Trash, a Linux AppImage is a
  * single file the user placed somewhere, and a Nix install belongs to the
  * flake / profile that made it. `appPath` is the resolveRemovableAppPath()
  * result (the .app bundle on macOS, the AppImage path on Linux), used only to
@@ -207,10 +198,6 @@ function nativeRemovalInstructions(kind, platform, appPath = null) {
       'Another package manager installed this Hermes desktop app. ' +
       'Uninstall it with that package manager, the same way you installed it.'
     )
-  }
-
-  if (platform === 'win32') {
-    return 'To uninstall, go to Windows Settings → Apps → Installed apps.'
   }
 
   if (platform === 'darwin') {
@@ -236,7 +223,7 @@ function nativeRemovalInstructions(kind, platform, appPath = null) {
  * Map an uninstall mode to the `python -m hermes_cli.uninstall` argv (after the
  * python executable). Uses the dedicated lightweight module entrypoint (not
  * `hermes_cli.main`) so it can run under a system Python OUTSIDE the venv that
- * lite/full delete — see the Finding-3 note in buildWindowsCleanupScript.
+ * lite/full delete, so it is not deleted out from under itself.
  * Throws on an unknown mode so a typo can't silently become a full wipe.
  */
 function uninstallArgsForMode(mode: string) {
@@ -262,7 +249,6 @@ function modeRemovesUserData(mode: string) {
  * given the path to the running executable (`process.execPath`) and platform.
  *
  *   macOS:   …/Hermes.app/Contents/MacOS/Hermes  → …/Hermes.app
- *   Windows: …\Hermes\Hermes.exe                 → …\Hermes  (install dir)
  *   Linux:   AppImage → the APPIMAGE env path; unpacked → the *-unpacked dir
  *
  * Returns null when we can't confidently identify a removable bundle (e.g.
@@ -275,10 +261,7 @@ function resolveRemovableAppPath(execPath, platform, env: any = {}) {
     return null
   }
 
-  // Use the path flavor that matches the TARGET platform, not the host running
-  // this code — so the Windows branch parses backslash paths correctly even
-  // when these pure helpers are unit-tested on Linux/macOS CI.
-  const p = platform === 'win32' ? path.win32 : path.posix
+  const p = path.posix
 
   if (platform === 'darwin') {
     // …/Hermes.app/Contents/MacOS/Hermes → strip 3 segments to the .app
@@ -288,17 +271,6 @@ function resolveRemovableAppPath(execPath, platform, env: any = {}) {
 
     if (appBundle.endsWith('.app')) {
       return appBundle
-    }
-
-    return null
-  }
-
-  if (platform === 'win32') {
-    // NSIS per-user installs Hermes.exe directly in the install dir.
-    const dir = p.dirname(exe)
-
-    if (/[\\/]Hermes$/i.test(dir) || /[\\/]hermes-desktop$/i.test(dir)) {
-      return dir
     }
 
     return null
@@ -375,93 +347,9 @@ function buildPosixCleanupScript({ desktopPid, pythonExe, pythonPath, agentRoot,
   return lines.join('\n')
 }
 
-/**
- * Build a Windows cleanup batch script. Same three steps, cmd.exe flavored.
- *
- * Finding 3 (venv self-deletion): for lite/full the agent uninstall rmtree's
- * the venv that contains `python.exe`. A running .exe is mandatory-locked on
- * Windows, so running the uninstall from the venv's OWN python half-fails. The
- * desktop passes a system Python (findSystemPython) as `pythonExe` for those
- * modes + `pythonPath`=agentRoot so `import hermes_cli` resolves from source
- * while the venv is torn down. gui-only doesn't touch the venv, so it can use
- * either interpreter.
- *
- * Wait-loop: bounded (matches POSIX's ~30s cap) so a never-exiting / mismatched
- * PID can't wedge the cleanup forever. The `/FI "PID eq"` filter is an EXACT
- * match, so no redundant `| find` (which would substring-match 99→990).
- *
- * Removal: even after the desktop PID is gone, Windows releases directory
- * handles lazily, so a single `rmdir /s /q` can half-fail — retry up to 10x.
- */
-function buildWindowsCleanupScript({
-  desktopPid,
-  pythonExe,
-  pythonPath,
-  agentRoot,
-  uninstallArgs,
-  appPath,
-  hermesHome
-}) {
-  const pid = Number(desktopPid) || 0
-  // cmd.exe has no string escaping inside quotes; strip embedded quotes (paths
-  // under %LOCALAPPDATA% never contain them). `&`/`^` in a path would still be
-  // a problem, but Hermes install paths don't use them.
-  const q = s => `"${String(s).replace(/"/g, '')}"`
-
-  const lines = [
-    '@echo off',
-    'setlocal enableextensions',
-    `set "HERMES_HOME=${String(hermesHome).replace(/"/g, '')}"`,
-    `set "PID=${pid}"`
-  ]
-
-  if (pythonPath) {
-    lines.push(`set "PYTHONPATH=${String(pythonPath).replace(/"/g, '')};%PYTHONPATH%"`)
-  }
-
-  lines.push(
-    'set /a waited=0',
-    ':waitloop',
-    'rem /FI "PID eq %PID%" is an EXACT filter — tasklist outputs the one task',
-    'rem row for that PID, or "INFO: No tasks..." otherwise. /NH drops the',
-    'rem header; findstr matches the PID as a whole space-delimited token so',
-    'rem PID 99 cannot match 990 (the substring trap of a bare `find`).',
-    'tasklist /NH /FI "PID eq %PID%" 2>nul | findstr /r /c:" %PID% " >nul',
-    'if %ERRORLEVEL% neq 0 goto waited_done',
-    'set /a waited+=1',
-    'if %waited% geq 60 goto waited_done',
-    'timeout /t 1 /nobreak >nul',
-    'goto waitloop',
-    ':waited_done',
-    `cd /d ${q(agentRoot)}`,
-    `${q(pythonExe)} ${uninstallArgs.map(q).join(' ')}`
-  )
-
-  if (appPath) {
-    lines.push(
-      'set /a tries=0',
-      ':rmloop',
-      `if not exist ${q(appPath)} goto rmdone`,
-      `rmdir /s /q ${q(appPath)} >nul 2>&1`,
-      `if not exist ${q(appPath)} goto rmdone`,
-      'set /a tries+=1',
-      'if %tries% geq 10 goto rmdone',
-      'timeout /t 1 /nobreak >nul',
-      'goto rmloop',
-      ':rmdone'
-    )
-  }
-
-  lines.push('del "%~f0"')
-  lines.push('')
-
-  return lines.join('\r\n')
-}
-
 export {
   allowedUninstallModes,
   buildPosixCleanupScript,
-  buildWindowsCleanupScript,
   INSTALL_KINDS,
   installKindAllowsCodeRemoval,
   modeRemovesAgent,

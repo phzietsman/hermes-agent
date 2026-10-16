@@ -38,7 +38,7 @@ def test_resolve_verifies_exact_manifest_and_preserves_retirement_constraints():
         for name in ("old-preview", "next-preview"):
             pub.create(name)
         request = pub.allocate("next-preview", "a" * 40, "1.2.3")
-        request.update(version="1.2.3", windowsVersion="1.2.3.0", releaseTag="v1.2.3")
+        request.update(version="1.2.3", releaseTag="v1.2.3")
         manifest, record = seed_manifest(pub, request, objects)
         record["policy"] = "stable-release"
         objects["releases/channels/next-preview.json"] = canonical_json(record)
@@ -53,7 +53,7 @@ def test_resolve_verifies_exact_manifest_and_preserves_retirement_constraints():
         assert resolved.requested == old and resolved.terminal == record
         assert resolved.requested["minimumVersion"] == "1.0.0"
         # Retirement pins the qualified destination, not an unqualified later head.
-        newer = dict(request, buildId="f" * 32, sequence=2, sourceVersion="1.3.0", version="1.3.0", windowsVersion="1.3.0.0", releaseTag="v1.3.0")
+        newer = dict(request, buildId="f" * 32, sequence=2, sourceVersion="1.3.0", version="1.3.0", releaseTag="v1.3.0")
         record["nextSequence"] = 3
         objects["releases/channels/next-preview.json"] = canonical_json(record)
         seed_manifest(pub, newer, objects)
@@ -180,7 +180,7 @@ def test_legacy_bootstrap_uses_real_archive_keys_and_source_main_has_no_bundle()
         for name, policy, tag in [("stable", "stable-release", "v2.0.0"), ("canary", "canary-release", "v2.1.0+canary.20260913T000100Z")]:
             legacy = deepcopy(manifest)
             legacy["request"].update(channel=name, buildId=("a" if name == "stable" else "b") * 32,
-                                     releaseTag=tag, version=tag[1:], windowsVersion="2.0.0.0" if name == "stable" else "2.1.0.10")
+                                     releaseTag=tag, version=tag[1:])
             legacy["packages"][0].update(version=tag[1:])
             legacy["packages"][0]["artifact"]["key"] = f"releases/tag/{tag}/actual.zip"
             legacy["packages"][0]["feed"]["key"] = f"releases/tag/{tag}/stable-mac.yml"
@@ -191,13 +191,6 @@ def test_legacy_bootstrap_uses_real_archive_keys_and_source_main_has_no_bundle()
             pub.bootstrap(record, legacy, publish=True)
             assert pub.reader.resolve(name).manifest == legacy
             assert pub.request(legacy["request"]["buildId"]) == legacy["request"]
-            from hermes_cli.release_channels import validate_request
-            invalid_versions = ["2.1.0.65536", "65536.1.0.0", "2.1.0.-1", "2.1.0.1.0", "2.1.0.x"]
-            if policy == "stable-release":
-                invalid_versions.append("2.0.0.10")
-            for windows_version in invalid_versions:
-                with pytest.raises(ChannelError, match="Windows version"):
-                    validate_request(dict(legacy["request"], windowsVersion=windows_version), policy=policy)
             with pytest.raises(ChannelError, match="Protected"):
                 pub.promote(legacy["request"]["buildId"])
             with pytest.raises(ChannelError, match="Protected"):
@@ -205,21 +198,16 @@ def test_legacy_bootstrap_uses_real_archive_keys_and_source_main_has_no_bundle()
 
 
 @pytest.mark.parametrize("sequence", [1, 65535, 65536, 2**32 - 1])
-def test_sequence_versions_remain_monotonic_at_native_rollover(sequence):
-    from hermes_cli.release_channels import package_versions
-    version, windows = package_versions(sequence)
-    assert version == f"0.0.{sequence}"
-    quad = tuple(map(int, windows.split(".")))
-    assert quad[1] * 65536 + quad[2] == sequence and max(quad) <= 65535
-    if sequence > 1:
-        assert quad > tuple(map(int, package_versions(sequence - 1)[1].split(".")))
+def test_sequence_versions_follow_the_sequence(sequence):
+    from hermes_cli.release_channels import package_version
+    assert package_version(sequence) == f"0.0.{sequence}"
 
 
 @pytest.mark.parametrize("sequence", [0, -1, True, 2**32, "1"])
 def test_sequence_exhaustion_never_wraps(sequence):
-    from hermes_cli.release_channels import package_versions, ChannelError
+    from hermes_cli.release_channels import package_version, ChannelError
     with pytest.raises(ChannelError):
-        package_versions(sequence)
+        package_version(sequence)
 
 
 def test_malformed_record_and_unqualified_retirement_never_resolve():
@@ -236,7 +224,7 @@ def test_malformed_record_and_unqualified_retirement_never_resolve():
         objects["releases/channels/preview.json"] = canonical_json(record)
         pub.create("destination")
         request = pub.allocate("destination", "a" * 40, "1.0.0")
-        request.update(version="1.0.0", windowsVersion="1.0.0.0", releaseTag="v1.0.0")
+        request.update(version="1.0.0", releaseTag="v1.0.0")
         _, target = seed_manifest(pub, request, objects)
         target["policy"] = "stable-release"
         objects["releases/channels/destination.json"] = canonical_json(target)
@@ -264,7 +252,7 @@ def stable_request(version="1.2.3", archive_ref=None):
     from scripts.releases.channels import preview_identity
     request = {"schema": 1, "buildId": "a" * 32, "channel": "stable", "sequence": 1,
                "repository": "example/hermes-agent", "commit": "b" * 40,
-               "sourceVersion": version, "version": version, "windowsVersion": version + ".0",
+               "sourceVersion": version, "version": version,
                "releaseTag": "v" + version, "identity": preview_identity("stable", "a" * 16),
                "bundleEnv": {}, "publicBase": "https://releases.example"}
     if archive_ref is not None:

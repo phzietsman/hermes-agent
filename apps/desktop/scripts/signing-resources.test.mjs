@@ -89,7 +89,7 @@ fs.promises.open = async function (...args) {
 const { walk } = await import(${JSON.stringify(walkUrl)})
 `
 
-test.skipIf(process.platform === 'win32')('bounded probes preserve real supplier candidates and native nested signatures at a low fd limit', () => {
+test('bounded probes preserve real supplier candidates and native nested signatures at a low fd limit', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'signing-resources-'))
   try {
     const app = fixture(root)
@@ -134,7 +134,7 @@ console.log(JSON.stringify({ selected, signed, peak, live }))
   } finally { fs.rmSync(root, { recursive: true, force: true }) }
 }, 60000)
 
-test.skipIf(process.platform === 'win32')('probe errors release complete operations and concurrent walks share the bound without patching fs', () => {
+test('probe errors release complete operations and concurrent walks share the bound without patching fs', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'signing-errors-'))
   try {
     const tree = path.join(root, 'tree')

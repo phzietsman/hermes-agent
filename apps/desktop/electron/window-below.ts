@@ -3,7 +3,7 @@
 // Backs the desktop-gated `read_window_below` tool: the renderer receives
 // `window.read.request` from the gateway, asks main over IPC, and answers
 // with this module's serialized result. Enumeration uses `get-windows`
-// (front-to-back z-order on macOS/Windows/Linux-X11); the picking logic is a
+// (front-to-back z-order on macOS/Linux-X11); the picking logic is a
 // pure function so the OS-specific part stays a thin provider. Where that
 // provider can't run at all, the answer is why — see `enumerationFailureNote`.
 //
@@ -58,7 +58,7 @@ export interface WindowBelowUnavailable {
  * XWayland, where `xprop` can still answer — so it is treated as X11 and gets
  * the tooling advice rather than being told to change session type.
  *
- * macOS and Windows have no environmental fork like that, so their note is
+ * macOS has no environmental fork like that, so its note is
  * whatever the enumerator actually said. That `detail` is the whole point: a
  * bare "could not enumerate windows on this system" is what a real report came
  * back with (macOS 26, packaged app), and neither the tool result nor the
@@ -145,19 +145,6 @@ export interface EnumerationFailure {
 export const enumerationFailed = <T>(result: EnumerationFailure | T): result is EnumerationFailure =>
   typeof result === 'object' && result !== null && 'reason' in result
 
-// Keep the native provider's failure detail shared by the tool and HUD log.
-export function getWindowsFailureReason(detail: string, platform: string, arch: string): string {
-  if (platform === 'win32' && arch === 'arm64') {
-    return (
-      `${detail}. On Windows ARM64, check that the installed get-windows package includes a working ` +
-      'win32-arm64 native binding. If that binding is unavailable, use the x64 desktop build under Windows emulation, ' +
-      'or a build with a matching native binding. This affects both read_window_below and HUD window context.'
-    )
-  }
-
-  return detail
-}
-
 const describeError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error ?? 'unknown error')
 
@@ -167,7 +154,7 @@ const describeError = (error: unknown): string =>
  * segment in a packaged build (electron-builder names the archive exactly
  * that), so in dev — where nothing is archived — this is a no-op. The segment
  * is matched against either separator because the staged specifier comes from
- * `path.join`, which on Windows yields backslashes; same regex as main.ts.
+ * `path.join`; same regex as main.ts.
  */
 export const resolveOutsideAsar = (specifier: string): string =>
   specifier.replace(/app\.asar(?=$|[\\/])/, 'app.asar.unpacked')
@@ -176,22 +163,14 @@ let getWindowsModule: Promise<GetWindowsModule | EnumerationFailure> | null = nu
 
 const loadGetWindows = (): Promise<GetWindowsModule | EnumerationFailure> => {
   // get-windows is an optionalDependency: `npm ci` can skip it when its native
-  // install fails, including Linux and Windows ARM64 where 9.3.0 has no
-  // prebuilt. A missing module is therefore a normal state on those targets,
+  // install fails, including Linux where 9.3.0 has no prebuilt. A missing module is therefore a normal state on those targets,
   // so the lazy import resolves to null instead of rejecting; enumeration then
   // degrades to the failure note instead of an uncaught error.
   //
   // The STAGED copy is tried first, and it is not a dev-only nicety.
-  // `import('get-windows')` resolves out of node_modules, whose lib/windows.js
-  // locates its binding through `preGyp.find()` — by HOST platform. When the
-  // tree was installed on a different OS than Electron is running on (a
-  // WSL-hosted dev run driving a win32 Electron is the everyday case here),
-  // pre-gyp picks the host's slot, ignores the win32 binding sitting beside it,
-  // and upstream's fail-soft path hands back no-op stubs. Enumeration then
-  // reports "unavailable" on a machine that answers perfectly well, which is
-  // what silently disabled both read_window_below and the HUD's game overlay.
-  // scripts/stage-native-deps.mjs writes a staged lib/windows.js that requires
-  // the binding directly, so it is the more reliable of the two everywhere.
+  // `import('get-windows')` resolves out of node_modules, whose binding lookup
+  // goes by HOST platform; scripts/stage-native-deps.mjs writes a staged copy
+  // that requires the binding directly, so it is tried first.
   getWindowsModule ??= (async () => {
     // Both specifiers are redirected out of app.asar in a packaged build.
     // get-windows does its real work by exec'ing a helper binary whose path it
@@ -263,8 +242,8 @@ async function enumerateViaGetWindows(titlesAvailable: boolean): Promise<Enumera
     return { reason: 'the window enumerator returned no window list' }
   }
 
-  // get-windows documents openWindows() as front-to-back, and macOS/Windows
-  // honor that (CGWindowList / EnumWindows order). Its lib/linux.js, however,
+  // get-windows documents openWindows() as front-to-back, and macOS
+  // honors that (CGWindowList order). Its lib/linux.js, however,
   // iterates `_NET_CLIENT_LIST_STACKING` in raw xprop order, which EWMH
   // defines as bottom-to-top — so the Linux list arrives back-to-front and
   // must be reversed to match. (Verified against get-windows 9.3.0.)
@@ -297,11 +276,7 @@ export async function enumerateWindowsFrontToBack(
   selfPid: number,
   titlesAvailable: boolean
 ): Promise<EnumeratedWindow[] | EnumerationFailure> {
-  const result = (await readHyprlandWindows(selfPid)) ?? (await enumerateViaGetWindows(titlesAvailable))
-
-  return enumerationFailed(result)
-    ? { reason: getWindowsFailureReason(result.reason, process.platform, process.arch) }
-    : result
+  return (await readHyprlandWindows(selfPid)) ?? (await enumerateViaGetWindows(titlesAvailable))
 }
 
 export async function readWindowBelow(

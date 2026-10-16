@@ -82,8 +82,8 @@ _MAX_TIMEOUT_S = 1800
 _STDERR_CAP_CHARS = 4000
 
 _TASK_ID_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")  # filesystem-safe task ids
-# Screenshot paths printed by capture_screenshot(): POSIX or Windows drive-letter absolute.
-_IMAGE_PATH_RE = re.compile(r"((?:[A-Za-z]:[\\/]|/)[^\s\"']+?\.(?:png|jpe?g|webp))", re.IGNORECASE)
+# Screenshot paths printed by capture_screenshot(): absolute POSIX paths.
+_IMAGE_PATH_RE = re.compile(r"(/[^\s\"']+?\.(?:png|jpe?g|webp))", re.IGNORECASE)
 # http(s) URL literals in exec code checked against browser_navigate's policy
 _URL_RE = re.compile(r"https?://[^\s'\"\\)]+", re.IGNORECASE)
 _FHS_BIN_DIRS = ("/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin")
@@ -163,10 +163,8 @@ def _floor_subprocess_path(path: str) -> str:
     """Keep system commands reachable from profile workers with a minimal PATH.
 
     Browser subprocesses may launch shell helpers; version-manager-only paths
-    omit /usr/bin. Reuse the shared browser PATH floor on POSIX.
+    omit /usr/bin. Reuse the shared browser PATH floor.
     """
-    if os.name == "nt":
-        return path
     with contextlib.suppress(Exception):
         from tools.browser_tool_install import _merge_browser_path
         return _merge_browser_path(path or "")
@@ -541,19 +539,6 @@ def _route_backend(env: dict, session: str, task_id: Optional[str], local: bool)
     return _resolve_backend_cdp(env, task_id, session_name=session)
 
 
-def _group_popen_kwargs() -> dict:
-    """Popen kwargs starting the CLI in its own process group (a new session on POSIX) so a
-    timeout can take down every process that inherited the capture pipes, not just the CLI
-    child. Windows also hides the console the .cmd shim would flash (as browser_tool does)."""
-    def _flags() -> dict:
-        from hermes_cli._subprocess_compat import windows_hide_flags
-        si = subprocess.STARTUPINFO()
-        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        return {"creationflags": windows_hide_flags() | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
-                "startupinfo": si}
-    return _quiet(_flags, {}, "Windows hide-flags unavailable") if os.name == "nt" else {"start_new_session": True}
-
-
 def _clamp_timeout(timeout_s: Any) -> int:
     try:
         return max(_MIN_TIMEOUT_S, min(int(timeout_s), _MAX_TIMEOUT_S))
@@ -567,17 +552,9 @@ _POST_KILL_DRAIN_S = 10.0
 
 
 def _kill_cli_process_group(proc) -> None:
-    """SIGKILL the CLI's whole process group (POSIX; ``start_new_session`` made pgid == pid) or,
-    on Windows, its process tree via ``taskkill /T /F`` — the only group-wide kill it offers."""
-    if os.name == "nt":
-        from hermes_cli._subprocess_compat import windows_hide_flags
-        with contextlib.suppress(OSError, subprocess.SubprocessError):
-            subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], stdin=subprocess.DEVNULL,
-                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
-                           check=False, creationflags=windows_hide_flags())
-        return
+    """SIGKILL the CLI's whole process group (``start_new_session`` made pgid == pid)."""
     with contextlib.suppress(ProcessLookupError, PermissionError):
-        os.killpg(proc.pid, signal.SIGKILL)  # windows-footgun: ok — POSIX only, the nt branch returned above
+        os.killpg(proc.pid, signal.SIGKILL)
 
 
 def _run_cli_killing_process_group(cmd, code, env, timeout):
@@ -585,12 +562,12 @@ def _run_cli_killing_process_group(cmd, code, env, timeout):
 
     ``subprocess.run`` only kills the direct child on ``TimeoutExpired``; a grandchild that
     inherited the stdout/stderr pipes (browser_harness daemon / Chrome helper) is orphaned
-    still holding them, and on Windows ``run()``'s unbounded post-kill ``communicate()`` then
+    still holding them, and ``run()``'s unbounded post-kill ``communicate()`` then
     blocks on pipe EOF forever — so the tool call, plus its activity heartbeat, wedges (#106244).
     """
     proc = subprocess.Popen(
         cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, encoding="utf-8", errors="replace", env=env, **_group_popen_kwargs(),
+        text=True, encoding="utf-8", errors="replace", env=env, start_new_session=True,
     )
     try:
         stdout, stderr = proc.communicate(input=code, timeout=timeout)

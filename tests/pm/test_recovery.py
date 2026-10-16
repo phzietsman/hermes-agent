@@ -31,7 +31,7 @@ def test_startup_validation_checks_real_ruamel_dependency(tmp_path, failure):
 
     candidate = tmp_path / "candidate"
     venv.EnvBuilder(with_pip=False).create(candidate)
-    python = candidate / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = candidate / "bin/python"
     target = site_packages(candidate)
     package = target / "ruamel" / "yaml"
     # Copy the real parser and distribution metadata into an isolated candidate.
@@ -146,7 +146,7 @@ def test_repair_restores_recorded_plugin_dependencies_without_config(tmp_path, m
     engine.sync_venv(repair=True)
     restored = selected_venv(core)
     assert restored != old
-    python = restored / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = restored / "bin/python"
     result = subprocess.run(
         [str(python), "-I", "-c", "import core_dep, plugin_dep; print(core_dep.__version__, plugin_dep.__version__)"],
         cwd=tmp_path, capture_output=True, text=True, check=True, timeout=30,
@@ -206,7 +206,7 @@ def test_uncertain_profile_selection_skips_sync_but_not_admission_or_recorded_re
     engine.sync_venv(repair=True)
     repaired = selected_venv(core)
     assert repaired != old
-    python = repaired / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = repaired / "bin/python"
     result = subprocess.run(
         [str(python), "-I", "-c", "import plugin_dep; print(plugin_dep.__version__)"],
         cwd=tmp_path, capture_output=True, text=True, check=True, timeout=30,
@@ -218,7 +218,7 @@ def test_uncertain_profile_selection_skips_sync_but_not_admission_or_recorded_re
     assert str(sibling_config) in caplog.text
     assert selected_venv(core) == repaired
     result = subprocess.run(
-        [str(repaired / ("Scripts/python.exe" if os.name == "nt" else "bin/python")),
+        [str(repaired / "bin/python"),
          "-I", "-c", "import core_dep; print(core_dep.__version__)"],
         cwd=tmp_path, capture_output=True, text=True, check=True, timeout=30,
     )

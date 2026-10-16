@@ -169,7 +169,7 @@ describeHost('parseVoiceRecordKey (#18994)', () => {
   })
 
   it('allows alt+{c,d,l} on Linux/Windows — non-mac isAction keys off Ctrl', () => {
-    // On Linux/Windows ``isActionMod`` ignores key.meta, so alt+<letter>
+    // On Linux ``isActionMod`` ignores key.meta, so alt+<letter>
     // doesn't collide with copy/exit/clear. Those configs stay usable.
     expect(parseVoiceRecordKey('alt+c').mod).toBe('alt')
     expect(parseVoiceRecordKey('alt+d').mod).toBe('alt')
@@ -226,7 +226,7 @@ describeHost('formatVoiceRecordKey (#18994)', () => {
     expect(formatVoiceRecordKey(parseVoiceRecordKey('ctrl+o'))).toBe('Ctrl+O')
     expect(formatVoiceRecordKey(parseVoiceRecordKey('alt+r'))).toBe('Alt+R')
     // ``super``/``win`` render as ``Super`` on non-mac so the hint
-    // doesn't tell Linux/Windows users to press a Cmd key they don't
+    // doesn't tell Linux users to press a Cmd key they don't
     // have.
     expect(formatVoiceRecordKey(parseVoiceRecordKey('super+b'))).toBe('Super+B')
   })

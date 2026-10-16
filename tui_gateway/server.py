@@ -242,7 +242,7 @@ def _prepend_tool_paths(env: dict[str, str]) -> dict[str, str]:
     managed_bin = ""
     with contextlib.suppress(Exception):
         managed_bin = str(Path(get_hermes_home()) / "bin")
-    venv_bin = str(Path(sys.executable).parent)  # <venv>/bin (POSIX) or <venv>/Scripts (Windows)
+    venv_bin = str(Path(sys.executable).parent)  # <venv>/bin
     parts = [p for p in (managed_bin, venv_bin, str(Path.home() / ".local" / "bin"), env.get("PATH") or "") if p]
     env["PATH"] = os.pathsep.join(parts)
     with contextlib.suppress(Exception):
@@ -269,7 +269,6 @@ class _SlashWorker:
             + (["--model", model] if model else []) \
             + (["--provider", provider] if provider else [])
         self._closed = False
-        from hermes_cli._subprocess_compat import windows_hide_flags
         # slash_worker runs the Hermes agent → needs provider credentials. Tier-1 secrets
         # (gateway/GitHub/infra) are still stripped (#29157). Global-remote / multi-profile sessions: the
         # worker must resolve config/skills/state against the session's profile home, not the gateway's
@@ -293,14 +292,13 @@ class _SlashWorker:
         )
         # start_new_session: otherwise the worker inherits the gateway's pgid and mcp_tool's orphan
         # sweep, racing the spawn, killpg()s the TUI parent itself. errors="replace": bytes invalid
-        # in the system locale (GBK Windows) must not raise UnicodeDecodeError in the drain threads.
+        # in the system locale must not raise UnicodeDecodeError in the drain threads.
         # Prepend the Hermes venv bin dir and the user-local bin dir to PATH so slash_worker child processes
         # can resolve Hermes-managed CLIs (browser-use, uvx) even when the parent gateway was launched with
         # a minimal PATH (e.g. by the Desktop/Dashboard app). See #83845.
         self.proc = subprocess.Popen(
             argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            encoding="utf-8", errors="replace", bufsize=1, cwd=os.getcwd(), env=env,
-            creationflags=windows_hide_flags(), start_new_session=True)
+            encoding="utf-8", errors="replace", bufsize=1, cwd=os.getcwd(), env=env, start_new_session=True)
         threading.Thread(target=self._drain_stdout, daemon=True).start()
         threading.Thread(target=self._drain_stderr, daemon=True).start()
 

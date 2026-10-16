@@ -37,7 +37,7 @@ import { clearSingleFlightSessionResumeState } from './single-flight-resume'
 import { SESSION_COMPRESS_TIMEOUT_MS } from './slash'
 import type { SubmitTextOptions } from './utils'
 
-import { uploadComposerAttachment, usePromptActions } from '.'
+import { usePromptActions } from '.'
 
 // Suites in this file reuse the same stored-id constants. The module-level
 // single-flight resume map (and drift-recovery cache) would otherwise leak a
@@ -3276,6 +3276,7 @@ describe('usePromptActions file attachment sync', () => {
     $composerAttachments.set([])
     $connection.set(null)
     $currentCwd.set('')
+    $terminalBackend.set('')
     vi.restoreAllMocks()
   })
 
@@ -3338,105 +3339,13 @@ describe('usePromptActions file attachment sync', () => {
     })
   })
 
-  it('uploads Windows file bytes when local mode fronts a POSIX WSL/Docker backend', async () => {
-    $connection.set({ mode: 'local' } as never)
-    $currentCwd.set('/root')
-    const readFileDataUrl = vi.fn(async () => 'data:text/plain;base64,aGVsbG8=')
-    Object.defineProperty(window, 'hermesDesktop', {
-      configurable: true,
-      value: { readFileDataUrl }
-    })
-
-    const attachment: ComposerAttachment = {
-      ...fileAttachment(),
-      path: 'C:\\Users\\alice\\Downloads\\report.txt',
-      refText: '@file:`C:\\Users\\alice\\Downloads\\report.txt`'
-    }
-
-    const calls: { method: string; params?: Record<string, unknown> }[] = []
-
-    const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
-      calls.push({ method, params })
-
-      if (method === 'file.attach') {
-        return {
-          attached: true,
-          path: '/root/.hermes/desktop-attachments/report.txt',
-          ref_text: '@file:.hermes/desktop-attachments/report.txt',
-          uploaded: true
-        } as never
-      }
-
-      return {} as never
-    })
-
-    let handle: HarnessHandle | null = null
-    await actRender(
-      <Harness onReady={h => (handle = h)} refreshSessions={async () => undefined} requestGateway={requestGateway} />
-    )
-
-    expect(await handle!.submitText('summarize', { attachments: [attachment] })).toBe(true)
-    expect(readFileDataUrl).toHaveBeenCalledWith('C:\\Users\\alice\\Downloads\\report.txt')
-    expect(calls[0]).toEqual({
-      method: 'file.attach',
-      params: {
-        data_url: 'data:text/plain;base64,aGVsbG8=',
-        name: 'report.txt',
-        path: 'C:\\Users\\alice\\Downloads\\report.txt',
-        session_id: RUNTIME_SESSION_ID
-      }
-    })
-    expect(calls[1]).toEqual({
-      method: 'prompt.submit',
-      params: { session_id: RUNTIME_SESSION_ID, text: '@file:.hermes/desktop-attachments/report.txt\n\nsummarize' }
-    })
-  })
-
-  it('uses image.attach_bytes for a Windows image when the local backend cwd is POSIX', async () => {
-    const readFileDataUrl = vi.fn(async () => 'data:image/jpeg;base64,aGVsbG8=')
-    Object.defineProperty(window, 'hermesDesktop', {
-      configurable: true,
-      value: { readFileDataUrl }
-    })
-
-    const requestGateway = vi.fn(async (method: string) => {
-      if (method === 'image.attach_bytes') {
-        return { attached: true, path: '/root/tmp/photo.jpg' } as never
-      }
-
-      return {} as never
-    })
-
-    const uploaded = await uploadComposerAttachment(
-      {
-        id: 'image:photo.jpg',
-        kind: 'image',
-        label: 'photo.jpg',
-        path: 'C:\\Users\\alice\\Pictures\\photo.jpg'
-      },
-      {
-        backendCwd: '/root',
-        remote: false,
-        requestGateway,
-        sessionId: RUNTIME_SESSION_ID
-      }
-    )
-
-    expect(readFileDataUrl).toHaveBeenCalledWith('C:\\Users\\alice\\Pictures\\photo.jpg')
-    expect(requestGateway).toHaveBeenCalledWith('image.attach_bytes', {
-      content_base64: 'aGVsbG8=',
-      filename: 'photo.jpg',
-      session_id: RUNTIME_SESSION_ID
-    })
-    expect(requestGateway).not.toHaveBeenCalledWith('image.attach', expect.anything())
-    expect(uploaded.path).toBe('/root/tmp/photo.jpg')
-  })
-
   it('merges image staging into the current occurrence without dropping its thumbnail', async () => {
     $connection.set({ mode: 'local' } as never)
     $currentCwd.set('/root')
+    // A container backend cannot see host paths, so the image crosses as bytes.
+    $terminalBackend.set('docker')
 
-    const hostPath = 'C:\\Users\\alice\\Pictures\\photo.jpg'
+    const hostPath = '/Users/alice/Pictures/photo.jpg'
     const thumbnailUrl = 'data:image/jpeg;base64,dGh1bWJuYWls'
 
     Object.defineProperty(window, 'hermesDesktop', {
@@ -3485,8 +3394,10 @@ describe('usePromptActions file attachment sync', () => {
   it('preserves a same-path replacement added while a successful main submit is in flight', async () => {
     $connection.set({ mode: 'local' } as never)
     $currentCwd.set('/root')
+    // A container backend cannot see host paths, so the image crosses as bytes.
+    $terminalBackend.set('docker')
 
-    const hostPath = 'C:\\Users\\alice\\Pictures\\photo.jpg'
+    const hostPath = '/Users/alice/Pictures/photo.jpg'
 
     const original: ComposerAttachment = {
       detail: hostPath,
@@ -3723,51 +3634,6 @@ describe('usePromptActions file attachment sync', () => {
     expect(calls.map(c => c.method)).toEqual(['prompt.submit'])
     expect(readFileDataUrl).not.toHaveBeenCalled()
     expect(calls[0]?.params?.text).toContain('@file:`/Users/mahmoud/Downloads/DEVIS_signed.pdf`')
-  })
-
-  it('passes a Windows path directly for a native Windows local backend', async () => {
-    $connection.set({ mode: 'local' } as never)
-    $currentCwd.set('C:\\Users\\alice\\project')
-    const readFileDataUrl = vi.fn(async () => 'data:text/plain;base64,c2hvdWxkLW5vdC1iZS1yZWFk')
-    Object.defineProperty(window, 'hermesDesktop', {
-      configurable: true,
-      value: { readFileDataUrl }
-    })
-
-    const attachment: ComposerAttachment = {
-      ...fileAttachment(),
-      path: 'C:\\Users\\alice\\Downloads\\report.txt',
-      refText: '@file:`C:\\Users\\alice\\Downloads\\report.txt`'
-    }
-
-    const calls: { method: string; params?: Record<string, unknown> }[] = []
-
-    const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
-      calls.push({ method, params })
-
-      if (method === 'file.attach') {
-        return { attached: true, ref_text: '@file:data/report.txt', uploaded: false } as never
-      }
-
-      return {} as never
-    })
-
-    let handle: HarnessHandle | null = null
-    await actRender(
-      <Harness onReady={h => (handle = h)} refreshSessions={async () => undefined} requestGateway={requestGateway} />
-    )
-
-    const ok = await handle!.submitText('summarize', { attachments: [attachment] })
-
-    expect(ok).toBe(true)
-    expect(calls[0]?.method).toBe('file.attach')
-    expect(readFileDataUrl).not.toHaveBeenCalled()
-    // Native Windows local mode shares the same path namespace.
-    expect(calls[0]?.params).not.toHaveProperty('data_url')
-    expect(calls[1]).toEqual({
-      method: 'prompt.submit',
-      params: { session_id: RUNTIME_SESSION_ID, text: '@file:data/report.txt\n\nsummarize' }
-    })
   })
 })
 

@@ -54,8 +54,7 @@ test('decodingFileProbe rejects a directory', () => {
 
 // #96857: on a packaged build every path inside app.asar is stat'ed through Electron's asar
 // fs.Stats shim, which emits Node's DEP0180 ("fs.Stats constructor is deprecated") on every launch.
-// A packaged tree always has real on-disk icons (dist/** is asarUnpack'ed; extraResources copies
-// icon.ico to resources/), so resolving the ladder must never probe inside the archive, even though
+// A packaged tree always has real on-disk icons (dist/** is asarUnpack'ed), so resolving the ladder must never probe inside the archive, even though
 // the packed copies exist too.
 test('resolving a packaged icon never probes a path inside app.asar', () => {
   const resources = path.join('/opt', 'Hermes', 'resources')
@@ -63,41 +62,30 @@ test('resolving a packaged icon never probes a path inside app.asar', () => {
   const unpackedPathFor = (p: string) => p.replace(/app\.asar(?=$|[\\/])/, 'app.asar.unpacked')
   const unpackedIcon = path.join(unpackedPathFor(appRoot), 'dist', 'apple-touch-icon.png')
 
-  const resourcesIco = path.join(resources, 'icon.ico')
-
-  // package.json build: files (packed) + asarUnpack dist/** + extraResources icon.ico.
+  // package.json build: files (packed) + asarUnpack dist/**.
   const shipped = new Set([
-    resourcesIco,
-    path.join(appRoot, 'assets', 'icon.ico'),
     path.join(appRoot, 'public', 'apple-touch-icon.png'),
     path.join(appRoot, 'dist', 'apple-touch-icon.png'),
     unpackedIcon
   ])
 
-  for (const isWindows of [false, true]) {
-    const probed: string[] = []
+  const probed: string[] = []
 
-    const picked = resolveAppIcon(
-      appIconCandidates({ isWindows, appRoot, resourcesPath: resources, unpackedPathFor }),
-      p => {
-        probed.push(p)
+  const picked = resolveAppIcon(appIconCandidates({ appRoot, unpackedPathFor }), p => {
+    probed.push(p)
 
-        return shipped.has(p)
-      }
-    )
+    return shipped.has(p)
+  })
 
-    assert.equal(picked, isWindows ? resourcesIco : unpackedIcon)
-    assert.deepEqual(
-      probed.filter(p => p.startsWith(appRoot + path.sep)),
-      [],
-      `isWindows=${isWindows}`
-    )
-  }
+  assert.equal(picked, unpackedIcon)
+  assert.deepEqual(
+    probed.filter(p => p.startsWith(appRoot + path.sep)),
+    []
+  )
 })
 
 test('appIconCandidates keeps the documented precedence ladder', () => {
   const mac = appIconCandidates({
-    isWindows: false,
     appRoot: '/Applications/Hermes.app/Contents/Resources',
     unpackedPathFor: p => `${p}.unpacked`
   })
@@ -107,22 +95,6 @@ test('appIconCandidates keeps the documented precedence ladder', () => {
     path.join('/Applications/Hermes.app/Contents/Resources', 'public', 'apple-touch-icon.png'),
     path.join('/Applications/Hermes.app/Contents/Resources', 'dist', 'apple-touch-icon.png')
   ])
-
-  // Windows prepends the two full-bleed .ico rungs ahead of the PNG ladder.
-  const win = appIconCandidates({
-    isWindows: true,
-    appRoot: 'C:\\app',
-    resourcesPath: 'C:\\resources',
-    unpackedPathFor: p => `${p}\\unpacked`
-  })
-
-  const isIco = win.map(c => c.endsWith('.ico'))
-  assert.ok(isIco.lastIndexOf(true) < isIco.indexOf(false), 'every .ico rung precedes the PNG ladder')
-  assert.equal(
-    win[0],
-    path.join('C:\\resources', 'icon.ico'),
-    'resources/ icon.ico is the highest-precedence Windows rung'
-  )
 })
 
 // #73195: a runtime app.dock.setIcon(png) replaces the bundle's icon for the
@@ -138,7 +110,7 @@ test('shouldOverrideDockIcon still brands the dock in a macOS dev run', () => {
 })
 
 test('shouldOverrideDockIcon never applies off macOS (there is no dock)', () => {
-  for (const platform of ['win32', 'linux'] as const) {
+  for (const platform of ['linux'] as const) {
     assert.equal(shouldOverrideDockIcon({ platform, isPackaged: false }), false)
     assert.equal(shouldOverrideDockIcon({ platform, isPackaged: true }), false)
   }

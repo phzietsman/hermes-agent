@@ -7,8 +7,7 @@ Hermes Agent 使用 SQLite 数据库（`~/.hermes/state.db`）跨 CLI 和 gatewa
 ## Hermes home 与 profile 隔离
 
 `get_hermes_home()` 是状态与配置的权威文件系统解析器。它依次使用上下文本地覆盖、`HERMES_HOME`
-环境变量，最后才是平台默认值（macOS 和 Linux 上为 `~/.hermes`；Windows 上为
-`%LOCALAPPDATA%/hermes`）。因此默认数据库始终是 `get_hermes_home() / "state.db"`，
+环境变量，最后才是平台默认值（`~/.hermes`）。因此默认数据库始终是 `get_hermes_home() / "state.db"`，
 调用方不应硬编码 `~/.hermes/state.db`。
 
 命名 profile 是相互隔离的目录：例如名为 `coder` 的 profile 使用

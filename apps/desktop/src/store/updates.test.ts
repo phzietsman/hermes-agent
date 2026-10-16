@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setApiRequestConnection, setApiRequestProfile } from '@/api/client'
 import type { DesktopUpdateStatus, DesktopVersionInfo } from '@/global'
-import { en } from '@/i18n/en'
 
 const storage = new Map<string, string>()
 
@@ -156,7 +155,7 @@ describe('gateway version refresh', () => {
       appVersion: '4.5.6',
       electronVersion: '40',
       nodeVersion: '26',
-      platform: 'win32',
+      platform: 'linux',
       hermesRoot: ''
     }
 
@@ -222,24 +221,6 @@ describe('maybeNotifyUpdateAvailable', () => {
     expect(notifySpy).toHaveBeenCalledTimes(1)
   })
 
-  it('notifies for a Store update without a commit and never for an unknown check', () => {
-    maybeNotifyUpdateAvailable(
-      status({ mechanism: 'microsoft-store', targetSha: undefined, behind: null, updateAvailable: true })
-    )
-    expect(notifySpy).toHaveBeenCalledTimes(1)
-    notifySpy.mockClear()
-    maybeNotifyUpdateAvailable(
-      status({
-        mechanism: 'microsoft-store',
-        targetSha: undefined,
-        behind: null,
-        updateAvailable: false,
-        error: 'Store unavailable'
-      })
-    )
-    expect(notifySpy).not.toHaveBeenCalled()
-  })
-
   it('does nothing when already up to date', () => {
     maybeNotifyUpdateAvailable(status({ behind: 0 }))
     expect(notifySpy).not.toHaveBeenCalled()
@@ -251,25 +232,6 @@ describe('maybeNotifyUpdateAvailable', () => {
   it('still notifies when the exact behind count is unknown', () => {
     maybeNotifyUpdateAvailable(status({ behind: null, updateAvailable: true }))
     expect(notifySpy).toHaveBeenCalledTimes(1)
-  })
-
-  // FAIL-BEFORE (C19): an App Installer check legitimately carries no
-  // targetSha — the OS reports availability against the .appinstaller feed,
-  // so there is no commit identity to name. Requiring targetSha made the
-  // mechanism-specific App Installer toast unreachable forever.
-  it('notifies for an App Installer check even though it has no targetSha', () => {
-    maybeNotifyUpdateAvailable(
-      status({
-        behind: null,
-        currentVersion: '0.19.0',
-        mechanism: 'app-installer',
-        targetSha: undefined,
-        updateAvailable: true
-      })
-    )
-
-    expect(notifySpy).toHaveBeenCalledTimes(1)
-    expect(notifySpy.mock.calls[0]?.[0]).toMatchObject({ message: en.notifications.updateReadyMessageAppInstaller })
   })
 
   // A native macOS (electron-updater) check has no commit to name either: its

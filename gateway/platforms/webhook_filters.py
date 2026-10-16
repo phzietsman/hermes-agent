@@ -179,8 +179,7 @@ class WebhookRouteProcessor:
         is_shell = path.suffix.lower() in {".sh", ".bash"}
         interpreter = sys.executable
         if is_shell:
-            # ``shutil.which("bash")`` inherits PATH order and returns System32's WSL stub on
-            # Windows hosts where System32 precedes Git (#116818); ``_find_bash`` probes Git Bash first.
+            # The shell Hermes runs commands with (pm owns bundled bash), not whatever PATH finds first.
             from tools.environments.local import _find_bash
             try:
                 interpreter = _find_bash()
@@ -189,10 +188,9 @@ class WebhookRouteProcessor:
                 return False, None
         try:
             from tools.environments.local import build_subprocess_env
-            popen_kwargs = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
             result = subprocess.run(
                 [interpreter, str(path)], input=json.dumps(payload), capture_output=True, text=True, encoding="utf-8", errors="replace",
-                timeout=self.script_timeout_seconds, cwd=str(path.parent), env=build_subprocess_env(), **popen_kwargs,
+                timeout=self.script_timeout_seconds, cwd=str(path.parent), env=build_subprocess_env(),
             )
         except subprocess.TimeoutExpired:
             logger.warning("[webhook] script timed out: %s", path)

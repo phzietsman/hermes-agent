@@ -339,14 +339,13 @@ async def test_long_output_truncated_for_non_chunking_adapter(tmp_path, monkeypa
     assert saved_files[0].read_text() == long_content
 
 
-def _simulate_windows_codepage_write(monkeypatch):
-    """Make ``Path.write_text`` behave like a non-UTF-8 Windows console.
+def _simulate_non_utf8_locale_write(monkeypatch):
+    """Make ``Path.write_text`` behave like a non-UTF-8 locale.
 
-    On Windows ``Path.write_text(data)`` with no ``encoding=`` encodes through
-    the platform code page (cp1252), which raises ``UnicodeEncodeError`` for
-    emoji/CJK/accented text. POSIX CI runs default to UTF-8 and would hide the
-    regression, so we reproduce the Windows default deterministically: encode
-    with cp1252 when the caller omits ``encoding=``, otherwise honor it.
+    ``Path.write_text(data)`` with no ``encoding=`` encodes through the locale's
+    preferred encoding, which raises ``UnicodeEncodeError`` for emoji/CJK/accented
+    text under e.g. ``LANG=C``. CI defaults to UTF-8 and would hide the regression,
+    so encode with cp1252 when the caller omits ``encoding=``, otherwise honor it.
     """
     import pathlib
 
@@ -366,15 +365,15 @@ _NON_ASCII_OVERSIZED = ("数据备份完成 🎉 résumé — " * 250)
 
 
 @pytest.mark.asyncio
-async def test_oversized_non_ascii_output_is_delivered_on_windows_codepage(tmp_path, monkeypatch):
+async def test_oversized_non_ascii_output_is_delivered_under_non_utf8_locale(tmp_path, monkeypatch):
     """Oversized cron output containing emoji/CJK must still be delivered.
 
     Without an explicit utf-8 encoding the full-output save raises
-    UnicodeEncodeError on a Windows code page, aborting the whole
+    UnicodeEncodeError under a non-UTF-8 locale, aborting the whole
     truncate-and-send path so the user receives nothing.
     """
     monkeypatch.setattr("gateway.delivery.get_hermes_home", lambda: tmp_path)
-    _simulate_windows_codepage_write(monkeypatch)
+    _simulate_non_utf8_locale_write(monkeypatch)
 
     adapter = RecordingAdapter()
     router = DeliveryRouter(GatewayConfig(), adapters={Platform.TELEGRAM: adapter})
@@ -396,10 +395,10 @@ async def test_oversized_non_ascii_output_is_delivered_on_windows_codepage(tmp_p
     assert result["success"] is True
 
 
-def test_local_delivery_writes_non_ascii_on_windows_codepage(tmp_path, monkeypatch):
+def test_local_delivery_writes_non_ascii_under_non_utf8_locale(tmp_path, monkeypatch):
     """Local file delivery must persist emoji/CJK content as UTF-8."""
     monkeypatch.setattr("gateway.delivery.get_hermes_home", lambda: tmp_path)
-    _simulate_windows_codepage_write(monkeypatch)
+    _simulate_non_utf8_locale_write(monkeypatch)
 
     router = DeliveryRouter(GatewayConfig())
 

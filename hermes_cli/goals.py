@@ -397,9 +397,8 @@ def run_gate(gate: GoalGate, *, cwd: Optional[str] = None) -> Tuple[bool, int, s
     """Run one gate through the shell. Returns ``(passed, exit_code, output_tail)``; a timeout kills
     the process and counts as exit code -1."""
     try:
-        # utf-8/replace: operator-configured output is arbitrary bytes; strict codepage decoding of
-        # one unmappable byte (emoji/CJK on a non-UTF-8 Windows console) kills the reader thread and
-        # the tail the agent needs arrives empty.
+        # utf-8/replace: operator-configured output is arbitrary bytes; strict decoding of one
+        # unmappable byte kills the reader thread and the tail the agent needs arrives empty.
         proc = subprocess.run(
             gate.command, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=max(1, int(gate.timeout_seconds)), cwd=cwd or None,
@@ -714,9 +713,7 @@ def _truncate(text: str, limit: int) -> str:
 
 
 def _pid_alive(pid: int) -> bool:
-    """Liveness via ``gateway.status._pid_exists`` (psutil + ctypes/POSIX fallback). Never uses
-    ``os.kill(pid, 0)``: on Windows that routes to CTRL_C_EVENT and hard-kills the target's console
-    group (bpo-14484)."""
+    """Liveness via ``gateway.status._pid_exists``."""
     if not pid or pid <= 0:
         return False
     try:

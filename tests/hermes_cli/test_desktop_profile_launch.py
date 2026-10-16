@@ -16,7 +16,6 @@ from pathlib import Path
 import pytest
 
 from hermes_cli import main as cli_main
-from hermes_cli import main_desktop
 
 
 def _ns(**kwargs):
@@ -52,8 +51,6 @@ def _packaged_exe(root: Path) -> Path:
     desktop_dir = root / "apps" / "desktop"
     if sys.platform == "darwin":
         exe = desktop_dir / "release" / "mac-arm64" / "Hermes.app" / "Contents" / "MacOS" / "Hermes"
-    elif sys.platform == "win32":
-        exe = desktop_dir / "release" / "win-unpacked" / "Hermes.exe"
     else:
         exe = desktop_dir / "release" / "linux-unpacked" / "hermes"
         exe.parent.mkdir(parents=True, exist_ok=True)
@@ -98,7 +95,6 @@ def _launch_command(tmp_path, monkeypatch, argv: list[str], *, active_profile: s
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setattr(sys, "argv", argv)
     monkeypatch.setattr(cli_main, "PROJECT_ROOT", project)
-    monkeypatch.setattr(main_desktop, "_desktop_exe_integrity_error", lambda _path: None)
     # Module global: restore it so a later cmd_gui test does not inherit a flag.
     monkeypatch.setattr(cli_main, "_explicit_cli_profile", None)
 

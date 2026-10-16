@@ -15,7 +15,7 @@ Two questions, one coordinate system:
   file-safety write classifier, covering write/patch/move/delete.
 
 Protected set (all resolved through the same normalizer so shell spellings —
-native, git-bash ``/c/...``, WSL ``/mnt/c/...``, ``$HOME`` — compare equal):
+``~``, ``$HOME``, symlinked prefixes — compare equal):
 
 * ``sys.executable`` and ``sys.prefix`` (the runtime's own venv),
 * the base interpreter from ``pyvenv.cfg``'s ``home =`` / ``sys._base_executable``,
@@ -46,30 +46,23 @@ _SEGMENT_SPLIT_RE = re.compile(r"\n|&&|\|\||[;|]")
 # environment assignment prefix (FOO=1 rm ...).
 _COMMAND_PREFIXES = frozenset({"sudo", "command", "nohup", "exec", "env", "nice", "time"})
 
-# Direct-deletion command names (basename, lowercase). `rm` covers POSIX and
-# git-bash; the Windows-native spellings cover cmd (`rd`, `del`, `rmdir /s`)
-# and PowerShell (`Remove-Item`, and its `ri`/`rm`/`del`/`erase` aliases).
-_DELETING_COMMANDS = frozenset({
-    "rm", "rmdir", "rd", "del", "erase", "remove-item", "ri",
-})
+# Direct-deletion command names (basename, lowercase).
+_DELETING_COMMANDS = frozenset({"rm", "rmdir"})
 
 # `find <roots...> -delete` (or `-exec rm ...`) deletes its search roots.
 _FIND_DELETE_RE = re.compile(r"(?:^|\s)-(?:delete|exec\s+rm\b)", re.IGNORECASE)
 
 # uv-managed install layout: .../uv/python/cpython-3.14.7-arm64-apple-darwin/...
 _UV_INSTALL_DIR_RE = re.compile(
-    r"(?i)(?P<root>.*[/\\](?:uv[/\\])?python[/\\]cpython-(?P<version>\d+(?:\.\d+)*)(?:[-_][^/\\]*)?)(?:[/\\].*)?$"
+    r"(?i)(?P<root>.*/(?:uv/)?python/cpython-(?P<version>\d+(?:\.\d+)*)(?:[-_][^/]*)?)(?:/.*)?$"
 )
-
-_WIN_DRIVE_FROM_POSIX_RE = re.compile(r"^/(?:(mnt)/)?([a-zA-Z])/(.+)$")
 
 
 def _normalize_path(raw: str) -> str:
     """One canonical form for both shell spellings and runtime paths.
 
-    Expands ``~``/``$HOME``, maps git-bash (``/c/...``) and WSL (``/mnt/c/...``)
-    drive forms to native Windows paths, then ``realpath``s so symlink mirrors
-    (macOS ``/private``) and relocated installs compare equal. Missing tails are
+    Expands ``~``/``$HOME``, then ``realpath``s so symlink mirrors (macOS
+    ``/private``) and relocated installs compare equal. Missing tails are
     fine: POSIX ``realpath`` resolves the existing prefix lexically.
     """
     path = str(raw or "").strip()
@@ -84,11 +77,6 @@ def _normalize_path(raw: str) -> str:
             path = os.path.expanduser(path)
         except Exception:
             pass
-    if os.name == "nt":
-        m = _WIN_DRIVE_FROM_POSIX_RE.match(path)
-        if m:
-            path = f"{m.group(2)}:\\{m.group(3)}"
-        path = path.replace("/", "\\")
     try:
         return os.path.normcase(os.path.realpath(os.path.normpath(path)))
     except Exception:
@@ -130,7 +118,7 @@ def _protected_snapshot(executable: str, prefix: str) -> tuple[tuple[str, str], 
     base_dir = _normalize_path(_pyvenv_home(prefix)) or _normalize_path(getattr(sys, "_base_executable", "") or "")
     if base_dir:
         entries.append((base_dir, "the base interpreter this Hermes venv depends on"))
-        m = _UV_INSTALL_DIR_RE.match(base_dir.replace("\\", "/"))
+        m = _UV_INSTALL_DIR_RE.match(base_dir)
         if m:
             uv_root = _normalize_path(m.group("root"))
             if uv_root:
@@ -155,9 +143,8 @@ def split_entry(path: str) -> tuple[str, str]:
     """``os.path.split`` for a directory entry, trailing separators and ``.`` components
     dropped first: an empty or ``.`` leaf (``dir/link/``, ``dir/link/.``) would make entry
     checks degenerate to the link's target, while pathlib/rm still act on ``link``.
-    A bare root (``/``, ``C:\\``) is kept as is."""
-    drive, tail = os.path.splitdrive(path)
-    parent, leaf = os.path.split(drive + (tail.rstrip(os.sep + (os.altsep or "")) or tail[:1]))
+    A bare root (``/``) is kept as is."""
+    parent, leaf = os.path.split(path.rstrip(os.sep) or path[:1])
     if leaf == "." and parent:
         return split_entry(parent)
     return parent, leaf
@@ -234,7 +221,7 @@ def _uv_uninstall_target(words: list[str]) -> Optional[str]:
         return None
     specs = words[uninstall_at + 1:]
     for root, description in uv_entries:
-        m = _UV_INSTALL_DIR_RE.match(root.replace("\\", "/"))
+        m = _UV_INSTALL_DIR_RE.match(root)
         version = m.group("version") if m else ""
         root_name = os.path.basename(root)
         if any(_version_spec_matches(spec, version, root_name) for spec in specs):
@@ -245,7 +232,7 @@ def _uv_uninstall_target(words: list[str]) -> Optional[str]:
 def command_deletes_runtime(command: str) -> Optional[str]:
     """Description of the runtime path ``command`` would delete, else ``None``.
 
-    Covers ``rm``/``rmdir``/``rd``/``del``/``erase``/``Remove-Item`` (any flags —
+    Covers ``rm``/``rmdir`` (any flags —
     the interpreter is a file, so no recursion is needed to kill it), the
     ``find <roots> -delete`` form, and ``uv python uninstall``. Known limits:
     paths assembled by ``xargs``/command substitution are invisible here, and

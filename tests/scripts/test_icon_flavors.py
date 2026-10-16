@@ -108,9 +108,7 @@ def tile_color(image):
 
 
 def is_dark_tile(path):
-    # `-dark` outputs and the MSIX dark-theme form (`_altform-unplated`; the
-    # light theme's is `_altform-lightunplated`) carry the dark tile.
-    return "dark" in path.name or path.name.endswith("_altform-unplated.png")
+    return "dark" in path.name
 
 
 def assert_same_geometry(original, flavored):
@@ -122,7 +120,7 @@ def assert_same_geometry(original, flavored):
 
 
 def assert_unbranded_outputs(stable, flavored):
-    for directory in ("assets", "website", "web", "apps/bootstrap-installer"):
+    for directory in ("assets", "website", "web"):
         for path in (stable / directory).rglob("*"):
             if path.is_file():
                 assert path.read_bytes() == (flavored / path.relative_to(stable)).read_bytes(), path
@@ -352,32 +350,3 @@ def test_mac_mask_offset_keeps_the_ring_geometry_honest(monkeypatch):
     for (ox, oy), (ix, iy) in zip(outline, inner, strict=True):
         assert math.hypot(ox - ix, oy - iy) == pytest.approx(thickness, abs=1e-6)
         assert 0 <= ox <= canvas and 0 <= oy <= canvas
-
-
-def test_msix_logos_resolve_every_slot_windows_draws(generate, monkeypatch):
-    """Windows picks `<Logo>.scale-N` / `.targetsize-N` by qualifier; the manifest
-    only names the bases. Every base the manifest references must therefore have
-    its scaled siblings at Microsoft's pixel sizes (never an upscaled 44px), and
-    the theme forms must be real variants: dark theme (unplated) gets the dark
-    tile, light theme the light one — the unqualified file stays light."""
-    module = load_generator(monkeypatch)
-    appx = generate("v1.2.3") / module.APPX_DIR
-    for name, base in module.APPX_LOGOS.items():
-        for scale in module.APPX_SCALES:
-            qualifier = "" if scale == 100 else f".scale-{scale}"
-            image = Image.open(appx / f"{name}{qualifier}.png")
-            expected = tuple(module.appx_scaled(side, scale) for side in (base if isinstance(base, tuple) else (base, base)))
-            assert image.size == expected, (name, scale, image.size)
-    # Microsoft's own table: 150 @ 125% is 188, not 187.
-    assert module.appx_scaled(150, 125) == 188 and module.appx_scaled(44, 400) == 176
-    assert {48, 256} <= set(module.APPX_TARGET_SIZES)  # taskbar @200% and the largest Start pin
-    light_plate = Image.open(appx / "Square44x44Logo.png").convert("RGBA").getpixel((2, 22))[:3]
-    for size in module.APPX_TARGET_SIZES:
-        plain = Image.open(appx / f"Square44x44Logo.targetsize-{size}.png").convert("RGBA")
-        dark = Image.open(appx / f"Square44x44Logo.targetsize-{size}_altform-unplated.png").convert("RGBA")
-        light = Image.open(appx / f"Square44x44Logo.targetsize-{size}_altform-lightunplated.png").convert("RGBA")
-        assert plain.size == dark.size == light.size == (size, size)
-        edge = (max(1, size // 24), size // 2)  # on the plate, left of the girl
-        assert light.getpixel(edge)[:3] == plain.getpixel(edge)[:3] == light_plate == (255, 255, 255), size
-        dark_plate = dark.getpixel(edge)
-        assert dark_plate[3] == 255 and max(dark_plate[:3]) < 60, (size, dark_plate)

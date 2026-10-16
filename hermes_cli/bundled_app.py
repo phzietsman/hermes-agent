@@ -67,7 +67,7 @@ def resolve_bundle_layout(
 
     *project_root* is the payload's ``repo/`` tree — the install root a
     bundled backend runs from. The app sits two directories above the
-    payload on Windows and Linux, and four above it on macOS, where the
+    payload on Linux, and four above it on macOS, where the
     payload lands in ``Hermes.app/Contents/Resources``.
 
     The macOS offset is detected from the directory names themselves
@@ -113,22 +113,11 @@ def _resolve_launcher(app_root: Path, platform: str) -> Path | None:
     are not launchers":
 
     * macOS — the one file in ``Contents/MacOS``.
-    * Windows — the one top-level ``.exe`` that is not the uninstaller.
     * Linux — the one top-level executable that is not an Electron helper
       or a shared library.
     """
     if platform == "darwin":
         return _only(_files(app_root / "Contents" / "MacOS"))
-
-    if platform == "win32":
-        return _only(
-            [
-                p
-                for p in _files(app_root)
-                if p.suffix.lower() == ".exe"
-                and not p.name.lower().startswith("uninstall")
-            ]
-        )
 
     return _only(
         [
@@ -158,13 +147,10 @@ def launch_detached(
 ) -> int:
     """Start *argv* as its own process and return its pid.
 
-    The child outlives this process: it leads a new session on POSIX, and
-    on Windows it gets the detach creation flags (new process group, own
-    hidden console, breakaway from any job object). Its stdio goes to the
+    The child outlives this process: it leads a new session. Its stdio goes to the
     null device, because the terminal that ran ``hermes desktop`` is free
     to close the moment this call returns.
     """
-    from hermes_cli._subprocess_compat import windows_detach_popen_kwargs
 
     child = subprocess.Popen(
         argv,
@@ -174,6 +160,6 @@ def launch_detached(
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         close_fds=True,
-        **windows_detach_popen_kwargs(),
+        start_new_session=True,
     )
     return child.pid

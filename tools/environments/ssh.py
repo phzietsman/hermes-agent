@@ -20,11 +20,6 @@ from tools.environments.remote_common import (
 
 logger = logging.getLogger(__name__)
 
-# Windows OpenSSH has no Unix-socket ControlMaster: ControlPath/ControlMaster options
-# fail the connection outright ('getsockname failed: Not a socket'). Skip multiplexing there.
-# Skip multiplexing there; each command pays a fresh connection but the backend works. See #73927.
-_SSH_MULTIPLEX = os.name != "nt"
-
 # Module-level binding: tests patch ``ssh._load_hermes_env_vars`` to fake the .env file.
 _load_hermes_env_vars = load_hermes_env_vars
 
@@ -113,10 +108,8 @@ class SSHEnvironment(BaseEnvironment):
 
     def _build_ssh_command(self, extra_args: list | None = None, send_env: Iterable[str] = ()) -> list:
         send_env = tuple(sorted(send_env))
-        cmd = ["ssh"]
-        if _SSH_MULTIPLEX:
-            cmd.extend(["-o", f"ControlPath={self._control_socket_for(send_env)}",
-                        "-o", "ControlMaster=auto", "-o", "ControlPersist=300"])
+        cmd = ["ssh", "-o", f"ControlPath={self._control_socket_for(send_env)}",
+               "-o", "ControlMaster=auto", "-o", "ControlPersist=300"]
         cmd.extend(["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10"])
         # Names only; values ride the ssh client's own environment (never the remote command text).
         cmd.extend(arg for name in send_env for arg in ("-o", f"SendEnv={name}"))
@@ -169,7 +162,7 @@ class SSHEnvironment(BaseEnvironment):
     def _scp_upload(self, host_path: str, remote_path: str) -> None:
         """Upload a single file via scp over ControlMaster."""
         self._run_ssh(f"mkdir -p {shlex.quote(str(Path(remote_path).parent))}", timeout=10)
-        scp_cmd = ["scp"] + (["-o", f"ControlPath={self.control_socket}"] if _SSH_MULTIPLEX else [])
+        scp_cmd = ["scp", "-o", f"ControlPath={self.control_socket}"]
         scp_cmd += self._target_flags("-P") + [host_path, f"{self.user}@{self.host}:{remote_path}"]
         result = run_capture(scp_cmd, timeout=30)
         if result.returncode != 0:
@@ -186,9 +179,7 @@ class SSHEnvironment(BaseEnvironment):
             self._run_ssh_checked(quoted_mkdir_command(parents), 30, "remote mkdir failed",
                                   f"Remote directory setup on {self.host}")
 
-        # Symlink staging avoids fragile GNU tar --transform rules. On Windows
-        # without Developer Mode symlink creation raises OSError winerror 1314;
-        # only that case falls back to a plain copy, other OSErrors re-raise.
+        # Symlink staging avoids fragile GNU tar --transform rules.
         with tempfile.TemporaryDirectory(prefix="hermes-ssh-bulk-") as staging:
             for host_path, remote_path in files:
                 try:
@@ -199,12 +190,7 @@ class SSHEnvironment(BaseEnvironment):
                     raise RuntimeError(f"remote path {remote_path!r} escapes sync base {base!r}")
                 staged = os.path.join(staging, rel_remote)
                 os.makedirs(os.path.dirname(staged), exist_ok=True)
-                try:
-                    os.symlink(os.path.abspath(host_path), staged)
-                except OSError as e:
-                    if getattr(e, "winerror", None) != 1314:
-                        raise
-                    shutil.copy2(host_path, staged)
+                os.symlink(os.path.abspath(host_path), staged)
 
             # --no-overwrite-dir keeps tar from stamping the staging dir's mode onto
             # existing dirs (e.g. /home/<user>); a umask-002 0775 home breaks sshd StrictModes.

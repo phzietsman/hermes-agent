@@ -133,7 +133,6 @@ def build_gateway_parser(
         help="Do not enable the service to start on login/boot")
     _flag(gateway_install, "--if-missing", dest="if_missing",
         help="Do nothing when a gateway service is already installed")
-    _flag(gateway_install, "--elevated-handoff", dest="elevated_handoff", help=argparse.SUPPRESS)
 
     gateway_uninstall = gateway_subparsers.add_parser("uninstall", help="Uninstall gateway service")
     _add_system_flag(gateway_uninstall)
@@ -155,8 +154,8 @@ def build_gateway_parser(
     gateway_migrate = gateway_subparsers.add_parser(
         "migrate", help="Converge every per-profile gateway onto the ONE host gateway",
         description="Converge this host onto the one-gateway-per-host model: stop and uninstall "
-            "each secondary profile's gateway and its supervisor unit (systemd, launchd, Windows "
-            "Scheduled Task), then restart the default profile's gateway so it serves every "
+            "each secondary profile's gateway and its supervisor unit (systemd, launchd), "
+            "then restart the default profile's gateway so it serves every "
             "profile. Runs a preflight first (duplicate bot tokens, port-binding platforms "
             "without a /p/<profile>/ ingress) and changes nothing when blocked. Safe to re-run: a "
             "half-migrated host converges on the next run. Per-profile gateways are not a "

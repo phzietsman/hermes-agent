@@ -29,8 +29,8 @@ be online at the same time. Common reasons:
 Every profile already gets its own per-platform supervisor entry: a LaunchAgent
 (`ai.hermes.gateway-<name>.plist`), a systemd user service
 (`hermes-gateway-<name>.service`), a systemd **system** service when installed with
-`sudo hermes gateway install --system` (runs as the invoking user via `User=`), a
-Windows Scheduled Task, or an s6/Docker service — and the Desktop app spawns its own
+`sudo hermes gateway install --system` (runs as the invoking user via `User=`),
+or an s6/Docker service — and the Desktop app spawns its own
 per-profile `hermes serve` backend. This guide adds the patterns for managing them
 collectively.
 
@@ -1255,7 +1255,7 @@ single failed apply so that no profile is left without a gateway.
 Not covered automatically: s6-supervised containers — they converge on the next
 container start (the per-profile slots are registered down and the root gateway
 multiplexes; a `gateway.standalone: true` profile boots its own slot from its own
-run intent instead). Windows Scheduled Tasks are folded by the command. The dashboard's
+run intent instead). The dashboard's
 System page offers the same migration as a button when the preflight finds an
 eligible install.
 

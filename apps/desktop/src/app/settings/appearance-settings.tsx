@@ -49,11 +49,9 @@ import {
   $translucency,
   beginTranslucencyPeek,
   endTranslucencyPeek,
-  GLASS_IS_WINDOWS,
+  GLASS_MATERIALS,
   GLASS_SCOPES,
   GLASS_SUPPORTED,
-  glassMaterialForPicker,
-  glassMaterialsFor,
   pulseTranslucencyPeek,
   resetTranslucencyPeek,
   setTranslucency,
@@ -845,14 +843,11 @@ export function AppearanceSettings({ subpage }: AppearanceSettingsProps = {}) {
                     <GlassRow label={a.translucencyFrostTitle}>
                       <SegmentedControl
                         onChange={pickTranslucency(setTranslucencyMaterial)}
-                        // Windows renders four rungs as three backdrops, so it
-                        // is offered three; a frost saved on a Mac highlights
-                        // the rung that renders the same backdrop here.
-                        options={glassMaterialsFor(GLASS_IS_WINDOWS).map(material => ({
+                        options={GLASS_MATERIALS.map(material => ({
                           id: material,
                           label: a.translucencyFrost[material]
                         }))}
-                        value={glassMaterialForPicker(translucency.material, GLASS_IS_WINDOWS)}
+                        value={translucency.material}
                       />
                     </GlassRow>
                     <GlassRow label={a.translucencyScopeTitle}>

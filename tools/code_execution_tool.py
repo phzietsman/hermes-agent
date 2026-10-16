@@ -4,7 +4,7 @@
 The LLM writes a Python script that calls Hermes tools via RPC, collapsing
 multi-step tool chains into one inference turn; only the script's stdout returns
 to the LLM. Local backend: a persistent per-conversation session kernel
-(tools/code_kernel.py) over a Unix socket (loopback TCP on Windows). Remote
+(tools/code_kernel.py) over a Unix socket. Remote
 backends: a remote session kernel (tools/code_kernel_remote.py) falling open to a
 per-call script ship, tool calls as request files polled via env.execute()
 (needs Python 3 on the backend). Siblings: tools/code_execution_env.py (env
@@ -36,7 +36,6 @@ from tools.tool_output_truncate import head_tail_split, truncation_notice
 
 logger = logging.getLogger(__name__)
 
-# Loopback TCP replaces AF_UNIX on Windows, so execute_code runs on every platform Hermes does.
 SANDBOX_AVAILABLE = True
 
 # Tools allowed inside the sandbox; ∩ the session's enabled tools decides which stubs are generated.
@@ -260,27 +259,11 @@ _call_lock = threading.Lock()
 ''' + _COMMON_HELPERS + '''\
 
 def _connect():
-    """Connect to the parent's RPC server via the transport it picked.
-
-    HERMES_RPC_SOCKET can be either:
-      - a filesystem path (POSIX Unix domain socket — the default on
-        Linux and macOS)
-      - a string of the form ``tcp://127.0.0.1:<port>`` (Windows, where
-        AF_UNIX is unreliable — the parent falls back to loopback TCP)
-    """
+    """Connect to the parent's RPC server on the Unix socket at HERMES_RPC_SOCKET."""
     global _sock
     if _sock is None:
-        endpoint = os.environ["HERMES_RPC_SOCKET"]
-        if endpoint.startswith("tcp://"):
-            # tcp://host:port  (host is always 127.0.0.1 in practice — we
-            # only bind loopback server-side)
-            _host_port = endpoint[len("tcp://"):]
-            _host, _, _port = _host_port.rpartition(":")
-            _sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            _sock.connect((_host or "127.0.0.1", int(_port)))
-        else:
-            _sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            _sock.connect(endpoint)
+        _sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        _sock.connect(os.environ["HERMES_RPC_SOCKET"])
         _sock.settimeout(300)
     return _sock
 
@@ -355,8 +338,7 @@ def _call(tool_name, args):
     res_file = os.path.join(_RPC_DIR, f"res_{seq_str}")
 
     # Write request atomically (write to .tmp, then rename).
-    # encoding="utf-8" is critical: on Windows-hosted remote backends
-    # (or any non-UTF-8 locale) the default open() mode would mangle
+    # encoding="utf-8" is critical: on a non-UTF-8 locale the default open() mode would mangle
     # non-ASCII chars in tool args when encoding them as JSON.
     tmp = req_file + ".tmp"
     # The request carries the RPC token and tool args: owner-only even under a
@@ -800,7 +782,7 @@ def execute_code(
 
 def _kill_process_group(proc, escalate: bool = False):
     """Kill the child and its whole process tree via agent.deadline.kill_process_tree: SIGTERM
-    (killpg + psutil descendant sweep; ``taskkill /T /F`` on Windows, where sig is ignored); with
+    (killpg + psutil descendant sweep); with
     ``escalate=True`` wait 5s then SIGKILL survivors. Never raises — falls back to ``proc.kill()``."""
     import signal as _signal
     def _tree_signal(sig) -> None:

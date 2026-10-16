@@ -139,7 +139,7 @@ source ./activate
 python hermes plugins enable observability/langfuse
 ```
 
-PowerShell 使用 `. .\activate.ps1` 激活。将凭据写入活动数据目录的 `.env`
+将凭据写入活动数据目录的 `.env`
 （`$HERMES_HOME/.env`，通常为 `~/.hermes/.env`）：
 
 ```bash

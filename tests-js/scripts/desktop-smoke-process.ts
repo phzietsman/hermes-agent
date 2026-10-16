@@ -35,7 +35,7 @@ export interface OriginEvidence {
 }
 
 function nativeText(command: string, args: string[]): string {
-  return execFileSync(command, args, { encoding: 'utf8', timeout: 30_000, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+  return execFileSync(command, args, { encoding: 'utf8', timeout: 30_000, stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 }
 
 /** One NAME=value from `ps eww`'s environment tail (values may contain spaces). */
@@ -80,18 +80,7 @@ export function readBundledBundleEnv(root: string): Record<string, string | null
   return stamp.bundleEnv
 }
 
-const windowsProcesses = z.array(z.object({
-  ProcessId: z.number(), ParentProcessId: z.number(), ExecutablePath: z.string().nullable(), CommandLine: z.string().nullable(),
-}))
-
 export function readNativeProcesses(): NativeProcess[] {
-  if (process.platform === 'win32') {
-    const rows = windowsProcesses.parse(JSON.parse(nativeText('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
-      '[Console]::OutputEncoding = [Text.UTF8Encoding]::new(); ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,ExecutablePath,CommandLine)'])))
-
-    return rows.map((row): NativeProcess => ({ pid: row.ProcessId, parentPid: row.ParentProcessId, executable: row.ExecutablePath ?? '', command: row.CommandLine ?? '' }))
-  }
-
   const table = nativeText('ps', ['-axo', 'pid=,ppid=,comm='])
 
   return table.split('\n').flatMap((line: string): NativeProcess[] => {
@@ -170,10 +159,7 @@ function processStartTime(pid: number): number | null {
       return Number.isNaN(started) ? null : started
     }
 
-    const ms = nativeText('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
-      `([DateTimeOffset](Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}' -ErrorAction Stop).CreationDate).ToUnixTimeMilliseconds()`])
-
-    return /^\d+$/.test(ms) ? Number(ms) / 1000 : null
+    return null
   } catch {
     return null
   }
@@ -221,10 +207,7 @@ export function localBackendProcess(port: number, electronPid: number, hermesHom
   const candidates = processes.filter(candidate => children.includes(candidate) || registered.includes(candidate.pid))
   let pids: number[]
 
-  if (process.platform === 'win32') {
-    pids = z.array(z.number()).parse(JSON.parse(nativeText('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
-      `ConvertTo-Json -Compress -InputObject @((Get-NetTCPConnection -State Listen -LocalPort ${port} -ErrorAction Stop).OwningProcess | Sort-Object -Unique)`])))
-  } else if (process.platform === 'darwin') {
+  if (process.platform === 'darwin') {
     pids = nativeText('/usr/sbin/lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fp']).split('\n')
       .filter((line: string): boolean => /^p\d+$/.test(line)).map((line: string): number => Number(line.slice(1)))
   } else {
@@ -259,8 +242,8 @@ export function localBackendProcess(port: number, electronPid: number, hermesHom
 }
 
 // Some platforms expose no way to read another process's environment or cwd, so a
-// module-launched backend there can never name its tree in argv (Windows: the venv
-// launcher hands the interpreter over as a system python). When the listener is a
+// module-launched backend there can never name its tree in argv (a launcher may
+// hand the interpreter over as a system python). When the listener is a
 // descendant of the app, and the caller has already asserted the root that app
 // reported resolving, those two facts together are the evidence. A ledger-registered
 // host backend is not tied to this app by ancestry, so the app's report says nothing
@@ -285,17 +268,14 @@ export function assertBackendOrigin(backend: BackendProcess, root: string, origi
     return
   }
 
-  // PM's Windows .cmd fallback encodes the installation-bound bootstrap;
-  // POSIX launchers pass that same script directly as Python's -c argument.
-  const encoded = /base64\.b64decode\('([A-Za-z0-9+/=]+)'\)/.exec(backend.command)?.[1]
-  const command = encoded ? Buffer.from(encoded, 'base64').toString('utf8') : backend.command
+  const command = backend.command
   // Source venvs may resolve to system Python; their entry script still lives in the installation.
   const spellings = [root, fs.realpathSync(root)].flatMap((value: string): string[] => [value, JSON.stringify(value).slice(1, -1)])
 
   const namesInstallRoot = spellings.some((value: string): boolean => {
     const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-    return new RegExp(`(?:^|[\\s"'])${escaped}(?:[/\\\\]|[\\s"']|$)`, process.platform === 'win32' ? 'i' : '').test(command)
+    return new RegExp(`(?:^|[\\s"'])${escaped}(?:[/\\\\]|[\\s"']|$)`).test(command)
   })
 
   const sameTree = (value?: string): boolean => {
@@ -310,7 +290,7 @@ export function assertBackendOrigin(backend: BackendProcess, root: string, origi
   // A Python -m entry has no source path in argv. Its live import root is
   // either the captured editable root (Nix) or the process's working directory.
   const moduleLaunch = /(?:^|\s)"?-m"?\s+"?hermes_cli\.main"?(?:\s|$)/.test(command)
-    && /^python(?:w|\d+(?:\.\d+)*)?(?:\.exe)?$/i.test(path.basename(backend.executable))
+    && /^python(?:w|\d+(?:\.\d+)*)?$/i.test(path.basename(backend.executable))
 
   if (moduleLaunch) {
     // A captured root is authoritative: the launcher told us which tree it bound.
@@ -333,7 +313,7 @@ export function assertBackendOrigin(backend: BackendProcess, root: string, origi
     // VIRTUAL_ENV names its venv, which is how `import hermes_cli` resolves from
     // the installation. A platform that can read that environment needs no
     // spelling in argv (macOS resolves the venv symlink before spawning); a
-    // platform that cannot (Windows) stays strict.
+    // platform that cannot stays strict.
     const joinsInstall = (value?: string): boolean => value !== undefined
       && value.split(path.delimiter).some((entry: string): boolean => entry !== '' && sameTree(entry))
 

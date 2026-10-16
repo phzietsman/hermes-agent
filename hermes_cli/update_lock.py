@@ -12,7 +12,7 @@ Two artifacts, one authority each:
   An owner is live while its pid is alive and its creation time still matches: never by age
   (the 20-minute ceiling only ages out v1 markers, which carry no creation time).
 * The checkout lock ``<git common dir>/hermes-update.lock`` (``<install root>/.hermes-update.lock``
-  for a ZIP install with no ``.git``) — a kernel lock (flock / msvcrt) that ``hermes update``
+  for a ZIP install with no ``.git``) — a kernel lock (flock) that ``hermes update``
   holds for its whole process tree, so two updates of one checkout started from different
   homes exclude each other and a killed updater whose completion child still runs keeps the
   checkout locked until that child exits. In the git dir it is never a worktree file: no
@@ -28,7 +28,6 @@ import os
 import re
 import secrets
 import subprocess
-import sys
 import threading
 import time
 from contextlib import contextmanager, suppress
@@ -70,22 +69,9 @@ HANDOFF_PID_ENV = "HERMES_UPDATE_HANDOFF_PID"
 # only exists so an unexpected chain can never spin the walk.
 _MAX_ANCESTRY_DEPTH = 128
 
-# Exit code meaning "another updater/instance owns this install right now" — the same
-# contract as the Windows shim / venv-holder guards in _cmd_update_impl, matched by the
+# Exit code meaning "another updater/instance owns this install right now", matched by the
 # Tauri updater (UPDATE_EXIT_CONCURRENT in update.rs) to show "Hermes is still running".
 UPDATE_EXIT_CONCURRENT = 2
-
-# msvcrt locks a byte range; lock one byte far past the holder record so other processes can
-# still read who holds it (a locked range is unreadable to them on Windows).
-_WINDOWS_LOCK_OFFSET = 1 << 20
-# R5b: the lease bytes just past it. A Windows process that joins its ancestor's lock (it cannot
-# inherit it) also locks one lease byte of its own: a completion child the job refused runs
-# outside the kill-on-close job and outlives a killed owner, and its lease keeps the checkout
-# busy until it exits. Takers and probes treat any held lease as a held lock.
-_LEASE_SLOTS = 16
-
-_FILETIME_UNIX_EPOCH = 116444736000000000
-
 
 def update_marker_path() -> Path:
     """Path of the shared update marker: always the profile-tree ROOT home.
@@ -139,7 +125,7 @@ def checkout_lock_path(install_root: Path | str | None = None) -> Path:
 
 
 def _pid_alive(pid: int) -> bool:
-    """Use the dependency-free, Windows-safe, zombie-aware probe before PM is available."""
+    """Use the dependency-free, zombie-aware probe before PM is available."""
     if pid <= 0:
         return False
     try:
@@ -153,49 +139,13 @@ def _pid_alive(pid: int) -> bool:
 # --- process creation time ---------------------------------------------------------------
 
 
-def _windows_kernel32():
-    import ctypes
-    from ctypes import wintypes
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-    kernel32.OpenProcess.restype = wintypes.HANDLE
-    kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
-    kernel32.GetProcessTimes.restype = wintypes.BOOL
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-    kernel32.CloseHandle.restype = wintypes.BOOL
-    return kernel32
-
-
-def _windows_create_filetime(pid: int) -> int | None:
-    """GetProcessTimes creation FILETIME (100 ns ticks since 1601) or ``None``."""
-    import ctypes
-    from ctypes import wintypes
-
-    kernel32 = _windows_kernel32()
-    handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-    if not handle:
-        return None
-    try:
-        times = [wintypes.FILETIME() for _ in range(4)]
-        if not kernel32.GetProcessTimes(handle, *(ctypes.byref(t) for t in times)):
-            return None
-        return (times[0].dwHighDateTime << 32) | times[0].dwLowDateTime
-    finally:
-        kernel32.CloseHandle(handle)
-
-
 def _stdlib_create_time(pid: int) -> float | None:
     """Creation time in unix seconds without psutil (``-I -S`` children, early recovery).
 
     Same clock psutil reports: Linux ``starttime / CLK_TCK + btime``, macOS the kernel start
-    time (``ps -o lstart=`` in UTC, second resolution — inside the 2 s tolerance), Windows the
-    ``GetProcessTimes`` creation FILETIME.
+    time (``ps -o lstart=`` in UTC, second resolution — inside the 2 s tolerance).
     """
     try:
-        if sys.platform == "win32":
-            ticks = _windows_create_filetime(pid)
-            return None if ticks is None else (ticks - _FILETIME_UNIX_EPOCH) / 1e7
         if os.path.isdir("/proc"):
             with open(f"/proc/{pid}/stat", "rb") as fh:
                 stat = fh.read()
@@ -263,7 +213,7 @@ def incarnation_live(pid: int, recorded_ct=None) -> bool | None:
     namespace hands a killed update's pid to the next launch) — unless our own creation time is
     unreadable: then we write no-ct claims ourselves, so a no-ct claim is ours and a ct one is
     not (``marker.rs`` agrees). ``None``: alive but unprovable — no creation time recorded, or
-    the live one unreadable (Windows denies elevated/other-user pids); each caller applies its
+    the live one unreadable (another user's pid); each caller applies its
     own bound (the marker: the v1 age ceiling, :func:`_identity_live`).
 
     ``recorded_ct`` is a float or the marker spelling ``"ct:<seconds>"``.
@@ -335,68 +285,14 @@ def _handoff_pid() -> int | None:
     return pid if pid > 0 else None
 
 
-def _windows_parent_pid(pid: int) -> int | None:
-    """The parent of ``pid`` from a Toolhelp32 process snapshot (stdlib ctypes).
-
-    Windows keeps a dead parent's pid in the snapshot and reuses pids, so, like
-    psutil, a "parent" created after the child is a recycled pid, not our parent.
-    """
-    import ctypes
-    from ctypes import wintypes
-
-    class PROCESSENTRY32W(ctypes.Structure):
-        _fields_ = [
-            ("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD),
-            ("th32ProcessID", wintypes.DWORD), ("th32DefaultHeapID", ctypes.c_size_t),
-            ("th32ModuleID", wintypes.DWORD), ("cntThreads", wintypes.DWORD),
-            ("th32ParentProcessID", wintypes.DWORD), ("pcPriClassBase", ctypes.c_long),
-            ("dwFlags", wintypes.DWORD), ("szExeFile", ctypes.c_wchar * 260),
-        ]
-
-    kernel32 = _windows_kernel32()
-    kernel32.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
-    kernel32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
-    for walk in (kernel32.Process32FirstW, kernel32.Process32NextW):
-        walk.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32W)]
-        walk.restype = wintypes.BOOL
-
-    snapshot = kernel32.CreateToolhelp32Snapshot(0x2, 0)  # TH32CS_SNAPPROCESS
-    if not snapshot or snapshot == ctypes.c_void_p(-1).value:
-        return None
-    parent = None
-    try:
-        entry = PROCESSENTRY32W()
-        entry.dwSize = ctypes.sizeof(PROCESSENTRY32W)
-        found = kernel32.Process32FirstW(snapshot, ctypes.byref(entry))
-        while found:
-            if entry.th32ProcessID == pid:
-                parent = int(entry.th32ParentProcessID)
-                break
-            found = kernel32.Process32NextW(snapshot, ctypes.byref(entry))
-    finally:
-        kernel32.CloseHandle(snapshot)
-    if not parent:
-        return None
-    parent_created, child_created = _windows_create_filetime(parent), _windows_create_filetime(pid)
-    if parent_created is not None and child_created is not None and parent_created > child_created:
-        return None
-    return parent
-
-
 def _stdlib_parent_pid(pid: int) -> int | None:
     """The parent of ``pid`` without psutil, or ``None`` when unresolvable.
 
     The update-takeover child is spawned ``-I -S -B`` (hermes_cli/_old_updater.py) so
     psutil cannot import there — and that grandchild is exactly the process that most
     needs the two-hop ancestry walk to adopt the orchestrator's marker. /proc serves
-    Linux; macOS keeps /proc absent, so shell out to ps once per hop; Windows has
-    neither, so ask the Toolhelp32 snapshot.
+    Linux; macOS keeps /proc absent, so shell out to ps once per hop.
     """
-    if sys.platform == "win32":
-        try:
-            return _windows_parent_pid(pid)
-        except (OSError, AttributeError, ValueError):
-            return None
     try:
         if os.path.isdir("/proc"):
             with open(f"/proc/{pid}/stat", "rb") as fh:
@@ -491,7 +387,7 @@ def _is_runtime_host(cmdline: list[str]) -> bool:
     """A long-lived Hermes host (``gateway run`` / ``serve`` / ``dashboard``), by the canonical
     command-line matchers (profile flags, ``hermes_cli/main.py`` paths, inline bootstraps)."""
     from gateway.status import looks_like_gateway_command_line
-    from hermes_cli.update_cmd_windows import _hermes_holder_subcommand
+    from hermes_cli.update_cmd_common import _hermes_holder_subcommand
     line = " ".join(cmdline)
     return looks_like_gateway_command_line(line) or _hermes_holder_subcommand(line) in ("serve", "dashboard")
 
@@ -745,45 +641,8 @@ def marker_mutex_path(path: Path) -> Path:
     return path.with_name(path.name + MUTEX_SUFFIX)
 
 
-def _windows_open_exclusive(path: Path):
-    """The Windows sidecar mutex: the file opened with NO sharing (``FileShare.None`` in the
-    PowerShell scripts, ``share_mode(0)`` in marker.rs). ``None`` = someone else has it open."""
-    import ctypes
-    from ctypes import wintypes
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
-                                     wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
-    kernel32.CreateFileW.restype = wintypes.HANDLE
-    invalid = ctypes.c_void_p(-1).value
-    for access, disposition in ((0xC0000000, 4), (0x80000000, 3)):  # RW OPEN_ALWAYS; R OPEN_EXISTING
-        handle = kernel32.CreateFileW(str(path), access, 0, None, disposition, 0x80, None)
-        if handle and handle != invalid:
-            return handle
-        error = ctypes.get_last_error()
-        if error == 32:  # ERROR_SHARING_VIOLATION: held
-            return None
-        if error != 5:  # anything but access denied: no read-only retry helps
-            break
-    raise ctypes.WinError(error)
-
-
-def _windows_close(handle) -> None:
-    import ctypes
-
-    ctypes.WinDLL("kernel32").CloseHandle(handle)
-
-
 def _mutex_acquire(path: Path, wait: float):
     deadline = time.monotonic() + wait
-    if sys.platform == "win32":
-        while True:
-            handle = _windows_open_exclusive(path)
-            if handle is not None:
-                return handle
-            if time.monotonic() >= deadline:
-                raise MarkerBusy(f"{path} is held by another update")
-            time.sleep(0.02)
     import fcntl
 
     try:
@@ -826,10 +685,7 @@ def marker_mutex(path: Path, *, wait: float = MUTEX_WAIT_SECONDS):
         yield
     finally:
         held.pop(key, None)
-        if sys.platform == "win32":
-            _windows_close(handle)
-        else:
-            os.close(handle)  # closing the only fd of this open file description drops the flock
+        os.close(handle)  # closing the only fd of this open file description drops the flock
 
 
 def _compare_and_swap(path: Path, expected: bytes, new: bytes) -> bool:
@@ -873,7 +729,7 @@ def read_live_update(*, path: Path | None = None, install_root: Path | str | Non
     Absent, unreadable, malformed and dead-owner all mean "no live update" — unless the
     checkout kernel lock of ``install_root`` (default: this checkout) is held: then a killed
     updater's tree (its completion, build or git) still runs, the marker is kept, and the
-    answer is a ``held`` holder (R6; ``marker.sh``/``marker.ps1`` answer ``held`` too). Otherwise
+    answer is a ``held`` holder (R6; ``marker.sh`` answers ``held`` too). Otherwise
     a dead marker is reclaimed — judged again and removed inside the marker mutex, so a claim
     published after our first read is never the one deleted. Never raises: a marker that cannot
     be judged at all also reads as ``None``. That fails open on the MARKER only; the checkout
@@ -975,18 +831,9 @@ def describe_holder(holder: UpdateHolder | None) -> str:
 # we opened and locked it; otherwise the fd was inherited from the `hermes update` that holds
 # it (pass_fds) and belongs to the whole tree — it is never unlocked or closed here.
 _HELD: dict | None = None
-_JOBS: list = []
 
 
 def _try_lock(fd: int) -> bool:
-    if sys.platform == "win32":
-        if not _lock_bytes(fd, _WINDOWS_LOCK_OFFSET):
-            return False
-        if not _lock_bytes(fd, _WINDOWS_LOCK_OFFSET + 1, _LEASE_SLOTS):  # a dead owner's leased child
-            _unlock(fd)
-            return False
-        _unlock(fd, _WINDOWS_LOCK_OFFSET + 1, _LEASE_SLOTS)
-        return True
     import fcntl
 
     try:
@@ -996,40 +843,8 @@ def _try_lock(fd: int) -> bool:
     return True
 
 
-def _lock_bytes(fd: int, offset: int, count: int = 1) -> bool:
-    """Windows: lock ``count`` bytes at ``offset`` without waiting (fails if any is held)."""
-    import msvcrt
-
-    os.lseek(fd, offset, os.SEEK_SET)
-    try:
-        msvcrt.locking(fd, msvcrt.LK_NBLCK, count)
-    except OSError:
-        return False
-    return True
-
-
-def _unlock(fd: int, offset: int = _WINDOWS_LOCK_OFFSET, count: int = 1) -> None:
-    if sys.platform == "win32":
-        import msvcrt
-
-        with suppress(OSError):
-            os.lseek(fd, offset, os.SEEK_SET)
-            msvcrt.locking(fd, msvcrt.LK_UNLCK, count)
-
-
-def _take_lease(fd: int) -> int | None:
-    """Windows: lock a free lease byte (R5b) on ``fd``; its offset, or None when all are held
-    (the tree's other joiners hold them: this one still runs inside their custody)."""
-    for offset in range(_WINDOWS_LOCK_OFFSET + 1, _WINDOWS_LOCK_OFFSET + 1 + _LEASE_SLOTS):
-        if _lock_bytes(fd, offset):
-            return offset
-    return None
-
-
 def _inherited_lock_fd(path: Path) -> int | None:
-    """An fd this process inherited that holds the lock on ``path`` (POSIX ``pass_fds``)."""
-    if sys.platform == "win32":
-        return None
+    """An fd this process inherited that holds the lock on ``path`` (``pass_fds``)."""
     try:
         target = os.stat(path)
         fd_dir = "/proc/self/fd" if os.path.isdir("/proc/self/fd") else "/dev/fd"
@@ -1072,9 +887,9 @@ def _lock_holder(fd_or_path) -> UpdateHolder:
 def _open_lock_file(path: Path) -> tuple[int | None, object]:
     """``(fd, True)`` read-write; ``(fd, False)`` read-only for an existing lock file we may not
     write (left root-owned by a ``sudo hermes update``: the kernel lock works on a read-only fd,
-    contract A5; POSIX only — a Windows owner needs its record); ``(None, reason)`` when neither opens."""
+    contract A5); ``(None, reason)`` when neither opens."""
     # Never follow a link planted at the name: the holder record is written into this file.
-    binary = getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    binary = os.O_NOFOLLOW
     try:
         return os.open(path, os.O_RDWR | os.O_CREAT | binary, 0o644), True
     except PermissionError as exc:
@@ -1110,44 +925,21 @@ def _acquire_checkout(install_root: Path) -> UpdateHolder | None:
         return UpdateHolder(pid=0, age_seconds=0.0, reason=f"{path} is not a regular single-link file; delete it")
     try:
         if not _lock_with_contention_wait(fd, path):
-            if _held_by_our_windows_ancestor(path):
-                # Windows has no fd inheritance: the update tree's children run in the lock
-                # owner's kill-on-close job (bind_child_to_update_tree) and die with it. One the
-                # job refused does not, so every joiner also holds a lease byte (R5b), taken
-                # while the owner is seen alive: it never covers a writer after a free lock.
-                lease = _take_lease(fd)
-                if _held_by_our_windows_ancestor(path):
-                    _HELD = {"path": str(path), "fd": None, "owned": False, "depth": 1,
-                             "lease": None if lease is None else (fd, lease)}
-                    if lease is None:
-                        os.close(fd)
-                    return None
-                if lease is not None:
-                    _unlock(fd, lease)
             os.close(fd)
             return _lock_holder(path)
-        if writable is not True and sys.platform == "win32":
-            # No fd inheritance on Windows: the update tree's children find their owner by
-            # this record (_held_by_our_windows_ancestor), so an owner that cannot write it
-            # would admit itself and then have its own children refused.
-            _unlock(fd)
-            os.close(fd)
-            return UpdateHolder(pid=0, age_seconds=0.0,
-                                reason=f"{path} is read-only; delete it or fix its permissions")
         if writable is True:
             record = f"{os.getpid()}\n{int(time.time())}\n{_identity_line()}\n".encode()
             os.lseek(fd, 0, os.SEEK_SET)
             os.ftruncate(fd, 0)
             os.write(fd, record)
     except OSError as exc:
-        _unlock(fd)
         os.close(fd)
         return UpdateHolder(pid=0, age_seconds=0.0, reason=f"{path} could not be locked ({exc})")
     _HELD = {"path": str(path), "fd": fd, "owned": True, "depth": 1}
     return None
 
 
-# A "held?" probe (marker.sh/marker.ps1 checkout_lock_held, Python checkout_lock_held) takes the
+# A "held?" probe (marker.sh checkout_lock_held, Python checkout_lock_held) takes the
 # lock for microseconds: an updater that collides with one waits this long before "busy" (D17:
 # 257 of 3283 tight-loop acquires failed spuriously with no real holder).
 CHECKOUT_CONTENTION_WAIT_SECONDS = 3.0
@@ -1156,25 +948,12 @@ CHECKOUT_CONTENTION_WAIT_SECONDS = 3.0
 def _lock_with_contention_wait(fd: int, path: Path) -> bool:
     if _try_lock(fd):
         return True
-    if _held_by_our_windows_ancestor(path):
-        return False  # our own update tree holds it and never frees it for us: answer at once
     deadline = time.monotonic() + CHECKOUT_CONTENTION_WAIT_SECONDS
     while time.monotonic() < deadline:
         time.sleep(0.02)
         if _try_lock(fd):
             return True
     return False
-
-
-def _held_by_our_windows_ancestor(path: Path) -> bool:
-    """Windows: the checkout lock's holder record names a LIVE incarnation of one of our
-    ancestors (the ``hermes update`` whose completion/build children we are)."""
-    if sys.platform != "win32":
-        return False
-    record = _parse_marker(_read_bytes(path) or b"")
-    if record.started_at is None or record.pid == os.getpid():
-        return False
-    return incarnation_live(record.pid, record.create_time) is True and _is_ancestor_pid(record.pid)
 
 
 def _release_checkout() -> None:
@@ -1185,24 +964,16 @@ def _release_checkout() -> None:
     if _HELD["depth"] > 0:
         return
     held, _HELD = _HELD, None
-    if held.get("lease"):
-        lease_fd, offset = held["lease"]
-        _unlock(lease_fd, offset)
-        with suppress(OSError):
-            os.close(lease_fd)
     if held["owned"]:
         # Close, never LOCK_UN: flock belongs to the open file description, which completion
         # children share through pass_fds. A survivor keeps the checkout locked until it exits.
-        _unlock(held["fd"])
         with suppress(OSError):
             os.close(held["fd"])
 
 
 def checkout_lock_fds(install_root: Path | str | None = None) -> tuple[int, ...]:
     """Fds a child of the update tree must inherit (``subprocess`` ``pass_fds``) so the
-    checkout stays locked while it runs, even after its parent is killed. POSIX only."""
-    if sys.platform == "win32":
-        return ()
+    checkout stays locked while it runs, even after its parent is killed."""
     if _HELD is not None:
         return () if _HELD["fd"] is None else (_HELD["fd"],)
     fd = _inherited_lock_fd(checkout_lock_path(install_root))
@@ -1211,105 +982,12 @@ def checkout_lock_fds(install_root: Path | str | None = None) -> tuple[int, ...]
 
 def custody_spawn_kwargs() -> dict:
     """``subprocess`` kwargs that keep a checkout MUTATOR (git, the Node source build) in the
-    update tree's custody (R2): POSIX children inherit the held lock fd, so the checkout stays
+    update tree's custody (R2): children inherit the held lock fd, so the checkout stays
     locked until the last of them exits even if this process is killed. ``{}`` when this process
-    holds no checkout lock, and on Windows (bind the Popen with bind_child_to_update_tree)."""
-    if sys.platform == "win32" or _HELD is None or _HELD["fd"] is None:
+    holds no checkout lock."""
+    if _HELD is None or _HELD["fd"] is None:
         return {}
     return {"pass_fds": (_HELD["fd"],)}
-
-
-CREATE_SUSPENDED = 0x00000004
-
-
-def bind_child_to_update_tree(proc: subprocess.Popen) -> OSError | None:
-    """Windows: put an update-tree child in a kill-on-close job owned by this process, so the
-    child (and everything it spawns) dies when the lock owner dies and frees the lock.
-
-    Create ``proc`` with :data:`CREATE_SUSPENDED` and resume it after the bind
-    (:func:`resume_suspended_child`): it runs no instruction before, so nothing it starts can
-    escape the job. The job allows breakaway: a process the tree starts
-    with ``CREATE_BREAKAWAY_FROM_JOB`` (the gateways an update restarts or resumes,
-    ``gateway_windows._spawn_detached``) leaves it and outlives the update; every other
-    descendant stays bound. Not ``SILENT_BREAKAWAY_OK``, which would let every descendant escape.
-
-    POSIX children inherit the lock fd instead (:func:`checkout_lock_fds`). Returns ``None`` when
-    bound, else the refusal (logged): the caller runs post-commit work, which must not fail over
-    a weaker lock, so it records the refusal and runs the child, which joins the lock holding its
-    own lease byte (R5b): the checkout stays busy until it exits, even after the owner's death.
-    """
-    if sys.platform != "win32":
-        return None
-    try:
-        _bind_to_kill_on_close_job(proc)
-    except OSError as exc:
-        logger.warning("Could not bind update child %s to the update's job: %s", proc.pid, exc)
-        return exc
-    return None
-
-
-def resume_suspended_child(proc: subprocess.Popen) -> None:
-    """Windows: resume a :data:`CREATE_SUSPENDED` child (a no-op for a running one). A failed
-    resume kills it and raises ``OSError``."""
-    import ctypes
-
-    ntdll = ctypes.WinDLL("ntdll")
-    ntdll.NtResumeProcess.argtypes = [ctypes.c_void_p]
-    ntdll.NtResumeProcess.restype = ctypes.c_long
-    if ntdll.NtResumeProcess(int(proc._handle)) != 0:
-        proc.kill()
-        raise OSError(f"could not resume update child {proc.pid}")
-
-
-def _bind_to_kill_on_close_job(proc: subprocess.Popen) -> None:
-    import ctypes
-    from ctypes import wintypes
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
-    kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
-    if not kernel32.AssignProcessToJobObject(update_tree_job(), int(proc._handle)):
-        raise ctypes.WinError(ctypes.get_last_error())
-
-
-def update_tree_job() -> int:
-    """Windows: this process's kill-on-close job for the update tree (created once, never
-    closed: the handle closes when this process dies, killing every process still in it)."""
-    if _JOBS:
-        return _JOBS[0]
-    import ctypes
-    from ctypes import wintypes
-
-    class _Basic(ctypes.Structure):
-        _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
-                    ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
-                    ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
-                    ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
-                    ("SchedulingClass", wintypes.DWORD)]
-
-    class _Extended(ctypes.Structure):
-        _fields_ = [("BasicLimitInformation", _Basic), ("IoInfo", ctypes.c_ulonglong * 6),
-                    ("ProcessMemoryLimit", ctypes.c_size_t), ("JobMemoryLimit", ctypes.c_size_t),
-                    ("PeakProcessMemoryUsed", ctypes.c_size_t), ("PeakJobMemoryUsed", ctypes.c_size_t)]
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
-    kernel32.CreateJobObjectW.restype = wintypes.HANDLE
-    kernel32.SetInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
-    kernel32.SetInformationJobObject.restype = wintypes.BOOL
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-    job = kernel32.CreateJobObjectW(None, None)  # unnamed, non-inheritable: only we hold it
-    if not job:
-        raise ctypes.WinError(ctypes.get_last_error())
-    limits = _Extended()
-    # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK
-    limits.BasicLimitInformation.LimitFlags = 0x2000 | 0x0800
-    if not kernel32.SetInformationJobObject(job, 9, ctypes.byref(limits), ctypes.sizeof(limits)):
-        error = ctypes.get_last_error()
-        kernel32.CloseHandle(job)
-        raise ctypes.WinError(error)
-    _JOBS.append(job)  # never closed: the handle closes when this process dies, killing the tree
-    return job
 
 
 def holds_checkout_lock(install_root: Path | str | None = None) -> bool:
@@ -1330,7 +1008,7 @@ def checkout_lock_held(install_root: Path | str | None = None) -> bool:
     :data:`CHECKOUT_CONTENTION_WAIT_SECONDS` instead of failing (R6/D17).
 
     Only a missing lock file is free. One that exists but cannot be opened answers held, the same
-    verdict ``marker.sh`` / ``marker.ps1`` and the Desktop probes give, so no reader admits a
+    verdict ``marker.sh`` and the Desktop probes give, so no reader admits a
     launch the others would park. A lock call that fails outright (ENOLCK on NFS without lockd,
     EOPNOTSUPP on some SMB shares) means nothing can hold it: free, so the interrupted-pull repair
     runs unguarded there as designed."""
@@ -1338,16 +1016,13 @@ def checkout_lock_held(install_root: Path | str | None = None) -> bool:
         return True
     path = checkout_lock_path(install_root)
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_BINARY", 0))
+        fd = os.open(path, os.O_RDONLY)
     except FileNotFoundError:
         return False
     except OSError:
         return True
     try:
-        if not _try_lock(fd):
-            return True
-        _unlock(fd)
-        return False
+        return not _try_lock(fd)
     except OSError:
         return False
     finally:
@@ -1379,7 +1054,7 @@ def _publish_exclusive(path: Path, body: bytes) -> bool:
         with suppress(OSError):
             tmp.unlink()
     try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o644)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
     except FileExistsError:
         return False
     made = os.fstat(fd)

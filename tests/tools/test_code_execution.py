@@ -44,7 +44,6 @@ def _fresh_kernel_registry():
     shutdown_all_kernels()
     yield
     shutdown_all_kernels()
-import sys
 import threading
 import unittest
 from unittest.mock import patch, MagicMock
@@ -84,8 +83,7 @@ def _mock_handle_function_call(function_name, function_args, task_id=None, user_
 
 class TestSandboxRequirements(unittest.TestCase):
     def test_available_on_posix(self):
-        if sys.platform != "win32":
-            self.assertTrue(check_sandbox_requirements())
+        self.assertTrue(check_sandbox_requirements())
 
 
 
@@ -268,8 +266,6 @@ class TestRemoteSharedHostLockdown(unittest.TestCase):
             ships[env_name], tokens[env_name] = env_ship, token
         run_cmd = next(c for c in commands if "python3 script.py" in c)
         self.assertNotIn("HERMES_RPC_TOKEN=", run_cmd)
-        if sys.platform == "win32":
-            return
         # Behaviour, not command text: replay the recorded setup + launch
         # commands through a real shell against a private temp root.
         import shutil
@@ -299,7 +295,6 @@ class TestRemoteSharedHostLockdown(unittest.TestCase):
         self.assertEqual(sh(run_cmd).returncode, 7)
 
 
-@unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
 class TestExecuteCode(unittest.TestCase):
     """Integration tests using the mock dispatcher."""
 
@@ -586,7 +581,6 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
 # Environment variable filtering (security critical)
 # ---------------------------------------------------------------------------
 
-@unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
 class TestEnvVarFiltering(unittest.TestCase):
     """Verify that execute_code filters environment variables correctly.
 
@@ -650,12 +644,7 @@ class TestEnvVarFiltering(unittest.TestCase):
         try:
             os.environ["HERMES_TIMEZONE"] = "America/New_York"
             child_env = self._get_child_env()
-            if sys.platform == "win32":
-                # The MSVC runtime only parses POSIX-form TZ; an IANA name yields a wrong
-                # offset (#112233), so Windows children keep the OS zone instead.
-                self.assertNotIn("TZ", child_env)
-            else:
-                self.assertEqual(child_env.get("TZ"), "America/New_York")
+            self.assertEqual(child_env.get("TZ"), "America/New_York")
         finally:
             os.environ.clear()
             os.environ.update(env_backup)
@@ -732,7 +721,6 @@ class TestExecuteCodeEdgeCases(unittest.TestCase):
             self.assertIn("unavailable", result["error"].lower())
 
 
-    @unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
     def test_nonoverlapping_tools_fallback(self):
         """When enabled_tools has no overlap with SANDBOX_ALLOWED_TOOLS,
         should fall back to all allowed tools."""
@@ -771,7 +759,6 @@ class TestLoadConfig(unittest.TestCase):
 # Interrupt event
 # ---------------------------------------------------------------------------
 
-@unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
 class TestInterruptHandling(unittest.TestCase):
     def test_interrupt_event_stops_execution(self):
         """When interrupt is set for the execution thread, execute_code should stop."""

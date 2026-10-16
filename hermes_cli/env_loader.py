@@ -333,7 +333,7 @@ def _load_dotenv_with_fallback(
     is peeled. A bare call (``hermes send``'s direct reload) is its own pass."""
     raw = path.read_bytes()
     try:
-        # utf-8-sig strips a leading BOM (PowerShell 5.1 / Notepad); plain utf-8 would keep U+FEFF on the
+        # utf-8-sig strips a leading BOM (some editors write one); plain utf-8 would keep U+FEFF on the
         # first key name and silently drop it from os.environ under its canonical name.
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -528,16 +528,13 @@ def load_hermes_dotenv(
             if os.environ.get(name) != value:
                 os.environ[name] = value
 
-    # External sources are skipped for the updater (dotenv + managed env still load): ``update`` must not
-    # import optional secret-manager libs (Bitwarden → cryptography → _rust.pyd) into the process replacing
-    # that env on Windows, and a fresh retry after a deferred dependency install would otherwise make the
-    # self-lock preflight exit 2 again.
+    # External sources are skipped for the updater (dotenv + managed env still load): a fresh retry after
+    # a deferred dependency install would otherwise make the self-lock preflight exit 2 again.
     from hermes_cli import _early_recovery
 
     # External secret sources are skipped in two updater situations: 1. ``load_external_secrets=False`` —
-    # the caller is an ``update`` invocation that must not import optional secret-manager libraries
-    # (Bitwarden → cryptography → ``_rust.pyd``) into the process that replaces that same environment on
-    # Windows (#73381, #86735). 2. A fresh ``hermes update`` retry just completed a deferred dependency
+    # the caller is an ``update`` invocation that has no use for optional secret-manager libraries
+    # (#73381, #86735). 2. A fresh ``hermes update`` retry just completed a deferred dependency
     # install before importing this module. Do not remap native secret-source dependencies in that same
     # updater process or the self-lock preflight will recreate the marker and exit 2 again. Dotenv and
     # managed env still load in both cases; only external source resolution is unnecessary for the updater.
@@ -653,8 +650,8 @@ def _apply_external_secret_sources(home_path: Path) -> None:
         _revoke_secret_source_writes(home_path, keep=lambda _name, _source: False)
         return
 
-    # Defer the registry import until a source is enabled — bitwarden eagerly loads cryptography._rust.pyd,
-    # which makes the Windows updater self-lock before its preflight. Detect by *shape* (dict with enabled
+    # Defer the registry import until a source is enabled — bitwarden eagerly loads cryptography's native
+    # extension. Detect by *shape* (dict with enabled
     # flag), not names, so plugin/test sources pass and a plain dict entry never forces the crypto load.
     any_enabled = any(isinstance(v, dict) and v.get("enabled") is True for v in cfg.values())
     if not any_enabled:

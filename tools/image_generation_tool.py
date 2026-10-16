@@ -294,7 +294,7 @@ _CACHE_BASE_BY_BACKEND = {"docker": "/root/.hermes", "singularity": "/root/.herm
 def _looks_like_absolute_file_path(value: str) -> bool:
     if not value or not isinstance(value, str) or value.lower().startswith(("http://", "https://", "data:")):
         return False
-    return os.path.isabs(value) or (len(value) >= 3 and value[1] == ":" and value[2] in {"/", "\\"})
+    return os.path.isabs(value)
 
 
 def _active_terminal_env(task_id: str | None):

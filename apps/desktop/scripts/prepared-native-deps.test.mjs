@@ -41,7 +41,7 @@ test('native consumption copies admitted modules and helpers, rejecting changed 
     const copiedHelper = path.join(app, 'dist', helper)
     assert.equal(fs.readFileSync(copiedHelper, 'utf8'), 'helper fixture')
     assert.equal(fs.existsSync(path.join(destination, 'native')), false)
-    if (process.platform !== 'win32') assert.equal(fs.statSync(copiedHelper).mode & 0o777, 0o755)
+    assert.equal(fs.statSync(copiedHelper).mode & 0o777, 0o755)
     fs.writeFileSync(path.join(destination, 'node-pty/pty.node'), 'product mutation')
     assert.equal(fs.readFileSync(binding, 'utf8'), 'native fixture')
     assert.throws(() => native.readNativeInputs({ ...selection, arch: 'arm64' }), /run preparation again/)

@@ -10,7 +10,6 @@ import { canonicalTitleCacheKey, isFetchableHttpUrl } from './link-title-url'
 import { isAuthWall, resolveLinkTitle } from './link-title-wall'
 import { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } from './link-title-window'
 import { decodeWebText } from './web-text-decoder'
-import { hiddenWindowsChildOptions } from './windows-child-options'
 
 // Link title resolution — curl (tier 1) → hidden BrowserWindow (tier 2).
 const titleCache = new Map()
@@ -107,7 +106,7 @@ function fetchHtmlTitleWithCurl(rawUrl: string): Promise<{ authWall: boolean; ti
       url
     ]
 
-    const child = spawn('curl', args, hiddenWindowsChildOptions({ stdio: ['ignore', 'pipe', 'ignore'] }))
+    const child = spawn('curl', args, { stdio: ['ignore', 'pipe', 'ignore'] })
     const chunks: Buffer[] = []
     // The last bytes of stdout, kept past the body budget so the `--write-out`
     // arrival URL survives a body larger than TITLE_BYTE_BUDGET.

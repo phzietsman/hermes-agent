@@ -112,7 +112,7 @@ test('controlSocketPath default base stays under sun_path even with the temp-lis
   assert.ok(!p.includes('/var/folders/'), 'default base must not be os.tmpdir() on macOS')
 })
 
-test.runIf(process.platform !== 'win32')(
+test(
   'deep HOME uses a private short directory and binds a real listener',
   async () => {
     const previousHome = process.env.HOME
@@ -1211,7 +1211,7 @@ test('runSsh delivers stdinData to the child and does not log it', async () => {
   assert.equal(stdinWritten, 'secret-token-value', 'stdinData must be written to child.stdin')
 })
 
-test.runIf(process.platform !== 'win32')('open() rejects a control-dir that is a symlink', async () => {
+test('open() rejects a control-dir that is a symlink', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ssh-test-'))
   const real = path.join(tmp, 'real')
   const link = path.join(tmp, 'link')
@@ -1224,10 +1224,6 @@ test.runIf(process.platform !== 'win32')('open() rejects a control-dir that is a
 })
 
 test('open() enforces 0700 on an existing control dir with lax permissions', async () => {
-  if (process.platform === 'win32') {
-    return
-  }
-
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ssh-test-'))
   const dir = path.join(tmp, 'ctrl')
   fs.mkdirSync(dir, { mode: 0o755 })
@@ -1366,7 +1362,7 @@ test('stopTunnelChild waits for process exit', async () => {
   assert.equal(stopped, true)
 })
 
-test.skipIf(process.platform === 'win32')(
+test(
   'withRemoteTimeout runs a healthy probe under a zsh login shell (#111949)',
   async t => {
     // SSH runs the remote command through the account's login shell. In
@@ -1389,10 +1385,6 @@ test.skipIf(process.platform === 'win32')(
 )
 
 test('withRemoteTimeout kills a hung probe remotely instead of orphaning it (#110478)', async () => {
-  if (process.platform === 'win32') {
-    return
-  }
-
   // Shape: POSIX watchdog — macOS remotes have no GNU `timeout`.
   const wrapped = withRemoteTimeout('hermes --version 2>&1', 15)
 
@@ -1469,16 +1461,6 @@ test('exec wraps POSIX payloads in sh -c so a fish login shell never parses them
   const cmd = spawnFn.calls[1].at(-1)
   assert.match(cmd, /^sh -c '/)
   assert.match(cmd, /help="\$\(true\)"/)
-})
-
-test('exec leaves Windows PowerShell payloads unwrapped', async () => {
-  const spawnFn = scriptedSpawn((args: any) =>
-    args.at(-1) === 'uname -s' ? { code: 1, stderr: 'uname: command not found' } : { code: 0 }
-  )
-
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d' })
-  await conn.exec('powershell.exe -NoProfile -Command "echo hi"')
-  assert.equal(spawnFn.calls[1].at(-1), 'powershell.exe -NoProfile -Command "echo hi"')
 })
 
 // #97264: every attempt for one scope/host/identity hashes to the same
@@ -1634,13 +1616,13 @@ test('#103288: every spawn uses the injected sshBinary; the default stays bare s
 
   const custom = createSshProbeConnection(
     { host: 'box', user: 'me' },
-    { spawnFn, sshBinary: 'C:\\Program Files\\Git\\usr\\bin\\ssh.exe' }
+    { spawnFn, sshBinary: '/opt/ssh/bin/ssh' }
   )
 
   await custom.open()
   await custom.exec('true')
   assert.ok(commands.length >= 2, 'open + exec both spawned')
-  assert.deepEqual([...new Set(commands)], ['C:\\Program Files\\Git\\usr\\bin\\ssh.exe'])
+  assert.deepEqual([...new Set(commands)], ['/opt/ssh/bin/ssh'])
 
   commands.length = 0
   const plain = createSshProbeConnection({ host: 'box', user: 'me' }, { spawnFn })

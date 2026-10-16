@@ -667,14 +667,9 @@ def scan_skill(skill_path: Path, source: str = "community") -> ScanResult:
 
 
 def _content_digest(skill_path: Path) -> str:
-    """Canonical SHA-256 over (POSIX relative path, file bytes) ORDERED by the rel-path STRING — Path sorting is
-    case-insensitive on Windows and diverged from ``skills_hub.bundle_content_hash`` (every installed skill then
-    reported ``update_available`` forever). String order keeps both sides byte-symmetric.
-
-    Ordering by ``sorted(rglob(...))`` diverged from the bundle side on Windows: Path comparison is
-    case-insensitive there (normcase), while ``bundle_content_hash`` sorts plain strings — the same skill
-    hashed to different digests and every installed skill reported ``update_available`` forever (#62310).
-    """
+    """Canonical SHA-256 over (POSIX relative path, file bytes) ORDERED by the rel-path STRING, the same order
+    ``skills_hub.bundle_content_hash`` uses — any divergence makes every installed skill report
+    ``update_available`` forever (#62310)."""
     if not skill_path.is_dir():
         return hashlib.sha256(skill_path.read_bytes()).hexdigest()
     h = hashlib.sha256()

@@ -2,7 +2,7 @@
 """
 Blocking check for tracked files whose paths collide when case is ignored.
 
-Linux is case-sensitive; Windows and macOS (default) are not. Two tracked
+Linux is case-sensitive; macOS (default) is not. Two tracked
 paths that differ only by case — ``README.md`` and ``readme.md``, or
 ``src/Foo.py`` and ``SRC/foo.py`` — coexist happily in a Linux checkout and
 silently break every clone on a case-insensitive host: the filesystem can
@@ -30,7 +30,7 @@ basename — on a case-insensitive filesystem the entire path is
 case-insensitive, so ``dir/Foo.txt`` and ``DIR/foo.txt`` collide just like
 same-directory pairs. ``casefold`` (not ``lower``) is used because it
 matches how the OSes fold case for non-ASCII text (straße vs strasse,
-sigma variants); a pair it flags is a genuine collision on macOS/Windows
+sigma variants); a pair it flags is a genuine collision on macOS
 even when Linux disagrees.
 
 Deliberately out of scope: Unicode NFC/NFD normalization collisions (macOS
@@ -93,7 +93,7 @@ def main() -> int:
         f"{len(paths)} tracked files."
     )
     print(
-        "Paths that differ only by case are ONE file on Windows/macOS but "
+        "Paths that differ only by case are ONE file on macOS but "
         "several on Linux - the pair breaks every clone on a case-insensitive "
         "host. Rename one member of each group so the paths differ beyond case."
     )
@@ -104,7 +104,7 @@ def main() -> int:
         print()
     print(
         "Fix: `git mv` one path in each group to a name that doesn't collide. "
-        "On Windows/macOS you may need two steps (`git mv a.txt tmp && git mv "
+        "On macOS you may need two steps (`git mv a.txt tmp && git mv "
         "tmp A.txt`) because the filesystem can't hold both spellings at once."
     )
     return 1

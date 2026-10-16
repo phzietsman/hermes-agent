@@ -177,7 +177,7 @@ class TestDeclaredFloorsClearTheLockedTree:
     """Every Node version our own gates accept must survive `npm ci`.
 
     The class of outage this pins: the installers' version gates
-    (node_satisfies_build in install.sh, Test-NodeVersionOk in install.ps1)
+    (node_satisfies_build in install.sh)
     and `engines.node` are hand-maintained, while the *real* floor is
     whatever the strictest locked dependency demands. When they drift, a
     user's system Node clears every gate we own and then dies at
@@ -223,7 +223,7 @@ class TestDeclaredFloorsClearTheLockedTree:
             "engines.node arms admit Node versions the locked dependency "
             "tree rejects — those users pass every install gate and then "
             "die at `npm install` with EBADENGINE (engine-strict=true). "
-            "Raise the arm floor (and the installer gates: "
-            "node_satisfies_build in scripts/install.sh, Test-NodeVersionOk "
-            f"in scripts/install.ps1) or relax the dep. Violations: {violations}"
+            "Raise the arm floor (and the installer gate: "
+            "node_satisfies_build in scripts/install.sh) or relax the dep. "
+            f"Violations: {violations}"
         )

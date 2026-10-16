@@ -144,15 +144,6 @@ def _tail_server_stderr(server_name: str, *, max_bytes: int = 8192, max_lines: i
 # Env vars safe to pass to stdio subprocesses (no secrets).
 _SAFE_ENV_KEYS = frozenset({"PATH", "HOME", "USER", "LANG", "LC_ALL", "TERM", "SHELL", "TMPDIR"})
 
-# Windows process/location vars needed by launcher-style tools (e.g. Docker Desktop's MCP plugin discovery).
-_SAFE_ENV_KEYS_CASE_INSENSITIVE = frozenset({
-    "ALLUSERSPROFILE", "APPDATA", "COMMONPROGRAMFILES", "COMMONPROGRAMFILES(X86)",
-    "COMMONPROGRAMW6432", "COMPUTERNAME", "COMSPEC", "HOMEDRIVE", "HOMEPATH",
-    "LOCALAPPDATA", "NUMBER_OF_PROCESSORS", "OS", "PATHEXT", "PROCESSOR_ARCHITECTURE",
-    "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMW6432", "PUBLIC",
-    "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "TMP", "USERDOMAIN", "USERNAME",
-    "USERPROFILE", "WINDIR"})
-
 # ${VAR_NAME} interpolation; any non-} chars allowed so MY-VAR / my.var work.
 _ENV_VAR_PATTERN = re.compile(r"\$\{([^}]+)\}")
 
@@ -187,7 +178,7 @@ def _build_safe_env(user_env: Optional[dict]) -> dict:
     from hermes_cli.env_loader import secret_source_names
     env = {
         key: value for key, value in os.environ.items()
-        if key in _SAFE_ENV_KEYS or key.upper() in _SAFE_ENV_KEYS_CASE_INSENSITIVE or key.startswith("XDG_")}
+        if key in _SAFE_ENV_KEYS or key.startswith("XDG_")}
     # Source-tagged names are process-wide (any profile's hydration tags them) while os.environ
     # holds only the LAUNCH profile's values, so the value must come from the active profile's
     # secret scope; a profile that lacks the name gets nothing, never another profile's token.
@@ -202,35 +193,6 @@ def _build_safe_env(user_env: Optional[dict]) -> dict:
         env.update(user_env)
     from agent.delegation_context import delegated_child_subprocess_env
     return delegated_child_subprocess_env(env)
-
-
-def _which_with_config_pathext(command: str, path_arg, env: dict):
-    """Resolve *command* under the config env's PATHEXT (Windows only; ``shutil.which`` uses the PARENT's).
-
-    The extension walk mirrors ``which`` itself (existing-suffix short-circuit, configured
-    extensions in order) but reads nothing from and writes nothing to ``os.environ``: swapping
-    the parent's PATHEXT around a ``which`` call would publish this server's per-profile value
-    to every other thread for the duration, and a ``finally``-restore cannot undo that window."""
-    cfg_pathext = next((v for k, v in env.items() if k.upper() == "PATHEXT" and isinstance(v, str) and v.strip()), None)
-    if not cfg_pathext or cfg_pathext == os.environ.get("PATHEXT"):
-        return None
-    # PATHEXT is Windows-defined: ";"-separated even when resolved off-Windows
-    exts = [ext for ext in cfg_pathext.split(";") if ext]
-    candidates = [command + ext for ext in exts]
-    if not candidates or any(command.lower().endswith(ext.lower()) for ext in exts):
-        candidates = [command]
-    directories = str(path_arg or "").split(os.pathsep)
-    if sys.platform == "win32" and os.curdir not in directories:
-        directories.insert(0, os.curdir)  # Windows resolves from the cwd first
-    for raw in directories:
-        directory = raw or os.curdir  # POSIX: an empty PATH component means the cwd
-        if not os.path.isdir(directory):
-            continue
-        for candidate in candidates:
-            resolved = os.path.join(directory, candidate)
-            if os.path.isfile(resolved) and os.access(resolved, os.F_OK | os.X_OK):
-                return resolved
-    return None
 
 
 # Bare MCP launchers Hermes ships through PM, keyed to the package that provides them.
@@ -279,50 +241,18 @@ def _is_hermes_managed_bin_dir(directory: str) -> bool:
     return resolved == home / "bin" or home in resolved.parents
 
 
-_WINDOWS_DEFAULT_PATHEXT = ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC"
-
-
-def _pathext_suffixes(env: Optional[dict] = None, *, windows: Optional[bool] = None) -> list:
-    """Executable suffixes a bare name resolves through, in order. The child env's PATHEXT
-    comes first (``shutil.which`` reads the PARENT's, so a per-profile config value never
-    reaches a plain ``which`` — same source as ``_which_with_config_pathext``), then the
-    parent's, then the OS default. POSIX appends nothing. ``windows`` injectable for the
-    same testability reason as ``_npx_bin_candidates``."""
-    is_windows = os.name == "nt" if windows is None else windows
-    if not is_windows:
-        return [""]
-    for source in (env or {}, os.environ):
-        value = next((v for k, v in source.items()
-                      if k.upper() == "PATHEXT" and isinstance(v, str) and v.strip()), None)
-        if value:
-            exts = [ext for ext in value.split(";") if ext]
-            if exts:
-                return exts
-    return [ext for ext in _WINDOWS_DEFAULT_PATHEXT.split(";") if ext]
-
-
-def _first_user_which_hit(command: str, path_arg: Optional[str],
-                          env: Optional[dict] = None, *, windows: Optional[bool] = None) -> Optional[str]:
+def _first_user_which_hit(command: str, path_arg: Optional[str]) -> Optional[str]:
     """First PATH hit for *command* OUTSIDE Hermes-managed bin dirs, or ``None``.
 
     ``shutil.which`` stops at the first hit, and bootstrap prepends the managed runtime's
     bin dir, so a bare ``python3`` resolves to the bundled interpreter — which lacks the
-    user's packages and kills the server on import (#125300). Candidates run through
-    ``_pathext_suffixes`` rather than the npx cache layout's ``.cmd``/``.exe`` pair: a user
-    install may only ship a ``.bat``/``.py`` wrapper, and missing it here would silently
-    fall back to the managed hit this exists to step past."""
-    exts = _pathext_suffixes(env, windows=windows)
-    if any(ext and command.lower().endswith(ext.lower()) for ext in exts):
-        names = [command]
-    else:
-        names = [command + ext for ext in exts]
+    user's packages and kills the server on import (#125300)."""
     for directory in str(path_arg or "").split(os.pathsep):
         if not directory or _is_hermes_managed_bin_dir(directory):
             continue
-        for name in names:
-            candidate = os.path.join(directory, name)
-            if os.path.isfile(candidate) and os.access(candidate, os.F_OK | os.X_OK):
-                return candidate
+        candidate = os.path.join(directory, command)
+        if os.path.isfile(candidate) and os.access(candidate, os.F_OK | os.X_OK):
+            return candidate
     return None
 
 
@@ -338,20 +268,17 @@ def _resolve_stdio_command(command: str, env: dict) -> tuple[str, dict]:
     ``execvp`` will see); a miss stays as-written for an honest spawn failure."""
     resolved_command = os.path.expanduser(str(command).strip())
     resolved_env = dict(env or {})
-    launcher = re.sub(r"\.(cmd|exe)$", "", resolved_command, flags=re.IGNORECASE)  # Windows spellings
-    managed = _managed_launcher(launcher) if launcher in _MANAGED_LAUNCHERS else None
+    managed = _managed_launcher(resolved_command) if resolved_command in _MANAGED_LAUNCHERS else None
     if managed is not None:
         resolved_command, dirs = managed
         # Moved to the front even when already on PATH behind a user's copy.
-        keys = {os.path.normcase(d) for d in dirs}
-        rest = [p for p in resolved_env.get("PATH", "").split(os.pathsep) if p and os.path.normcase(p) not in keys]
+        keys = set(dirs)
+        rest = [p for p in resolved_env.get("PATH", "").split(os.pathsep) if p and p not in keys]
         resolved_env["PATH"] = os.pathsep.join([*dirs, *rest])
         return resolved_command, resolved_env
     if os.sep not in resolved_command:
         path_arg = resolved_env.get("PATH")
         which_hit = shutil.which(resolved_command, path=path_arg) if path_arg is not None else None
-        if which_hit is None and sys.platform == "win32" and resolved_env:
-            which_hit = _which_with_config_pathext(resolved_command, path_arg, resolved_env)
         # A bare command keeps the USER's PATH semantics: bootstrap prepends the managed
         # runtime's bin dir to this process's PATH, so the first hit for a bare ``python3``
         # is Hermes' bundled interpreter, which lacks the user's packages and dies on import
@@ -359,25 +286,13 @@ def _resolve_stdio_command(command: str, env: dict) -> tuple[str, dict]:
         # family keeps the managed-first resolution (that is the point of
         # ``_launcher_fallback``), and a managed-only PATH keeps the managed hit.
         if which_hit and resolved_command not in {"npx", "npm", "node", "uv", "uvx"}:
-            which_hit = _first_user_which_hit(resolved_command, path_arg, resolved_env) or which_hit
+            which_hit = _first_user_which_hit(resolved_command, path_arg) or which_hit
         if which_hit:
             resolved_command = which_hit
     command_dir = os.path.dirname(resolved_command)
     if command_dir:
         resolved_env = _prepend_path(resolved_env, command_dir)
     return resolved_command, resolved_env
-
-
-def _npx_bin_candidates(bin_dir: str, name: str, *, windows: Optional[bool] = None) -> list:
-    """Launcher paths to try for *name* inside an npx cache's ``.bin``, in order. On Windows that
-    directory holds the extensionless sh script plus ``<name>.cmd``/``<name>.ps1``; the sh one
-    cannot be spawned there and ``os.access(X_OK)`` is only an existence check, so select by
-    extension (same precedence as ``hermes_constants._candidate_node_command_names``). ``windows``
-    is injectable so the branch is testable without patching ``os.name`` process-wide."""
-    is_windows = os.name == "nt" if windows is None else windows
-    if is_windows:
-        return [os.path.join(bin_dir, name + ext) for ext in (".cmd", ".exe")]
-    return [os.path.join(bin_dir, name)]
 
 
 def _npx_cached_bin(args: list) -> Optional[tuple]:
@@ -439,9 +354,9 @@ def _npx_cached_bin(args: list) -> Optional[tuple]:
         else:
             continue  # zero or several bins: which one npx would pick is not ours to guess
         bin_dir = os.path.join(npx_root, entry, "node_modules", ".bin")
-        for candidate in _npx_bin_candidates(bin_dir, names[0]):
-            if os.path.exists(candidate) and os.access(candidate, os.X_OK):
-                return candidate, rest[1:]
+        candidate = os.path.join(bin_dir, names[0])
+        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            return candidate, rest[1:]
     return None
 
 

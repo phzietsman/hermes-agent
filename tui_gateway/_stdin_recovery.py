@@ -3,21 +3,16 @@
 When a child inherits fd 0 and sets ``O_NONBLOCK``, the flag lands on the SHARED open
 file description, not just the child's descriptor. The next ``read()`` returns
 ``EAGAIN``, which CPython's buffered ``TextIOWrapper`` converts to ``b''`` (apparent
-EOF), killing the gateway. Recovery is POSIX-only (``fcntl``); on Windows the guard
-just reports a genuine EOF and lets the caller exit.
+EOF), killing the gateway.
 """
 
 from __future__ import annotations
 
+import fcntl
 import os
 import socket
 import struct
 import time
-
-try:
-    import fcntl
-except ImportError:  # Windows
-    fcntl = None  # type: ignore[assignment]
 
 # Recoveries per 60s window. A child aggressively flipping the flag would otherwise
 # create a tight busy-loop; exceeding the cap exits so the parent respawns us fresh.
@@ -26,7 +21,7 @@ MAX_RECOVERIES_PER_MINUTE = 10
 
 def _stdin_nonblock() -> bool:
     try:
-        return bool(fcntl.fcntl(0, fcntl.F_GETFL) & os.O_NONBLOCK)  # type: ignore[union-attr]
+        return bool(fcntl.fcntl(0, fcntl.F_GETFL) & os.O_NONBLOCK)
     except Exception:
         return False
 
@@ -55,14 +50,11 @@ def diagnose_stdin_state() -> str:
     ``setsockopt`` launders into the same spurious-EOF path with ``O_NONBLOCK`` clear.
     """
     parts: list[str] = []
-    if fcntl is None:
-        parts.append("O_NONBLOCK=n/a (no fcntl)")
-    else:
-        try:
-            flags = fcntl.fcntl(0, fcntl.F_GETFL)
-            parts.append(f"O_NONBLOCK={'1' if flags & os.O_NONBLOCK else '0'}")
-        except Exception as e:
-            parts.append(f"F_GETFL error: {e}")
+    try:
+        flags = fcntl.fcntl(0, fcntl.F_GETFL)
+        parts.append(f"O_NONBLOCK={'1' if flags & os.O_NONBLOCK else '0'}")
+    except Exception as e:
+        parts.append(f"F_GETFL error: {e}")
     tv = _stdin_sockopt(lambda s: s.getsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO))
     if tv is not None:
         parts.append(f"SO_RCVTIMEO={tv!r}")
@@ -76,9 +68,8 @@ def handle_spurious_eof(recovery_times: list[float], log_fn: object) -> bool:
     should ``break`` (genuine peer-close or rate limit exceeded). ``log_fn`` receives a
     diagnostic string.
     """
-    # Without fcntl (Windows) we can't check the flag and the issue is POSIX-specific
-    # anyway; a clear flag means a genuine peer-close.
-    if fcntl is None or not _stdin_nonblock():
+    # A clear flag means a genuine peer-close.
+    if not _stdin_nonblock():
         log_fn("stdin EOF (peer closed)")  # type: ignore[operator]
         return False
     now = time.time()

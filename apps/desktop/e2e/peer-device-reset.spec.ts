@@ -31,7 +31,7 @@ function pythonBinary(): string {
     return process.env.HERMES_DESKTOP_PYTHON
   }
 
-  const suffix = process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']
+  const suffix = ['bin', 'python']
   const candidate = ['.venv', 'venv'].map(dir => path.join(REPO_ROOT, dir, ...suffix)).find(file => fs.existsSync(file))
 
   if (!candidate) {
@@ -96,11 +96,7 @@ function remoteAlive(child: ChildProcess): boolean {
 // ESRCH (group already gone) must not abort the rest of teardown.
 function signalRemote(child: ChildProcess, signal: NodeJS.Signals): void {
   try {
-    if (process.platform === 'win32') {
-      child.kill(signal)
-    } else {
-      process.kill(-child.pid!, signal)
-    }
+    process.kill(-child.pid!, signal)
   } catch {
     /* already exited */
   }
@@ -173,7 +169,7 @@ const peerTest = test.extend<{ gateways: { app: ElectronApplication; source: Pag
       const remoteUrl = `http://127.0.0.1:${port}`
       child = spawn(pythonBinary(), ['-m', 'hermes_cli.main', 'serve', '--host', '127.0.0.1', '--port', String(port), '--skip-build'], {
         cwd: REPO_ROOT,
-        detached: process.platform !== 'win32',
+        detached: true,
         env: { ...isolatedEnv(remote), HERMES_DASHBOARD_SESSION_TOKEN: REMOTE_TOKEN },
         stdio: ['ignore', 'pipe', 'pipe'],
       })

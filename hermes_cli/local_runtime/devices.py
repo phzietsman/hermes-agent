@@ -23,13 +23,12 @@ GGML_DEVICE_IGPU = 2
 
 def probe_devices(engine_dir: Path, backend: str) -> list[dict]:
     """GPU/iGPU devices the ``backend`` library in ``engine_dir`` registers; [] on any failure."""
-    from hermes_cli._subprocess_compat import windows_hide_flags
 
     try:
         out = subprocess.run(
             [sys.executable, "-I", str(Path(__file__).resolve()), str(engine_dir), backend],
             stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8",
-            errors="replace", timeout=20, creationflags=windows_hide_flags())
+            errors="replace", timeout=20)
         devices = json.loads(out.stdout) if out.returncode == 0 else []
     except (OSError, ValueError, subprocess.TimeoutExpired):
         return []
@@ -42,46 +41,41 @@ def probe_devices(engine_dir: Path, backend: str) -> list[dict]:
 
 
 def _library(directory: Path, name: str) -> Path:
-    return directory / (f"{name}.dll" if os.name == "nt" else f"lib{name}.so")
+    return directory / f"lib{name}.so"
 
 
 def _read_devices(directory: Path, backend: str) -> list[dict]:
-    dll_directory = os.add_dll_directory(str(directory)) if os.name == "nt" else None
-    try:
-        base = ctypes.CDLL(str(_library(directory, "ggml-base")), mode=ctypes.RTLD_GLOBAL)
-        core = ctypes.CDLL(str(_library(directory, "ggml")), mode=ctypes.RTLD_GLOBAL)
-        core.ggml_backend_load.argtypes = [ctypes.c_char_p]
-        core.ggml_backend_load.restype = ctypes.c_void_p
-        registry = core.ggml_backend_load(os.fsencode(_library(directory, f"ggml-{backend}")))
-        if not registry:
-            return []
-        signatures = {
-            "ggml_backend_reg_dev_count": ([ctypes.c_void_p], ctypes.c_size_t),
-            "ggml_backend_reg_dev_get": ([ctypes.c_void_p, ctypes.c_size_t], ctypes.c_void_p),
-            "ggml_backend_dev_description": ([ctypes.c_void_p], ctypes.c_char_p),
-            "ggml_backend_dev_type": ([ctypes.c_void_p], ctypes.c_int),
-            "ggml_backend_dev_memory": ([ctypes.c_void_p, ctypes.POINTER(ctypes.c_size_t),
-                                         ctypes.POINTER(ctypes.c_size_t)], None),
-        }
-        for name, (arguments, result) in signatures.items():
-            function = getattr(base, name)
-            function.argtypes, function.restype = arguments, result
-        devices = []
-        for index in range(min(base.ggml_backend_reg_dev_count(registry), 64)):
-            device = base.ggml_backend_reg_dev_get(registry, index)
-            if not device:
-                continue
-            free, total = ctypes.c_size_t(), ctypes.c_size_t()
-            base.ggml_backend_dev_memory(device, ctypes.byref(free), ctypes.byref(total))
-            devices.append({
-                "description": base.ggml_backend_dev_description(device).decode("utf-8", errors="replace"),
-                "type": base.ggml_backend_dev_type(device),
-                "free": min(free.value, total.value), "total": total.value,
-            })
-        return devices
-    finally:
-        if dll_directory is not None:
-            dll_directory.close()
+    base = ctypes.CDLL(str(_library(directory, "ggml-base")), mode=ctypes.RTLD_GLOBAL)
+    core = ctypes.CDLL(str(_library(directory, "ggml")), mode=ctypes.RTLD_GLOBAL)
+    core.ggml_backend_load.argtypes = [ctypes.c_char_p]
+    core.ggml_backend_load.restype = ctypes.c_void_p
+    registry = core.ggml_backend_load(os.fsencode(_library(directory, f"ggml-{backend}")))
+    if not registry:
+        return []
+    signatures = {
+        "ggml_backend_reg_dev_count": ([ctypes.c_void_p], ctypes.c_size_t),
+        "ggml_backend_reg_dev_get": ([ctypes.c_void_p, ctypes.c_size_t], ctypes.c_void_p),
+        "ggml_backend_dev_description": ([ctypes.c_void_p], ctypes.c_char_p),
+        "ggml_backend_dev_type": ([ctypes.c_void_p], ctypes.c_int),
+        "ggml_backend_dev_memory": ([ctypes.c_void_p, ctypes.POINTER(ctypes.c_size_t),
+                                     ctypes.POINTER(ctypes.c_size_t)], None),
+    }
+    for name, (arguments, result) in signatures.items():
+        function = getattr(base, name)
+        function.argtypes, function.restype = arguments, result
+    devices = []
+    for index in range(min(base.ggml_backend_reg_dev_count(registry), 64)):
+        device = base.ggml_backend_reg_dev_get(registry, index)
+        if not device:
+            continue
+        free, total = ctypes.c_size_t(), ctypes.c_size_t()
+        base.ggml_backend_dev_memory(device, ctypes.byref(free), ctypes.byref(total))
+        devices.append({
+            "description": base.ggml_backend_dev_description(device).decode("utf-8", errors="replace"),
+            "type": base.ggml_backend_dev_type(device),
+            "free": min(free.value, total.value), "total": total.value,
+        })
+    return devices
 
 
 if __name__ == "__main__":

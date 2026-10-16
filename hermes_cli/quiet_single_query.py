@@ -106,20 +106,14 @@ def run_reported_turn(argv: list, *, env: MutableMapping[str, str], report_path:
     hand its dead cwd on — the child dies at CLI startup, #102941). The pipes decode lossily
     everywhere: a stray non-UTF-8 byte (a grandchild sharing the pipe interleaving a partial
     multi-byte write) must not raise in the drain thread and take the reply and the failure tail
-    with it (#105582). Without an explicit *encoding* they decode as UTF-8 only on win32, where
-    the child is guaranteed UTF-8 (hermes_bootstrap reconfigures its streams even under
-    PYTHONIOENCODING=cp1252) while the gateway parent is not started in UTF-8 mode, so the
-    locale default mangled or lost accented replies (#115894); on POSIX the child keeps the
-    locale codec, so the locale default stays correct there (#66566).
+    with it (#105582). Without an explicit *encoding* they use the locale codec, which is the
+    child's own (#66566).
     """
-    from hermes_cli._subprocess_compat import windows_hide_flags
 
-    if encoding is None and sys.platform == "win32":
-        encoding = "utf-8"
     proc = subprocess.Popen(
         argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         encoding=encoding, errors="replace", env={**env, TURN_REPORT_FILE_ENV: report_path},
-        cwd=cwd, creationflags=windows_hide_flags())
+        cwd=cwd)
     streams: dict = {}
 
     def _drain() -> None:

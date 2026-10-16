@@ -21,12 +21,8 @@ function sourceTree(root: string): void {
 
 function publishLauncher(dir: string, reported: string): string {
   fs.mkdirSync(dir, { recursive: true })
-  const launcher: string = path.join(dir, process.platform === 'win32' ? 'hermes.cmd' : 'hermes')
-
-  const body: string =
-    process.platform === 'win32'
-      ? `@echo off\r\necho Install directory: ${reported}\r\n`
-      : `#!/bin/sh\nprintf '%s\\n' 'Install directory: ${reported}'\n`
+  const launcher: string = path.join(dir, 'hermes')
+  const body: string = `#!/bin/sh\nprintf '%s\\n' 'Install directory: ${reported}'\n`
 
   fs.writeFileSync(launcher, body, { mode: 0o755 })
 
@@ -36,7 +32,7 @@ function publishLauncher(dir: string, reported: string): string {
 // The reported machine: setup-hermes.sh published ~/.local/bin/hermes for a
 // clone outside ~/.hermes/hermes-agent, and a Finder/Dock launch inherited
 // launchd's PATH, which has no ~/.local/bin. Desktop must still find it.
-test.skipIf(process.platform === 'win32')(
+test(
   'a ~/.local/bin launcher resolves its non-canonical install on a GUI PATH without ~/.local/bin',
   async (): Promise<void> => {
     const base: string = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'user-launcher-')))
@@ -49,11 +45,10 @@ test.skipIf(process.platform === 'win32')(
       vi.stubEnv('HOME', home)
       vi.stubEnv('PATH', '/usr/bin:/bin:/usr/sbin:/sbin')
 
-      const found = userLauncherInstallRoot(false, path.join(home, '.hermes'))
+      const found = userLauncherInstallRoot(path.join(home, '.hermes'))
       assert.deepEqual(found, { launcher, root })
 
       const backend = await resolveSourceInstallationBackend(root, ['serve'], {
-        isWindows: false,
         hermesHome: path.join(home, '.hermes')
       })
 
@@ -76,13 +71,11 @@ test('a user-bin launcher is ignored when it reports no Hermes source tree', ():
     fs.mkdirSync(notSource)
     publishLauncher(path.join(hermesHome, 'bin'), notSource)
     vi.stubEnv('HOME', home)
-    vi.stubEnv('USERPROFILE', home)
-    vi.stubEnv('LOCALAPPDATA', path.join(home, 'AppData', 'Local'))
 
-    assert.equal(userLauncherInstallRoot(process.platform === 'win32', hermesHome), null)
+    assert.equal(userLauncherInstallRoot(hermesHome), null)
 
     sourceTree(notSource)
-    assert.equal(userLauncherInstallRoot(process.platform === 'win32', hermesHome)?.root, notSource)
+    assert.equal(userLauncherInstallRoot(hermesHome)?.root, notSource)
   } finally {
     fs.rmSync(base, { recursive: true, force: true })
   }

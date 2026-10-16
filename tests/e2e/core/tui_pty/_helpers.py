@@ -25,7 +25,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
-import termios  # windows-footgun: ok — tmux/pty suite, skipped off Linux
+import termios
 import time
 import unicodedata
 from collections import Counter
@@ -447,7 +447,7 @@ class TmuxTui:
                 and "tmux" in cmdline(self.server_pid)):
             self._reap_nudged, self.reap_nudges = now, self.reap_nudges + 1
             with contextlib.suppress(ProcessLookupError):
-                os.kill(self.server_pid, signal.SIGCHLD)  # windows-footgun: ok — Linux-only suite
+                os.kill(self.server_pid, signal.SIGCHLD)
         return None
 
     def exit_problem(self, timeout: float = 60.0) -> str:
@@ -521,7 +521,7 @@ class TmuxTui:
             if _alive(pid):
                 survivors.append(f"{pid}: {cmdline(pid)}")
                 try:
-                    os.kill(pid, signal.SIGKILL)  # windows-footgun: ok — Linux-only suite
+                    os.kill(pid, signal.SIGKILL)
                 except (ProcessLookupError, PermissionError):
                     pass
         return survivors

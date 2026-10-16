@@ -2,7 +2,7 @@
 
 A sealed payload ships no __pycache__: the runtime redirects bytecode
 writes to a user-level cache (signature-breaking on macOS, read-only
-mount on AppImage/MSIX), so every fresh install pays a cold-compile
+mount on AppImage), so every fresh install pays a cold-compile
 stall on first launch. Baking turns that into a warm read:
 
 * compileall runs with the payload's OWN staged interpreter (a pyc
@@ -16,9 +16,8 @@ stall on first launch. Baking turns that into a warm read:
   incidental write can touch them; the dirs stay writable because
   in-place rebuilds rmtree the tree, and asserted coverage means no
   cache-miss write can target them;
-* the runtime's sys.pycache_prefix redirect is dropped when the baked
-  marker is present (the prefix relocates READS too — see
-  scripts/build/launcher_wrapper.py), so imports read the source-
+* a launcher must not set sys.pycache_prefix when the baked marker is
+  present (the prefix relocates READS too), so imports read the source-
   adjacent baked pycs, which is Python's default multi-root lookup:
   payload modules read theirs; plugin/user modules keep caching beside
   their own sources under HERMES_HOME.

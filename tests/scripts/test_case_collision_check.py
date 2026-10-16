@@ -1,7 +1,6 @@
 """Wrappers for scripts/check-case-collisions.py.
 
-Same pattern as tests/scripts/test_windows_footguns_full_repo_scan.py: run
-the real checker and assert its outcomes, so a normal pytest run catches a
+Run the real checker and assert its outcomes, so a normal pytest run catches a
 regression — someone committing a case-colliding pair — without anyone
 having to remember to run the script by hand.
 

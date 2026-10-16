@@ -84,14 +84,10 @@ def test_trusted_dispatch_admits_a_pushed_feature_without_switching_checkout(tmp
         f'with Path({str(permission_log)!r}).open("a",encoding="utf-8") as stream: '
         'stream.write(json.dumps(sys.argv[1:])+"\\n")\nprint("write")\n'
     )
-    if os.name == 'nt':
-        from scripts.build.mint_launchers import mint_one
-        mint_one(str(helper), sys.executable, code, {'name': 'gh', 'module': 'fixture', 'func': 'main'})
-    else:
-        module = helper / 'gh.py'
-        module.write_text(code, encoding='utf-8')
-        (helper / 'gh').write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(module))} "$@"\n', encoding='utf-8')
-        (helper / 'gh').chmod(0o755)
+    module = helper / 'gh.py'
+    module.write_text(code, encoding='utf-8')
+    (helper / 'gh').write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(module))} "$@"\n', encoding='utf-8')
+    (helper / 'gh').chmod(0o755)
     result = run_admission(clone, environment(clone, commit))
     assert result.returncode == 0, result.stdout + result.stderr
     outputs = dict(line.split('=', 1) for line in (clone / 'outputs').read_text(encoding='utf-8').splitlines())

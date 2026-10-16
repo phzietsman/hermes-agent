@@ -318,7 +318,7 @@ export function requestLocalSetupMenu(target: string): void {
 }
 
 // ── Debug handle ────────────────────────────────────────────────────────────
-// Ships in packaged builds on purpose: rtxspark/vespyr run MSIX bundles we
+// Ships in packaged builds on purpose: rtxspark/vespyr run packaged builds we
 // drive over CDP, and `state()` is how a run that showed nothing explains itself.
 
 interface LocalSetupOfferDebug {

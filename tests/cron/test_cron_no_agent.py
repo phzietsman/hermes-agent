@@ -204,7 +204,7 @@ def test_run_job_script_nul_path_fails_cleanly(hermes_env):
     added in the fix. On Linux the legacy guard would swallow the
     expanduser() ValueError and report a generic invalid-path message, so
     a bare "Blocked" assertion could not tell the fixed code from the
-    unfixed code; on Windows the unfixed code crashes outright."""
+    unfixed code."""
     from cron.scheduler_script import _run_job_script
 
     ok, output = _run_job_script("~user\x00bad.sh")

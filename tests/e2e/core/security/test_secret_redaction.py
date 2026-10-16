@@ -21,7 +21,6 @@ the turn) before asserting absence.
 from __future__ import annotations
 
 import re
-import sys
 
 import pytest
 
@@ -32,8 +31,6 @@ from tests.e2e.core.security._redact import (
     echo_preconditions, prompt_for, seed_workspace,
 )
 from tests.fakes.fake_llm_provider import FakeLLMServer
-
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell commands (cat | tee, curl)")
 
 KNOWN: dict[str, tuple[str, str]] = {}  # cell id ``<scenario>-<sink>`` -> (pattern, "#issue symptom")
 

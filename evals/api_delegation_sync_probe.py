@@ -1,7 +1,7 @@
 """Model-free API delegation delivery probe; run in an isolated HERMES_HOME.
 
 Uses real request-context binding, dispatch policy and SQLite persistence. This
-is local mechanism evidence, not provider inference or native Windows evidence.
+is local mechanism evidence, not provider inference.
 """
 import asyncio
 import inspect

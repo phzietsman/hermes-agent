@@ -4,7 +4,7 @@ description: Query Shopify Admin/Storefront GraphQL APIs via curl.
 version: 1.0.0
 author: community
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 prerequisites:
   env_vars: [SHOPIFY_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN]
   commands: [curl, jq]

@@ -23,20 +23,20 @@ test('probe success claims with the full start marker (unchanged behavior)', () 
 
 test('probe success claims even when the child already exited (ownership records the incarnation)', () => {
   // The claim itself must not invent a failure: the exit handler owns cleanup.
-  const decision = claimDecision(false, { ok: true, startMarker: 'win:99' })
+  const decision = claimDecision(false, { ok: true, startMarker: 'ps:99' })
 
-  assert.deepEqual(decision, { action: 'claim', startMarker: 'win:99' })
+  assert.deepEqual(decision, { action: 'claim', startMarker: 'ps:99' })
 })
 
 test('probe failure on a LIVE child degrades to PID-only identity — never kills a healthy backend (#93608)', () => {
-  const decision = claimDecision(true, { ok: false, reason: 'powershell.exe timed out after 30000ms' })
+  const decision = claimDecision(true, { ok: false, reason: 'ps timed out after 30000ms' })
 
   assert.equal(decision.action, 'degrade')
   assert.match((decision as { reason: string }).reason, /timed out/)
 })
 
 test('probe failure on a DEAD child fails closed so the caller can attach the stderr tail', () => {
-  const decision = claimDecision(false, { ok: false, reason: 'Get-Process: no process with ID 4242' })
+  const decision = claimDecision(false, { ok: false, reason: 'ps: no process with ID 4242' })
 
   assert.equal(decision.action, 'fail')
   assert.match((decision as { reason: string }).reason, /4242/)
@@ -46,23 +46,23 @@ test('probe failure on a DEAD child fails closed so the caller can attach the st
 
 test('probeStartMarker converts a probe throw into { ok: false, reason }', async () => {
   const probe = await probeStartMarker(4242, async () => {
-    throw new Error('PowerShell 5.1 cold start exceeded budget')
+    throw new Error('probe cold start exceeded budget')
   })
 
-  assert.deepEqual(probe, { ok: false, reason: 'PowerShell 5.1 cold start exceeded budget' })
+  assert.deepEqual(probe, { ok: false, reason: 'probe cold start exceeded budget' })
 })
 
-// --- real probe: drives the actual OS helper (PowerShell on the Windows lane) ---
+// --- real probe: drives the actual OS helper (ps / /proc) ---
 
 test('processStartMarker resolves a real marker for the current process', async () => {
   const marker = await processStartMarker(process.pid)
 
-  assert.match(marker, /^(linux|win|winms|ps):.+/)
+  assert.match(marker, /^(linux|ps):.+/)
 })
 
 test('a missing PID is classified as ESRCH so reapOrphans can drop the record', async () => {
   // Largest PIDs are bounded well below this on every supported platform.
-  // Windows Get-Process / macOS `ps -p` used to surface exit code 1, which
+  // macOS `ps -p` used to surface exit code 1, which
   // the identity matchers treated as "unknown" and kept forever. The native
   // gate throws ESRCH — the errno those catch blocks already map to gone.
   await assert.rejects(processStartMarker(2 ** 30 + 12345), (error: NodeJS.ErrnoException) => error?.code === 'ESRCH')

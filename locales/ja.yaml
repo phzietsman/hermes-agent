@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ 強制終了しています..."
     interrupting_again_hint: "⚡ エージェントを中断しています... (もう一度 Ctrl+C を押すと強制終了)"
     interrupting: "⚡ エージェントを中断しています..."
-    suspend_unsupported: "サスペンド (Ctrl+Z) は Windows ではサポートされていません。"
     suspended: "{agent_name} をサスペンドしました。`fg` を実行すると {agent_name} が戻ります。"
     steer_failed_queued: "ステアに失敗しました ({error}) — 次のターンのキューに追加しました。"
     steered: "⏩ ステアしました: '{preview}'"

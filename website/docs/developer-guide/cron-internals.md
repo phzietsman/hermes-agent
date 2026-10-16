@@ -316,7 +316,6 @@ fork-after-snapshot race. The stop wait is bounded; discovery or permission
 failures still use best-effort group cleanup, not a sandbox guarantee. Any target
 stopped by cleanup is resumed if termination fails; already-stopped targets keep
 their original state. Explicit graceful signals do not suspend their recipients.
-Windows continues to use `taskkill /F /T`.
 
 ### Provider Recovery
 
@@ -375,7 +374,7 @@ Cron-run sessions have the `cronjob` toolset disabled. This prevents:
 
 ## Locking
 
-The scheduler uses cross-process file-based locking (`fcntl.flock` on Unix, `msvcrt.locking` on Windows) to prevent overlapping ticks from executing the same due-job batch twice — even between the gateway's in-process ticker and a standalone `hermes cron` / manual `tick()` call. If the lock cannot be acquired, `tick()` returns 0 immediately.
+The scheduler uses cross-process file-based locking (`fcntl.flock`) to prevent overlapping ticks from executing the same due-job batch twice — even between the gateway's in-process ticker and a standalone `hermes cron` / manual `tick()` call. If the lock cannot be acquired, `tick()` returns 0 immediately.
 
 ### Stale-code yield
 

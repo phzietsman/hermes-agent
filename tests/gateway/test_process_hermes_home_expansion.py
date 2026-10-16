@@ -20,7 +20,6 @@ from gateway import lifecycle_ledger, shutdown_watchdog, status
 )
 def test_process_home_readers_expand_literal_tilde(reader, tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("HERMES_HOME", "~/.x")
     assert reader() == tmp_path / ".x"
     assert reader().is_absolute()

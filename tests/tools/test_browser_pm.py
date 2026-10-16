@@ -39,7 +39,7 @@ def browser_store(tmp_path, monkeypatch):
         assert version is not None
         entry = store / package.store_entry(version, target)
         if name == "chromium":
-            binary = entry / "browser" / ("chrome.exe" if os.name == "nt" else "chrome")
+            binary = entry / "browser" / "chrome"
         else:
             binary = package.binary(entry, target)
         assert binary is not None
@@ -89,7 +89,7 @@ def test_missing_browser_refuses_lazy_install_even_with_npx(browser_store, monke
     _, store, _ = browser_store
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    npx = bin_dir / ("npx.exe" if os.name == "nt" else "npx")
+    npx = bin_dir / "npx"
     npx.write_bytes(b"not an agent-browser installation")
     npx.chmod(0o755)
     monkeypatch.setenv("PATH", str(bin_dir))
@@ -197,7 +197,7 @@ def test_restricted_path_discovers_external_browser_without_execution(browser_st
     _, store, _ = browser_store
     external_bin = tmp_path / "external-homebrew" / "bin"
     external_bin.mkdir(parents=True)
-    binary = external_bin / ("agent-browser.exe" if os.name == "nt" else "agent-browser")
+    binary = external_bin / "agent-browser"
     binary.write_bytes(b"external browser; presence check must not execute")
     binary.chmod(0o755)
     monkeypatch.setenv("PATH", str(tmp_path / "empty-path"))
@@ -218,7 +218,7 @@ def test_pm_browser_wins_over_legacy_and_ambient_installs(browser_store, monkeyp
     publish("chromium")
     legacy = home / "node_modules" / ".bin"
     legacy.mkdir(parents=True)
-    external = legacy / ("agent-browser.exe" if os.name == "nt" else "agent-browser")
+    external = legacy / "agent-browser"
     external.write_bytes(b"legacy browser")
     external.chmod(0o755)
     monkeypatch.setenv("PATH", str(legacy))
@@ -341,7 +341,7 @@ def test_browser_readiness_ignores_ambient_chromium(browser_store, monkeypatch, 
     publish("agent-browser")
     (home / "chromium_headless_shell-1234").mkdir()
     monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(home))
-    ambient = home / ("chromium.exe" if os.name == "nt" else "chromium")
+    ambient = home / "chromium"
     ambient.touch()
     ambient.chmod(0o755)
     monkeypatch.setenv("PATH", str(home))

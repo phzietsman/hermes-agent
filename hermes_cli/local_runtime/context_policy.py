@@ -2,7 +2,7 @@
 
 One contract: any model runs at any window up to its native max; hardware and session depth only
 change tokens/s. Constants, not knobs — nothing in this module reads config. The policy encodes
-behavior measured on real hardware (llama.cpp, discrete NVIDIA on Windows/WDDM, unified-memory).
+behavior measured on real hardware (llama.cpp, discrete NVIDIA, unified-memory).
 """
 
 from __future__ import annotations

@@ -67,7 +67,7 @@ def test_basetemp_outside_the_native_home_is_left_alone(tmp_path, monkeypatch):
 
 
 def test_fallback_root_escapes_a_repo_checked_out_inside_the_native_home(tmp_path, monkeypatch):
-    # Default install: repo at ~/.hermes/hermes-agent and TEMP under the home (Windows).
+    # Default install: repo at ~/.hermes/hermes-agent.
     native = tmp_path / "native-home"
     (native / "hermes-agent").mkdir(parents=True)
     monkeypatch.setattr(hermes_constants, "_get_platform_default_hermes_home", lambda: native)

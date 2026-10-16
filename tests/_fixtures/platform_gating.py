@@ -6,50 +6,30 @@ import pytest
 # ---------------------------------------------------------------------------
 # OS gating
 #
-# Hermes runs on Linux, macOS and native Windows, and a lot of its behaviour
-# genuinely differs per host: PTY vs pywinpty, taskkill vs SIGTERM, launchd
-# vs systemd, Keychain vs libsecret, ``%LOCALAPPDATA%`` vs ``~/.hermes``.
+# Hermes runs on Linux and macOS, and some of its behaviour genuinely differs
+# per host: launchd vs systemd, Keychain vs libsecret, /proc vs sysctl.
 #
-# Historically those code paths were tested by *faking* the host — patching
-# ``sys.platform`` to ``"win32"`` inside a Linux CI job. That gives a green
-# test on a machine where the code under test could not actually run: the
-# fake covers the ``if sys.platform == "win32"`` branch selection but nothing
-# underneath it (``msvcrt`` still isn't importable, ``taskkill`` still isn't
-# on PATH, paths are still POSIX, ``signal.SIGKILL`` still exists). The
-# result was tests that pass on Linux and tell us nothing about Windows.
+# Faking the host (patching ``sys.platform`` inside a Linux CI job) gives a
+# green test on a machine where the code under test could not actually run.
+# So a test whose subject is genuinely OS-specific declares the OS it belongs
+# to and runs there for real —
 #
-# So: a test whose subject is genuinely OS-specific declares the OS it
-# belongs to and runs there for real —
-#
-#   @pytest.mark.platforms("windows")   → only on native Windows (``sys.platform == "win32"``)
 #   @pytest.mark.platforms("macos")     → only on macOS (``sys.platform == "darwin"``)
 #   @pytest.mark.platforms("linux")     → only on Linux (``sys.platform.startswith("linux")``)
 #
 # Elsewhere the test is skipped, not faked. CI runs a dedicated macOS job
-# (``-m platforms("macos")``) and a dedicated Windows job (``-m platforms("windows")``) so
-# those markers are actually exercised on their own host rather than
-# quietly skipped everywhere.
+# (``-m platforms("macos")``) so those markers are actually exercised on
+# their own host rather than quietly skipped everywhere.
 #
-# This does NOT mean every mention of another platform must be gated. Two
-# things are legitimately host-independent and stay on the Linux runner:
-#
-#   • Pure functions that TAKE a platform as data — e.g.
-#     ``hidden_windows_child_options(opts, is_windows=True)`` or a
-#     ``resolve_launcher(platform_name)`` helper. Passing "win32" as an
-#     argument is not faking the host; the function's whole contract is
-#     that it maps input to output.
-#   • Declaration/packaging invariants — e.g. "pyproject declares tzdata
-#     with a ``sys_platform == 'win32'`` marker". That's an assertion about
-#     a file, not about runtime behaviour.
-#
-# The line is: if the test needs the interpreter to BELIEVE it is on
-# another OS in order to pass, it belongs on that OS.
+# Pure functions that TAKE a platform as data stay host-independent: passing
+# "darwin" as an argument is not faking the host. The line is: if the test
+# needs the interpreter to BELIEVE it is on another OS in order to pass, it
+# belongs on that OS.
 # ---------------------------------------------------------------------------
 
 _PLATFORM_ALIASES = {
     "linux": ("linux",),
     "macos": ("darwin", "macos"),
-    "windows": ("win32", "windows"),
     "posix": ("linux", "darwin"),
     "any": (),
 }
@@ -59,7 +39,7 @@ def _platform_machine() -> str:
     import platform as _platform
 
     machine = (_platform.machine() or "").lower()
-    return {"amd64": "x86_64", "x86": "x86_64", "aarch64": "arm64"}.get(machine, machine)
+    return {"aarch64": "arm64"}.get(machine, machine)
 
 
 def _host_matches_platforms(conditions, arch=None, arch_negate=False):
@@ -146,14 +126,14 @@ def _reject_contradictory_platform_marks(items):
         marks = list(item.iter_markers("platforms"))
         if len(marks) > 1:
             offenders.append(f"  {item.nodeid}: {len(marks)} platforms() marks")
-        for legacy in ("linux_only", "macos_only", "windows_only"):
+        for legacy in ("linux_only", "macos_only"):
             if item.get_closest_marker(legacy):
                 retired.append(f"  {item.nodeid}: {legacy}")
     if retired:
         # An unregistered mark is a warning, so a merge that resurrects the old
-        # trio would make a host-gated test RUN on every host, unnoticed.
+        # pair would make a host-gated test RUN on every host, unnoticed.
         raise pytest.UsageError(
-            "linux_only/macos_only/windows_only were replaced by platforms(...); rewrite:\n"
+            "linux_only/macos_only were replaced by platforms(...); rewrite:\n"
             + "\n".join(retired)
         )
     if offenders:

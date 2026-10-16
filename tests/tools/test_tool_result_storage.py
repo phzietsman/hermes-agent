@@ -3,7 +3,6 @@
 import json
 import os
 import subprocess
-import sys
 
 import pytest
 from unittest.mock import MagicMock, patch
@@ -50,24 +49,22 @@ class TestWriteToSandbox:
         env = MagicMock()
         env.execute.return_value = {"output": "", "returncode": 0}
         remote = str(tmp_path / "shared" / "hermes-results" / "abc.txt")
-        if sys.platform != "win32":
-            # Run the real commands so the owner-only modes are observed, not
-            # pattern-matched.
-            def _bash(cmd, timeout=None, stdin_data=None, **_kw):
-                r = subprocess.run(["bash", "-c", cmd], input=stdin_data or "",
-                                   capture_output=True, text=True, timeout=timeout)
-                return {"output": r.stdout + r.stderr, "returncode": r.returncode}
-            env.execute.side_effect = _bash
+        # Run the real commands so the owner-only modes are observed, not
+        # pattern-matched.
+        def _bash(cmd, timeout=None, stdin_data=None, **_kw):
+            r = subprocess.run(["bash", "-c", cmd], input=stdin_data or "",
+                               capture_output=True, text=True, timeout=timeout)
+            return {"output": r.stdout + r.stderr, "returncode": r.returncode}
+        env.execute.side_effect = _bash
         result = _write_to_sandbox("hello world", remote, env)
         assert result is True
         cmd = env.execute.call_args_list[0][0][0]
-        if sys.platform != "win32":
-            # The storage dir sits under shared temp and holds tool output that
-            # can contain secrets: dir and archive are owner-only.
-            assert os.stat(os.path.dirname(remote)).st_mode & 0o777 == 0o700
-            assert os.stat(remote).st_mode & 0o777 == 0o600
-            with open(remote, encoding="utf-8") as fh:
-                assert fh.read() == "hello world"
+        # The storage dir sits under shared temp and holds tool output that
+        # can contain secrets: dir and archive are owner-only.
+        assert os.stat(os.path.dirname(remote)).st_mode & 0o777 == 0o700
+        assert os.stat(remote).st_mode & 0o777 == 0o600
+        with open(remote, encoding="utf-8") as fh:
+            assert fh.read() == "hello world"
         # Content travels through stdin, NOT inside the command string —
         # otherwise large content would hit Linux's 128 KB MAX_ARG_STRLEN
         # ceiling on `bash -c <cmd>` (#22906).

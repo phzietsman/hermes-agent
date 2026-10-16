@@ -4,7 +4,7 @@ description: Query and edit a SiYuan knowledge base via its API.
 version: 1.0.0
 author: FEUAZUR
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [SiYuan, Notes, Knowledge Base, PKM, API]

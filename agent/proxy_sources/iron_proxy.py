@@ -91,19 +91,14 @@ _DEFAULT_UPSTREAM_DENY_CIDRS: Tuple[str, ...] = (
     "198.18.0.0/15",      # RFC2544 benchmark range
 )
 
-# Minimal daemon env (SYSTEMROOT/USERPROFILE are Windows); everything else is stripped so
-# /proc/<pid>/environ never exposes operator secrets.
+# Minimal daemon env; everything else is stripped so /proc/<pid>/environ never exposes operator secrets.
 _PROXY_SUBPROCESS_ENV_ALLOWLIST: Tuple[str, ...] = (
-    "PATH", "HOME", "TMPDIR", "TZ", "LANG", "LC_ALL", "LC_CTYPE", "NO_COLOR", "SSL_CERT_DIR", "SSL_CERT_FILE", "SYSTEMROOT", "USERPROFILE",
+    "PATH", "HOME", "TMPDIR", "TZ", "LANG", "LC_ALL", "LC_CTYPE", "NO_COLOR", "SSL_CERT_DIR", "SSL_CERT_FILE",
 )
 
 # Always stripped — these would recurse the proxy through itself or a corporate proxy.
 _PROXY_SUBPROCESS_ENV_STRIP: Tuple[str, ...] = ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy", "NO_PROXY", "no_proxy")
 
-# SIGKILL doesn't exist on Windows; SIGTERM there is TerminateProcess() — same semantics.
-_KILL_SIGNAL = getattr(signal, "SIGKILL", signal.SIGTERM)
-# O_NOFOLLOW is POSIX-only; 0 is a no-op flag elsewhere.
-_O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
 # ``--version`` output keyed by binary path (get_status runs per container create).
 _VERSION_CACHE: Dict[str, str] = {}
@@ -154,7 +149,7 @@ def _proxy_state_dir_ro() -> Path:  # without creating it (status probes, pidfil
 def _proxy_state_dir() -> Path:
     """Proxy state dir (CA key, pidfile, logs), created 0o700; unconditional chmod tightens a pre-existing slack-umask dir."""
     (d := _proxy_state_dir_ro()).mkdir(parents=True, exist_ok=True)
-    with suppress(OSError):  # Windows no-op / shared fs we don't own; files still get explicit perms
+    with suppress(OSError):  # shared fs we don't own; files still get explicit perms
         d.chmod(0o700)
     return d
 
@@ -238,7 +233,7 @@ def iron_proxy_version(binary: Path) -> str:
 def _write_private_file(path: Path, data: bytes) -> None:
     """Create/truncate ``path`` 0o600 from the first byte (no chmod-after TOCTOU), O_NOFOLLOW against a planted
     symlink, fchmod to tighten a pre-existing file."""
-    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC | _O_NOFOLLOW, 0o600)
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
     try:
         with suppress(OSError, AttributeError):
             os.fchmod(fd, 0o600)
@@ -249,11 +244,7 @@ def _write_private_file(path: Path, data: bytes) -> None:
 
 def _fd_owned_by_us(fd: int) -> bool:
     """False iff the open file is owned by another uid (same threat model as the pidfile)."""
-    try:
-        st = os.fstat(fd)
-        return not (hasattr(os, "getuid") and st.st_uid != os.getuid())
-    except AttributeError:
-        return True  # Windows
+    return os.fstat(fd).st_uid == os.getuid()
 
 
 def ensure_ca_cert(*, force: bool = False) -> Tuple[Path, Path]:
@@ -481,7 +472,7 @@ def build_proxy_config(
 def _open_private_append(path: Path, *, strict_chmod: bool) -> int:
     """O_APPEND|O_CREAT 0o600 + O_NOFOLLOW (planted symlinks refused); fchmod tightens a pre-existing
     file (failure fatal iff ``strict_chmod``).  Raises OSError; caller owns the fd."""
-    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND | _O_NOFOLLOW, 0o600)
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
     try:
         os.fchmod(fd, 0o600)
     except OSError:
@@ -601,7 +592,7 @@ def _read_persisted_nonce() -> Optional[str]:
     """Nonce from disk, or None if missing/unreadable/empty/not owned by us (callers fall back to argv0
     matching).  O_NOFOLLOW: this read decides whether stop_proxy SIGKILLs a PID."""
     try:
-        fd = os.open(str(_persisted_nonce_path()), os.O_RDONLY | _O_NOFOLLOW)
+        fd = os.open(str(_persisted_nonce_path()), os.O_RDONLY | os.O_NOFOLLOW)
     except OSError:
         return None
     try:
@@ -619,16 +610,9 @@ def _pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
     try:
-        # psutil when available: os.kill(pid, 0) on Windows is a HARD kill (bpo-14484).
-        import psutil  # type: ignore
-        if not psutil.pid_exists(pid):
-            return False
-    except ImportError:
-        if platform.system() != "Windows":
-            try:
-                os.kill(pid, 0)  # windows-footgun: ok — POSIX-only branch
-            except (ProcessLookupError, PermissionError, OSError):
-                return False
+        os.kill(pid, 0)
+    except (ProcessLookupError, PermissionError, OSError):
+        return False
     # Strong proof: nonce from this process's start_proxy and/or the on-disk sibling file.
     nonce_candidates = [n for n in dict.fromkeys((_proxy_nonce, _read_persisted_nonce())) if n]
     if nonce_candidates:
@@ -708,7 +692,7 @@ def start_proxy(
 @contextmanager
 def _interrupt_guard(handler):
     """Route SIGINT/SIGTERM to ``handler`` for the block (POSIX main thread only); previous handlers restored after."""
-    if platform.system() == "Windows" or threading.current_thread() is not threading.main_thread():
+    if threading.current_thread() is not threading.main_thread():
         yield
         return
     prev = [(sig, signal.signal(sig, handler)) for sig in (signal.SIGINT, signal.SIGTERM)]
@@ -731,10 +715,9 @@ def _spawn_daemon(bin_path: Path, cfg: Path, env: Dict[str, str], log_path: Path
         os.close(log_fd)
         raise RuntimeError(f"iron-proxy log {log_path} has unexpected owner uid={uid}; refusing to write.")
     try:
-        # start_new_session is POSIX-only (Windows isn't supported anyway — no upstream binary).
         return subprocess.Popen(  # noqa: S603
             [str(bin_path), "-config", str(cfg)], env=env, stdin=subprocess.DEVNULL, stdout=log_fd, stderr=subprocess.STDOUT,
-            **({} if platform.system() == "Windows" else {"start_new_session": True}),
+            start_new_session=True,
         )
     except OSError as exc:
         raise RuntimeError(f"failed to spawn iron-proxy: {exc}") from exc
@@ -759,7 +742,7 @@ def _await_listening(proc: "subprocess.Popen", host: str, port: int, *, on_exit)
 def _write_pidfile_safely(pidfile: Path, pid: int) -> None:
     """O_EXCL + O_NOFOLLOW + ownership check, then persist the nonce.  An existing pidfile is either a concurrent
     start (fail cleanly) or a stale crash leftover (unlink and retry once)."""
-    open_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_NOFOLLOW
+    open_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
     try:
         fd = os.open(str(pidfile), open_flags, 0o600)
     except FileExistsError:
@@ -906,7 +889,7 @@ def stop_proxy() -> bool:
             logger.warning("iron-proxy pid=%s appears recycled before SIGKILL; not killing.", pid)
         else:
             with suppress(ProcessLookupError):
-                os.kill(pid, _KILL_SIGNAL)
+                os.kill(pid, signal.SIGKILL)
     _forget_daemon()
     logger.info("Stopped iron-proxy pid=%s", pid)
     return True

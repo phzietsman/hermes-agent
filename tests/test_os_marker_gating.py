@@ -19,7 +19,7 @@ _INVALID_MARKERS = {
                                                ("typo", "unknown spec")])
 def test_native_collection_witnesses(tmp_path, invalid, message):
     root = Path(__file__).resolve().parents[1]
-    host = {"linux": "linux", "darwin": "macos", "win32": "windows"}[sys.platform]
+    host = {"linux": "linux", "darwin": "macos"}[sys.platform]
     (tmp_path / "conftest.py").write_text(
         f"import sys; sys.path.insert(0, {str(root)!r})\n"
         "from tests.conftest import pytest_configure, pytest_collection_modifyitems\n", encoding="utf-8")

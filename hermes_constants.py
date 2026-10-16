@@ -51,10 +51,6 @@ def _expand_hermes_home(path: str) -> Path:
 def _get_platform_default_hermes_home() -> Path:
     """Return the platform default with the literal data-directory suffix."""
     suffix = os.environ.get("HERMES_DATA_DIR_SUFFIX", "")
-    if sys.platform == "win32":
-        local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
-        base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
-        return base / ("hermes" + suffix)
     return Path.home() / (".hermes" + suffix)
 
 
@@ -280,8 +276,8 @@ def named_profile_home(path: str | Path) -> Path | None:
 def profile_name_for_home(path: str | Path | None) -> str | None:
     """Return the canonical profile id owning *path*, or ``None`` when it is not a profile home.
 
-    The default home is the Hermes root itself, so its basename is an installation detail (``.hermes``
-    on POSIX and commonly ``hermes`` on Windows), not the profile id ``default``.
+    The default home is the Hermes root itself, so its basename is an installation detail (``.hermes``,
+    or a suffixed variant), not the profile id ``default``.
     """
     if path is None or not str(path).strip():
         return None
@@ -428,28 +424,15 @@ def get_hermes_dir(new_subpath: str, old_name: str, *, home: Path | None = None)
 def iter_hermes_node_dirs(home: Path | None = None) -> list[Path]:
     """Historical layout for old-updater diagnostics, never runtime selection."""
     node_dir = (home or get_hermes_home()) / "node"
-    return [node_dir, node_dir / "bin"] if sys.platform == "win32" else [node_dir / "bin", node_dir]
+    return [node_dir / "bin", node_dir]
 
-
-_WINDOWS_NODE_SHIMS = {
-    "npm": ["npm.cmd", "npm.exe", "npm"], "npx": ["npx.cmd", "npx.exe", "npx"], "node": ["node.exe", "node"],
-}
-
-
-def _candidate_node_command_names(command: str) -> list[str]:
-    base = Path(command).name
-    if sys.platform != "win32" or "." in base:
-        return [base]
-    # Prefer npm.cmd: PowerShell may block npm.ps1 by policy; CreateProcess cannot launch a bare .ps1.
-    return _WINDOWS_NODE_SHIMS.get(base.lower(), [f"{base}.cmd", f"{base}.exe", base])
 
 def _run_version_probe(argv: list[str], **kwargs):
-    """Run a hidden ``--version`` probe; ``None`` when it cannot run."""
+    """Run a ``--version`` probe; ``None`` when it cannot run."""
     import subprocess
     try:
-        from hermes_cli._subprocess_compat import windows_hide_flags
         return subprocess.run(
-            argv, capture_output=True, timeout=10, creationflags=windows_hide_flags(), **kwargs
+            argv, capture_output=True, timeout=10, **kwargs
         )
     except (OSError, subprocess.TimeoutExpired, ValueError):
         return None
@@ -476,14 +459,13 @@ def node_tool_runnable(path: str | None) -> bool:
     """True only when *path* is a Node/npm/npx binary that actually runs (``--version`` probe)."""
     if not path:
         return False
-    present = Path(path).is_file() if sys.platform == "win32" else _is_executable_file(path)
-    return present and _version_probe_ok(path)
+    return _is_executable_file(path) and _version_probe_ok(path)
 
 
 def hermes_managed_node_tree_present(home: Path | None = None) -> bool:
     """Read-only legacy artifact detection for already-running old updaters."""
-    names = [n for c in ("node", "npm", "npx") for n in _candidate_node_command_names(c)]
-    return any((directory / name).is_file() for directory in iter_hermes_node_dirs(home) for name in names)
+    return any((directory / name).is_file() for directory in iter_hermes_node_dirs(home)
+               for name in ("node", "npm", "npx"))
 
 
 def find_node_executable(command: str) -> str | None:
@@ -495,13 +477,9 @@ def find_node_executable(command: str) -> str | None:
     repairs, or activates the retired ``HERMES_HOME/node`` layout.
     """
     command = str(command)
-    if any(sep in command for sep in ("/", "\\")):
-        if sys.platform == "win32":
-            return command if Path(command).is_file() else None
+    if "/" in command:
         return shutil.which(command)
     base = command.lower()
-    for suffix in (".cmd", ".exe", ".ps1"):
-        base = base.removesuffix(suffix)
     package_name = {"node": "node", "npm": "npm", "npx": "npm"}.get(base)
     if package_name is not None:
         from pm import installed_package
@@ -511,20 +489,9 @@ def find_node_executable(command: str) -> str | None:
             return None
         if base != "npx":
             return str(installed.binary)
-        for name in _candidate_node_command_names("npx"):
-            candidate = installed.binary.parent / name
-            if candidate.is_file():
-                return str(candidate)
-        return None
-    if sys.platform != "win32":
-        return shutil.which(command)
-    directories = [d for d in os.environ.get("PATH", "").split(os.pathsep) if d]
-    for name in _candidate_node_command_names(command):
-        for directory in directories:
-            candidate = Path(directory) / name
-            if candidate.is_file():
-                return str(candidate)
-    return None
+        candidate = installed.binary.parent / "npx"
+        return str(candidate) if candidate.is_file() else None
+    return shutil.which(command)
 
 
 def with_hermes_node_path(env: dict[str, str] | None = None) -> dict[str, str]:
@@ -583,7 +550,7 @@ def display_hermes_home(home: Path | None = None) -> str:
     """
     if home is None:
         home = get_hermes_home()
-    try:  # as_posix(): str() on Windows yields chimeras like ~/AppData\Local\hermes/skills/
+    try:
         return "~/" + home.relative_to(Path.home()).as_posix()
     except ValueError:
         return str(home)
@@ -654,11 +621,7 @@ def _iter_real_home_candidates(env: dict[str, str] | None = None) -> list[str]:
     candidates = [_env_get(env, "HERMES_REAL_HOME"), _env_get(env, "HOME")]
     with contextlib.suppress(Exception):
         import pwd
-        candidates.append(pwd.getpwuid(os.getuid()).pw_dir.strip())  # windows-footgun: ok — POSIX-only module inside try/except
-    candidates.append(_env_get(env, "USERPROFILE"))
-    drive, path = _env_get(env, "HOMEDRIVE"), _env_get(env, "HOMEPATH")
-    if drive and path:
-        candidates.append(f"{drive}{path}" if path.startswith(("\\", "/")) else os.path.join(drive, path))
+        candidates.append(pwd.getpwuid(os.getuid()).pw_dir.strip())
     expanded = os.path.expanduser("~")
     if expanded != "~":
         candidates.append(expanded)
@@ -684,7 +647,7 @@ def get_real_home(env: dict[str, str] | None = None) -> str:
     try:
         return tempfile.gettempdir()
     except (RuntimeError, OSError):
-        # no HOME/USERPROFILE at all (env-less child on Windows): tempfile cannot expand ``~``
+        # no HOME at all (env-less child): tempfile cannot expand ``~``
         return "/tmp"  # no-tmp: ok — last-resort fallback for an env with no home; not a write target we choose
 
 
@@ -818,16 +781,13 @@ def _container_or_chmod_skipped() -> bool:
 
 
 def _resolve_hermes_uid_gid() -> tuple[int | None, int | None]:
-    """Read HERMES_UID / HERMES_GID (set by Docker deployments); (None, None) if unset/invalid/Windows.
+    """Read HERMES_UID / HERMES_GID (set by Docker deployments); (None, None) if unset/invalid.
     The entrypoint chowns HERMES_HOME once, but subdirs created at runtime (``profiles/<name>/``)
     need the same chown or they land root:root and block later uid-mapped workers.
 
     Docker containers running Hermes commonly set these to map the in-container user to a host user so
     volume-mounted state files end up with the right ownership. See #34107.
     """
-    if sys.platform == "win32":
-        return None, None
-
     def _env_int(name: str) -> int | None:
         try:
             return int(os.environ.get(name, "").strip() or None)
@@ -904,10 +864,9 @@ def get_scratch_dir(home: str | Path | None = None, *, prune: bool = True) -> Pa
     scratch = base / "cache" / "scratch"
     try:
         scratch.mkdir(parents=True, exist_ok=True)
-        if sys.platform != "win32":
-            # The caller's home decides the policy: re-reading the effective home here would
-            # warn about a profile the CLI has not switched to yet (boot scratch setup).
-            apply_secure_dir_policy(scratch, home=base)
+        # The caller's home decides the policy: re-reading the effective home here would
+        # warn about a profile the CLI has not switched to yet (boot scratch setup).
+        apply_secure_dir_policy(scratch, home=base)
     except OSError:
         pass
     if prune:
@@ -958,7 +917,7 @@ def scratch_dir_usage_bytes(scratch: Path | None = None) -> int:
 def apply_scratch_tmp_env(env: MutableMapping[str, str]) -> bool:
     """Point ``TMPDIR``/``TMP``/``TEMP`` in *env* at the scratch dir of ``env["HERMES_HOME"]``.
 
-    A temp var the user (or the OS: macOS ``/var/folders``, Windows ``%TEMP%``) set is
+    A temp var the user (or the OS: macOS ``/var/folders``) set is
     respected and nothing changes. A value Hermes itself exported earlier — recognisable
     because it equals ``HERMES_SCRATCH_DIR`` — is re-derived, so a child running under another
     profile's home gets that home's scratch dir rather than its parent's. Returns True when
@@ -973,8 +932,7 @@ def apply_scratch_tmp_env(env: MutableMapping[str, str]) -> bool:
     try:
         scratch = str(get_scratch_dir(_expand_hermes_home(home) if home else get_process_hermes_home()))
     except (RuntimeError, OSError):
-        # No HERMES_HOME and no resolvable user home (a child env built from nothing on
-        # Windows): there is no scratch dir to point at; the child keeps the OS default.
+        # No HERMES_HOME and no resolvable user home (a child env built from nothing): there is no scratch dir to point at; the child keeps the OS default.
         return False
     for key in SCRATCH_TMP_ENV_VARS:
         env[key] = scratch
@@ -1278,11 +1236,11 @@ def openrouter_variant_base(model_id: str) -> str | None:
 AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1"
 
 
-def venv_bin_dir(venv_dir, *, windows: bool | None = None) -> Path:
+def venv_bin_dir(venv_dir) -> Path:
     """Frozen updater surface: pre-PM updaters import this name; pm.environments owns it."""
     from pm.environments import venv_bin_dir as resolve
 
-    return resolve(venv_dir, windows=windows)
+    return resolve(venv_dir)
 
 
 def project_venv_dir(project_root) -> Path | None:
@@ -1290,12 +1248,10 @@ def project_venv_dir(project_root) -> Path | None:
     for an install whose interpreter lives outside the checkout, the running interpreter's venv.
 
     ``uv venv`` defaults to ``.venv`` while our installers create ``venv``, so both layouts are in the wild.
-    Call sites that only knew about ``venv`` silently no-oped on a ``.venv`` install — that is how the
-    Windows shim-lock preflight skipped itself entirely (#79542). ``venv`` wins when both exist, matching
+    Call sites that only knew about ``venv`` silently no-oped on a ``.venv`` install (#79542). ``venv`` wins when both exist, matching
     what the installers write.
 
-    Installers that keep the interpreter out of the checkout (``$HERMES_HOME/venvs/<name>``, the layout the
-    shipped Windows launchers assume) have neither, and the ``project_venv_dir(root) or root / "venv"``
+    Installers that keep the interpreter out of the checkout (``$HERMES_HOME/venvs/<name>``) have neither, and the ``project_venv_dir(root) or root / "venv"``
     idiom those call sites share then handed ``uv`` a ``VIRTUAL_ENV`` that does not exist: that one invented
     path skipped the import probe, reclassified every ``hermes tools`` dependency as missing and failed the
     reinstall with interpreter errors (#116148). The interpreter running this module is the only truthful
@@ -1336,7 +1292,7 @@ def _venv_installs_checkout(venv: Path, root: Path) -> bool:
 
     for dist in distributions(name="hermes-agent", path=[str(site_packages(venv))]):
         try:
-            raw = dist.read_text("direct_url.json")  # windows-footgun: ok — importlib.metadata API, reads utf-8, no encoding=
+            raw = dist.read_text("direct_url.json")
             url = json.loads(raw or "{}").get("url", "")
         except ValueError:
             continue
@@ -1345,11 +1301,11 @@ def _venv_installs_checkout(venv: Path, root: Path) -> bool:
     return False
 
 
-def venv_python_path(venv_dir, *, windows: bool | None = None) -> Path:
+def venv_python_path(venv_dir) -> Path:
     """Frozen updater surface: pre-PM updaters import this name; pm.environments owns it."""
     from pm.environments import venv_python
 
-    return venv_python(venv_dir, windows=windows)
+    return venv_python(venv_dir)
 
 
 # First-party roots: an ImportError naming one means our own tree is inconsistent. The
@@ -1406,8 +1362,7 @@ def normalize_scope(scope: str | Path | None) -> str | None:
       function there hides every scoped registration — the exact bug
       fixed after e66a627aa5.
 
-    Both normalize non-None values identically (resolved absolute path,
-    normcase on Windows) so writes and reads agree on the key.
+    Both normalize non-None values identically (resolved absolute path) so writes and reads agree on the key.
     """
     return hermes_home_key(scope) if scope is not None else None
 

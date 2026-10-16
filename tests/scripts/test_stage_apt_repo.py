@@ -6,7 +6,6 @@ output (no secret logging).
 """
 
 import gzip
-import os
 import shutil
 import subprocess
 import sys
@@ -196,7 +195,7 @@ def _export_secret_key(home: Path, fpr: str, passphrase: str = "") -> bytes:
 def _independent_gpgv_verify(keyring_home: Path, *args: Path) -> subprocess.CompletedProcess:
     """Verify with gpgv in a SEPARATE keyring that holds only the published
     public key — the same position a real device is in."""
-    kr = stage_apt_repo._gpg_homedir_arg(keyring_home)
+    kr = str(keyring_home)
     return subprocess.run(
         ["gpgv", "--homedir", kr, "--keyring", f"{kr}/pubring.kbx",
          *[str(a) for a in args]],
@@ -207,7 +206,7 @@ def _independent_gpgv_verify(keyring_home: Path, *args: Path) -> subprocess.Comp
 @pytest.fixture
 def short_home():
     """gpg homedirs must be SHORT: the agent's AF_UNIX socket lives inside
-    the homedir and Windows AF_UNIX paths cap around ~107 chars — pytest's
+    the homedir and AF_UNIX paths cap around ~107 chars — pytest's
     tmp_path tree is longer than that, so key/verify homes get their own
     mkdtemp at the temp root (this is also how production creates its
     staging home)."""
@@ -264,7 +263,7 @@ def test_real_gpg_signs_and_published_public_key_verifies(tmp_path, monkeypatch,
 
     # Isolation: every gpg invocation carried an explicit --homedir inside
     # the system temp dir, never the user's default keyring.
-    temp_root = stage_apt_repo._gpg_homedir_arg(Path(tempfile.gettempdir()))
+    temp_root = str(Path(tempfile.gettempdir()))
     for argv in tracked_gpg_argv:
         if secret_pass:
             assert secret_pass not in " ".join(argv)
@@ -291,10 +290,7 @@ def test_real_gpg_signs_and_published_public_key_verifies(tmp_path, monkeypatch,
     }
     assert staging_homes
     for home in staging_homes:
-        native = Path(home)
-        if os.name == "nt" and home.startswith("/") and home[2:3] == "/":
-            native = Path(home[1] + ":/" + home[3:])
-        assert not native.exists()
+        assert not Path(home).exists()
 
 
 @pytest.mark.skipif(not GPG_PRESENT, reason="gpg binary not available")

@@ -4,7 +4,7 @@ description: "Author in-repo SKILL.md files: frontmatter and structure."
 version: 2.0.0
 author: Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [skills, authoring, hermes-agent, conventions, skill-md]
@@ -60,7 +60,7 @@ description: Concise capability statement, under sixty chars.
 version: 0.1.0                    # semver; new skills start at 0.1.0
 author: Real Name (github-handle), Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]   # audit, don't guess — see Platform Gating
+platforms: [linux, macos]   # audit, don't guess — see Platform Gating
 metadata:
   hermes:
     tags: [Short, Descriptive, Tags]

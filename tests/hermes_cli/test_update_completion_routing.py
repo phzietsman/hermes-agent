@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from hermes_cli import main, main_web_build, update_cmd, update_cmd_zip, update_cmd_maint
+from hermes_cli import main, main_web_build, update_cmd, update_cmd_maint
 from tests.compat.old_updater_support import fresh_child, no_external_work  # noqa: F401
 
 
@@ -55,7 +55,7 @@ def test_incomplete_handoff_requires_explicit_update_retry(tmp_path, monkeypatch
     assert not (tmp_path / ".lazy-refresh-incomplete").exists()
 
 
-@pytest.mark.parametrize("route", ["pulled", "current", "zip"])
+@pytest.mark.parametrize("route", ["pulled", "current"])
 def test_every_route_hands_off_once(route, tmp_path, monkeypatch):
     request = {"branch": "main", "receipt": {"update_id": "c" * 32}}
     handed_off = []
@@ -66,20 +66,14 @@ def test_every_route_hands_off_once(route, tmp_path, monkeypatch):
     monkeypatch.setattr(update_cmd, "_prepare_updated_checkout", lambda *a, **kw: pytest.fail("old-process preparation"))
     monkeypatch.setattr(update_cmd, "_write_fleet_restart_pending_marker", lambda **kw: None)
     monkeypatch.setattr(update_cmd, "_sweep_bytecode_after_update", lambda *a: None)
-    monkeypatch.setattr(update_cmd_zip, "_abort_zip_update_if_dirty_tree", lambda: None)
-    swap = Mock()
-    monkeypatch.setattr(update_cmd_zip, "_download_and_swap_zip", swap)
     plan = update_cmd._CheckoutPlan(
         in_place_update=False, auto_stash_ref=None, parked_branch_switched=False,
         upstream_checked=True, commit_count=1, prompt_for_restore=False, switch_block_reason=None)
     if route == "pulled":
         update_cmd._apply_pulled_update(
-            ["git"], "main", "old-sha", plan, _windows_gateway_resume=None,
+            ["git"], "main", "old-sha", plan, _gateway_pause=None,
             completion_request=request)
-    elif route == "current":
+    else:
         update_cmd._finish_already_up_to_date(
             ["git"], "main", "main", plan, gw_input_fn=None, completion_request=request)
-    else:
-        assert update_cmd_zip._update_via_zip(SimpleNamespace(), completion_request=request) is True
-        swap.assert_called_once()
     assert handed_off == [request]

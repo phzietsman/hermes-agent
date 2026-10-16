@@ -5,7 +5,6 @@ import json
 import os
 import subprocess
 import sys
-import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -32,24 +31,18 @@ def candidates(tag, commit, digest, archive=None):
     second = 100 + int(tag.rsplit('.', 1)[1])
     release_epoch = int((datetime(2026, 8, 29, 1, 0, tzinfo=timezone.utc)
                          + timedelta(seconds=second)).timestamp())
-    native_version = f"2026.5761.{second}.0"
     ref = archive or tag
-    for platform in ("windows", "macos"):
-        for arch in ("x64", "arm64"):
-            packages.append({
-                "platform": platform, "arch": arch, "tag": tag, "commit": commit,
-                "identity": "test.application",
-                "version": native_version if platform == "windows" else tag[1:],
-                **({"executableVersion": native_version} if platform == "windows" else {}),
-                **({"publisher": "CN=Test", "applicationId": "App"} if platform == "windows" else {"teamId": "ABCDEFGHIJ"}),
-                "artifact": {"sha256": digest,
-                             "url": f"{BASE}/releases/tag/{ref}/{arch}" + (".msixbundle" if platform == "windows" else ".zip")},
-            })
+    for arch in ("x64", "arm64"):
+        packages.append({
+            "platform": "macos", "arch": arch, "tag": tag, "commit": commit,
+            "identity": "test.application", "version": tag[1:], "teamId": "ABCDEFGHIJ",
+            "artifact": {"sha256": digest, "url": f"{BASE}/releases/tag/{ref}/{arch}.zip"},
+        })
     return {"schema": 2, "tag": tag, "commit": commit, "releaseEpoch": release_epoch,
             "archive": ref,
             "packages": packages,
             "smoke_results": {name: {"result": "success"} for name in (
-                "smoke-darwin-arm64", "smoke-darwin-x64", "smoke-win32-arm64", "smoke-win32-x64")}}
+                "smoke-darwin-arm64", "smoke-darwin-x64")}}
 
 
 def test_gate_requires_every_success_including_real_cli(tmp_path):
@@ -89,7 +82,7 @@ def test_gate_requires_every_flag_removed_job_to_have_skipped(tmp_path, skip_bun
     expected = gate_expectations(required, skip_bundles=skip_bundles, skip_tests=skip_tests)
     # The flags remove jobs; they never remove admission or the Docker image.
     assert expected["admit"] == expected["docker"] == expected["publish-docker"] == "success"
-    assert expected["transitions-win32"] == expected["pm-bundle"] == "skipped"
+    assert expected["transitions-darwin-x64"] == expected["pm-bundle"] == "skipped"
     needs = {name: {"result": result} for name, result in expected.items()}
     env = {**os.environ, "RELEASE_NEEDS": json.dumps(needs), "PYTHONPATH": str(ROOT),
            "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"),
@@ -134,7 +127,6 @@ def test_validate_candidates_keys_the_archive_by_the_attempt_ref():
 RECEIPTS = (
     ("darwin-arm64", ("macos/arm64",)),
     ("darwin-x64", ("macos/x64",)),
-    ("win32-bundle", ("windows/x64", "windows/arm64")),
 )
 
 
@@ -173,15 +165,6 @@ def test_a_mac_receipt_with_both_arches_or_a_termux_row_is_refused():
                              manifest["releaseEpoch"], archive="rc.2-v1.2.4")
 
 
-def test_a_win32_bundle_receipt_with_one_arch_is_refused():
-    commit = "b" * 40
-    manifest = candidates("v1.2.4", commit, "2" * 64, archive="rc.2-v1.2.4")
-    one = _receipt_rows(manifest, {"windows/x64"})
-    with pytest.raises(ValueError, match="eceipt"):
-        validate_receipt(one, "win32-bundle", manifest["tag"], commit, BASE,
-                         manifest["releaseEpoch"], archive="rc.2-v1.2.4")
-
-
 def test_a_receipt_is_accepted_without_smoke_results():
     commit = "b" * 40
     manifest = candidates("v1.2.4", commit, "2" * 64, archive="rc.2-v1.2.4")
@@ -201,8 +184,8 @@ def test_the_final_manifest_still_requires_every_smoke_result():
         validate_candidates(manifest, manifest["tag"], commit, BASE,
                             manifest["releaseEpoch"], archive="rc.2-v1.2.4")
     failed = candidates("v1.2.4", commit, "2" * 64, archive="rc.2-v1.2.4")
-    failed["smoke_results"]["smoke-win32-x64"] = {"result": "failure"}
-    with pytest.raises(ValueError, match="smoke-win32-x64=failure"):
+    failed["smoke_results"]["smoke-darwin-x64"] = {"result": "failure"}
+    with pytest.raises(ValueError, match="smoke-darwin-x64=failure"):
         validate_candidates(failed, failed["tag"], commit, BASE,
                             failed["releaseEpoch"], archive="rc.2-v1.2.4")
 
@@ -219,7 +202,7 @@ def test_validate_candidates_still_refuses_a_missing_target():
     commit = "b" * 40
     manifest = candidates("v1.2.4", commit, "2" * 64, archive="rc.2-v1.2.4")
     with pytest.raises(ValueError, match="both architectures"):
-        validate_candidates(_receipt_rows(manifest, {"macos/arm64", "windows/arm64"}),
+        validate_candidates(_receipt_rows(manifest, {"macos/arm64"}),
                             manifest["tag"], commit, BASE, manifest["releaseEpoch"],
                             archive="rc.2-v1.2.4")
 
@@ -246,7 +229,7 @@ def test_transitions_bind_all_arches_identity_version_and_archive():
         with pytest.raises(ValueError):
             require_stable_identity(tag, new["commit"])
     transitions = plan_transitions(old, new, BASE)
-    assert {row["target"] for row in transitions} == {"windows-x64", "windows-arm64", "macos-x64", "macos-arm64"}
+    assert {row["target"] for row in transitions} == {"macos-x64", "macos-arm64"}
     assert all(row["transition"]["new"]["commit"] == new["commit"] for row in transitions)
     assert all(row["transition"]["new"]["artifact"]["url"].startswith(f"{BASE}/releases/tag/{new['archive']}/")
                for row in transitions)
@@ -256,13 +239,13 @@ def test_transitions_bind_all_arches_identity_version_and_archive():
         plan_transitions(old, missing, BASE)
     with pytest.raises(ValueError, match="identity"):
         validate_candidates(new, new["tag"], old["commit"], BASE, archive=new["archive"])
-    for key, value in [("commit", old["commit"]), ("identity", "different"), ("publisher", "CN=Other"), ("version", "9.9.9.0")]:
+    for key, value in [("commit", old["commit"]), ("identity", "different"), ("teamId", "KLMNOPQRST"), ("version", "9.9.9")]:
         changed = copy.deepcopy(new)
         changed["packages"][0][key] = value
         with pytest.raises(ValueError):
             plan_transitions(old, changed, BASE)
     mutable = copy.deepcopy(new)
-    mutable["packages"][0]["artifact"]["url"] = f"{BASE}/releases/win32/stable/current.msixbundle"
+    mutable["packages"][0]["artifact"]["url"] = f"{BASE}/releases/darwin/stable/current.zip"
     with pytest.raises(ValueError, match="immutable"):
         plan_transitions(old, mutable, BASE)
     for suffix in ("../other.zip", "%2e%2e/other.zip", "%252e%252e/other.zip"):
@@ -709,7 +692,6 @@ def test_edit_draft_release_sends_the_notes_byte_for_byte(tmp_path, monkeypatch)
 
 ATTEMPT = "rc.1-v1.2.3"
 RECEIPT_COMMIT = "a" * 40
-WINDOWS_VERSION = "2026.5761.123.0"
 RELEASE_EPOCH = 1_787_965_323
 
 
@@ -733,37 +715,6 @@ def _stage_darwin_handoff(built, arch):
         "teamId": "ABCDEFGHIJ", "filename": package,
     }), encoding="utf-8")
     handoff.stage(ATTEMPT, RECEIPT_COMMIT, f"darwin-{arch}", built, [package, metadata.name])
-
-
-def _stage_windows_handoff(built, arch, *, with_metadata=True):
-    from scripts.releases import handoff
-
-    package = f"HermesBundled-1.2.3-win-{arch}.msix"
-    (built / package).write_bytes(f"signed msix: {arch}".encode())
-    includes = [package]
-    if with_metadata:
-        metadata = built / f"metadata-windows-{arch}.json"
-        metadata.write_text(json.dumps({
-            "platform": "windows", "arch": arch, "tag": "v1.2.3", "commit": RECEIPT_COMMIT,
-            "baseVersion": "1.2.3", "identity": "test.application",
-            "version": WINDOWS_VERSION, "executableVersion": WINDOWS_VERSION,
-            "publisher": "CN=Test", "applicationId": "App",
-        }), encoding="utf-8")
-        includes.append(metadata.name)
-    handoff.stage(ATTEMPT, RECEIPT_COMMIT, f"win32-{arch}", built, includes)
-
-
-def _stage_universal_bundle(built):
-    from scripts.releases import handoff
-
-    bundle = built / "Product-1.2.3-win.msixbundle"
-    with zipfile.ZipFile(bundle, "w") as archive:
-        archive.writestr("AppxMetadata/AppxBundleManifest.xml",
-                         f'<Bundle><Identity Name="test.application" Publisher="CN=Test" Version="{WINDOWS_VERSION}"/>'
-                         '<Packages><Package Type="application" Architecture="arm64"/>'
-                         '<Package Type="application" Architecture="x64"/></Packages></Bundle>')
-    (built / "Store-Product-1.2.3-win.msixbundle").write_bytes(b"Store bundle transport fixture")
-    handoff.stage(ATTEMPT, RECEIPT_COMMIT, "windows-universal", built, ["*.msixbundle"])
 
 
 def _receipt_env(tmp_path, base):
@@ -794,45 +745,6 @@ def test_stage_receipt_publishes_the_groups_signed_receipt(tmp_path, r2_server, 
     assert url in printed and digest in printed
     emitted = (tmp_path / "output").read_text(encoding="utf-8")
     assert f"receipt-url={url}" in emitted and f"receipt-sha256={digest}" in emitted
-
-
-def test_stage_receipt_publishes_both_windows_rows_from_the_bundle(tmp_path, r2_server, https_origin,
-                                                                   monkeypatch):
-    from scripts.releases import stable
-
-    https_origin.store = r2_server.store
-    built = tmp_path / "built"
-    built.mkdir()
-    _stage_windows_handoff(built, "x64")
-    _stage_windows_handoff(built, "arm64")
-    _stage_universal_bundle(built)
-    monkeypatch.setattr(stable, "stable_context", _fake_stable_context())
-    stable.main(["stage-receipt", "--receipt", "win32-bundle"], _receipt_env(tmp_path, https_origin.base))
-
-    stored, _ = r2_server.store[f"releases/tag/{ATTEMPT}/win32-bundle-receipt.json"]
-    receipt = json.loads(stored)
-    rows = {f"{row['platform']}/{row['arch']}": row for row in receipt["packages"]}
-    assert set(rows) == {"windows/x64", "windows/arm64"}
-    assert all(row["artifact"]["url"].endswith("Product-1.2.3-win.msixbundle") for row in rows.values())
-    assert rows["windows/x64"]["artifact"]["url"].startswith(f"{https_origin.base}/releases/tag/{ATTEMPT}/")
-    assert rows["windows/x64"]["executableVersion"] == WINDOWS_VERSION
-
-
-def test_stage_receipt_refuses_a_bundle_whose_arm64_row_is_absent(tmp_path, r2_server, https_origin,
-                                                                  monkeypatch):
-    from scripts.releases import stable
-
-    https_origin.store = r2_server.store
-    built = tmp_path / "built"
-    built.mkdir()
-    _stage_windows_handoff(built, "x64")
-    # The arm64 leg staged its bytes but no metadata row: the receipt must refuse.
-    _stage_windows_handoff(built, "arm64", with_metadata=False)
-    _stage_universal_bundle(built)
-    monkeypatch.setattr(stable, "stable_context", _fake_stable_context())
-    with pytest.raises(ValueError):
-        stable.main(["stage-receipt", "--receipt", "win32-bundle"], _receipt_env(tmp_path, https_origin.base))
-    assert f"releases/tag/{ATTEMPT}/win32-bundle-receipt.json" not in r2_server.store
 
 
 def _stage_termux_handoff(built):
@@ -885,10 +797,6 @@ def _staged_receipt(tmp_path, r2_server, https_origin, monkeypatch, receipt):
     built.mkdir(exist_ok=True)
     if receipt == "darwin-arm64":
         _stage_darwin_handoff(built, "arm64")
-    elif receipt == "win32-bundle":
-        _stage_windows_handoff(built, "x64")
-        _stage_windows_handoff(built, "arm64")
-        _stage_universal_bundle(built)
     monkeypatch.setattr(stable, "stable_context", _fake_stable_context())
     stable.main(["stage-receipt", "--receipt", receipt], _receipt_env(tmp_path, https_origin.base))
     key = f"releases/tag/{ATTEMPT}/{receipt}-receipt.json"
@@ -911,30 +819,9 @@ def test_transitions_from_one_darwin_receipt_emit_one_macos_row(tmp_path, r2_ser
     emitted = dict(line.split("=", 1)
                    for line in (tmp_path / "output").read_text(encoding="utf-8").splitlines())
     macos = json.loads(emitted["macos"])
-    windows = json.loads(emitted["windows"])
     assert [row["arch"] for row in macos["include"]] == ["arm64"]
-    assert windows["include"] == []
     assert all(row["manifest"].startswith(f"{https_origin.base}/releases/tag/{ATTEMPT}/")
                for row in macos["include"])
-
-
-def test_transitions_from_the_bundle_receipt_emit_two_windows_rows(tmp_path, r2_server, https_origin,
-                                                                   monkeypatch):
-    from scripts.releases import stable
-
-    url, digest = _staged_receipt(tmp_path, r2_server, https_origin, monkeypatch, "win32-bundle")
-    baseline = _local_baseline(https_origin.base)
-    https_origin.store["baseline.json"] = (json.dumps(baseline).encode(), '"e"')
-    monkeypatch.setattr(stable, "output", lambda argv: json.dumps(
-        {"tagName": baseline["tag"], "isDraft": False, "isPrerelease": False}))
-    stable.main(["transitions"], _transitions_env(tmp_path, https_origin.base,
-                                                  "win32-bundle", url, digest))
-    emitted = dict(line.split("=", 1)
-                   for line in (tmp_path / "output").read_text(encoding="utf-8").splitlines())
-    macos = json.loads(emitted["macos"])
-    windows = json.loads(emitted["windows"])
-    assert [row["arch"] for row in windows["include"]] == ["x64", "arm64"]
-    assert macos["include"] == []
 
 
 def test_candidate_manifest_needs_every_call_and_stages_the_archive_manifest(
@@ -946,9 +833,6 @@ def test_candidate_manifest_needs_every_call_and_stages_the_archive_manifest(
     built.mkdir()
     _stage_darwin_handoff(built, "arm64")
     _stage_darwin_handoff(built, "x64")
-    _stage_windows_handoff(built, "x64")
-    _stage_windows_handoff(built, "arm64")
-    _stage_universal_bundle(built)
     _stage_termux_handoff(built)
     monkeypatch.setattr(stable, "stable_context", _fake_stable_context())
     env = {**_receipt_env(tmp_path, https_origin.base),
@@ -959,7 +843,7 @@ def test_candidate_manifest_needs_every_call_and_stages_the_archive_manifest(
     stored, _ = r2_server.store[f"releases/tag/{ATTEMPT}/release-candidates.json"]
     manifest = json.loads(stored)
     assert {f"{row['platform']}/{row['arch']}" for row in manifest["packages"]} == {
-        "macos/arm64", "macos/x64", "windows/x64", "windows/arm64", "termux/aarch64"}
+        "macos/arm64", "macos/x64", "termux/aarch64"}
     stable.validate_candidates(manifest, "v1.2.3", RECEIPT_COMMIT, https_origin.base,
                                RELEASE_EPOCH, archive=ATTEMPT)
     emitted = dict(line.split("=", 1)
@@ -990,16 +874,13 @@ def test_a_claim_that_skipped_tests_records_skipped_smokes_never_passed(
     built.mkdir()
     _stage_darwin_handoff(built, "arm64")
     _stage_darwin_handoff(built, "x64")
-    _stage_windows_handoff(built, "x64")
-    _stage_windows_handoff(built, "arm64")
-    _stage_universal_bundle(built)
     _stage_termux_handoff(built)
     monkeypatch.setattr(stable, "stable_context", _fake_stable_context(skip_tests=True))
     calls = {call: {"result": "success"} for call in stable.CALL_SMOKE_JOBS}
     env = {**_receipt_env(tmp_path, https_origin.base), "RELEASE_NEEDS": json.dumps(calls)}
     # A build call that failed still leaves no manifest, even with the smokes off.
-    failed = {**env, "RELEASE_NEEDS": json.dumps({**calls, "candidates-win32-x64": {"result": "failure"}})}
-    with pytest.raises(ValueError, match="candidates-win32-x64"):
+    failed = {**env, "RELEASE_NEEDS": json.dumps({**calls, "candidates-darwin-x64": {"result": "failure"}})}
+    with pytest.raises(ValueError, match="candidates-darwin-x64"):
         stable.main(["candidate-manifest"], failed)
     assert f"releases/tag/{ATTEMPT}/release-candidates.json" not in r2_server.store
 

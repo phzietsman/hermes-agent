@@ -5,7 +5,7 @@ version: 1.0.1
 author: Orchestra Research
 license: MIT
 dependencies: [trl, transformers, datasets, peft, accelerate, torch]
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Post-Training, TRL, Reinforcement Learning, Fine-Tuning, SFT, DPO, GRPO, RLOO, RLHF, Preference Alignment, HuggingFace]

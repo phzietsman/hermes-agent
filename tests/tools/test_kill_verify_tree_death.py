@@ -5,7 +5,6 @@ session: the live tree would become unmanageable (missing from the
 background list while still holding resources).
 """
 
-import sys
 import time
 from contextlib import suppress
 from unittest.mock import MagicMock, patch
@@ -104,7 +103,7 @@ def test_kill_with_dead_tree_still_reports_killed():
     assert s.id in reg._finished
 
 
-@pytest.mark.platforms("posix")  # POSIX signal escalation; Windows uses taskkill
+@pytest.mark.platforms("posix")  # POSIX signal escalation
 @pytest.mark.live_system_guard_bypass  # SIGKILL may target a snapshotted child after it is reparented
 def test_escalated_kill_of_sigterm_ignoring_child_reports_killed(tmp_path, monkeypatch):
     """The #115490 scenario itself: a child that ignores SIGTERM is SIGKILLed after the grace
@@ -127,7 +126,6 @@ def test_escalated_kill_of_sigterm_ignoring_child_reports_killed(tmp_path, monke
     assert s.id in reg._finished
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="POSIX signal escalation; Windows uses taskkill")
 @pytest.mark.live_system_guard_bypass  # the late children are SIGKILLed after their shell dies
 def test_kill_reaps_children_spawned_during_the_grace_window(tmp_path, monkeypatch):
     """The interactive ``bash -lic`` wrapper ignores SIGTERM and keeps running its script

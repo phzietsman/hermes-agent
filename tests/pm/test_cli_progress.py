@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 
-import pytest
 
 from pm import cli
 
@@ -54,7 +53,6 @@ def test_unpack_phase_is_a_phase_line_in_both_modes(monkeypatch):
 
 
 def test_progress_stream_prefers_stdout_then_stderr(monkeypatch):
-    monkeypatch.setattr(cli, "_enable_vt", lambda stream: True)
     monkeypatch.setattr(cli.sys.stdout, "isatty", lambda: False)
     monkeypatch.setattr(cli.sys.stderr, "isatty", lambda: False)
     assert cli._progress_stream() is None
@@ -65,20 +63,8 @@ def test_progress_stream_prefers_stdout_then_stderr(monkeypatch):
 
 
 def test_interactive_tracks_any_terminal(monkeypatch):
-    monkeypatch.setattr(cli, "_enable_vt", lambda stream: True)
     monkeypatch.setattr(cli.sys.stdout, "isatty", lambda: False)
     monkeypatch.setattr(cli.sys.stderr, "isatty", lambda: False)
     assert cli._interactive() is False
     monkeypatch.setattr(cli.sys.stderr, "isatty", lambda: True)
     assert cli._interactive() is True
-
-
-@pytest.mark.platforms("windows")
-def test_windows_tty_without_a_console_gets_plain_lines(monkeypatch):
-    """NUL is a character device (isatty() is True) with no console mode: an
-    escape sequence there would be garbage, so progress falls back to lines."""
-    with open("NUL", "w") as nul:
-        assert nul.isatty()
-        monkeypatch.setattr(cli.sys, "stdout", nul)
-        monkeypatch.setattr(cli.sys, "stderr", nul)
-        assert cli._progress_stream() is None

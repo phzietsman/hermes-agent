@@ -299,8 +299,6 @@ def test_update_autostash_survives_undeletable_untracked_dir(tmp_path):
 
     if shutil.which("git") is None:
         pytest.skip("git not available")
-    if os.name == "nt":
-        pytest.skip("POSIX permission semantics")
     if os.geteuid() == 0:
         pytest.skip("root ignores directory write bits")
 
@@ -339,9 +337,8 @@ def test_update_autostash_survives_undeletable_untracked_dir(tmp_path):
 
 
 def test_stash_selector_is_a_bare_index_never_a_brace_selector(tmp_path):
-    """The updater drops its autostash through a selector read back from ``git stash list``; on
-    native Windows MSYS strips the braces from ``stash@{N}`` in git.exe's argv, so the selector
-    must be the bare index git accepts everywhere (#87542)."""
+    """The updater drops its autostash through a selector read back from ``git stash list``: the
+    bare index git accepts everywhere, never a ``stash@{N}`` brace selector (#87542)."""
     import subprocess
 
     import hermes_cli.update_cmd_stash as stash_mod

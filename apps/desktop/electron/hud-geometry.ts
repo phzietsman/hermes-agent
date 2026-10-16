@@ -72,7 +72,7 @@ export function normalizeHudResizeBounds(value: unknown): HudResizeBounds | null
 /**
  * Apply recovery bounds. The HUD is created non-resizable (a transparent
  * frameless window must not expose a system resize hot-zone), which on
- * Windows/Linux also blocks programmatic setBounds sizing — flip it on
+ * Linux also blocks programmatic setBounds sizing — flip it on
  * briefly, same as the corner-resize IPC.
  *
  * On native Wayland the compositor ignores the position half of setBounds

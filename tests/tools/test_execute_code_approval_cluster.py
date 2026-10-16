@@ -481,7 +481,7 @@ def test_env_scrub_hermes_allowlist_and_secret_blocks():
         # safe prefix → kept; uncategorized → dropped
         "PATH": "/usr/bin", "RANDOM_X": "y",
     }
-    out = _scrub_child_env(env, is_passthrough=lambda _: False, is_windows=False)
+    out = _scrub_child_env(env, is_passthrough=lambda _: False)
 
     for kept in (
         "HERMES_HOME", "HERMES_PROFILE", "HERMES_CONFIG", "HERMES_ENV",
@@ -502,8 +502,7 @@ def test_env_scrub_passthrough_overrides_secret_block():
     from tools.code_execution_env import _scrub_child_env
 
     env = {"MY_SERVICE_DSN": "value"}
-    out = _scrub_child_env(env, is_passthrough=lambda k: k == "MY_SERVICE_DSN",
-                           is_windows=False)
+    out = _scrub_child_env(env, is_passthrough=lambda k: k == "MY_SERVICE_DSN")
     assert out.get("MY_SERVICE_DSN") == "value"
 
 

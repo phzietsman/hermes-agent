@@ -256,7 +256,6 @@ lsp:
 ```
 apt install shellcheck      # Debian / Ubuntu
 brew install shellcheck     # macOS
-scoop install shellcheck    # Windows
 ```
 
 同样的警告会在服务器启动时记录一次到 `~/.hermes/logs/agent.log`。

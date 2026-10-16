@@ -59,7 +59,7 @@ runs:
         esac
         # Description must not create CACHE_WORK: only preparation may claim it.
         # Paths go straight to Actions; no job-local manifest is transported.
-        if [ "$RUNNER_OS" = Windows ]; then bootstrap=python; else bootstrap=python3; fi
+        bootstrap=python3
         "$bootstrap" -S "$CACHE_ACTION/../../../scripts/ci/desktop_build_cache.py" describe \
           --source "$CACHE_SOURCE" --cache "$CACHE_ROOT" --work "$CACHE_WORK" --producer "$CACHE_PRODUCER"
 

@@ -285,7 +285,7 @@ def test_is_idle_requires_no_busy_slots_and_zero_processing(stub_server, tmp_pat
 
 
 def test_base_url_dials_loopback_ip_never_localhost(tmp_path):
-    """C12: localhost costs ~2s/request on Windows."""
+    """C12: resolving localhost can cost seconds per request."""
     sup = _make_supervisor(tmp_path, 9999)
     assert "127.0.0.1" in sup.base_url
     assert "localhost" not in sup.base_url

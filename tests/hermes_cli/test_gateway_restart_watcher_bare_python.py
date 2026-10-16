@@ -14,13 +14,10 @@ import sys
 import time
 from pathlib import Path
 
-import pytest
 
 from hermes_cli import gateway
 
 REPO = Path(__file__).resolve().parents[2]
-
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell wrapper stands in for the bare interpreter")
 
 
 def _dead_pid() -> int:

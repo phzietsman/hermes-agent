@@ -658,8 +658,7 @@ class TestEnvironmentHints:
         """Docker/remote backends must hide host info — the agent can only touch the backend.
 
         Host-independent: suppression is a property of the remote-backend
-        branch, so instead of faking a Windows host we assert no host line of
-        any kind is emitted.
+        branch, so we assert no host line of any kind is emitted.
         """
         import agent.prompt_builder as _pb
         monkeypatch.setattr(_pb, "is_wsl", lambda: False)
@@ -672,7 +671,6 @@ class TestEnvironmentHints:
         # Host suppression: none of the local-backend lines should appear.
         assert "Host:" not in result
         assert "User home directory:" not in result
-        assert "PowerShell" not in result
         # Backend info must appear instead.
         assert "Terminal backend: docker" in result
         assert "inside" in result.lower()

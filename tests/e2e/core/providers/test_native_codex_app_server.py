@@ -13,7 +13,6 @@ Happy-path lifecycle: tool item + approval round trip, reasoning projection, ``-
 from __future__ import annotations
 
 import json
-import sys
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 
@@ -24,7 +23,6 @@ from tests.e2e.core.providers._native_helpers import KnownSymptom, messages, too
 from tests.fakes.providers.codex_app_server import CodexRun, run_codex_scenario
 
 pytestmark = [
-    pytest.mark.skipif(sys.platform == "win32", reason="POSIX sh wrapper for the fake codex binary"),
     # CodexRun.cleanup() SIGKILLs any app-server that outlived its CLI (reparented to init by then).
     pytest.mark.live_system_guard_bypass,
 ]

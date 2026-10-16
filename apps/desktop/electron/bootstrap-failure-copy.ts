@@ -2,8 +2,8 @@
  * User-facing copy for a failed first-run install (bootstrap).
  *
  * The install runner reports the manifest stage name that failed (see
- * electron/bootstrap-runner.ts and the stage manifests in scripts/install.ps1 /
- * scripts/install.sh) plus the raw error text. This module turns that into an
+ * electron/bootstrap-runner.ts and the stage manifest in scripts/install.sh)
+ * plus the raw error text. This module turns that into an
  * Error.message the install overlay can show verbatim: a plain lead sentence
  * naming the step in everyday words and what to do next, with the raw error on
  * a trailing "Details:" line.
@@ -13,7 +13,7 @@
 
 /** Manifest stage name -> everyday label. Unknown names fall back to humanizeStageName. */
 export const BOOTSTRAP_STAGE_LABELS: ReadonlyMap<string, string> = new Map([
-  // scripts/install.ps1 manifest
+  // Historical stage names (older installer manifests)
   ['uv', 'Package installer'],
   ['git', 'Git'],
   ['node', 'Node.js'],
@@ -30,7 +30,7 @@ export const BOOTSTRAP_STAGE_LABELS: ReadonlyMap<string, string> = new Map([
   ['path', 'Hermes command'],
   ['gateway', 'Hermes service'],
   ['bootstrap-marker', 'Finishing touches'],
-  // scripts/install.sh manifest (names that differ from the Windows one)
+  // scripts/install.sh manifest
   ['prerequisites', 'System prerequisites'],
   ['python-deps', 'Python packages'],
   ['config', 'Settings'],

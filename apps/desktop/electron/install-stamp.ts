@@ -43,7 +43,6 @@ export interface ChannelBuildRequest {
   receiverCandidate?: true
   releaseTag?: string
   version: string
-  windowsVersion: string
   identity: {
     token: string
     displayName: string
@@ -51,8 +50,6 @@ export interface ChannelBuildRequest {
     appNamePascal: string
     artifactNamePascal: string
     cliName: string
-    windowsExecutableName: string
-    msixAppIdWithOrg: string
   }
   bundleEnv: Record<string, string | null>
   publicBase: string
@@ -82,7 +79,7 @@ export interface InstallStamp {
   /** The steward of a sealed tree ('desktop-app' | 'docker' | 'nix'), when packaged. */
   distribution: string | null
   /** Who applies the next update. Required in every stamp. */
-  updateMechanism: 'self' | 'app-installer' | 'electron-updater' | 'external' | 'microsoft-store'
+  updateMechanism: 'self' | 'electron-updater' | 'external'
   baseVersion: string | null
   displayVersion: string | null
   distance: number | null

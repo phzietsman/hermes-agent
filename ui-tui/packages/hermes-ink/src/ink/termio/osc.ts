@@ -104,7 +104,7 @@ export function shouldEmitClipboardSequence(env: NodeJS.ProcessEnv = process.env
 
 /**
  * Decide whether setClipboard() should also fire the native clipboard tool
- * (pbcopy / wl-copy / xclip / xsel / clip.exe) as a safety net alongside
+ * (pbcopy / wl-copy / xclip / xsel) as a safety net alongside
  * OSC 52 / tmux load-buffer.
  *
  * The default is "yes, native fires" — it's the historical safety net for
@@ -238,7 +238,7 @@ export async function tmuxLoadBuffer(text: string): Promise<boolean> {
  * Local (no SSH_CONNECTION): also shell out to a native clipboard utility.
  * OSC 52 and tmux -w both depend on terminal settings — iTerm2 disables
  * OSC 52 by default, VS Code shows a permission prompt on first use. Native
- * utilities (pbcopy/wl-copy/xclip/xsel/clip.exe) always work locally. Over
+ * utilities (pbcopy/wl-copy/xclip/xsel) always work locally. Over
  * SSH these would write to the remote clipboard — OSC 52 is the right path there.
  *
  * Returns { sequence, success }:
@@ -356,7 +356,7 @@ async function probeLinuxCopy(): Promise<'wl-copy' | 'xclip' | 'xsel' | null> {
  * Fire-and-forget: failures are silent since OSC 52 may have succeeded.
  *
  * Returns true when a native copy path was (or will be) attempted — i.e.
- * we'll spawn pbcopy on macOS, clip on Windows, or a known-working Linux
+ * we'll spawn pbcopy on macOS or a known-working Linux
  * tool. Returns false only when we know no native tool is viable (Linux
  * without DISPLAY/WAYLAND_DISPLAY, or previously-probed-to-null). The
  * return value is used to decide whether to tell the user the copy
@@ -367,7 +367,7 @@ async function probeLinuxCopy(): Promise<'wl-copy' | 'xclip' | 'xsel' | null> {
  * we skip probing entirely and treat linuxCopy as permanently null.
  */
 function copyNative(text: string): boolean {
-  // resolveOnExit: pbcopy/wl-copy/xclip/xsel/clip all daemonize or hold
+  // resolveOnExit: pbcopy/wl-copy/xclip/xsel all daemonize or hold
   // the system selection live in a forked process. Without resolveOnExit,
   // the inherited stdio pipes keep node from seeing 'close' → the
   // fire-and-forget await never resolves and the actual copy never runs.
@@ -414,13 +414,6 @@ function copyNative(text: string): boolean {
 
       return true
     }
-
-    case 'win32':
-      // clip.exe is always available on Windows. Unicode handling is
-      // imperfect (system locale encoding) but good enough for a fallback.
-      void execFileNoThrow('clip', [], opts)
-
-      return true
   }
 
   return false

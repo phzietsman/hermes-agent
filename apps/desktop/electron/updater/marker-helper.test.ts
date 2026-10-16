@@ -2,7 +2,7 @@
  * The checkout script's marker helper (A7 rule 3, SPEC section 6): protocol
  * negotiation from the script text, the exact command line, and the one-line
  * verdict — exercised against a REAL fake script process (bash), with the
- * spawn injected only to pin the Windows command line on a POSIX host.
+ * spawn injected only to pin the command line.
  */
 
 import fs from 'fs'
@@ -69,7 +69,7 @@ test.each([
   assert.deepEqual(parseMarkerHelperVerdict(stdout), expected)
 })
 
-describe.skipIf(process.platform === 'win32')('runMarkerHelper against a real script process', () => {
+describe('runMarkerHelper against a real script process', () => {
   test.each([
     ['foreign', { kind: 'foreign' }],
     ['busy', { kind: 'busy' }],
@@ -83,8 +83,7 @@ describe.skipIf(process.platform === 'win32')('runMarkerHelper against a real sc
       updateRoot: root,
       hermesHome: home,
       desktopPid: 4242,
-      runId: 'desk-4242-abc-0001',
-      isWindows: false
+      runId: 'desk-4242-abc-0001'
     })
 
     assert.deepEqual(got, expected)
@@ -99,7 +98,7 @@ describe.skipIf(process.platform === 'win32')('runMarkerHelper against a real sc
     const { root, home } = fakeHelperCheckout()
     fs.writeFileSync(path.join(home, 'helper-verdict'), 'absent')
 
-    assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, isWindows: false }), {
+    assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home }), {
       kind: 'absent'
     })
     assert.equal(
@@ -118,14 +117,14 @@ describe.skipIf(process.platform === 'win32')('runMarkerHelper against a real sc
     fs.writeFileSync(path.join(home, 'helper-verdict'), verdict)
     fs.writeFileSync(path.join(home, 'helper-exit'), exit)
 
-    assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, isWindows: false }), {
+    assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home }), {
       kind: 'error'
     })
   })
 
   test('a verdict only the other op can give is an error, never clearance (R8 m7)', async () => {
     const { root, home } = fakeHelperCheckout()
-    const opts = { updateRoot: root, hermesHome: home, desktopPid: 4242, runId: 'desk-4242-abc-0001', isWindows: false }
+    const opts = { updateRoot: root, hermesHome: home, desktopPid: 4242, runId: 'desk-4242-abc-0001' }
 
     for (const [op, verdict, expected] of [
       ['reclaim', 'live 31337', 'live'],
@@ -150,7 +149,7 @@ describe.skipIf(process.platform === 'win32')('runMarkerHelper against a real sc
       fs.writeFileSync(path.join(home, 'helper-verdict'), 'reclaimed')
       fs.chmodSync(path.join(root, 'scripts', 'desktop-update', 'posix.sh'), 0o000)
 
-      assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, isWindows: false }), {
+      assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home }), {
         kind: 'error'
       })
     }
@@ -163,7 +162,7 @@ describe.skipIf(process.platform === 'win32')('runMarkerHelper against a real sc
     const started = Date.now()
 
     assert.deepEqual(
-      await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, isWindows: false, timeoutMs: 300 }),
+      await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: home, timeoutMs: 300 }),
       { kind: 'error' }
     )
     assert.ok(Date.now() - started < 4000, 'bounded by the timeout')
@@ -172,15 +171,15 @@ describe.skipIf(process.platform === 'win32')('runMarkerHelper against a real sc
   test('a checkout without the script is unsupported', async () => {
     const root = scratchRoot('marker-helper-none')
 
-    assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: root, isWindows: false }), {
+    assert.deepEqual(await runMarkerHelper('reclaim', { updateRoot: root, hermesHome: root }), {
       kind: 'unsupported'
     })
   })
 })
 
-test('the Windows command line: powershell -File windows.ps1 -MarkerOp ... (hidden, HERMES_HOME set)', async () => {
-  const root = scratchRoot('marker-helper-win')
-  const script = path.join(root, 'scripts', 'desktop-update', 'windows.ps1')
+test('the command line: bash posix.sh --marker-op ... (HERMES_HOME set)', async () => {
+  const root = scratchRoot('marker-helper-cmd')
+  const script = path.join(root, 'scripts', 'desktop-update', 'posix.sh')
   fs.mkdirSync(path.dirname(script), { recursive: true })
   fs.writeFileSync(script, '# hermes-handoff-protocol: 2\n')
   const calls: Parameters<HelperSpawn>[] = []
@@ -188,7 +187,7 @@ test('the Windows command line: powershell -File windows.ps1 -MarkerOp ... (hidd
   const spawn: HelperSpawn = async (...args) => {
     calls.push(args)
 
-    return { code: 0, stdout: 'taken 4040\r\n' }
+    return { code: 0, stdout: 'taken 4040\n' }
   }
 
   const got = await runMarkerHelper('withdraw', {
@@ -196,37 +195,30 @@ test('the Windows command line: powershell -File windows.ps1 -MarkerOp ... (hidd
     hermesHome: path.join(root, 'home'),
     desktopPid: 12,
     runId: 'desk-12-a-beef',
-    isWindows: true,
     spawn
   })
 
   assert.deepEqual(got, { kind: 'taken', pid: 4040 })
   assert.equal(calls.length, 1)
   const [command, args, options] = calls[0]
-  assert.equal(command, 'powershell.exe')
+  assert.equal(command, 'bash')
   assert.deepEqual(args, [
-    '-NoProfile',
-    '-NonInteractive',
-    '-ExecutionPolicy',
-    'Bypass',
-    '-File',
     script,
-    '-MarkerOp',
+    '--marker-op',
     'withdraw',
-    '-InstallRoot',
+    '--install-root',
     root,
-    '-DesktopPid',
+    '--desktop-pid',
     '12',
-    '-HandoffRun',
+    '--handoff-run',
     'desk-12-a-beef'
   ])
   assert.equal(options.env.HERMES_HOME, path.join(root, 'home'))
-  assert.equal(options.windowsHide, true)
   assert.equal(options.timeout, 20_000)
-  assert.deepEqual(markerHelperCommand('reclaim', script, { updateRoot: root, isWindows: true }).args.slice(-4), [
-    '-MarkerOp',
+  assert.deepEqual(markerHelperCommand('reclaim', script, { updateRoot: root }).args.slice(-4), [
+    '--marker-op',
     'reclaim',
-    '-InstallRoot',
+    '--install-root',
     root
   ])
 })
@@ -234,7 +226,7 @@ test('the Windows command line: powershell -File windows.ps1 -MarkerOp ... (hidd
 // Review K132354 (helper always spawned): with no marker the gate skips the
 // helper only when the script would answer "not held" for a missing checkout
 // lock, so the TS path must be the script's own.
-describe.skipIf(process.platform === 'win32')('checkout lock path mirrors marker.sh', () => {
+describe('checkout lock path mirrors marker.sh', () => {
   const markerSh = path.resolve(__dirname, '../../../../scripts/desktop-update/marker.sh')
 
   const scriptPath = (root: string) =>
@@ -269,11 +261,11 @@ describe.skipIf(process.platform === 'win32')('checkout lock path mirrors marker
     layouts[name](root, other)
 
     const expected = scriptPath(root)
-    assert.equal(path.resolve(checkoutLockPath(root, false)), path.resolve(expected))
-    assert.equal(checkoutLockMayBeHeld(root, false), false, 'no lock file: the script answers not held')
+    assert.equal(path.resolve(checkoutLockPath(root)), path.resolve(expected))
+    assert.equal(checkoutLockMayBeHeld(root), false, 'no lock file: the script answers not held')
     fs.mkdirSync(path.dirname(expected), { recursive: true })
     fs.writeFileSync(expected, '')
-    assert.equal(checkoutLockMayBeHeld(root, false), true, 'a lock file: only the script can tell')
+    assert.equal(checkoutLockMayBeHeld(root), true, 'a lock file: only the script can tell')
   })
 
   test('an unreadable .git pointer asks the script', () => {
@@ -286,6 +278,6 @@ describe.skipIf(process.platform === 'win32')('checkout lock path mirrors marker
       return // root reads it anyway
     }
 
-    assert.equal(checkoutLockMayBeHeld(root, false), true)
+    assert.equal(checkoutLockMayBeHeld(root), true)
   })
 })

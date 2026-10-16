@@ -4,7 +4,7 @@ description: Fetch Canvas LMS courses and assignments via API token.
 version: 1.0.0
 author: community
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 prerequisites:
   env_vars: [CANVAS_API_TOKEN, CANVAS_BASE_URL]
 metadata:

@@ -299,7 +299,6 @@ def _owner_pid_alive(socket_dir: str, session_name: str) -> Tuple[Optional[int],
     owner_pid = _read_pid_file(os.path.join(socket_dir, f"{session_name}.owner_pid"))
     if owner_pid is None:
         return None, None
-    # ``os.kill(pid, 0)`` is NOT a no-op on Windows; use the cross-platform check.
     from gateway.status import _pid_exists
     return owner_pid, _pid_exists(owner_pid)
 
@@ -489,12 +488,9 @@ def _kill_process_tree(proc: "subprocess.Popen") -> None:
     (registry-fetch helpers, npm's own lifecycle runner, agent-browser's own detached daemon grandchild)
     that can survive a plain ``kill()`` of the top-level PID and keep a ``capture_output``-style pipe open,
     hanging the caller's ``communicate()`` past the nominal timeout — the same orphaned-pipe hazard already
-    hit in production on POSIX (see ``tools/process_registry.py``'s ``_reader_loop``, issue 68915: a
-    backgrounded grandchild inheriting a pipe's write end kept it from ever reaching EOF). That hazard is
-    cross-platform, not Windows-specific; what *is* Windows-specific is the lack of a remedy other than
-    killing the tree — anonymous pipes there don't support overlapped I/O, so there's no ``select()``-style
-    non-blocking read to poll around a stuck grandchild the way POSIX can. Killing the whole process
-    group/tree the child was launched into reaches those descendants on both platforms. See #68915.
+    hit in production (see ``tools/process_registry.py``'s ``_reader_loop``, issue 68915: a backgrounded
+    grandchild inheriting a pipe's write end kept it from ever reaching EOF). Killing the whole process
+    group/tree the child was launched into reaches those descendants. See #68915.
     """
     try:
         from agent.deadline import kill_process_tree as _deadline_kill_tree
@@ -510,22 +506,6 @@ def _legacy_kill_process_tree(proc: "subprocess.Popen") -> None:
     SIGKILL via killpg; a shared-group child can never be killpg'd (that is OUR
     group), so it and its psutil-snapshotted descendants are killed
     individually."""
-    if os.name == "nt":
-        try:
-            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
-                           check=False, capture_output=True, stdin=subprocess.DEVNULL)
-        except Exception:
-            pass
-        return
-    # POSIX-only below (the nt guard returned), but resolve killpg/SIGKILL via
-    # getattr so a future refactor dropping that guard degrades to plain kill().
-    killpg = getattr(os, "killpg", None)
-    if killpg is None:  # windows-footgun: ok - non-POSIX fallback
-        try:
-            proc.kill()
-        except Exception:
-            pass
-        return
     try:
         pgid = os.getpgid(proc.pid)
     except (ProcessLookupError, OSError):
@@ -537,9 +517,9 @@ def _legacy_kill_process_tree(proc: "subprocess.Popen") -> None:
     # hermes_cli/_subprocess_compat._legacy_kill_process_tree.
     descendants = []
     if pgid is not None and pgid == proc.pid:
-        for sig in (signal.SIGTERM, getattr(signal, "SIGKILL", signal.SIGTERM)):
+        for sig in (signal.SIGTERM, signal.SIGKILL):
             try:
-                killpg(pgid, sig)
+                os.killpg(pgid, sig)
             except (ProcessLookupError, PermissionError, OSError):
                 break
     else:

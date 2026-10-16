@@ -1228,7 +1228,7 @@ hermes completion fish > ~/.config/fish/completions/hermes.fish
 ## `hermes pm`
 
 PM 管理工具和 Python 依赖，不负责替换应用发布包。
-源码开发先运行一次 setup 脚本，然后用 Bash `source ./activate` 或 PowerShell `. .\activate.ps1` 激活已有环境。
+源码开发先运行一次 setup 脚本，然后用 `source ./activate` 激活已有环境。
 使用 `deactivate` 恢复激活前的环境。
 详见[PM 开发工作流](./package-management.md#developer-workflow)，包括依赖更新和测试环境。
 

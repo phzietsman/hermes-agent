@@ -30,7 +30,7 @@ export interface WriteStreamLike {
   end(cb: () => void): void
   // fs.WriteStream's close() ends the stream and calls back only after the
   // descriptor is released. end()'s callback fires on 'finish', while the fd can
-  // still be open — and Windows refuses to rename a file with an open handle.
+  // still be open.
   close?(cb: (err?: Error | null) => void): void
   destroy(err?: Error): void
   on(event: 'error', listener: (err: Error) => void): unknown
@@ -69,8 +69,7 @@ export function fsPumpDeps(): PumpDeps {
 const CLOSE_GRACE_MS = 2000
 
 // Resolve once `ws` has released its descriptor. destroy() closes the fd
-// asynchronously, and Windows rejects unlink/rename on a path whose handle is
-// still open, so cleanup must not run until 'close' has fired.
+// asynchronously, so cleanup must not run until 'close' has fired.
 function awaitClosed(ws: WriteStreamLike): Promise<void> {
   return new Promise(resolve => {
     const timer = setTimeout(resolve, CLOSE_GRACE_MS)
@@ -340,11 +339,11 @@ const ALL_FILES: SaveDialogFilter = { name: 'All Files', extensions: ['*'] }
 // Build the Electron save-dialog `filters` for a resolved download name.
 //
 // Not cosmetic. Electron hands `filters` to the platform save dialog as its set
-// of file types, and on Windows the selected type is also what supplies the
+// of file types, and the selected type is also what supplies the
 // default extension. Omit it and the dialog has exactly one type, "All Files",
 // with no default extension to append — so a name the shell chose to display
 // without its extension is then SAVED without it, and a .pptx lands as a
-// typeless "File" that Explorer cannot open (#92480). The image-save dialog
+// typeless "File" that the OS cannot open (#92480). The image-save dialog
 // already carries a filter for the same reason.
 //
 // The extension is whitelisted rather than merely extracted, because the name

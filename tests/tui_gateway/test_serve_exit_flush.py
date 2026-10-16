@@ -235,7 +235,6 @@ def test_shutdown_mid_tool_kills_the_command_and_keeps_its_result(monkeypatch):
         env.cleanup()
 
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX process groups + trap")
 def test_sigterm_grace_hard_exit_kills_a_sigterm_ignoring_command(monkeypatch):
     """The SIGTERM path os._exit()s after a ~1s grace, while the graceful foreground kill runs after a
     flush of up to 5s and then waits 1s between TERM and KILL. The grace timer's exit must SIGKILL the

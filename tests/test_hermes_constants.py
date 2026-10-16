@@ -36,9 +36,6 @@ class TestGetDefaultHermesRoot:
         assert get_default_hermes_root() == tmp_path / ".hermes"
 
 
-
-
-
     def test_docker_profile_active(self, tmp_path, monkeypatch):
         """When a Docker profile is active (HERMES_HOME=<root>/profiles/<name>),
         returns the Docker root, not the profile dir."""
@@ -60,20 +57,6 @@ class TestGetDefaultHermesRoot:
 
         assert get_default_hermes_root() == custom_root
 
-    @pytest.mark.platforms("windows")
-    def test_no_hermes_home_returns_localappdata_root_on_windows(self, tmp_path, monkeypatch):
-        """Native Windows falls back to %LOCALAPPDATA%\\hermes, not ~/.hermes."""
-        local_appdata = tmp_path / "LocalAppData"
-        monkeypatch.delenv("HERMES_HOME", raising=False)
-        monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
-        monkeypatch.setattr(Path, "home", lambda: tmp_path / "Home")
-
-        assert get_default_hermes_root() == local_appdata / "hermes"
-
-
-
-
-
 
 class TestGetHermesHome:
     """Tests for get_hermes_home() platform-aware fallback."""
@@ -87,17 +70,6 @@ class TestGetHermesHome:
 
         get_hermes_home()
         assert hermes_constants._profile_fallback_warned is True
-
-    @pytest.mark.platforms("windows")
-    def test_windows_fallback_uses_localappdata(self, tmp_path, monkeypatch):
-        """When HERMES_HOME is unset on Windows, use %LOCALAPPDATA%\\hermes."""
-        local_appdata = tmp_path / "LocalAppData"
-        monkeypatch.delenv("HERMES_HOME", raising=False)
-        monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
-        monkeypatch.setattr(Path, "home", lambda: tmp_path / "Home")
-        monkeypatch.setattr(hermes_constants, "_profile_fallback_warned", False)
-
-        assert get_hermes_home() == local_appdata / "hermes"
 
 
 class TestGetProcessHermesHome:
@@ -118,7 +90,6 @@ class TestGetProcessHermesHome:
     ):
         home_token = "$" + "HOME"
         monkeypatch.setenv("HOME", str(tmp_path))
-        monkeypatch.setenv("USERPROFILE", str(tmp_path))
 
         for syntax in (home_token, "~"):
             process_home = tmp_path / "process-home"
@@ -132,9 +103,6 @@ class TestGetProcessHermesHome:
                 assert get_process_hermes_home() == process_home
             finally:
                 reset_hermes_home_override(token)
-
-
-
 
 
 class TestNodeToolRunnable:
@@ -159,15 +127,12 @@ class TestIsContainer:
         assert is_container() is True
 
 
-
-
     def test_detects_kubernetes_env(self, monkeypatch):
         """KUBERNETES_SERVICE_HOST env var triggers detection (k8s/k3s pod)."""
         self._reset_cache(monkeypatch)
         monkeypatch.setattr(os.path, "exists", lambda p: False)
         monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.43.0.1")
         assert is_container() is True
-
 
 
     def test_cgroup_v2_fallback_inspects_only_the_root_mount(self, tmp_path):
@@ -192,7 +157,6 @@ class TestIsContainer:
         assert host_runtime._root_mount_has_marker(str(tmp_path / "missing"), markers) is False
 
 
-
 class TestParseReasoningEffort:
     """Tests for parse_reasoning_effort() — string → reasoning config dict."""
 
@@ -202,10 +166,6 @@ class TestParseReasoningEffort:
         assert parse_reasoning_effort(value) is None
 
 
-
-
-
-
     @pytest.mark.parametrize(
         "value",
         ["bogus", "very-high", "0", "off", "true", "default"],
@@ -213,7 +173,6 @@ class TestParseReasoningEffort:
     def test_unknown_levels_return_none(self, value):
         """Unrecognized strings fall back to the caller default (None)."""
         assert parse_reasoning_effort(value) is None
-
 
 
 class TestResolvePerModelReasoningEffort:
@@ -236,19 +195,12 @@ class TestResolvePerModelReasoningEffort:
         assert result == {"enabled": True, "effort": "xhigh"}
 
 
-
-
-
     def test_empty_model_returns_none(self):
         """Empty model string returns None."""
         from hermes_constants import resolve_per_model_reasoning_effort
         assert resolve_per_model_reasoning_effort("", {"gpt-5": "low"}) is None
 
     # --- Spelling tolerance layer ---
-
-
-
-
 
 
     def test_exact_match_wins_over_variant(self):
@@ -306,17 +258,10 @@ class TestResolveReasoningConfig:
         assert result == {"enabled": True, "effort": "xhigh"}
 
 
-
     def test_empty_model_derives_from_config_default(self):
         from hermes_constants import resolve_reasoning_config
         cfg = self._cfg(overrides={"gpt-5": "high"}, default_model="gpt-5")
         assert resolve_reasoning_config(cfg) == {"enabled": True, "effort": "high"}
-
-
-
-
-
-
 
 
     def test_malformed_sections_tolerated(self):
@@ -352,7 +297,6 @@ class TestResolveReasoningConfig:
 
 class TestReasoningOverridesDefaultConfig:
     """Tests for the agent.reasoning_overrides default config key (Task 2)."""
-
 
 
     def test_spelling_tolerant_lookup_works_with_user_config(self):
@@ -478,7 +422,7 @@ class TestSecureParentDir:
         assert called_with[0] == (str(real_dir), 0o700)
 
 
-@pytest.mark.platforms("posix")  # POSIX shell stubs; Windows uses .cmd shims
+@pytest.mark.platforms("posix")  # POSIX shell stubs
 class TestAgentBrowserRunnable:
     """agent_browser_runnable() validates the resolved CLI actually runs.
 
@@ -505,13 +449,6 @@ class TestAgentBrowserRunnable:
         assert agent_browser_runnable(str(link)) is False
 
 
-
-
-
-
-
-
-
 class TestGetHermesDir:
     """Tests for ``get_hermes_dir(new_subpath, old_name)``.
 
@@ -530,9 +467,6 @@ class TestGetHermesDir:
         assert result == tmp_path / "platforms/pairing"
 
 
-
-
-
     def test_legacy_is_file_treated_as_content(self, tmp_path, monkeypatch):
         """A non-directory file at the legacy path counts as occupied.
 
@@ -544,7 +478,6 @@ class TestGetHermesDir:
         legacy.write_bytes(b"sentinel")
         result = get_hermes_dir("cache/images", "image_cache")
         assert result == legacy
-
 
 
     @pytest.mark.require_symlinks
@@ -579,7 +512,6 @@ class TestGetHermesDir:
         assert result == legacy
 
 
-
 class TestWslPathTranslation:
     """Cross-boundary path translation for a Windows-host UI + WSL backend."""
 
@@ -593,8 +525,6 @@ class TestWslPathTranslation:
         assert hermes_constants.windows_path_to_wsl("relative\\dir") is None
 
 
-
-
     def test_translate_maps_windows_and_unc_on_wsl(self, monkeypatch):
         monkeypatch.setattr(hermes_constants, "is_wsl", lambda: True)
         assert hermes_constants.translate_cwd_for_wsl_backend(r"C:\Users\alex") == "/mnt/c/Users/alex"
@@ -603,11 +533,9 @@ class TestWslPathTranslation:
         assert hermes_constants.translate_cwd_for_wsl_backend("/home/alex") == "/home/alex"
 
 
-
-
 class TestProjectVenvDirOutOfTree:
     """#116148: a checkout with no in-tree venv whose interpreter lives in ``$HERMES_HOME/venvs/<name>``
-    (the layout the shipped Windows launchers pin) must resolve to the running interpreter's venv,
+    must resolve to the running interpreter's venv,
     never ``None`` — every updater call site turns ``None`` into a fabricated ``<checkout>/venv`` that
     uv cannot inspect, so tool dependencies are never refreshed."""
 

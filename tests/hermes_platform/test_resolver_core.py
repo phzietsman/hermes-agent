@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import stat
 import sys
 
@@ -79,21 +78,7 @@ def test_known_dir_expands_home_and_env(tmp_path, monkeypatch):
         assert res.command == (str(exe),), spec
 
 
-@pytest.mark.platforms("windows")
-def test_windows_pathext_is_honored_without_mutating_environ(tmp_path, monkeypatch):
-    exe = tmp_path / "bin" / "tool.cmd"
-    exe.parent.mkdir()
-    exe.write_text("@echo off\r\n", encoding="utf-8")
-    before = os.environ.get("PATHEXT")
-    res = locate_command("tool", LookupContext(path=str(exe.parent), pathext=".CMD"))
-    assert res.kind == "path_executable"
-    assert res.command[0].lower() == str(exe).lower()
-    assert os.environ.get("PATHEXT") == before
-
-
-
-
-def test_one_candidate_per_known_dir_regardless_of_pathext(tmp_path):
+def test_one_candidate_per_known_dir(tmp_path):
     res = locate_command("nothing-here", LookupContext(path=""), known_dirs=(str(tmp_path / "a"), str(tmp_path / "b")))
     assert [c.source for c in res.candidates] == ["PATH", f"known_dir:{tmp_path / 'a'}", f"known_dir:{tmp_path / 'b'}"]
 
@@ -102,10 +87,7 @@ def test_known_dir_tables_match_the_host_os():
     from hermes_platform.resolver import known_dirs as kd
 
     every = (*kd.homebrew_dirs(), *kd.user_local_bin(), *kd.rust_tool_dirs(),
-             *kd.node_tool_dirs(), *kd.hermes_vendored_dirs(), *kd.windows_user_program_dirs())
+             *kd.node_tool_dirs(), *kd.hermes_vendored_dirs())
     assert every, "at least one table applies on every host"
-    if sys.platform == "win32":
-        assert not any(d.startswith("/") for d in every)
-    else:
-        assert not any("%" in d for d in every)
-        assert bool(kd.homebrew_dirs()) == (sys.platform == "darwin")
+    assert not any("%" in d for d in every)
+    assert bool(kd.homebrew_dirs()) == (sys.platform == "darwin")

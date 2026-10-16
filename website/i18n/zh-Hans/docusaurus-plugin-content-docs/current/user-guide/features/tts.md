@@ -98,7 +98,7 @@ tts:
     # normalize_audio: true
 ```
 
-KittenTTS 不支持 Intel macOS 和 Windows ARM64：其依赖没有为这些平台发布 `onnxruntime` 或 PyTorch wheel。在这些平台上选择它会报告该提供商不可用。
+KittenTTS 不支持 Intel macOS：其依赖没有为该平台发布 `onnxruntime` 或 PyTorch wheel。在该平台上选择它会报告该提供商不可用。
 
 **速度控制**：全局 `tts.speed` 值默认应用于所有提供商。每个提供商可用自身的 `speed` 设置覆盖它（例如 `tts.openai.speed: 1.5`）。提供商级别的速度优先于全局值。默认值为 `1.0`（正常速度）。
 
@@ -287,7 +287,7 @@ tts:
 
 | 键 | 默认值 | 含义 |
 |--------------------|---------|------------------------------------------------------------------------------------------------------------|
-| `timeout` | `120` | 秒数；超时后进程树将被终止（Unix `killpg`，Windows `taskkill /T`）。 |
+| `timeout` | `120` | 秒数；超时后进程树将被终止（`killpg`）。 |
 | `output_format` | `mp3` | `mp3` / `wav` / `ogg` / `flac` 之一。若 Hermes 选择路径，则从输出扩展名自动推断。 |
 | `voice_compatible` | `false` | 为 `true` 时，Hermes 通过 ffmpeg 将 MP3/WAV 输出转换为 Opus/OGG，使 Telegram 渲染语音气泡。 |
 | `max_text_length` | `5000` | 渲染命令前，输入将被截断至此长度。 |

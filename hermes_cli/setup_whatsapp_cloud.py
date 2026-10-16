@@ -328,7 +328,6 @@ def run_whatsapp_cloud_setup() -> int:
         "  The recommended path is Cloudflare Tunnel (free, no port",
         "  forwarding, no DNS setup).", "",
         "    1. Install cloudflared (one-time, if you don't have it):",
-        "         Windows:  winget install Cloudflare.cloudflared",
         "         macOS:    brew install cloudflared",
         "         Linux:    https://github.com/cloudflare/cloudflared/releases", "",
         "       Alternatives: ngrok, or your own domain + reverse proxy",

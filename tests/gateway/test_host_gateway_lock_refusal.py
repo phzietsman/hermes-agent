@@ -6,7 +6,6 @@ the test fails on any build where losing the host lock still starts a second gat
 
 from __future__ import annotations
 
-import sys
 
 import pytest
 
@@ -188,7 +187,6 @@ def test_standalone_lock_loss_uses_profile_discovery_when_host_probe_is_empty(
     assert calls == [None, None]
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="flock-based contention setup")
 @pytest.mark.asyncio
 async def test_a_replace_unit_that_replaced_nothing_is_still_refused_when_it_loses_the_lock(
     host_lock_dir, tmp_path, monkeypatch,

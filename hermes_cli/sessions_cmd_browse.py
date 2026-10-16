@@ -1,5 +1,5 @@
 """Interactive picker for ``hermes sessions browse``: curses UI with live search filtering and ``d``
-delete-with-confirmation; numbered-list fallback when curses is unavailable (Windows, etc.)."""
+delete-with-confirmation; numbered-list fallback when curses is unavailable."""
 
 from typing import Optional
 
@@ -219,7 +219,7 @@ class _CursesBrowser:
 
 
 def _fallback_picker(sessions: list) -> Optional[str]:
-    """Numbered list (Windows without curses, etc.). Same columns, no delete."""
+    """Numbered list (no curses). Same columns, no delete."""
     print("\n  Browse sessions  (enter number to resume, q to cancel)\n")
     for i, s in enumerate(sessions):
         print(

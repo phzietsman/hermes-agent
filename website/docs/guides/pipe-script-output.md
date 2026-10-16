@@ -187,7 +187,7 @@ msg_id=$(hermes send --to discord:#ops --json "build started" \
 WhatsApp Cloud API, and most others — `hermes send` calls
 the platform's REST endpoint directly using credentials from
 `~/.hermes/.env` and `~/.hermes/config.yaml` (or the equivalent files under
-your resolved Hermes home — `%LOCALAPPDATA%\hermes` on Windows, or the profile
+your resolved Hermes home — or the profile
 directory when `HERMES_HOME` / `-p` is set). It's a standalone subprocess
 that exits as soon as the message is delivered.
 

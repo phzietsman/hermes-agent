@@ -104,15 +104,6 @@ def add_path(directories: list[str]) -> None:
             stream.write(directory + "\n")
 
 
-def python3_alias(python: Path) -> None:
-    if os.name == "nt":
-        import shutil
-
-        alias = python.with_name("python3.exe")
-        if not alias.exists():
-            shutil.copy2(python, alias)
-
-
 def archive_inputs(args) -> None:
     from pm.paths import repo_root
     from pm.store import Store
@@ -162,8 +153,7 @@ def install(args) -> None:
         if not (commands / "pyvenv.cfg").is_file():
             build_requirements_environment([], out=commands, python=binaries["python"],
                                            env=environment, explicit=True)
-        python = commands / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-        python3_alias(python)
+        python = commands / "bin/python"
         path.insert(0, str(python.parent))
         outputs["python-path"] = str(python)
         exported.update({
@@ -209,16 +199,14 @@ def dependencies(args) -> None:
     else:
         sync_venv(extras, explicit=True, plugins=Members([]))
         venv = selected_venv(project)
-    bindir = venv / ("Scripts" if os.name == "nt" else "bin")
-    python = bindir / ("python.exe" if os.name == "nt" else "python")
-    python3_alias(python)
+    python = venv / "bin" / "python"
     file_commands("GITHUB_ENV", {
         "HERMES_PYTHON": python,
         "VIRTUAL_ENV": venv,
         "PYTHONPATH": project,
     })
     file_commands("GITHUB_OUTPUT", {"python-path": python, "venv": venv})
-    add_path([str(bindir)])
+    add_path([str(python.parent)])
     print(f"PM dependencies ready: {args.extras} in {venv}")
 
 

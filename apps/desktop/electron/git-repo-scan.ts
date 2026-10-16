@@ -22,7 +22,6 @@ export interface RepoScanOptions {
 
 export interface RepoScanPathOptions {
   homeDir?: string
-  platform?: NodeJS.Platform
 }
 
 // Avoid macOS TCC prompts when the default home scan reaches protected media
@@ -44,14 +43,9 @@ interface NormalizedScanPath {
   value: string
 }
 
-function pathApiFor(platform: NodeJS.Platform): typeof path.posix | typeof path.win32 {
-  return platform === 'win32' ? path.win32 : path.posix
-}
-
 export function normalizeRepoScanPath(rawPath: string, options: RepoScanPathOptions = {}): NormalizedScanPath | null {
-  const platform = options.platform ?? process.platform
   const homeDir = options.homeDir ?? os.homedir()
-  const pathApi = pathApiFor(platform)
+  const pathApi = path.posix
   const raw = String(rawPath ?? '').trim()
 
   if (!raw) {
@@ -62,20 +56,18 @@ export function normalizeRepoScanPath(rawPath: string, options: RepoScanPathOpti
 
   if (raw === '~') {
     expanded = homeDir
-  } else if (raw.startsWith('~/') || raw.startsWith('~\\')) {
+  } else if (raw.startsWith('~/')) {
     expanded = pathApi.join(homeDir, raw.slice(2))
   }
 
   const absolute = pathApi.isAbsolute(expanded) ? expanded : pathApi.resolve(homeDir, expanded)
   const value = pathApi.normalize(absolute)
-  const key = platform === 'win32' ? value.toLocaleLowerCase('en-US') : value
 
-  return { key, value }
+  return { key: value, value }
 }
 
 export function repoScanPathIsWithin(candidate: string, parent: string, options: RepoScanPathOptions = {}): boolean {
-  const platform = options.platform ?? process.platform
-  const pathApi = pathApiFor(platform)
+  const pathApi = path.posix
   const candidatePath = normalizeRepoScanPath(candidate, options)
   const parentPath = normalizeRepoScanPath(parent, options)
 
@@ -118,26 +110,25 @@ export async function scanGitRepos(roots: string[], options: RepoScanOptions = {
 
   const maxDepthValue = Number(options.maxDepth)
   const maxDepth = Number.isFinite(maxDepthValue) && maxDepthValue >= 0 ? maxDepthValue : DEFAULT_MAX_DEPTH
-  const pathOptions: RepoScanPathOptions = options.platform ? { platform: options.platform } : {}
   const requestedRoots = Array.isArray(roots) && roots.length > 0 ? roots : [os.homedir()]
 
   const searchRoots = [
     ...new Map(
       requestedRoots
-        .map(root => normalizeRepoScanPath(root, pathOptions))
+        .map(root => normalizeRepoScanPath(root))
         .filter((entry): entry is NormalizedScanPath => entry !== null)
         .map(entry => [entry.key, entry.value])
     ).values()
   ]
 
   const exclusions = (options.excludePaths ?? [])
-    .map(excluded => normalizeRepoScanPath(excluded, pathOptions))
+    .map(excluded => normalizeRepoScanPath(excluded))
     .filter((entry): entry is NormalizedScanPath => entry !== null)
 
   const found = new Map<string, { root: string; label: string }>()
 
   function isExcluded(candidate: string): boolean {
-    return exclusions.some(excluded => repoScanPathIsWithin(candidate, excluded.value, pathOptions))
+    return exclusions.some(excluded => repoScanPathIsWithin(candidate, excluded.value))
   }
 
   async function walk(dir: string, depth: number): Promise<void> {
@@ -162,7 +153,7 @@ export async function scanGitRepos(roots: string[], options: RepoScanOptions = {
         return
       }
 
-      const normalized = normalizeRepoScanPath(dir, pathOptions)
+      const normalized = normalizeRepoScanPath(dir)
 
       if (normalized) {
         found.set(normalized.key, {
@@ -174,7 +165,7 @@ export async function scanGitRepos(roots: string[], options: RepoScanOptions = {
       return
     }
 
-    const skipTccProtectedPaths = (pathOptions.platform ?? process.platform) === 'darwin'
+    const skipTccProtectedPaths = (options.platform ?? process.platform) === 'darwin'
 
     const subdirs = entries
       .filter(entry => entry.isDirectory() && !entry.name.startsWith('.') && !JUNK_DIRS.has(entry.name))

@@ -15,17 +15,15 @@ import secrets
 import shutil
 import stat
 import subprocess
-import sys
 import tempfile
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 from hermes_cli.sqlite_safe_read import LiveConnectionError, offline_file_access
 from hermes_cli.web_deps import late
 from hermes_cli.web_server_files import (
@@ -247,13 +245,10 @@ def _fs_default_cwd() -> str:
 
 def _fs_git_branch(cwd: str) -> str:
     try:
-        # git emits UTF-8 (branch names, localized "not a git repository" stderr); the locale codec
-        # (cp936 on zh-CN Windows) raised inside communicate()'s reader threads on every poll (#83851).
-        run_kwargs: Dict[str, Any] = {"capture_output": True, "text": True, "encoding": "utf-8",
-                                      "errors": "replace", "timeout": 2, "check": False}
-        if sys.platform == "win32":
-            run_kwargs["creationflags"] = windows_hide_flags()
-        result = subprocess.run(["git", "-C", cwd, "branch", "--show-current"], **run_kwargs)
+        # git emits UTF-8 (branch names, localized "not a git repository" stderr); a non-UTF-8
+        # locale codec raised inside communicate()'s reader threads on every poll (#83851).
+        result = subprocess.run(["git", "-C", cwd, "branch", "--show-current"], capture_output=True,
+                                text=True, encoding="utf-8", errors="replace", timeout=2, check=False)
         return result.stdout.strip() if result.returncode == 0 else ""
     except Exception:
         return ""

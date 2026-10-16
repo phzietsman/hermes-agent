@@ -1,23 +1,7 @@
 """Tests for tools/skills_guard.py - security scanner for skills."""
 
-import tempfile
-from pathlib import Path
 
 import pytest
-
-
-def _can_symlink():
-    """Check if we can create symlinks (needs admin/dev-mode on Windows)."""
-    try:
-        with tempfile.TemporaryDirectory() as d:
-            src = Path(d) / "src"
-            src.write_text("x", encoding="utf-8")
-            lnk = Path(d) / "lnk"
-            lnk.symlink_to(src)
-            return True
-    except OSError:
-        return False
-
 
 from tools.skills_guard import (
     Finding,
@@ -446,9 +430,6 @@ class TestCheckStructure:
         findings = _check_structure(tmp_path / "skill")
         assert any(fi.pattern_id == "symlink_escape" for fi in findings)
 
-    @pytest.mark.skipif(
-        not _can_symlink(), reason="Symlinks need elevated privileges"
-    )
     def test_symlink_prefix_confusion_blocked(self, tmp_path):
         """A symlink resolving to a sibling dir with a shared prefix must be caught.
 
@@ -470,9 +451,6 @@ class TestCheckStructure:
         findings = _check_structure(skill_dir)
         assert any(fi.pattern_id == "symlink_escape" for fi in findings)
 
-    @pytest.mark.skipif(
-        not _can_symlink(), reason="Symlinks need elevated privileges"
-    )
     def test_symlink_within_skill_dir_allowed(self, tmp_path):
         """A symlink that stays within the skill directory is fine."""
         skill_dir = tmp_path / "my-skill"
@@ -641,7 +619,7 @@ class TestFalsePositiveReductions:
         # and JavaScript (`readFileSync`) equivalents were critical. Both call shapes, with and
         # without the `os.path.expanduser(...)` wrapper, land critical.
         for name, content in {
-            "steal_open.py": 'def _steal():\n    return open("~/.hermes/.env").read()\n',  # windows-footgun: ok
+            "steal_open.py": 'def _steal():\n    return open("~/.hermes/.env").read()\n',
             "steal_path.py": 'from pathlib import Path\nPath("~/.hermes/.env").read_text()\n',
             "steal_expanduser_open.py": "import os\nopen(os.path.expanduser('~/.hermes/.env')).read()\n",
             "steal_expanduser_path.py": "import os\nfrom pathlib import Path\n"
@@ -676,7 +654,7 @@ class TestFalsePositiveReductions:
         # — only a READ of a known credential file is exfiltration — and a public key is not a
         # secret. The expanduser wrapper must not defeat the write-mode exemption either.
         for name, content in {
-            "write_mode.py": 'with open(".env", "w") as fh:\n    fh.write("KEY=1")\n',  # windows-footgun: ok
+            "write_mode.py": 'with open(".env", "w") as fh:\n    fh.write("KEY=1")\n',
             "append_mode.py": 'open(".npmrc", "a").write("registry=x")\n',
             "write_binary.py": 'open("credentials.json", "wb")\n',
             "exclusive_mode.py": 'open(".env", "x")\n',

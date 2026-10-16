@@ -605,17 +605,7 @@ async def _start_device_code_flow(provider_id: str, profile: Optional[str] = Non
 
 
 def _claude_code_disconnect_command(platform: str) -> str:
-    """Host-native command that removes Claude Code's borrowed credential file.
-
-    Windows must not emit ``rm -f``. PowerShell aliases ``rm`` to ``Remove-Item``,
-    and ``-f`` binds both ``-Force`` and ``-Filter`` (AmbiguousParameter).
-    """
-    if platform == "win32":
-        literal = '"$HOME/.claude/.credentials.json"'
-        return (
-            f"if (Test-Path -LiteralPath {literal}) {{ "
-            f"Remove-Item -LiteralPath {literal} -Force -ErrorAction Stop }}"
-        )
+    """Host-native command that removes Claude Code's borrowed credential file."""
     rm_file = "rm -f ~/.claude/.credentials.json"
     if platform == "darwin":
         return f'security delete-generic-password -s "Claude Code-credentials" 2>/dev/null; {rm_file}'

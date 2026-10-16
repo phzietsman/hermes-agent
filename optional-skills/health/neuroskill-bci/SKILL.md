@@ -1,7 +1,7 @@
 ---
 name: neuroskill-bci
 description: "Use live BCI cognitive and mood state from NeuroSkill."
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 version: 1.0.0
 author: Hermes Agent + Nous Research
 license: MIT

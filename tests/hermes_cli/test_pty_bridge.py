@@ -22,9 +22,6 @@ pytest.importorskip("ptyprocess", reason="ptyprocess not installed")
 
 from hermes_cli.pty_bridge import PtyBridge
 
-skip_on_windows = pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="PTY bridge is POSIX-only"
-)
 
 def _read_until(bridge: PtyBridge, needle: bytes, timeout: float = 5.0) -> bytes:
     """Accumulate PTY output until we see `needle` or time out."""
@@ -39,7 +36,6 @@ def _read_until(bridge: PtyBridge, needle: bytes, timeout: float = 5.0) -> bytes
             return bytes(buf)
     return bytes(buf)
 
-@skip_on_windows
 class TestPtyBridgeSpawn:
 
     def test_spawn_raises_on_missing_argv0(self, tmp_path):
@@ -58,7 +54,6 @@ class TestPtyBridgeSpawn:
         finally:
             bridge.close()
 
-@skip_on_windows
 class TestPtyBridgeIO:
 
     @pytest.mark.asyncio
@@ -164,7 +159,6 @@ class TestPtyBridgeIO:
         finally:
             bridge.close()
 
-@skip_on_windows
 class TestPtyBridgeResize:
     def test_resize_updates_child_winsize(self):
         # Query the TTY ioctl directly instead of using tput, which requires
@@ -190,7 +184,6 @@ class TestPtyBridgeResize:
         finally:
             bridge.close()
 
-@skip_on_windows
 class TestClampDimension:
     def test_clamps_above_max(self):
         from hermes_cli.pty_bridge import _MAX_COLS, _MAX_ROWS, _clamp_dimension
@@ -216,7 +209,6 @@ class TestClampDimension:
         # Should not raise.
         _struct.pack("HHHH", rows, cols, 0, 0)
 
-@skip_on_windows
 class TestPtyBridgeClose:
     def test_close_is_idempotent(self):
         bridge = PtyBridge.spawn(["/bin/sh", "-c", "sleep 30"])
@@ -430,7 +422,6 @@ class TestPtyBridgeClose:
 
         assert marker.read_text().strip() == "ok"
 
-@skip_on_windows
 class TestPtyBridgeEnv:
     def test_cwd_is_respected(self, tmp_path):
         bridge = PtyBridge.spawn(

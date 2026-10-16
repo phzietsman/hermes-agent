@@ -41,18 +41,9 @@ if __name__ == '__main__':
 """
 
 
-def _run_handoff(tmp_path, target, *, windows=False, inherited_home=True, modern=False, code=0, userbin_only=False, foreign=False):
+def _run_handoff(tmp_path, target, *, inherited_home=True, modern=False, code=0, userbin_only=False, foreign=False):
     install = tmp_path / "checkout with spaces"
-    if windows and not modern:
-        subprocess.run(
-            [sys.executable, "-m", "venv", "--without-pip", str(install / "venv")],
-            check=True,
-            capture_output=True,
-            timeout=60,
-        )
-    package = (
-        install / "venv" / "Lib" / "site-packages" if windows and not modern else install
-    ) / "hermes_cli"
+    package = install / "hermes_cli"
     package.mkdir(parents=True)
     (package / "__init__.py").touch()
     (package / "main.py").write_text(FAKE_CLI, encoding="utf-8")
@@ -82,43 +73,24 @@ def _run_handoff(tmp_path, target, *, windows=False, inherited_home=True, modern
         if foreign:
             env["HANDOFF_FOREIGN"] = str(tmp_path)
         env["HERMES_RUNTIME_DIR"] = str(tmp_path / "empty-store")
-    if windows:
-        # The disposable runtime has only the fixture CLI; verification is outside
-        # this transport contract and runs its own harmless fixture implementation.
-        (package / "desktop_update_verify.py").write_text(
-            "def verify_windows_desktop_update(): pass\n",
+    if not modern:
+        bin_dir = install / "venv" / "bin"
+        bin_dir.mkdir(parents=True)
+        (bin_dir / "python3").symlink_to(sys.executable)
+        hermes = bin_dir / "hermes"
+        hermes.write_text(
+            f'#!/usr/bin/env bash\nexec {shlex.quote(sys.executable)} -m hermes_cli.main "$@"\n',
             encoding="utf-8",
         )
-        command = [
-            "powershell",
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            str(SCRIPTS / "windows.ps1"),
-            "-InstallRoot",
-            str(install),
-            "-NoUi",
-        ]
-    else:
-        if not modern:
-            bin_dir = install / "venv" / "bin"
-            bin_dir.mkdir(parents=True)
-            (bin_dir / "python3").symlink_to(sys.executable)
-            hermes = bin_dir / "hermes"
-            hermes.write_text(
-                f'#!/usr/bin/env bash\nexec {shlex.quote(sys.executable)} -m hermes_cli.main "$@"\n',
-                encoding="utf-8",
-            )
-            hermes.chmod(0o755)
-        command = [
-            "bash",
-            str(SCRIPTS / "posix.sh"),
-            "--install-root",
-            str(install),
-            "--daemonized",
-            "--no-ui",
-        ]
+        hermes.chmod(0o755)
+    command = [
+        "bash",
+        str(SCRIPTS / "posix.sh"),
+        "--install-root",
+        str(install),
+        "--daemonized",
+        "--no-ui",
+    ]
     result = subprocess.run(
         [*command, *target],
         env=env,
@@ -136,25 +108,10 @@ def _run_handoff(tmp_path, target, *, windows=False, inherited_home=True, modern
     return result, calls, home, install
 
 
-def _assert_forwarded(
-    tmp_path, target, expected, *, windows=False, inherited_home=True
-):
-    result, calls, home, install = _run_handoff(
-        tmp_path,
-        target,
-        windows=windows,
-        inherited_home=inherited_home,
-    )
+def _assert_forwarded(tmp_path, target, expected, *, inherited_home=True):
+    result, calls, home, install = _run_handoff(tmp_path, target, inherited_home=inherited_home)
     assert result.returncode == 0, result.stdout + result.stderr
-    expected_args = ["update", "--yes", "--gateway"]
-    if windows:
-        expected_args += ["--force"]
-    expected_args += expected
-    expected_argvs = [expected_args] * 2
-    if windows:
-        # Desktop stopped the local gateways before handing off; a verified
-        # update restores the whole fleet in the same home and install.
-        expected_argvs.append(["gateway", "start", "--all"])
+    expected_argvs = [["update", "--yes", "--gateway", *expected]] * 2
     assert calls == [
         {
             "argv": argv,
@@ -178,14 +135,6 @@ def test_posix_channel_survives_retry_in_active_profile(tmp_path, channel):
     _assert_forwarded(tmp_path, ["--channel", channel], ["--channel", channel])
 
 
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize("channel", ["stable", "canary", "main"])
-def test_windows_channel_survives_retry_in_active_profile(tmp_path, channel):
-    _assert_forwarded(
-        tmp_path, ["-Channel", channel], ["--channel", channel], windows=True
-    )
-
-
 @pytest.mark.platforms("posix")
 @pytest.mark.parametrize(
     "target, expected",
@@ -198,20 +147,8 @@ def test_posix_legacy_branch_and_default_home(tmp_path, target, expected):
     _assert_forwarded(tmp_path, target, expected, inherited_home=False)
 
 
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize(
-    "target, expected",
-    [
-        ([], ["--branch", "main"]),
-        (["-Branch", "feature/target"], ["--branch", "feature/target"]),
-    ],
-)
-def test_windows_legacy_branch_and_default_home(tmp_path, target, expected):
-    _assert_forwarded(tmp_path, target, expected, windows=True, inherited_home=False)
-
-
-def _assert_rejected(tmp_path, target, *, windows=False):
-    result, calls, home, _ = _run_handoff(tmp_path, target, windows=windows)
+def _assert_rejected(tmp_path, target):
+    result, calls, home, _ = _run_handoff(tmp_path, target)
     assert result.returncode != 0, result.stdout + result.stderr
     assert not calls
     assert not (home / ".hermes-update-in-progress").exists()
@@ -231,21 +168,6 @@ def _assert_rejected(tmp_path, target, *, windows=False):
 )
 def test_posix_rejects_invalid_or_conflicting_target_before_update(tmp_path, target):
     _assert_rejected(tmp_path, target)
-
-
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize(
-    "target",
-    [
-        ["-Channel", "nightly"],
-        ["-Channel", ""],
-        ["-Channel"],
-        ["-Branch", "main", "-Channel", "stable"],
-        ["-Channel", "canary", "-Branch", "main"],
-    ],
-)
-def test_windows_rejects_invalid_or_conflicting_target_before_update(tmp_path, target):
-    _assert_rejected(tmp_path, target, windows=True)
 
 
 @pytest.mark.platforms("posix")

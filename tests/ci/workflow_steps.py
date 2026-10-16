@@ -40,8 +40,8 @@ def required(step: dict, ctx: dict) -> None:
 def _interpreter_dirs(root: Path) -> tuple[str, ...]:
     """The replay interpreter's dir, plus shims for the names setup-python puts on PATH.
 
-    Steps call ``python3`` (Linux runners) or ``python`` (Windows runners); a
-    Windows venv only ships ``python.exe``, so a missing name would otherwise
+    Steps call ``python3`` or ``python``; an interpreter dir may ship only one of
+    them (Debian's /usr/bin has no ``python``), so a missing name would otherwise
     hit an unrelated host interpreter on os.defpath, or none at all.
     """
     interpreter = Path(sys.executable).parent
@@ -64,8 +64,7 @@ def _run(step: dict, ctx: dict, cwd: Path | None = None, *, receipt: bool = Fals
         output.touch()
         calls.touch()
         bash = locate_command("bash").command[0]
-        # Steps call git too. Linux reaches it through os.defpath; on Windows the bash found
-        # first may be Git's usr\bin (no git.exe), so git's own dir rides along like bash's.
+        # Steps call git too; git's own dir rides along like bash's in case it is off os.defpath.
         git = locate_command("git").command[0]
         env = {
             "PATH": os.pathsep.join((*_interpreter_dirs(root), os.defpath, str(Path(bash).parent),
@@ -82,8 +81,8 @@ def _run(step: dict, ctx: dict, cwd: Path | None = None, *, receipt: bool = Fals
             capture_output=True, text=True, timeout=30,
         )
         # workflow_steps is not a test module, so pytest does not rewrite this assert: the
-        # message is all a CI failure shows. A child that dies without a word (a Windows
-        # NTSTATUS exit, a process killed from outside) must still name its exit code.
+        # message is all a CI failure shows. A child that dies without a word (a process
+        # killed from outside) must still name its exit code.
         assert result.returncode == 0, (
             f"replayed step exited {result.returncode} (0x{result.returncode & 0xFFFFFFFF:08X}) "
             f"under {bash}\n--- stdout ---\n{result.stdout}--- stderr ---\n{result.stderr}")

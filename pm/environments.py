@@ -77,17 +77,16 @@ def _launcher_bound_root(project_root: Path, candidates: list[Path]) -> Path | N
     from hermes_cli._launchers import _launcher_python
 
     local = project_root / ".hermes" / "bin"
-    for name in (("hermes.exe", "hermes.cmd") if os.name == "nt" else ("hermes",)):
-        python = _launcher_python(local / name)
-        if python is None or not python.is_file():
+    python = _launcher_python(local / "hermes")
+    if python is None or not python.is_file():
+        return None
+    for candidate in candidates:
+        try:
+            store = (candidate / "tools").resolve()
+            if any(parent.resolve() == store for parent in python.parents):
+                return candidate
+        except (OSError, RuntimeError, ValueError):
             continue
-        for candidate in candidates:
-            try:
-                store = (candidate / "tools").resolve()
-                if any(parent.resolve() == store for parent in python.parents):
-                    return candidate
-            except (OSError, RuntimeError, ValueError):
-                continue
     return None
 
 
@@ -201,7 +200,7 @@ def cli_command_name(project_root: Path) -> str:
     (``hermes-canary``) so it never shadows another install's ``hermes``.
     """
     command = _payload_hermes_command(Path(project_root).resolve())
-    return command.name.removesuffix(".exe") if command else "hermes"
+    return command.name if command else "hermes"
 
 
 def base_venv(project_root: Path) -> Path:
@@ -260,16 +259,8 @@ def flush_before_selecting() -> None:
     the tree's data is still in the page cache, selecting a half-written venv.
     One filesystem-wide sync instead of an fsync per file: a venv holds tens of
     thousands of files, and per-file flushes cost minutes on slow disks.
-
-    Windows has no whole-filesystem flush reachable from Python (os.sync does
-    not exist there), and FlushFileBuffers per file is the slow path rejected
-    above. There the record's atomic write is the only guarantee: it is never
-    torn, but NTFS journals metadata, not file contents, so power loss right
-    after a publish can still leave the selected tree with incomplete files.
     """
-    sync = getattr(os, "sync", None)
-    if sync is not None:
-        sync()
+    os.sync()
 
 
 def selected_venv(project_root: Path) -> Path:
@@ -318,19 +309,15 @@ def _recorded_venv(project_root: Path) -> Path | None:
     return environment
 
 
-def venv_bin_dir(venv: Path, *, windows: bool | None = None) -> Path:
-    """``Scripts`` on Windows, ``bin`` elsewhere. Returned unconditionally — callers
-    differ on whether a missing venv is an error. *windows* lets a POSIX process
-    reason about a Windows layout (update hand-off, launcher repair)."""
-    if windows is None:
-        windows = os.name == "nt"
-    return Path(venv) / ("Scripts" if windows else "bin")
+def venv_bin_dir(venv: Path) -> Path:
+    """The venv's ``bin``. Returned unconditionally — callers differ on whether a
+    missing venv is an error."""
+    return Path(venv) / "bin"
 
 
-def venv_python(venv: Path, *, windows: bool | None = None) -> Path:
+def venv_python(venv: Path) -> Path:
     """The interpreter inside *venv* (may not exist)."""
-    bin_dir = venv_bin_dir(venv, windows=windows)
-    return bin_dir / ("python.exe" if bin_dir.name == "Scripts" else "python")
+    return venv_bin_dir(venv) / "python"
 
 
 def project_python(project_root: Path) -> Path:
@@ -352,11 +339,8 @@ def _payload_store_python(root: Path) -> Path | None:
 def venv_command(project_root: Path, venv: Path, options: tuple[str, ...] | list[str] = ()) -> list[str]:
     """The argv prefix that runs Python inside *venv*; append a script, ``-c`` or ``-m``.
 
-    A sealed payload never enters a venv through ``Scripts\\python.exe``. That redirector is
-    an executable outside the package that starts the package's interpreter, which an MSIX
-    refuses (WinError 5) to a process without package identity. Instead the payload's own
-    interpreter attaches the venv's site-packages (``pm/_venv_entry.py``): the same
-    contract as the payload's launchers and its PM worker. Elsewhere the venv's
+    A sealed payload's own interpreter attaches the venv's site-packages
+    (``pm/_venv_entry.py``): the same contract as the payload's launchers and its PM worker. Elsewhere the venv's
     interpreter runs as is. *options* are interpreter flags (``-I``, ``-u``, ``-X …``).
     """
     root = Path(project_root).resolve()
@@ -369,7 +353,7 @@ def venv_command(project_root: Path, venv: Path, options: tuple[str, ...] | list
 
 
 def venv_python_version(venv: Path) -> tuple[int, int] | None:
-    """The interpreter version a POSIX venv actually holds, or ``None``.
+    """The interpreter version a venv actually holds, or ``None``.
 
     ``site_packages`` must not date the tree from the CALLER's ``sys.version_info``:
     an update can rebuild the dependency environment with a different Python than
@@ -404,8 +388,6 @@ def venv_python_version(venv: Path) -> tuple[int, int] | None:
 def site_packages(venv: Path) -> Path:
     import sys
 
-    if os.name == "nt":
-        return venv / "Lib/site-packages"
     version = venv_python_version(venv) or (sys.version_info.major, sys.version_info.minor)
     return venv / f"lib/python{version[0]}.{version[1]}/site-packages"
 
@@ -501,11 +483,7 @@ def activate_dependencies(project_root: Path) -> None:
     # `hermes` off PATH must hit the checkout's own launcher first, never the venv's copy.
     # A sealed payload's launchers live in <payload>/bin instead.
     directories = [payload_command_dir(project_root) or project_root.resolve() / ".hermes" / "bin"]
-    # A sealed payload's Windows venv redirectors never go on PATH: a shipped venv's still
-    # names the build machine, and a generation built since names the payload's interpreter,
-    # which an MSIX refuses to an outside executable (see venv_command).
-    if not (os.name == "nt" and _payload_manifest(project_root.resolve()) is not None):
-        directories.append(venv_bin_dir(environment))
+    directories.append(venv_bin_dir(environment))
     prefix = [str(path) for path in directories if path.is_dir()]
     if prefix:
         os.environ["PATH"] = os.pathsep.join([*prefix, os.environ.get("PATH", "")])
@@ -565,8 +543,7 @@ _SHELL_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 def shell_exports(env: dict[str, str], dialect: str) -> str:
     """The composed environment as a script a shell of ``dialect`` can evaluate.
 
-    Windows carries names like ``ProgramFiles(ARM)`` that no shell can assign;
-    they pass through untouched instead of failing the whole script.
+    Names no shell can assign pass through untouched instead of failing the whole script.
     """
     statement, read_only = _SHELL_DIALECTS[dialect]
     return "\n".join(statement(name, str(value)) for name, value in env.items()

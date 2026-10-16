@@ -2,7 +2,7 @@
  * The update marker `HERMES_HOME/.hermes-update-in-progress` (#50238), format v2.
  *
  * One file, shared by every updater (Python `hermes_cli/update_lock.py`, the Rust
- * `UpdateMarkerGuard`, `scripts/desktop-update/{windows.ps1,posix.sh}`) and this
+ * `UpdateMarkerGuard`, `scripts/desktop-update/posix.sh`) and this
  * Desktop. While it names a LIVE owner, a Desktop reopened mid-update must not
  * spawn a backend on the runtime being replaced, and no second update may start.
  *
@@ -61,7 +61,6 @@ export const HANDOFF_CLAIM_TIMEOUT_MS = 20_000
 export const EMPTY_MARKER_GRACE_MS = 5_000
 
 /** .NET ticks (100 ns since 0001-01-01) at the unix epoch. */
-const DOTNET_UNIX_EPOCH_TICKS = 621_355_968_000_000_000
 
 export function markerPath(hermesHome: string) {
   return path.join(hermesHome, '.hermes-update-in-progress')
@@ -140,7 +139,7 @@ function execFileText(
   options: { env?: NodeJS.ProcessEnv; timeout: number }
 ): Promise<string | null> {
   return new Promise(resolve => {
-    execFile(file, args, { encoding: 'utf8', windowsHide: true, ...options }, (error, stdout) =>
+    execFile(file, args, { encoding: 'utf8', ...options }, (error, stdout) =>
       resolve(error ? null : String(stdout))
     ).stdin?.end()
   })
@@ -227,26 +226,6 @@ function parsePsLstart(stdout: string | null): number | null {
   return Number.isFinite(ms) ? ms / 1000 : null
 }
 
-/**
- * Windows creation time through CIM (A1): `Win32_Process.CreationDate` is read
- * with limited query rights, so it answers for SYSTEM, elevated and other-user
- * processes where `Get-Process .StartTime` is access-denied.
- */
-function windowsCreateTimeCommand(pid: number): string[] {
-  return [
-    '-NoProfile',
-    '-NonInteractive',
-    '-Command',
-    `(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}' -ErrorAction Stop).CreationDate.ToUniversalTime().Ticks`
-  ]
-}
-
-function dotnetTicksToUnix(stdout: unknown): number | null {
-  const ticks = Number(String(stdout ?? '').trim())
-
-  return Number.isFinite(ticks) && ticks > 0 ? (ticks - DOTNET_UNIX_EPOCH_TICKS) / 1e7 : null
-}
-
 function ownCreateTime(): number | null {
   const ms = (process as { getCreationTime?: () => number | null }).getCreationTime?.()
 
@@ -256,10 +235,7 @@ function ownCreateTime(): number | null {
 /**
  * Creation time (unix seconds) of a live pid, or null when it cannot be read.
  * Same sources as the Python/Rust/script writers: Linux /proc starttime +
- * btime, macOS `ps -o lstart=` (UTC), Windows `GetProcessTimes` (Electron's own
- * `process.getCreationTime()` for this process; CIM `CreationDate` otherwise).
- * A Windows foreign pid costs one powershell spawn: pollers wrap this in
- * `cachedCreateTimeProbe`.
+ * btime, macOS `ps -o lstart=` (UTC). Pollers wrap this in `cachedCreateTimeProbe`.
  */
 export async function processCreateTime(pid: number): Promise<number | null> {
   if (!isPidAlive(pid)) {
@@ -267,7 +243,7 @@ export async function processCreateTime(pid: number): Promise<number | null> {
   }
 
   // Never a synchronous spawn here (it runs on the main thread while a marker
-  // exists): Linux reads /proc, macOS and Windows ask ps / CIM asynchronously.
+  // exists): Linux reads /proc, macOS asks ps asynchronously.
   if (process.platform === 'linux') {
     await linuxClockTicksAsync()
 
@@ -278,21 +254,12 @@ export async function processCreateTime(pid: number): Promise<number | null> {
     return psCreateTimeAsync(pid)
   }
 
-  if (process.platform !== 'win32') {
-    return null
-  }
-
-  const own = pid === process.pid ? ownCreateTime() : null
-
-  return (
-    own ?? dotnetTicksToUnix(await execFileText('powershell.exe', windowsCreateTimeCommand(pid), { timeout: 15_000 }))
-  )
+  return null
 }
 
 /**
  * Synchronous variant for module-init callers (desktop-installation's repair
- * lock). On Windows a foreign pid costs one blocking powershell spawn, so only
- * use it on a rare path.
+ * lock).
  */
 export function processCreateTimeSync(pid: number): number | null {
   if (!isPidAlive(pid)) {
@@ -307,37 +274,14 @@ export function processCreateTimeSync(pid: number): number | null {
     return psCreateTime(pid)
   }
 
-  if (process.platform !== 'win32') {
-    return null
-  }
-
-  // Electron's own GetProcessTimes; plain Node (tests, tooling) has no
-  // getCreationTime and falls through to CIM like any other pid.
-  const own = pid === process.pid ? ownCreateTime() : null
-
-  if (own !== null) {
-    return own
-  }
-
-  try {
-    return dotnetTicksToUnix(
-      execFileSync('powershell.exe', windowsCreateTimeCommand(pid), {
-        encoding: 'utf8',
-        timeout: 15_000,
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'ignore']
-      })
-    )
-  } catch {
-    return null
-  }
+  return null
 }
 
 export type CreateTimeProbe = (pid: number) => number | null | Promise<number | null>
 
 /**
- * One creation-time probe per pid for the life of ONE waiter (A1) — on Windows
- * each probe is a powershell spawn, and the update gate polls every second.
+ * One creation-time probe per pid for the life of ONE waiter (A1) — the update
+ * gate polls every second.
  * Scope it to a single wait, never module-wide: only a fresh probe tells a
  * pid reused since the last wait from the owner it replaced.
  */
@@ -519,43 +463,6 @@ export interface ClaimResult {
   /** Set when a dead/malformed claim, or a stale bridge of this process, blocks ours. */
   existing?: ExistingMarker
   error?: string
-}
-
-/**
- * Pre-write for the staged Tauri updater (`hermes-setup.exe --update`): the
- * child IS the updater there, so the marker names its pid AND its creation
- * time. A v2 body takes this path off the v1 20-minute ceiling, lets the
- * updater adopt it as its own claim, and lets the `hermes update` it runs add
- * its delegate line. Exclusive create ONLY (A7 rule 3): over any existing
- * marker — live or dead — the pre-write is skipped and the staged updater
- * claims (and reclaims) for itself.
- */
-export async function writeUpdateMarker(
-  hermesHome: string,
-  pid: number,
-  { startedAt, ...deps }: MarkerProbeDeps & { startedAt?: number } = {}
-): Promise<ClaimResult> {
-  const acquiredAt =
-    typeof startedAt === 'number' && Number.isInteger(startedAt)
-      ? startedAt
-      : Math.floor((deps.now || Date.now)() / 1000)
-
-  const ct = await (deps.createTime || processCreateTime)(pid)
-
-  return createMarkerExclusive(hermesHome, markerBody(pid, acquiredAt, ct), deps)
-}
-
-/** Log line for a staged-updater pre-write that was skipped (exclusive create lost). */
-export function describeSkippedPrewrite(result: ClaimResult): string {
-  if (result.owner) {
-    return `an update owned by pid ${result.owner.pid || '(claim being written)'} holds the marker`
-  }
-
-  if (result.existing) {
-    return `a ${result.existing.state} marker exists; the staged updater reclaims it under its own lock`
-  }
-
-  return result.error || 'unknown error'
 }
 
 const TMP_SIBLING_RE = /^\.hermes-update-in-progress\.(\d+)(?:\.\d+)?\.tmp$/
@@ -803,7 +710,7 @@ export async function waitForHandoffClaim(
   }: HandoffClaimOptions = {}
 ): Promise<{ taken: true; pid: number } | { taken: false }> {
   const deadline = now() + timeoutMs
-  // One creation-time probe per pid for this wait (a powershell spawn on Windows).
+  // One creation-time probe per pid for this wait.
   const probe = cachedCreateTimeProbe(createTime)
 
   for (;;) {

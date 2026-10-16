@@ -101,7 +101,7 @@ def test_detached_narrow_clone_counts_from_the_pre_checkout_head(narrow_clone: P
         return update_cmd._prepare_checkout_for_update(
             git_cmd, "main", update_cmd._current_branch_name(git_cmd, check=True), is_fork=False,
             assume_yes=True, gateway_mode=False, gw_input_fn=None, switch_branch=False,
-            _windows_gateway_resume=None)
+            _gateway_pause=None)
 
     # Pinned tag == origin/main: genuinely up to date.
     assert plan().commit_count == 0

@@ -8,7 +8,7 @@ import textwrap
 
 import pytest
 
-from tests.pm.activation_support import bash, fake_store, posix, powershell, sync_checkout
+from tests.pm.activation_support import bash, fake_store, sync_checkout
 
 # Spawns children with a home it builds itself; the parent's must stay real.
 pytestmark = pytest.mark.real_machine_home
@@ -29,21 +29,20 @@ def test_bash_cold_sync_changed_input_and_warm_noop(tmp_path, canary):
     assert not (root / ".venv").exists()
     if canary is not None:
         env["HERMES_PM_ACTIVATE_CANARY"] = canary
-    from tests.pm.test_activate_scripts import fake_store
     fake_store(tmp_path)
     script = f'''
         set -e
         export PYTHONPATH=caller-original VIRTUAL_ENV=caller-venv
         original_path="$PATH"
-        source "{posix(root / 'activate')}"
+        source "{root / 'activate'}"
         printf '%s\\n' "$PYTHONPATH"
         test "$HERMES_PM_ACTIVATE_CANARY" = env-ok
-        printf second > "{posix(root / 'input')}"
-        source "{posix(root / 'activate')}"
+        printf second > "{root / 'input'}"
+        source "{root / 'activate'}"
         printf '%s\\n' "$PYTHONPATH"
-        source "{posix(root / 'activate')}"
+        source "{root / 'activate'}"
         printf '%s\\n' "$PYTHONPATH"
-        test "$PWD" = "{posix(tmp_path)}"
+        test "$PWD" = "{tmp_path}"
         deactivate
         test "$PATH" = "$original_path"
         test "$PYTHONPATH" = caller-original
@@ -92,63 +91,3 @@ def test_bash_setup_failure_preserves_caller(tmp_path, already_active):
     calls = (root / "calls.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(calls) == (2 if already_active else 1)
     assert json.loads(calls[-1])["python_env"] == dict.fromkeys(("PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV"))
-
-
-@pytest.mark.platforms("windows")
-def test_powershell_cold_sync_changed_input_warm_and_failure(tmp_path):
-    # Native child-process and venv semantics cannot be reproduced by faking win32.
-    root, env = sync_checkout(tmp_path)
-    ps = powershell()
-    assert ps, "native Windows test requires PowerShell"
-    script = tmp_path / "run.ps1"
-    script.write_text(f'''
-        $ErrorActionPreference = 'Stop'
-        $env:PYTHONPATH = 'caller-original'
-        $env:PYTHONHOME = 'caller-home'
-        $env:VIRTUAL_ENV = 'caller-venv'
-        $originalPath = $env:PATH
-        $originalCwd = (Get-Location).Path
-        . '{root / 'activate.ps1'}'
-        Write-Output ('selection=' + $env:PYTHONPATH)
-        Set-Content -LiteralPath '{root / 'input'}' -Value second
-        . '{root / 'activate.ps1'}'
-        Write-Output ('selection=' + $env:PYTHONPATH)
-        . '{root / 'activate.ps1'}'
-        Write-Output ('selection=' + $env:PYTHONPATH)
-        Write-Output ('parent=' + $PID)
-        $beforeEnv = Get-ChildItem env: | Sort-Object Name | ConvertTo-Json -Compress
-        $beforeFunction = (Get-Item function:deactivate).Definition
-        Set-Content -LiteralPath '{root / 'fail'}' -Value fail
-        $failed = $false
-        try {{ . '{root / 'activate.ps1'}' }} catch {{ $failed = $true }}
-        if (-not $failed) {{ throw 'setup failure accepted' }}
-        if ((Get-ChildItem env: | Sort-Object Name | ConvertTo-Json -Compress) -ne $beforeEnv) {{ throw 'env changed on failure' }}
-        if ((Get-Item function:deactivate).Definition -ne $beforeFunction) {{ throw 'deactivation lost' }}
-        if ((Get-Location).Path -ne $originalCwd) {{ throw 'cwd changed' }}
-        deactivate
-        if ($env:PATH -ne $originalPath -or $env:PYTHONPATH -ne 'caller-original' -or
-            $env:PYTHONHOME -ne 'caller-home' -or $env:VIRTUAL_ENV -ne 'caller-venv') {{ throw 'restore failed' }}
-    ''', encoding="utf-8")
-    run = subprocess.run([ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                         cwd=tmp_path, env=env, capture_output=True, text=True, timeout=90)
-    assert run.returncode == 0, run.stdout + run.stderr
-    selected = [line.removeprefix("selection=") for line in run.stdout.splitlines() if line.startswith("selection=")]
-    assert len(selected) == 3
-    assert "\\first\\venv\\" in selected[0]
-    assert "\\second\\venv\\" in selected[1]
-    assert selected[1] == selected[2]
-    assert all(value.startswith(str(root) + os.pathsep) for value in selected)
-    calls = [json.loads(line) for line in (root / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
-    assert len(calls) == 4
-    assert all(call["python_env"] == dict.fromkeys(("PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV")) for call in calls)
-    assert (root / "builds").read_text(encoding="utf-8").splitlines() == ["first", "second"]
-    parent = next(line.removeprefix("parent=") for line in run.stdout.splitlines() if line.startswith("parent="))
-    ps_calls = [json.loads(line) for line in (root / "ps-calls.jsonl").read_text(encoding="utf-8-sig").splitlines()]
-    assert len(ps_calls) == 4
-    for call in ps_calls:
-        assert str(call["pid"]) != parent
-        assert Path(call["executable"]).samefile(ps)
-        assert [arg.lower() for arg in call["argv"][1:]] == [
-            "-noprofile", "-noninteractive", "-executionpolicy", "bypass", "-file",
-            str(root / "setup-hermes.ps1").lower(), "-runtimeonly",
-        ]

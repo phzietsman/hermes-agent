@@ -39,19 +39,8 @@ from hermes_cli.update_abort_recovery import (  # noqa: F401
     _abort_recovery_is_complete, _qualified_serve_skips, _recover_gateway_restart_after_abort,
     _serve_unit_recovery_available, _surviving_pre_update_serve_runtimes,
     _warn_stale_serve_runtimes)
-from hermes_cli.update_cmd_windows import (  # noqa: F401
-    _HOLDER_VALUE_FLAGS_FALLBACK,
-    _cold_start_windows_gateway_after_update, _desktop_owns_gateway_lifecycle,
-    _detect_venv_python_processes, _hermes_holder_subcommand, _holder_value_flags,
-    _holder_value_flags_cache, _looks_like_desktop_control_plane,
-    _pause_windows_gateways_for_update,
-    _refresh_bootstrap_cache_scripts, _refresh_windows_gateway_launchers,
-    _refuse_gateway_ancestor_tree_kill,
-    _restore_windows_gateway_service, _resume_windows_gateways_after_update,
-    _resume_windows_gateways_and_merge_outcome, _self_and_non_gateway_ancestor_pids,
-    _start_windows_gateway_service,
-    _stop_windows_gateway_service, _venv_launcher_ancestors,
-    _wait_for_windows_update_gateway_exit, _write_update_planned_stop_marker)
+from hermes_cli.update_cmd_common import (  # noqa: F401
+    _HOLDER_VALUE_FLAGS_FALLBACK, _hermes_holder_subcommand, _holder_value_flags)
 from hermes_cli.update_cmd_fleet import (  # noqa: F401
     _FLEET_RESTART_PENDING_NAME, _FRESH_RESTART_SUPERVISORS, _GatewayRestartOutcome,
     _clear_fleet_restart_pending_marker,
@@ -70,11 +59,6 @@ from hermes_cli.update_cmd_fleet import (  # noqa: F401
     _warn_pending_fleet_restart_on_startup, _write_fleet_restart_pending_marker,
     _write_gateway_update_exit_code)
 from hermes_cli.update_cmd_fleet_verify import _verify_fleet_after_update  # noqa: F401
-from hermes_cli.update_cmd_zip import (  # noqa: F401
-    _ZIP_PRESERVED_TOP_LEVEL, _ZIP_STAGING_ARTIFACT_SUFFIXES, _abort_zip_update_if_dirty_tree,
-    _atomic_replace_dir, _commit_staged_replacements, _discard_staged,
-    _is_zip_preserved_entry_status_line, _is_zip_staging_artifact_status_line, _stage_replacement,
-    _update_via_zip, _zip_overlay_block_reason)
 from hermes_cli.update_cmd_stash import (  # noqa: F401
     _AUTOSTASH_NAME_PREFIX, _AUTOSTASH_WARN_AGE_DAYS, _clear_pending_autostash,
     _discard_stashed_changes,
@@ -89,6 +73,9 @@ from hermes_cli.update_cmd_config import (  # noqa: F401
 from hermes_cli.update_cmd_validation import (  # noqa: F401 — frozen updater surface (tests/compat)
     _UPDATE_CRITICAL_MODULES, _critical_module_import_failures,
     _validate_critical_modules_import)
+from hermes_cli.old_updater_deps import (  # noqa: F401 — frozen updater surface (tests/compat)
+    _desktop_owns_gateway_lifecycle, _locate_real_git, _refuse_gateway_ancestor_tree_kill,
+    _restore_windows_gateway_service, _start_windows_gateway_service, _stop_windows_gateway_service)
 from hermes_cli.old_updater_deps import (  # noqa: F401 — frozen updater surface (tests/compat + test_old_updater_shims)
     _capture_active_lazy_features, _npm_lockfile_changed, _path_uid,
     _rebuild_desktop_after_update, _refresh_active_lazy_features,
@@ -97,9 +84,9 @@ from hermes_cli.update_cmd_git import (  # noqa: F401
     OFFICIAL_REPO_URL, OFFICIAL_REPO_URLS, SKIP_UPSTREAM_PROMPT_FILE, _ORPHAN_RESCUE_REFS_TO_KEEP,
     _ORPHAN_RESCUE_REF_MAX_AGE_DAYS, _add_upstream_remote, _assess_parked_branch_switch,
     _branch_head_label, _branch_head_suffix, _classify_fetch_failure, _count_commits_between,
-    _discard_lockfile_churn, _ensure_non_trampoline_git, _get_origin_url, _git_is_trampoline,
-    _has_upstream_remote, _is_fork, _locate_real_git, _mark_skip_upstream_prompt,
-    _normalize_managed_eol, _park_detached_head, _portable_git_candidates, _print_fetch_failure,
+    _discard_lockfile_churn, _get_origin_url,
+    _has_upstream_remote, _is_fork, _mark_skip_upstream_prompt,
+    _park_detached_head, _print_fetch_failure,
     _print_parked_branch_kept_notice, _print_parked_branch_skip_warning,
     _prune_orphan_rescue_refs, _push_synced_fork, _should_skip_upstream_prompt, _sync_fork_with_upstream,
     _sync_with_upstream_if_needed, UpstreamTargetBroken)
@@ -111,6 +98,7 @@ from hermes_cli.update_cmd_maint import (  # noqa: F401
     _print_fts_optimize_available_notice, _print_update_completion, _print_update_summary,
     _prepare_updated_checkout,
     _print_verified_update_completion, _purge_stale_hermes_modules, _read_project_version,
+    _refresh_bootstrap_cache_scripts,
     _reload_process_scan_modules, _reload_updated_runtime_modules,
     _resolve_pre_update_backup_mode, _restore_state_db_from_snapshot,
     _run_post_update_maintenance, _run_pre_update_backup,
@@ -199,7 +187,7 @@ def _map_ssl_cert_file_for_git(git_cmd) -> None:
     os.environ["GIT_SSL_CAINFO"] = bundle
 
 
-# Compiled before (preflight) and after (post-pull guard, ZIP gate) every tree move. The first rows
+# Compiled before (preflight) and after (post-pull guard) every tree move. The first rows
 # are what the launcher and ``hermes_bootstrap`` import before any application code (review G3);
 # test_update_post_pull_syntax_guard derives that set from the real entry paths and pins it here.
 _UPDATE_CRITICAL_FILES = (
@@ -260,15 +248,8 @@ def _record_snapshot_stage(args, snapshot_id) -> None:
 
 def _git_run(git_cmd, args, cwd=None, *, check=False, network=False):
     """Run git capturing utf-8 text (default cwd: checkout); ``network=True`` disables the
-    terminal prompt so an HTTP 401 fails fast instead of hanging, and bounds the wait.
-
-    Every spawn carries ``windows_hide_flags()``: the updater's git children run under the
-    console-less desktop backend, and a bare spawn flashes a console window each (#117781)."""
-    from hermes_cli._subprocess_compat import windows_hide_flags
-    # ``_no_prompt_git_kwargs()`` already carries the hide flags for network
-    # calls, so layer them instead of passing the keyword twice.
+    terminal prompt so an HTTP 401 fails fast instead of hanging, and bounds the wait."""
     spawn_kwargs = {"timeout": NETWORK_GIT_TIMEOUT_SECONDS, **_no_prompt_git_kwargs()} if network else {}
-    spawn_kwargs.setdefault("creationflags", windows_hide_flags())
     from hermes_cli.update_custody import run_git
 
     # The one custody policy (R2): local mutators keep the update's checkout lock fd, network
@@ -436,7 +417,7 @@ def _called_process_error_cmd_parts(exc: subprocess.CalledProcessError) -> list[
     if isinstance(cmd, (str, bytes)):
         text = cmd.decode("utf-8", "replace") if isinstance(cmd, bytes) else cmd
         try:
-            return shlex.split(text, posix=os.name != "nt")
+            return shlex.split(text)
         except ValueError:
             return text.split()
     return [str(part) for part in cmd]
@@ -447,10 +428,7 @@ def _called_process_error_is_git(exc: subprocess.CalledProcessError) -> bool:
     parts = _called_process_error_cmd_parts(exc)
     if not parts:
         return False
-    # Windows argv may use backslashes; basename() on POSIX would otherwise
-    # keep the whole path. Normalize separators before taking the name.
-    name = os.path.basename(parts[0].replace("\\", "/")).lower()
-    return name in {"git", "git.exe"}
+    return os.path.basename(parts[0]).lower() == "git"
 
 
 def _called_process_error_is_python_dep_install(
@@ -460,11 +438,11 @@ def _called_process_error_is_python_dep_install(
     parts = [part.lower() for part in _called_process_error_cmd_parts(exc)]
     if not parts:
         return False
-    exe = os.path.basename(parts[0].replace("\\", "/"))
+    exe = os.path.basename(parts[0])
     if "ensurepip" in parts:
         return True
     if "install" in parts and (
-        "pip" in parts or exe in {"pip", "pip.exe", "pip3", "pip3.exe", "uv", "uv.exe"}
+        "pip" in parts or exe in {"pip", "pip3", "uv"}
     ):
         return True
     return False
@@ -475,34 +453,13 @@ def _format_update_failure_stage(exc: subprocess.CalledProcessError) -> str:
 
     The git pull and the Python-dependency install share one ``try`` in
     ``_cmd_update_impl``. Calling every ``CalledProcessError`` a git failure
-    (the historical Windows message) sent users hunting in the wrong place
-    and, worse, keyed the ZIP overlay on exception *type* rather than on git
-    actually having failed (#87304, #85840).
+    sent users hunting in the wrong place (#87304, #85840).
     """
     if _called_process_error_is_python_dep_install(exc):
         return "Python dependency install failed"
     if _called_process_error_is_git(exc):
         return "Git update failed"
     return "Update step failed"
-
-
-def _should_zip_fallback_on_update_error(exc: BaseException) -> bool:
-    """ZIP fallback is for Windows git file-I/O breakage, not later stages.
-
-    A dependency-install failure (locked ``hermes.exe`` / ``uv pip install``
-    exit 2) is not a git failure. The pull has already succeeded by then, so
-    re-downloading the source ZIP cannot fix the install and would replace
-    every top-level entry except ``venv`` / ``node_modules`` / ``.git`` /
-    ``.env`` — permanently deleting uncommitted edits and untracked files.
-    """
-    return (
-        isinstance(exc, subprocess.CalledProcessError)
-        and _m()._is_windows()
-        and _called_process_error_is_git(exc)
-        # Only from an untouched checkout: the ZIP overlay replaces every top-level entry, so
-        # after git already stashed, switched or half-moved the tree it would bury that state.
-        and _commit.run_checkout_untouched(_m().PROJECT_ROOT)
-    )
 
 
 def _print_called_process_error_tail(
@@ -518,10 +475,6 @@ def _print_called_process_error_tail(
     print("  Last output:")
     for line in lines[-limit:]:
         print(f"    {line}")
-
-
-# Single source of truth for the top-level entries the ZIP swap preserves —
-# consumed by both the dirty-tree filter below and _update_via_zip's swap loop.
 
 
 # Release tags have the form v1.2.3. A tag can have a pre-release suffix.
@@ -581,14 +534,13 @@ def _run_logged_subprocess(cmd, *, cwd=None, env=None):
     """Stream combined build output to update.log, retaining it for failure reporting."""
     import codecs
     import io
-    from hermes_cli._subprocess_compat import kill_process_tree, windows_hide_flags
+    from hermes_cli._subprocess_compat import kill_process_tree
 
     child_env = dict(os.environ if env is None else env)
     child_env.setdefault("PYTHONUNBUFFERED", "1")
-    spawn = {"creationflags": windows_hide_flags()} if os.name == "nt" else {"process_group": 0}
     proc = subprocess.Popen(
         cmd, cwd=cwd, env=child_env, stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, **spawn)
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, process_group=0)
     # read1 delivers partial lines too; incremental decoding preserves split UTF-8
     # and the universal-newline behavior callers previously got from text=True.
     decoder = io.IncrementalNewlineDecoder(codecs.getincrementaldecoder("utf-8")("replace"), True)
@@ -658,7 +610,7 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False, ch
         print("✗ Not a git repository — cannot check for updates.")
         sys.exit(1)
 
-    git_cmd = _base_git_cmd()
+    git_cmd = ["git"]
     # The check fetches over HTTPS too; give git the same CA bundle Python
     # uses, or --check fails where the apply path succeeds (see
     # _map_ssl_cert_file_for_git).
@@ -693,14 +645,6 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False, ch
         _check.report_rev_list_verdict(git_cmd, root, compare_branch)
 
 
-def _base_git_cmd() -> list[str]:
-    """``git`` argv; Windows adds ``-c windows.appendAtomically=false`` (git can fail "unable to
-    write loose object file: Invalid argument" on non-atomic appends)."""
-    if sys.platform == "win32":
-        return ["git", "-c", "windows.appendAtomically=false"]
-    return ["git"]
-
-
 def _is_shallow_checkout(git_cmd) -> bool:
     return _git_run(git_cmd, ["rev-parse", "--is-shallow-repository"]).stdout.strip() == "true"
 
@@ -723,7 +667,7 @@ def _print_update_check_result(behind: int | None, compare_branch: str) -> None:
     print(f"  Run '{recommended_update_command()}' to install.")
 
 
-def _source_completion_request(opts, plan, snapshot_id, windows_resume, desktop, gateway_mode) -> dict:
+def _source_completion_request(opts, plan, snapshot_id, pause_token, desktop, gateway_mode) -> dict:
     """Freeze data before mutation; no pre-swap module objects cross the seam."""
     from copy import deepcopy
     current = _completion_receipt._current.get()
@@ -738,24 +682,22 @@ def _source_completion_request(opts, plan, snapshot_id, windows_resume, desktop,
         "pre_update_version": opts.pre_update_version, "snapshot_id": snapshot_id,
         "sibling_snapshots": deepcopy(_completion_config._LAST_SIBLING_SNAPSHOTS),
         "plan": plan.to_dict() if plan is not None else None,
-        "receipt": deepcopy(current.data), "windows_resume": windows_resume,
+        # "windows_resume": the paused-gateway token's historical key, which old updaters still send.
+        "receipt": deepcopy(current.data), "windows_resume": pause_token,
     }
 
 
-def _settle_windows_resume(request: dict) -> None:
+def _settle_gateway_resume(request: dict) -> None:
     """This run's post-commit resume attempt is over (the completion child's, or the A6 branch's).
 
-    A failure is already the ``windows_resume`` follow-up, so neither the command's ``finally``
+    A failure is already the ``gateway_resume`` follow-up, so neither the command's ``finally``
     nor the atexit net may replay it: a replay waits again and its error would fail a committed
     update (C3).
     """
     import atexit
 
-    from hermes_cli import update_cmd_windows
-
-    atexit.unregister(_m()._resume_windows_gateways_after_update)
-    atexit.unregister(update_cmd_windows._resume_windows_gateways_after_update)
-    request["windows_resume_settled"] = True
+    atexit.unregister(_posix_pause.resume_paused_gateways_after_update)
+    request["gateway_resume_settled"] = True
 
 
 def _resume_paused_gateways_at_exit(token: dict | None, request: dict | None) -> None:
@@ -764,15 +706,15 @@ def _resume_paused_gateways_at_exit(token: dict | None, request: dict | None) ->
     Raising here would replace the run's own exit (a committed update's 0, or the original
     failure) with the restart's error. Skipped when the post-commit attempt already ran.
     """
-    if not token or not token.get("resume_needed") or (request or {}).get("windows_resume_settled"):
+    if not token or not token.get("resume_needed") or (request or {}).get("gateway_resume_settled"):
         return
     try:
-        _m()._resume_windows_gateways_after_update(token)
+        _posix_pause.resume_paused_gateways_after_update(token)
     except Exception as exc:  # health: allow BLE001 -- a restart failure is owed, not the update's status
         from hermes_cli.update_receipt import owe_followup
 
-        owe_followup(request["receipt"]["update_id"] if request else None, "windows_resume",
-                     f"Windows gateway recovery failed: {exc}")
+        owe_followup(request["receipt"]["update_id"] if request else None, "gateway_resume",
+                     f"Paused gateway recovery failed: {exc}")
 
 
 def _complete_source_update(request: dict | None) -> None:
@@ -825,16 +767,16 @@ def _complete_source_update(request: dict | None) -> None:
         resumed = dict(result["windows_resume"])
         token.clear()
         token.update(resumed)
-        _settle_windows_resume(request)
+        _settle_gateway_resume(request)
     elif token and token.get("resume_needed") and not result["exit_code"]:
         # Dependencies owed (A6) or a lost completion: no child resumed paused gateways; this process can.
         try:
-            _m()._resume_windows_gateways_after_update(token)
+            _posix_pause.resume_paused_gateways_after_update(token)
         except Exception as exc:  # health: allow BLE001 -- the code is committed (C3)
             from hermes_cli.update_receipt import owe_followup
 
-            owe_followup(request["receipt"]["update_id"], "windows_resume", f"Windows gateway recovery failed: {exc}")
-        _settle_windows_resume(request)
+            owe_followup(request["receipt"]["update_id"], "gateway_resume", f"Paused gateway recovery failed: {exc}")
+        _settle_gateway_resume(request)
     if result["exit_code"]:
         raise SystemExit(result["exit_code"])
     if lost:
@@ -918,7 +860,7 @@ def _reconcile_diverged_checkout(git_cmd, branch: str, pre_pull_sha, *, target_r
         sys.exit(1)
 
 
-def _rollback_if_pulled_syntax_error(git_cmd, pre_pull_sha, *, rollback_branch=None, _windows_gateway_resume=None) -> None:
+def _rollback_if_pulled_syntax_error(git_cmd, pre_pull_sha, *, rollback_branch=None, _gateway_pause=None) -> None:
     """Post-pull syntax guard: roll back to *pre_pull_sha* and ``sys.exit(1)`` when a critical
     file no longer compiles (a bad admin-merge past CI must not brick the CLI)."""
     pyproject = Path(_m().PROJECT_ROOT) / "pyproject.toml"
@@ -930,12 +872,12 @@ def _rollback_if_pulled_syntax_error(git_cmd, pre_pull_sha, *, rollback_branch=N
         syntax_ok, failing_path, syntax_error = _validate_critical_files_syntax(_m().PROJECT_ROOT)
     if not syntax_ok:
         _roll_back_broken_update(git_cmd, pre_pull_sha, failing_path, syntax_error, rollback_branch=rollback_branch,
-                                 _windows_gateway_resume=_windows_gateway_resume)
+                                 _gateway_pause=_gateway_pause)
 
 
 def _roll_back_broken_update(git_cmd, pre_pull_sha, failing_path, syntax_error, *, rollback_branch=None,
                              header="✗ Pulled code has a syntax error in a critical file:",
-                             _windows_gateway_resume=None, stop_class="syntax_rollback") -> NoReturn:
+                             _gateway_pause=None, stop_class="syntax_rollback") -> NoReturn:
     """Restore the checkout to *pre_pull_sha* after a startup file failed the syntax check, then
     ``sys.exit(1)``."""
     print()
@@ -964,7 +906,7 @@ def _roll_back_broken_update(git_cmd, pre_pull_sha, failing_path, syntax_error, 
             # verified whole at pre_pull_sha below may report success (else the manual recipe).
             print(f"  ⚠ Could not write the interrupted-pull marker ({exc}); rolling back without it.")
         # The paused gateways' tree gate knows the rollback's target before git writes a file.
-        with _checkout_move(_windows_gateway_resume, pre_pull_sha):
+        with _checkout_move(_gateway_pause, pre_pull_sha):
             added = _commit.files_added_by(git_cmd, root, pre_pull_sha, target_sha)
             if mode == "detach":  # never move the update branch onto a parked/detached commit
                 rollback_args = ["update-ref", "--no-deref", "HEAD", pre_pull_sha]
@@ -1092,7 +1034,7 @@ def _move_checkout_to(git_cmd, branch, merge_ref, target_sha, pre_pull_sha) -> N
 def _pull_updates(
     git_cmd, branch, auto_stash_ref, *, prompt_for_restore, gw_input_fn, discard_local_changes,
     keep_stash, target_ref=None, pre_sync_sha=None, rollback_branch=None, sync_upstream=False, assume_yes=False,
-    in_place_update=False, _windows_gateway_resume=None, expected_sha=None):
+    in_place_update=False, _gateway_pause=None, expected_sha=None):
     """Fast-forward onto ``origin/<branch>`` and settle the autostash. Divergence by shape:
     custom branch -> merge, same branch -> rescue ref then reset; a
     post-pull syntax error in a critical file rolls back. Exits on failure; returns the SHA HEAD had to move off."""
@@ -1132,7 +1074,7 @@ def _pull_updates(
             sys.exit(1)
         try:
             # The paused gateways' tree gate must know this move's target before git writes a file.
-            with _checkout_move(_windows_gateway_resume, target_sha):
+            with _checkout_move(_gateway_pause, target_sha):
                 _move_checkout_to(git_cmd, branch, merge_ref, target_sha, pre_pull_sha)
             _refuse_unselected_head(git_cmd, target_sha, pre_pull_sha)  # before the marker goes
         except KeyboardInterrupt:
@@ -1153,25 +1095,25 @@ def _pull_updates(
             # unexpected branch. Keep local edits parked through the final check.
             _verify_head_after_pull(
                 git_cmd, branch, movement_baseline, in_place_update=in_place_update,
-                _windows_gateway_resume=_windows_gateway_resume)
+                _gateway_pause=_gateway_pause)
             try:
                 _m()._sync_with_upstream_if_needed(
                     git_cmd, _m().PROJECT_ROOT, assume_yes=assume_yes, input_fn=gw_input_fn,
-                    checkout_move=_moves_for(_windows_gateway_resume))
+                    checkout_move=_moves_for(_gateway_pause))
             except UpstreamTargetBroken as broken:  # refused before its move: the update rolls back
                 _verify_head_after_pull(  # never reset an unexpected branch's ref onto pre
                     git_cmd, branch, movement_baseline, in_place_update=in_place_update,
-                    _windows_gateway_resume=_windows_gateway_resume)
+                    _gateway_pause=_gateway_pause)
                 _roll_back_broken_update(git_cmd, pre_sync_sha or pre_pull_sha, broken.path, broken.error,
                                          rollback_branch=rollback_branch, header=_upstream_broken_header(broken),
-                                         _windows_gateway_resume=_windows_gateway_resume)
+                                         _gateway_pause=_gateway_pause)
         # Refuse an unexpected branch before syntax rollback can reset its ref.
         _verify_head_after_pull(
             git_cmd, branch, movement_baseline, in_place_update=in_place_update,
-            _windows_gateway_resume=_windows_gateway_resume)
+            _gateway_pause=_gateway_pause)
         _rollback_if_pulled_syntax_error(
             git_cmd, pre_sync_sha or pre_pull_sha, rollback_branch=rollback_branch,
-            _windows_gateway_resume=_windows_gateway_resume)
+            _gateway_pause=_gateway_pause)
         if sync_upstream:
             # Only a validated update is published to the fork (#97052 sync, after the commit point).
             _push_synced_fork(git_cmd, _m().PROJECT_ROOT)
@@ -1192,7 +1134,7 @@ def _pull_updates(
             else:
                 _m()._restore_stashed_changes(
                     git_cmd, _m().PROJECT_ROOT, auto_stash_ref, prompt_user=prompt_for_restore,
-                    input_fn=gw_input_fn, checkout_move=_moves_for(_windows_gateway_resume))
+                    input_fn=gw_input_fn, checkout_move=_moves_for(_gateway_pause))
     return movement_baseline
 
 
@@ -1260,19 +1202,19 @@ def _switch_branch_at_commit_point(git_cmd, branch, target_ref, *, pre, stash):
     return result
 
 
-def _refuse_before_commit_point(git_cmd, target_ref, _windows_gateway_resume) -> None:
+def _refuse_before_commit_point(git_cmd, target_ref, _gateway_pause) -> None:
     """Preconditions that used to fail AFTER the swap: refuse with the install untouched."""
     reason = _commit.preflight_refusal(git_cmd, _m().PROJECT_ROOT, target_ref, _UPDATE_CRITICAL_FILES)
     if reason is None:
         return
     print(reason)
     print("  No update was applied; your install is unchanged.")
-    _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+    _posix_pause.resume_paused_gateways_after_update(_gateway_pause)
     sys.exit(1)
 
 
 def _exit_after_failed_branch_switch(
-        git_cmd, branch, track_result, auto_stash_ref, gw_input_fn, _windows_gateway_resume=None) -> NoReturn:
+        git_cmd, branch, track_result, auto_stash_ref, gw_input_fn, _gateway_pause=None) -> NoReturn:
     """CP0 did not land: say which of refused / torn / missing branch it was, then ``sys.exit(1)``.
 
     A torn switch keeps its marker for the next launch's restore, so the autostash stays parked:
@@ -1293,7 +1235,7 @@ def _exit_after_failed_branch_switch(
     if auto_stash_ref is not None:
         _m()._restore_stashed_changes(
             git_cmd, _m().PROJECT_ROOT, auto_stash_ref, prompt_user=False, input_fn=gw_input_fn,
-            checkout_move=_moves_for(_windows_gateway_resume))
+            checkout_move=_moves_for(_gateway_pause))
     if track_result.args in (_ARM_REFUSED, _REF_MOVED):
         print(f"✗ {detail}.")
         _record_stop("commit_point_refused" if track_result.args is _ARM_REFUSED else "head_moved")
@@ -1332,7 +1274,7 @@ class _CheckoutPlan:
 
 
 def _apply_parked_branch_guard(
-    git_cmd, branch, current_branch, *, switch_branch, _windows_gateway_resume
+    git_cmd, branch, current_branch, *, switch_branch, _gateway_pause
 ) -> tuple[bool, bool, "str | None"]:
     """Decide how a checkout parked on another branch is brought to *branch* (stash-switch-pull-
     switch-back used to "update" main while the running code stayed behind).
@@ -1352,7 +1294,7 @@ def _apply_parked_branch_guard(
             git_cmd, _m().PROJECT_ROOT, current_branch, branch, switch_block_reason)
         print()
         print(f"⚠ Update finished — code update SKIPPED{_branch_head_suffix(git_cmd, _m().PROJECT_ROOT)}")
-        _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+        _posix_pause.resume_paused_gateways_after_update(_gateway_pause)
         _record_stop("parked_branch_blocked")
         sys.exit(1)
     if not switch_block_reason.startswith("unmerged:"):
@@ -1379,7 +1321,7 @@ def _apply_parked_branch_guard(
 
 def _prepare_checkout_for_update(
     git_cmd, branch, current_branch, *, is_fork, assume_yes, gateway_mode, gw_input_fn,
-    switch_branch, target_ref=None, _windows_gateway_resume):
+    switch_branch, target_ref=None, _gateway_pause):
     """Parked-branch guard, land on the target, stash, count new commits. Exits when the
     checkout is unsafe to move or the target is missing. ``commit_count`` is 0 when up to
     date, -1 when tips differ but the shallow count is unrecoverable."""
@@ -1393,14 +1335,14 @@ def _prepare_checkout_for_update(
     else:
         parked_branch_switched, in_place_update, switch_block_reason = _apply_parked_branch_guard(
             git_cmd, branch, current_branch, switch_branch=switch_branch,
-            _windows_gateway_resume=_windows_gateway_resume)
+            _gateway_pause=_gateway_pause)
 
     if not release_tag and not in_place_update and current_branch == "HEAD" != branch:
         print(f"  ⚠ Currently on detached HEAD — switching to {branch} for update...")
         # Before the stash: its refs/stash would contain HEAD until it is dropped.
         _park_detached_head(git_cmd, _m().PROJECT_ROOT, branch)
     auto_stash_ref = _m()._stash_local_changes_if_needed(
-        git_cmd, _m().PROJECT_ROOT, checkout_move=_moves_for(_windows_gateway_resume))
+        git_cmd, _m().PROJECT_ROOT, checkout_move=_moves_for(_gateway_pause))
     moved_from_sha = None
     rollback_branch = None
     if not release_tag and not in_place_update and current_branch != branch:
@@ -1411,13 +1353,13 @@ def _prepare_checkout_for_update(
         # The switch (or its -B fallback) is this update's first tree write: bind both commits first,
         # on the POSIX pause's baseline (its refusal, sticky, reaches the switch's arm_commit_point).
         _posix_pause.pause_at_commit_point()
-        with _checkout_move(_windows_gateway_resume, *(_resolved_commit(git_cmd, ref) for ref in (
+        with _checkout_move(_gateway_pause, *(_resolved_commit(git_cmd, ref) for ref in (
                 f"refs/heads/{branch}", f"origin/{branch}"))):
             track_result = _switch_branch_at_commit_point(
                 git_cmd, branch, target_ref, pre=moved_from_sha, stash=auto_stash_ref)
         if track_result.returncode != 0:
             _exit_after_failed_branch_switch(
-                git_cmd, branch, track_result, auto_stash_ref, gw_input_fn, _windows_gateway_resume)
+                git_cmd, branch, track_result, auto_stash_ref, gw_input_fn, _gateway_pause)
 
     prompt_for_restore = (
         auto_stash_ref is not None
@@ -1470,7 +1412,7 @@ def _prepare_checkout_for_update(
         try:
             upstream_checked = _m()._sync_with_upstream_if_needed(
                 git_cmd, _m().PROJECT_ROOT, assume_yes=assume_yes, input_fn=gw_input_fn,
-                checkout_move=_moves_for(_windows_gateway_resume))
+                checkout_move=_moves_for(_gateway_pause))
         except UpstreamTargetBroken as broken:  # nothing moved; local edits stay parked, like a rollback
             if auto_stash_ref is not None:
                 print(f"  ℹ️  Local changes preserved in stash (ref: {auto_stash_ref})")
@@ -1478,7 +1420,7 @@ def _prepare_checkout_for_update(
                 _clear_pending_autostash()
             _roll_back_broken_update(git_cmd, pre_sync_sha, broken.path, broken.error,
                                      header=_upstream_broken_header(broken),
-                                     _windows_gateway_resume=_windows_gateway_resume,
+                                     _gateway_pause=_gateway_pause,
                                      stop_class="target_syntax_error")
         post_sync_sha = _capture_head_sha(git_cmd, _m().PROJECT_ROOT)
         if pre_sync_sha and post_sync_sha and pre_sync_sha != post_sync_sha:
@@ -1575,7 +1517,7 @@ def _begin_update_receipt_and_plan(args):
 
 def _record_update_initiator() -> None:
     """We hold the update lock, so a claim naming another pid is our orchestrator's: the Desktop
-    hand-off (posix shim, windows script, Tauri updater) — the metric's ``kind``. Read the marker
+    hand-off (posix shim, Tauri updater) — the metric's ``kind``. Read the marker
     raw: a liveness probe or stale-marker cleanup is lock policy, not a metrics side effect."""
     with _best_effort('Update initiator unavailable: %s'):
         from hermes_cli.update_lock import update_marker_path
@@ -1584,37 +1526,23 @@ def _record_update_initiator() -> None:
             _completion_receipt.record_fact("initiator", "desktop")
 
 
-def _prepare_git_command(*, checkout_move=None) -> tuple[bool, list, bool]:
-    """Return ``(use_zip_update, git_cmd, is_fork)``; ``sys.exit(1)`` when not a git repo
-    on a non-Windows host (Windows falls back to ZIP: broken git file I/O, AV, NTFS filters).
-    *checkout_move* binds the churn cleanups' file writes to the paused gateways' tree gate."""
-    git_dir = _m().PROJECT_ROOT / ".git"
-    use_zip_update = not git_dir.exists()
-    if use_zip_update and sys.platform != "win32":
+def _prepare_git_command(*, checkout_move=None) -> tuple[list, bool]:
+    """Return ``(git_cmd, is_fork)``; ``sys.exit(1)`` when not a git repo.
+    *checkout_move* binds the churn cleanup's file writes to the paused gateways' tree gate."""
+    if not (_m().PROJECT_ROOT / ".git").exists():
         print("✗ Not a git repository. Please reinstall:")
         print("  curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash")
         _record_stop("not_git_checkout")
         sys.exit(1)
-
-    from hermes_cli._subprocess_compat import expose_pm_git
-
-    expose_pm_git(_m().PROJECT_ROOT)
-    git_cmd = _base_git_cmd()
-    if sys.platform == "win32" and git_dir.exists():
-        _git_run(git_cmd, ["config", "windows.appendAtomically", "false"])
+    git_cmd = ["git"]
     # One CA story for the whole update: git's libcurl must trust what the
     # channel read already trusts, or the fetch dies mid-update behind a
     # TLS-inspecting proxy (see _map_ssl_cert_file_for_git).
     _map_ssl_cert_file_for_git(git_cmd)
-    # A broken Git-for-Windows trampoline refuses every call with a "BUG (fork bomb)" guard;
-    # swap in a real binary up front so git survives instead of degrading to ZIP.
-    # See #87876.
-    git_cmd = _ensure_non_trampoline_git(git_cmd)
 
-    # Before stash/branch logic: npm rewrites package-lock.json non-deterministically and
-    # line-ending churn is machine-made dirt; both would otherwise force an autostash every update.
+    # Before stash/branch logic: npm rewrites package-lock.json non-deterministically, which
+    # would otherwise force an autostash every update.
     _discard_lockfile_churn(git_cmd, _m().PROJECT_ROOT, checkout_move=checkout_move)
-    _normalize_managed_eol(git_cmd, _m().PROJECT_ROOT, checkout_move=checkout_move)
 
     origin_url = _m()._get_origin_url(git_cmd, _m().PROJECT_ROOT)
     is_fork = _is_fork(origin_url)
@@ -1623,11 +1551,11 @@ def _prepare_git_command(*, checkout_move=None) -> tuple[bool, list, bool]:
         print("⚠ Updating from fork:")
         print(f"  {origin_url}")
         print()
-    return use_zip_update, git_cmd, is_fork
+    return git_cmd, is_fork
 
 
 def _verify_head_after_pull(
-    git_cmd, branch: str, pre_pull_sha, *, in_place_update: bool, _windows_gateway_resume
+    git_cmd, branch: str, pre_pull_sha, *, in_place_update: bool, _gateway_pause
 ) -> str | None:
     """Return the post-pull HEAD SHA; ``sys.exit(1)`` if the pull was a no-op or landed off-branch."""
     # A detached checkout pinned to a SHA can report "N new commit(s)" and a successful
@@ -1650,7 +1578,7 @@ def _verify_head_after_pull(
             "  Reattach to the branch and retry: "
             f"git -C {_m().PROJECT_ROOT} checkout {branch} && hermes update")
         _commit.disarm_commit_obligations()  # nothing moved: no tail is owed (refused if HEAD did)
-        _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+        _posix_pause.resume_paused_gateways_after_update(_gateway_pause)
         _record_stop("detached_head")
         sys.exit(1)
 
@@ -1665,7 +1593,7 @@ def _verify_head_after_pull(
         print(
             "  Switch to the target branch and retry: "
             f"git -C {_m().PROJECT_ROOT} checkout {branch} && hermes update")
-        _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+        _posix_pause.resume_paused_gateways_after_update(_gateway_pause)
         _record_stop("unexpected_branch")
         sys.exit(1)
     return post_pull_sha
@@ -1676,42 +1604,25 @@ def _current_branch_name(git_cmd, *, check: bool = False) -> str:
     return _git_run(git_cmd, ["rev-parse", "--abbrev-ref", "HEAD"], check=check).stdout.strip()
 
 
-def _handle_update_called_process_error(
-    e, args, gateway_mode: bool, had_desktop_app_before_update: bool,
-    *, target_sha: str | None = None, target_repository: str | None = None, completion_request=None) -> None:
-    """Git/installer failure: ZIP-fallback when safe, else report and ``sys.exit(1)``."""
+def _handle_update_called_process_error(e: subprocess.CalledProcessError) -> NoReturn:
+    """Git/installer failure: report and ``sys.exit(1)``."""
     if unrestored := _unrestored_autostash_notice():
         print(unrestored)  # a stash taken this run that no settle step reported (#122557)
     stage = _format_update_failure_stage(e)
-    if _should_zip_fallback_on_update_error(e):
-        print(f"⚠ {stage}: {e}")
-        print("→ Falling back to ZIP download...")
+    if _called_process_error_is_python_dep_install(e):
+        print(f"✗ {stage} (the code update itself succeeded).")
+        _print_called_process_error_tail(e)
         print()
-        _update_via_zip(
-            args, had_desktop_app_before_update=had_desktop_app_before_update,
-            target_sha=target_sha, completion_request=completion_request,
-            **({"target_repository": target_repository} if target_repository else {}))
-
+        print("  Hermes may not start until the dependencies are installed. Fix the error above")
+        print("  (usually network or disk space), then run `hermes update` again.")
     else:
-        if _called_process_error_is_python_dep_install(e):
-            print(f"✗ {stage} (the code update itself succeeded).")
-            _print_called_process_error_tail(e)
-            print()
-            print("  Hermes may not start until the dependencies are installed. Fix the error above")
-            print("  (usually network or disk space), then run `hermes update` again.")
-            if _m()._is_windows():
-                print("  If `hermes update` itself will not start, retry through the venv interpreter:")
-                print(
-                    '    venv\\Scripts\\python.exe -c '
-                    '"from hermes_cli.main import main; main()" update --yes')
-        else:
-            print(f"✗ {stage}.")
-            print(f"  Details: {e}")
-            _print_called_process_error_tail(e)
-        if stop := _completion_receipt.git_error_stop_class(e):
-            _record_stop(stop)
-        _finalize_receipt("failed", 'Update receipt finalize failed: %s')
-        sys.exit(1)
+        print(f"✗ {stage}.")
+        print(f"  Details: {e}")
+        _print_called_process_error_tail(e)
+    if stop := _completion_receipt.git_error_stop_class(e):
+        _record_stop(stop)
+    _finalize_receipt("failed", 'Update receipt finalize failed: %s')
+    sys.exit(1)
 
 
 def _finalize_receipt(status: str, debug_message: str) -> None:
@@ -1723,7 +1634,7 @@ def _finalize_receipt(status: str, debug_message: str) -> None:
 
 def _finish_already_up_to_date(
     git_cmd, branch: str, current_branch: str, _plan, *, gw_input_fn, completion_request: dict,
-    _windows_gateway_resume=None) -> None:
+    _gateway_pause=None) -> None:
     """"Already up to date" path: restore stash, repair the checkout, catch up the fleet.
     ``sys.exit(1)`` when the repair is incomplete (after gateway exit code + partial receipt)."""
     # A parked branch the update switched off stays on the target: re-parking on the stale branch
@@ -1732,7 +1643,7 @@ def _finish_already_up_to_date(
     if _plan.auto_stash_ref is not None:
         _m()._restore_stashed_changes(
             git_cmd, _m().PROJECT_ROOT, _plan.auto_stash_ref, prompt_user=_plan.prompt_for_restore,
-            input_fn=gw_input_fn, checkout_move=_moves_for(_windows_gateway_resume))
+            input_fn=gw_input_fn, checkout_move=_moves_for(_gateway_pause))
     if _plan.parked_branch_switched:
         if _plan.switch_block_reason.startswith("unmerged:"):
             _count = _plan.switch_block_reason.split(":", 1)[1]
@@ -1753,20 +1664,20 @@ def _finish_already_up_to_date(
 
 
 def _apply_pulled_update(
-    git_cmd, branch, movement_baseline, _plan, *, _windows_gateway_resume, completion_request: dict) -> None:
+    git_cmd, branch, movement_baseline, _plan, *, _gateway_pause, completion_request: dict) -> None:
     """Post-pull phase: verify HEAD, sync Python/Node/web/Desktop, maintenance, fleet restart.
 
     ``movement_baseline`` is what ``_pull_updates`` returned: the SHA HEAD had to move off."""
     post_pull_sha = _verify_head_after_pull(
         git_cmd, branch, movement_baseline, in_place_update=_plan.in_place_update,
-        _windows_gateway_resume=_windows_gateway_resume)
+        _gateway_pause=_gateway_pause)
 
     if completion_request is not None:
         observed = _capture_head_sha(git_cmd, _m().PROJECT_ROOT) or post_pull_sha
         pinned = completion_request.get("expected_sha")
         if pinned is not None and observed != pinned:
             print("✗ Checkout no longer matches the selected channel commit. No completion was applied.")
-            _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+            _posix_pause.resume_paused_gateways_after_update(_gateway_pause)
             _record_stop("head_moved")
             sys.exit(1)
         completion_request["expected_sha"] = pinned or observed
@@ -1815,12 +1726,11 @@ def _cmd_update_impl(args, gateway_mode: bool):
     _record_pre_update_backup_outcome(args, pre_update_snapshot_id)
     _record_snapshot_stage(args, pre_update_snapshot_id)
 
-    # Windows pauses here (venv locks); Linux/macOS only arm a pause the commit point performs.
-    _windows_gateway_resume = _m()._pause_windows_gateways_for_update() or _posix_pause.arm_pause(
-        no_gateway_restart=opts.no_gateway_restart)
-    if _windows_gateway_resume:
+    # Arm the pause here; the commit point performs it.
+    _gateway_pause = _posix_pause.arm_pause(no_gateway_restart=opts.no_gateway_restart)
+    if _gateway_pause:
         import atexit as _atexit
-        _atexit.register(_m()._resume_windows_gateways_after_update, _windows_gateway_resume)
+        _atexit.register(_posix_pause.resume_paused_gateways_after_update, _gateway_pause)
     desktop_dir = _m().PROJECT_ROOT / "apps" / "desktop"
     # An installed Hermes.app only this update refreshes counts even with no release/ build
     # beside it: without one it was never rebuilt, so it never got newer (#52339).
@@ -1829,16 +1739,15 @@ def _cmd_update_impl(args, gateway_mode: bool):
         or _m()._desktop_dist_exists(desktop_dir)
         or bool(_m()._installed_desktop_apps()))
 
-    use_zip_update, git_cmd, is_fork = _prepare_git_command(checkout_move=_moves_for(_windows_gateway_resume))
+    git_cmd, is_fork = _prepare_git_command(checkout_move=_moves_for(_gateway_pause))
 
     completion_request = _source_completion_request(
-        opts, _pre_update_plan, pre_update_snapshot_id, _windows_gateway_resume,
+        opts, _pre_update_plan, pre_update_snapshot_id, _gateway_pause,
         had_desktop_app_before_update, gateway_mode)
     branch = _m()._resolve_update_branch(args)
     completion_request["branch"] = branch
     target_ref = f"origin/{branch}"
     release_sha = None
-    target_repository = None
     selected_channel = _source_update_channel(args)
     if not getattr(args, "branch", None):
         from hermes_cli.release_channels import retrying_reads
@@ -1854,10 +1763,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
         try:
             with retrying_reads():
                 target = resolve_source_target(
-                    selected_channel, None if use_zip_update else git_cmd, _m().PROJECT_ROOT)
+                    selected_channel, git_cmd, _m().PROJECT_ROOT)
         except (OSError, ValueError, subprocess.SubprocessError) as exc:
             print(f"✗ Could not resolve the {selected_channel} source channel: {exc}. No update was applied.")
-            _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+            _posix_pause.resume_paused_gateways_after_update(_gateway_pause)
             _record_stop("channel_unresolved")
             sys.exit(1)
         if target.retired:
@@ -1866,7 +1775,6 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     and original_record.get("channel", "main") == selected_channel):
                 completion_request["channel_retirement"] = {
                     "original": original_record, "destination": target.channel}
-        target_repository = target.repository
         release_sha = target.commit
         if release_sha:
             print(f"→ Latest release: {target.label}")
@@ -1877,17 +1785,6 @@ def _cmd_update_impl(args, gateway_mode: bool):
             branch = target.branch
             completion_request["branch"] = branch
             target_ref = f"origin/{branch}"
-
-    if use_zip_update:
-        try:
-            _update_via_zip(
-                args, had_desktop_app_before_update=had_desktop_app_before_update,
-                target_sha=release_sha, completion_request=completion_request,
-                **({"target_repository": target_repository} if target_repository else {}))
-        finally:
-            _resume_paused_gateways_at_exit(_windows_gateway_resume, completion_request)
-
-        return
 
     try:
         _check.report_pack_tidy(_m().PROJECT_ROOT)
@@ -1925,24 +1822,24 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 print("✗ git still crashed after marking this checkout's packs. See 'Fetch fails with"
                       " should_include_obj' in https://hermes-agent.nousresearch.com/docs/getting-started/updating")
             _print_fetch_failure(fetch_result.stderr)
-            _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+            _posix_pause.resume_paused_gateways_after_update(_gateway_pause)
             _record_stop("git_timeout" if fetch_result.returncode == 124 else "disk_full"
                          if "No space left on device" in (fetch_result.stderr or "") else "fetch_failed")
             sys.exit(1)
 
         current_branch = _current_branch_name(git_cmd, check=True)
         _commit.record_run_start(git_cmd, _m().PROJECT_ROOT)
-        _refuse_before_commit_point(git_cmd, target_ref, _windows_gateway_resume)
+        _refuse_before_commit_point(git_cmd, target_ref, _gateway_pause)
         _plan = _prepare_checkout_for_update(
             git_cmd, branch, current_branch, is_fork=is_fork, assume_yes=assume_yes,
             gateway_mode=gateway_mode, gw_input_fn=gw_input_fn, switch_branch=opts.switch_branch,
-            target_ref=target_ref, _windows_gateway_resume=_windows_gateway_resume)
+            target_ref=target_ref, _gateway_pause=_gateway_pause)
         commit_count = _plan.commit_count
 
         if commit_count == 0:
             _finish_already_up_to_date(
                 git_cmd, branch, current_branch, _plan, gw_input_fn=gw_input_fn,
-                completion_request=completion_request, _windows_gateway_resume=_windows_gateway_resume)
+                completion_request=completion_request, _gateway_pause=_gateway_pause)
             return
 
         if release_sha:
@@ -1962,15 +1859,13 @@ def _cmd_update_impl(args, gateway_mode: bool):
             keep_stash=opts.keep_stash, target_ref=target_ref, pre_sync_sha=_plan.pre_sync_sha,
             rollback_branch=_plan.rollback_branch,
             sync_upstream=is_fork and branch == "main" and not release_sha, assume_yes=assume_yes,
-            in_place_update=_plan.in_place_update, _windows_gateway_resume=_windows_gateway_resume,
+            in_place_update=_plan.in_place_update, _gateway_pause=_gateway_pause,
             expected_sha=completion_request.get("expected_sha"))
         _apply_pulled_update(
             git_cmd, branch, movement_baseline, _plan,
-            _windows_gateway_resume=_windows_gateway_resume, completion_request=completion_request)
+            _gateway_pause=_gateway_pause, completion_request=completion_request)
     except subprocess.CalledProcessError as e:
         try:
-            _handle_update_called_process_error(
-                e, args, gateway_mode, had_desktop_app_before_update, target_sha=release_sha,
-                target_repository=target_repository, completion_request=completion_request)
+            _handle_update_called_process_error(e)
         finally:
-            _resume_paused_gateways_at_exit(_windows_gateway_resume, completion_request)
+            _resume_paused_gateways_at_exit(_gateway_pause, completion_request)

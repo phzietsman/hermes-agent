@@ -64,7 +64,7 @@ def _case_collision(email: str) -> str | None:
     if not EMAILS_DIR.is_dir():
         return None
 
-    # casefold (not lower) matches how macOS/Windows fold non-ASCII text —
+    # casefold (not lower) matches how macOS folds non-ASCII text —
     # same key scripts/check-case-collisions.py uses repo-wide.
     folded = email.casefold()
     for entry in EMAILS_DIR.iterdir():
@@ -87,7 +87,7 @@ def add_contributor(email: str, login: str, comment: str = "") -> int:
     path = EMAILS_DIR / email
 
     # One file per email means the FILENAME is the key, and on a
-    # case-insensitive filesystem (Windows, default macOS) two emails differing
+    # case-insensitive filesystem (default macOS) two emails differing
     # only in case are the same file. Creating both makes the repo impossible to
     # check out cleanly there -- `git status` reports a phantom modification
     # forever, because whichever file git wrote second wins on disk. Refuse for
@@ -96,7 +96,7 @@ def add_contributor(email: str, login: str, comment: str = "") -> int:
     if collision is not None:
         print(
             f"error: {email} collides with existing mapping {collision} on "
-            "case-insensitive filesystems (Windows/macOS) — the two are the same "
+            "case-insensitive filesystems (macOS) — the two are the same "
             "file there. Reuse that mapping, or resolve manually.",
             file=sys.stderr,
         )

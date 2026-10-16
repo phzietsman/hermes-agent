@@ -624,8 +624,8 @@ def test_repeated_heartbeat_errors_cancel_after_bounded_grace(monkeypatch):
     # ticks must not cancel before the run body's 0.5s wait completes
     # (loose-bounds rule for timing-sensitive tests).
 
-    # Intervals well above Windows' ~15ms timer resolution so the grace window
-    # reliably spans 3+ heartbeat ticks (10ms/30ms left only ~2 on win32).
+    # Intervals well above coarse timer resolution so the grace window reliably
+    # spans 3+ heartbeat ticks.
     monkeypatch.setattr(scheduler, "_RUN_CLAIM_HEARTBEAT_SECONDS", 0.05)
     monkeypatch.setattr(scheduler, "_FIRE_CLAIM_HEARTBEAT_GRACE_SECONDS", 0.3)
 

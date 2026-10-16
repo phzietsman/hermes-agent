@@ -17,21 +17,12 @@ import { TerminalWriteContext } from '../useTerminalNotification.js'
  *
  * Pass `null` to opt out — the hook becomes a no-op and leaves the
  * terminal title untouched.
- *
- * On Windows, uses `process.title` (classic conhost doesn't support OSC).
  */
 export function useTerminalTitle(title: string | TerminalTitlePair | null): void {
   const writeRaw = useContext(TerminalWriteContext)
 
   useEffect(() => {
     if (title === null || !writeRaw) {
-      return
-    }
-
-    if (process.platform === 'win32') {
-      const clean = stripAnsi(typeof title === 'string' ? title : (title.window ?? title.tab ?? ''))
-      process.title = clean
-
       return
     }
 

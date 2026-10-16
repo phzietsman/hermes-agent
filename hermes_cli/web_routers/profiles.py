@@ -688,7 +688,7 @@ def _merge_profile_tree(
             session["is_default_profile"] = profile == "default"
 
         # Same folder-identity notion the per-profile tree builder uses (``_path_key``):
-        # shape-derived — Windows paths case-fold on any host, separators unify, NFC —
+        # trailing separators drop and segments NFC-normalize —
         # so the cross-profile merge agrees by construction with the trees it merges.
         from tui_gateway.project_tree import _path_key
         key = _path_key(project.get("path") or project["id"])
@@ -938,9 +938,7 @@ async def open_profile_terminal_endpoint(name: str):
     with _profile_errors("POST /api/profiles/%s/open-terminal failed", name):
         command = _profile_setup_command(name)
 
-        if sys.platform.startswith("win"):
-            subprocess.Popen(["cmd.exe", "/c", "start", "", command])
-        elif sys.platform == "darwin":
+        if sys.platform == "darwin":
             escaped = command.replace("\\", "\\\\").replace('"', '\\"')
             subprocess.Popen(["osascript", "-e",
                               f'tell application "Terminal"\nactivate\ndo script "{escaped}"\nend tell'])

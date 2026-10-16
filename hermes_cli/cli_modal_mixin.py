@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import queue
-import sys
 import threading
 import time as _time
 import webbrowser
@@ -229,7 +228,7 @@ class CLIModalMixin:
 
         ``run_in_terminal`` only works on the main-thread loop; on the ``process_loop`` daemon
         thread a bare ``input()`` would block forever on loop-owned stdin, so with an app running
-        off-main we cancel cleanly (None) — mirroring ``_stdin_fallback`` in the modal prompt.
+        off-main we cancel cleanly (None).
 
         Mirrors the thread-aware guard in ``_run_curses_picker``: ``run_in_terminal`` returns a coroutine
         that must be awaited by the prompt_toolkit event loop, which only exists on the main thread. Slash
@@ -249,8 +248,7 @@ class CLIModalMixin:
         # Slash-worker guard (#23185 / billing auto-reload hang): when a prompt_toolkit app is running but
         # we're on a non-main thread (the process_loop / TUI slash-worker daemon thread), stdin is owned by
         # the event loop / JSON-RPC pipe. A bare input() there blocks forever until the worker's 45s timeout
-        # fires. We cannot safely prompt off the main thread, so cancel cleanly (None) instead of hanging —
-        # mirrors the _stdin_fallback discipline in _prompt_text_input_modal.
+        # fires. We cannot safely prompt off the main thread, so cancel cleanly (None) instead of hanging.
         if self._app and not in_main_thread:
             self._invalidate()
             return None
@@ -304,14 +302,7 @@ class CLIModalMixin:
         """Slash-command confirmation through the prompt_toolkit composer (raw input() fought
         prompt_toolkit's stdin ownership: prompt above the TUI, Enter read as EOF). All platforms
         drive the modal via ``self._app.loop`` + ``call_soon_threadsafe``; raw ``input()`` is kept
-        only for the safe cases (no app, no loop, scheduling failure) — on Windows a non-main-thread
-        input() deadlocks against prompt_toolkit, so that case cancels instead.
-
-        **Platform note (Windows — issue #33961):** Earlier code bypassed the modal on ``sys.platform ==
-        "win32"`` and fell back to a raw ``input()`` prompt. When the confirm was triggered from the
-        ``process_loop`` daemon thread (the normal case) that ``input()`` ran off the main thread and
-        deadlocked against prompt_toolkit's stdin ownership — the user saw a frozen cursor and Ctrl-C was
-        swallowed (bare ``/reset`` froze; ``/reset now`` worked only because it skips the prompt entirely).
+        only for the safe cases (no app, no loop, scheduling failure).
         """
         if not choices:
             return None
@@ -325,16 +316,10 @@ class CLIModalMixin:
         in_main_thread = threading.current_thread() is threading.main_thread()
 
         def _stdin_fallback() -> str | None:
-            # On native Windows a raw input() from a non-main thread deadlocks against prompt_toolkit's
-            # stdin ownership (#33961). With an app running we cannot safely prompt off the main thread, so
-            # cancel cleanly (None) rather than hang the terminal.
-            if sys.platform == "win32" and not in_main_thread:
-                self._invalidate()
-                return None
             return self._prompt_text_input(t("cli.modal.choice_prompt"))
 
         if not in_main_thread and app_loop is None:
-            return _stdin_fallback()
+            return self._prompt_text_input(t("cli.modal.choice_prompt"))
 
         response_queue = queue.Queue()
 
@@ -374,7 +359,7 @@ class CLIModalMixin:
             return ready.wait(timeout=5)
 
         if not _run_on_app_loop(_setup_modal):
-            return _stdin_fallback()
+            return self._prompt_text_input(t("cli.modal.choice_prompt"))
         try:
             result = self._poll_modal_queue(
                 response_queue, "_slash_confirm_deadline", refresh=5.0, paint=self._invalidate)
@@ -536,8 +521,7 @@ class CLIModalMixin:
         Inline-skip: if ``cmd_original`` contains ``now``, ``--yes``, or ``-y`` as an argument (e.g.
         ``/reset now``, ``/new --yes My title``), the modal is bypassed and ``"once"`` is returned
         immediately. This is an escape hatch for non-interactive use and for the degraded path where the
-        modal can't be marshaled onto the app loop (native Windows itself now drives the modal normally —
-        see #33961). Callers are responsible for stripping the skip tokens from any remaining argument
+        modal can't be marshaled onto the app loop. Callers are responsible for stripping the skip tokens from any remaining argument
         parsing (see :meth:`_split_destructive_skip`).
         """
         if cmd_original and self._split_destructive_skip(cmd_original)[1]:

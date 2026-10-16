@@ -23,8 +23,6 @@ def test_wake_dependencies_and_runtime_gate_agree_on_supported_targets():
         ("darwin", "Darwin", "arm64", True),
         ("linux", "Linux", "x86_64", True),
         ("linux", "Linux", "aarch64", True),
-        ("win32", "Windows", "AMD64", True),
-        ("win32", "Windows", "ARM64", False),
     ]
     for system, platform_system, machine, supported in targets:
         environment = {**default_environment(), "sys_platform": system,

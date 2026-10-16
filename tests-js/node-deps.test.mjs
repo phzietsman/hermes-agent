@@ -39,8 +39,8 @@ test.each(['npm', 'npm-fixture'])('prepared npm discovers lib/%s without npm_exe
   mkdirSync(join(root, 'bin'))
   mkdirSync(join(root, 'lib'))
   // Real npm code in a version-suffixed package directory. The launcher name
-  // has no .js suffix, as with native npm.cmd and Nix's shell wrappers.
-  cpSync(installedCli, join(root, 'bin', process.platform === 'win32' ? 'npm.cmd' : 'npm'))
+  // has no .js suffix, as with Nix's shell wrappers.
+  cpSync(installedCli, join(root, 'bin', 'npm'))
   symlinkSync(dirname(dirname(installedCli)), join(root, 'lib', directory), 'junction')
   const env = { ...process.env, PATH: join(root, 'bin') }
   delete env.npm_execpath
@@ -197,7 +197,7 @@ test('npm configuration name casing does not invalidate a completed install', as
   prepareNodeDependencies({ ...options, env: { ...env, npm_config_prefix: prefix } })
   const artifact = join(source, 'node_modules/postinstall-output')
   writeFileSync(artifact, 'built')
-  // The Windows runner sets lowercase; Python's os.environ returns uppercase.
+  // Some environments set lowercase; Python's os.environ returns uppercase.
   prepareNodeDependencies({ ...options, env: { ...env, NPM_CONFIG_PREFIX: prefix } })
   expect(readFileSync(artifact, 'utf8')).toBe('built')
   // Normalize names, not values: a genuinely changed setting still reinstalls.
@@ -271,7 +271,7 @@ function fakeNpmTree(source, { manifest }) {
   return { fake, npmRoot, spawned, armProbe }
 }
 
-test.skipIf(process.platform === 'win32')('the npm version reads from the manifest without a child spawn, through a symlinked npm_execpath', async () => {
+test('the npm version reads from the manifest without a child spawn, through a symlinked npm_execpath', async () => {
   const { prepareNodeDependencies } = await import('../scripts/build/node-deps.mjs')
   const source = fixture()
   const { fake, npmRoot, spawned } = fakeNpmTree(source, { manifest: '10.8.2' })

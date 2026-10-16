@@ -309,7 +309,7 @@ function isMissing(error: unknown): boolean {
 }
 
 /** `true` only when the package's `desktop/plugin.js` is genuinely gone. A
- *  source the app is not ALLOWED to stat (Windows ACL EPERM, a mode-000 folder)
+ *  source the app is not ALLOWED to stat (a mode-000 folder)
  *  is not an uninstall — pruning its root copy would silently drop the pane. */
 async function sourceGone(name: string, entry: string): Promise<boolean> {
   try {
@@ -348,7 +348,7 @@ export async function reconcileUnifiedDesktopHalves(hermesHome: string, appRoot:
       try {
         result = await materializeDesktopHalf(path.join(pluginsRoot, name), appRoot, name)
       } catch (error) {
-        // One package the app cannot read (Windows ACL EPERM on lstat/copy, a
+        // One package the app cannot read (a
         // mode-000 folder) must not reject the whole reconcile — the root would
         // never resolve and EVERY desktop plugin would silently stop loading.
         console.warn(`[desktop-plugins] skipping unreadable package ${name}: ${String(error)}`)

@@ -16,7 +16,7 @@ test('excludes expired roots and deduplicates real certificates with defaults fi
     [expiredRoot, bundledRoot.replaceAll('\n', '\r\n'), privateRoot, privateRoot, 'unparseable-system']
   )
 
-  const result = installSystemCaTrust(tlsApi, 'win32')
+  const result = installSystemCaTrust(tlsApi, 'darwin')
 
   assert.deepEqual(tlsApi.installed, [[bundledRoot, 'unparseable-default', privateRoot, 'unparseable-system']])
   assert.deepEqual(result, { applied: true, systemCertificateCount: 2, totalCertificateCount: 4 })
@@ -26,7 +26,7 @@ test('excludes a root at its exact expiry while retaining valid defaults', () =>
   vi.spyOn(Date, 'now').mockReturnValue(new X509Certificate(expiredRoot).validToDate.getTime())
   const tlsApi = fakeTlsApi([bundledRoot], [expiredRoot])
 
-  const result = installSystemCaTrust(tlsApi, 'win32')
+  const result = installSystemCaTrust(tlsApi, 'darwin')
 
   assert.deepEqual(tlsApi.installed, [[bundledRoot]])
   assert.deepEqual(result, { applied: true, systemCertificateCount: 0, totalCertificateCount: 1 })
@@ -34,7 +34,7 @@ test('excludes a root at its exact expiry while retaining valid defaults', () =>
 
 function fakeTlsApi(
   defaults: string[] = ['bundled-ca', 'extra-ca'],
-  system: string[] = ['windows-root-ca']
+  system: string[] = ['macos-root-ca']
 ): NodeTlsCaApi & { installed: string[][] } {
   const installed: string[][] = []
 
@@ -49,10 +49,10 @@ function fakeTlsApi(
   }
 }
 
-test('installs Windows system CAs without dropping existing defaults', () => {
+test('installs macOS system CAs without dropping existing defaults', () => {
   const tlsApi = fakeTlsApi(['mozilla-root', 'extra-ca'], ['machine-root', 'user-root'])
 
-  const result = installSystemCaTrust(tlsApi, 'win32')
+  const result = installSystemCaTrust(tlsApi, 'darwin')
 
   assert.deepEqual(tlsApi.installed, [['mozilla-root', 'extra-ca', 'machine-root', 'user-root']])
   assert.deepEqual(result, {
@@ -121,7 +121,7 @@ test('does not inspect or replace CAs on linux', () => {
 test('leaves the existing defaults untouched when the OS store has no system CAs', () => {
   const tlsApi = fakeTlsApi(['mozilla-root'], [])
 
-  const result = installSystemCaTrust(tlsApi, 'win32')
+  const result = installSystemCaTrust(tlsApi, 'darwin')
 
   assert.deepEqual(tlsApi.installed, [])
   assert.deepEqual(result, {
@@ -145,7 +145,7 @@ test('fails open when the runtime cannot load the OS certificate store', () => {
     }
   }
 
-  const result = installSystemCaTrust(tlsApi, 'win32')
+  const result = installSystemCaTrust(tlsApi, 'darwin')
 
   assert.deepEqual(result, {
     applied: false,

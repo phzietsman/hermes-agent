@@ -23,7 +23,6 @@ import os
 import re
 import signal
 import subprocess
-import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Iterator
@@ -35,10 +34,7 @@ from tests.e2e.core.kanban._helpers import PY, Board, wait_until
 from tests.fakes.fake_llm_provider import Error, FakeLLMServer, Response, Text
 
 # The gateway child is isolated (scratch HOME/HERMES_HOME, own lock dir) and reaped by PID below.
-pytestmark = [
-    pytest.mark.spawns_gateway_lookalike,
-    pytest.mark.skipif(sys.platform == "win32", reason="POSIX process groups for the gateway child"),
-]
+pytestmark = pytest.mark.spawns_gateway_lookalike
 
 _REBILLED = r"doomed card billed \d+ aux decompose calls over >= \d+ dispatcher ticks \(bound \d+\)"
 KNOWN: dict[str, tuple[str, str]] = {
@@ -143,11 +139,11 @@ def gateway(b: Board) -> Iterator[subprocess.Popen]:
     try:
         yield proc
     finally:
-        for sig, grace in ((signal.SIGTERM, 20), (signal.SIGKILL, 10)):  # windows-footgun: ok — POSIX-gated (skips on win32)
+        for sig, grace in ((signal.SIGTERM, 20), (signal.SIGKILL, 10)):
             if proc.poll() is not None:
                 break
             try:
-                os.killpg(proc.pid, sig)  # windows-footgun: ok — POSIX-gated (skips on win32)
+                os.killpg(proc.pid, sig)
             except ProcessLookupError:
                 break
             try:

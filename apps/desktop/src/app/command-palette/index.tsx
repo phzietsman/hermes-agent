@@ -384,11 +384,11 @@ const PaletteRow = memo(function PaletteRow({
 // "Go to session ‹id›" jump for ids that aren't in the recent-200 list.
 const SESSION_ID_RE = /^\d{8}_\d{6}_[a-f0-9]{6}$/
 
-// A typed/pasted folder path: absolute (`/…`) or a Windows drive (`C:\…`).
+// A typed/pasted absolute folder path (`/…`).
 // Deliberately NOT `~/…`: the upsert's membership check (projectIdForCwd)
 // compares literal strings against the tree's absolute paths, so an unexpanded
 // home path would always miss and double-create.
-const FOLDER_PATH_RE = /^(\/|[A-Za-z]:[/\\]).+/
+const FOLDER_PATH_RE = /^\/.+/
 
 type SessionRow = Awaited<ReturnType<typeof listAllProfileSessions>>['sessions'][number]
 

@@ -9,7 +9,6 @@ with ``redact_for_egress``). One gateway boot serves every scenario, each in its
 
 from __future__ import annotations
 
-import sys
 
 import pytest
 
@@ -21,8 +20,6 @@ from tests.e2e.core.security._redact import (
 )
 from tests.e2e.core.delivery._fake_platform import wait_until
 from tests.fakes.fake_llm_provider import FakeLLMServer
-
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell commands and process groups")
 
 # Keyed by cell id ``<scenario>-<sink>``: only the platform wire of the streamed answer is the known gap;
 # the same answer reaching gateway.log, state.db, an export or the next request stays a plain red.

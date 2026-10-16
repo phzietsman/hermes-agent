@@ -14,8 +14,7 @@ import { type CheckoutStrategyDeps, createCheckoutStrategy } from './checkout'
 import type { SourceUpdate } from './checkout-source'
 import { fakeHelperScript } from './marker-helper.test-helpers'
 
-const IS_WINDOWS: boolean = process.platform === 'win32'
-const NO_GATEWAY_FLAG: string = IS_WINDOWS ? '-NoGateway' : '--no-gateway'
+const NO_GATEWAY_FLAG: string = '--no-gateway'
 
 afterEach((): void => {
   vi.restoreAllMocks()
@@ -29,29 +28,24 @@ function handoffFixture(remote: boolean, scriptText: string = ''): { root: strin
   const scriptDirectory: string = path.join(root, 'scripts', 'desktop-update')
   fs.mkdirSync(home)
   fs.mkdirSync(scriptDirectory, { recursive: true })
-  fs.writeFileSync(path.join(scriptDirectory, IS_WINDOWS ? 'windows.ps1' : 'posix.sh'), scriptText)
-  fs.writeFileSync(path.join(scriptDirectory, 'runtime.ps1'), '')
+  fs.writeFileSync(path.join(scriptDirectory, 'posix.sh'), scriptText)
   fs.mkdirSync(path.join(root, '.hermes', 'bin'), { recursive: true })
-  fs.writeFileSync(path.join(root, '.hermes', 'bin', 'hermes.exe'), '')
+  fs.writeFileSync(path.join(root, '.hermes', 'bin', 'hermes'), '')
 
   const status: SourceUpdate = { supported: true, branch: 'main', targetSha: 'a'.repeat(40), updateAvailable: true }
 
   const deps: CheckoutStrategyDeps = {
     readSourceUpdate: async (): Promise<SourceUpdate> => status,
     hermesHome: home,
-    isWindows: IS_WINDOWS,
     isMac: process.platform === 'darwin',
     defaultUpdateBranch: 'main',
     updateHandoffDwellMs: 0,
     handoffClaimTimeoutMs: 2000,
     resolveUpdateRoot: (): string => root,
-    resolveUpdaterBinary: (): null => null,
     remoteGatewayActive: (): boolean => remote,
     emitUpdateProgress: vi.fn(),
     rememberLog: vi.fn(),
     startHermes: vi.fn(async (): Promise<void> => {}),
-    stopBackendsForUpdate: async (): Promise<void> => {},
-    repairMacUpdaterHelper: (): void => {},
     preflightStateDb: (): void => {},
     runningAppBundle: (): null => null,
     markQuittingForHandoff: vi.fn(),
@@ -97,10 +91,9 @@ it.each([true, false])(
       expect(await createCheckoutStrategy(deps).apply()).toMatchObject({ ok: true, handedOff: true })
       expect(spawned).toHaveLength(1)
       const args: string[] = spawned[0]!
-      // The Windows cmd wrapper must inherit its hidden console; the POSIX
-      // script needs to outlive Electron as a detached child (#116161).
-      expect(spawnOptions[0]?.detached).toBe(!IS_WINDOWS)
-      expect(args).toContain(IS_WINDOWS ? '-Branch' : '--branch')
+      // The POSIX script needs to outlive Electron as a detached child (#116161).
+      expect(spawnOptions[0]?.detached).toBe(true)
+      expect(args).toContain('--branch')
 
       if (remote) {
         expect(args).toContain(NO_GATEWAY_FLAG)
@@ -112,40 +105,6 @@ it.each([true, false])(
     }
   }
 )
-
-// #103222: the Windows wrapper must own the hidden console the script shares.
-// Spawned detached it has none, so `start /b` gives PowerShell a visible
-// console whose QuickEdit selection stalls the hand-off before relaunch.
-it('the Windows hand-off wrapper is spawned non-detached so the script shares its hidden console', async (): Promise<void> => {
-  const { root, deps } = handoffFixture(false)
-  fs.writeFileSync(path.join(root, 'scripts', 'desktop-update', 'windows.ps1'), '')
-  const resolveHandoff: typeof updaterProcess.resolveUpdateScriptHandoff = updaterProcess.resolveUpdateScriptHandoff
-  vi.spyOn(updaterProcess, 'resolveUpdateScriptHandoff').mockImplementation(
-    (updateRoot: string): updaterProcess.UpdateScriptHandoff | null => resolveHandoff(updateRoot, { isWindows: true })
-  )
-  const spawned: { command: string; args: string[]; detached: unknown }[] = []
-  vi.spyOn(updaterProcess, 'spawnUpdaterProcess').mockImplementation(
-    (
-      command: string,
-      args: string[],
-      options: Parameters<typeof updaterProcess.spawnUpdaterProcess>[2]
-    ): updaterProcess.UpdaterChild => {
-      spawned.push({ command, args, detached: options.detached })
-      scriptTakesMarker(deps.hermesHome, options)
-
-      return { unref: (): void => {} }
-    }
-  )
-
-  try {
-    expect(await createCheckoutStrategy({ ...deps, isWindows: true }).apply()).toMatchObject({ ok: true })
-    expect(spawned).toHaveLength(1)
-    expect(spawned[0]).toMatchObject({ command: 'cmd.exe', detached: false })
-    expect(spawned[0]!.args.slice(0, 6)).toEqual(['/d', '/s', '/c', 'start', '', '/b'])
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true })
-  }
-})
 
 // A hand-off that never became viable (#66753) must not quit into nothing:
 // the app stays, the backend restarts, and the user reads plain copy with
@@ -195,8 +154,7 @@ it('a hand-off whose legacy script never takes the marker keeps the app alive an
     expect(result.message).toMatch(/previous version/)
     expect(deps.quit).not.toHaveBeenCalled()
     expect(deps.markQuittingForHandoff).not.toHaveBeenCalled()
-    // Windows stopped its backends before spawning; POSIX never did.
-    expect(vi.mocked(deps.startHermes).mock.calls.length > 0).toBe(IS_WINDOWS)
+    expect(deps.startHermes).not.toHaveBeenCalled()
     expect(fs.existsSync(markerPath(deps.hermesHome))).toBe(false)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
@@ -216,7 +174,7 @@ function pidAlive(pid: number): boolean {
 // MINOR-3: after the 20 s claim wait gives up, the UI says "the updater did
 // not start". A script that starts late must not then run an update anyway:
 // the Desktop withdraws its bridge AND kills the launcher tree it spawned.
-it.skipIf(IS_WINDOWS)('a timed-out hand-off kills the real script tree it spawned', async (): Promise<void> => {
+it('a timed-out hand-off kills the real script tree it spawned', async (): Promise<void> => {
   const { root, deps } = handoffFixture(false)
   const grandchildPidFile: string = path.join(root, 'late-script.pid')
   let launcherPid: number | undefined
@@ -328,7 +286,7 @@ function mockProtocol2Spawn(home: string, script: 'adopts' | 'adopts-then-dies' 
   return runs
 }
 
-describe.skipIf(IS_WINDOWS)('protocol 2 hand-off', () => {
+describe('protocol 2 hand-off', () => {
   it('bridges with a run id, passes --handoff-run, and acknowledges the live adopting script', async (): Promise<void> => {
     const { root, deps } = handoffFixture(false, fakeHelperScript())
     const runs = mockProtocol2Spawn(deps.hermesHome, 'adopts')
@@ -494,7 +452,7 @@ describe.skipIf(IS_WINDOWS)('protocol 2 hand-off', () => {
 // SPEC 4b: an old script (no protocol line) writes its own claim
 // unconditionally and knows no run id: the Desktop writes no bridge and
 // passes no run argument.
-it.skipIf(IS_WINDOWS)('a legacy script gets no bridge and no --handoff-run', async (): Promise<void> => {
+it('a legacy script gets no bridge and no --handoff-run', async (): Promise<void> => {
   const { root, deps } = handoffFixture(false, '#!/usr/bin/env bash\necho legacy\n')
   const runs = mockProtocol2Spawn(deps.hermesHome, 'never')
 
@@ -504,40 +462,6 @@ it.skipIf(IS_WINDOWS)('a legacy script gets no bridge and no --handoff-run', asy
     expect(runs[0]!.bridgeAtSpawn).toBeNull()
     expect(runs[0]!.args).not.toContain('--handoff-run')
     expect(helperCalls(deps.hermesHome)).toEqual([])
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true })
-  }
-})
-
-// Windows protocol 2: the run id rides the wrapped PowerShell argv.
-it('the Windows protocol-2 hand-off passes -HandoffRun with the bridged run id', async (): Promise<void> => {
-  const { root, deps } = handoffFixture(false)
-  fs.writeFileSync(path.join(root, 'scripts', 'desktop-update', 'windows.ps1'), '# hermes-handoff-protocol: 2\r\n')
-  const resolveHandoff: typeof updaterProcess.resolveUpdateScriptHandoff = updaterProcess.resolveUpdateScriptHandoff
-  vi.spyOn(updaterProcess, 'resolveUpdateScriptHandoff').mockImplementation(
-    (updateRoot: string): updaterProcess.UpdateScriptHandoff | null => resolveHandoff(updateRoot, { isWindows: true })
-  )
-  const helper = vi.fn(async () => ({ kind: 'withdrawn' as const }))
-  const runs: string[][] = []
-  let bridge: string | null = null
-  vi.spyOn(updaterProcess, 'spawnUpdaterProcess').mockImplementation((_command: string, args: string[]) => {
-    runs.push(args)
-    bridge = fs.readFileSync(markerPath(deps.hermesHome), 'utf8')
-
-    return { unref: (): void => {} }
-  })
-
-  try {
-    await createCheckoutStrategy({ ...deps, isWindows: true, markerHelper: helper, handoffClaimTimeoutMs: 200 }).apply()
-    const runId = argAfter(runs[0]!, '-HandoffRun')
-    expect(runId).toMatch(/^desk-\d+-[0-9a-z]+-[0-9a-f]{4}$/)
-    expect(parseUpdateMarker(bridge ?? '')?.run).toBe(runId)
-    expect(argAfter(runs[0]!, '-DesktopPid')).toBe(String(process.pid))
-    // Nothing adopted it: the bridge is withdrawn through the helper, with the run.
-    expect(helper).toHaveBeenCalledWith(
-      'withdraw',
-      expect.objectContaining({ runId, desktopPid: process.pid, isWindows: true })
-    )
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

@@ -8,7 +8,7 @@ from pm import packages, update
 
 @pytest.mark.parametrize('target,triple', [
     ('linux-x64', 'x86_64-unknown-linux-gnu'),
-    ('win32-arm64', 'aarch64-pc-windows-msvc'),
+    ('linux-arm64', 'aarch64-unknown-linux-gnu'),
     ('darwin-arm64', 'aarch64-apple-darwin'),
 ])
 def test_python_candidate_preserves_the_advertised_patch_and_build(monkeypatch, target, triple):

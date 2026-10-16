@@ -61,25 +61,21 @@ DEFAULT_REPO = "NousResearch/hermes-agent"
 
 # Asset name shapes (electron-builder artifactName in
 # apps/desktop/electron-builder.config.cjs):
-#   Hermes-0.28.0-mac-arm64.dmg        (bundled)
-#   HermesBundled-0.28.0-win-x64.msix  (bundled)
+#   HermesBundled-0.28.0-mac-arm64.dmg  (bundled)
 _ASSET_RE = re.compile(
     r"^(?P<app>HermesBundled|HermesLight)-(?P<version>[^-]+)"
-    r"-(?P<os>mac|win|linux)-(?P<arch>x64|arm64)\.(?P<ext>dmg|msix|AppImage)$"
+    r"-(?P<os>mac|linux)-(?P<arch>x64|arm64)\.(?P<ext>dmg|AppImage)$"
 )
 
-_OS_LABEL = {"mac": "macOS", "win": "Windows", "linux": "Linux (AppImage)"}
+_OS_LABEL = {"mac": "macOS", "linux": "Linux (AppImage)"}
 _ARCH_LABEL = {
     ("mac", "arm64"): "Apple Silicon (M-series)",
     ("mac", "x64"): "Intel",
-    ("win", "x64"): "x86 (64-bit)",
-    ("win", "arm64"): "ARM (arm64 / aarch64)",
     ("linux", "x64"): "x86 (64-bit)",
     ("linux", "arm64"): "arm64",
 }
-_KIND_LABEL = {"dmg": "DMG", "msix": "MSIX", "AppImage": "AppImage"}
-_ROW_ORDER = [("mac", "arm64"), ("mac", "x64"), ("win", "x64"), ("win", "arm64"),
-              ("linux", "x64"), ("linux", "arm64")]
+_KIND_LABEL = {"dmg": "DMG", "AppImage": "AppImage"}
+_ROW_ORDER = [("mac", "arm64"), ("mac", "x64"), ("linux", "x64"), ("linux", "arm64")]
 
 
 def parse_assets(names: list[str]) -> dict[str, dict[tuple[str, str], tuple[str, str]]]:
@@ -175,12 +171,6 @@ def filter_names_for_version(names: list[str], version: str) -> list[str]:
 
 # A row needs a unique receipt-listed artifact and its uploaded object.
 _COMMIT_EXPECTED = [
-    ("Windows x64 (MSIX)", "win32-x64",
-     r"^HermesBundled-[^-]+-win-x64\.msix$"),
-    ("Windows ARM64 (MSIX)", "win32-arm64",
-     r"^HermesBundled-[^-]+-win-arm64\.msix$"),
-    ("Windows universal bundle (MSIXBUNDLE)", "windows-universal",
-     r"^HermesBundled-[^-]+-win\.msixbundle$"),
     ("macOS Apple Silicon (DMG)", "darwin-arm64",
      r"^HermesBundled-[^-]+-mac-arm64\.dmg$"),
     ("macOS Intel (DMG)", "darwin-x64",
@@ -198,15 +188,14 @@ _COMMIT_DISABLED = ["Linux x64 (AppImage)", "Linux ARM64 (AppImage)"]
 
 COMMIT_RECEIPT_NAMES = sorted({leg for _label, leg, _pattern in _COMMIT_EXPECTED})
 _COMMIT_JOBS = {
-    "win32-x64": "build-win32-x64", "win32-arm64": "build-win32-arm64",
     "darwin-x64": "build-darwin-x64", "darwin-arm64": "build-darwin-arm64",
-    "windows-universal": "assemble-win32-bundle", "termux": "termux-deb",
+    "termux": "termux-deb",
 }
 
 
 _SMOKE_SCOPE = (
     "Download availability is independent of smoke status. Each result covers all native legs "
-    "in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. "
+    "in that format group. Linux bundles are disabled. "
     "No-upload dry tags have no download handoff and are not smoke-qualified."
 )
 
@@ -574,17 +563,16 @@ def splice(body: str, block: str) -> str:
 def render_channel_summary(manifest: dict) -> str:
     request = manifest["request"]
     rows = []
-    for platform in ("darwin", "win32"):
-        for arch in ("arm64", "x64"):
-            selected = [row for row in manifest["packages"] if row["platform"] == platform
-                        and row["arch"] == arch and row["variant"] == "bundled"]
-            label = f"{platform} {arch}"
-            if len(selected) != 1:
-                rows.append(f"| {label} | Unavailable | — |")
-                continue
-            item = selected[0]
-            url = r2.public_url_for(request["publicBase"], item["artifact"]["key"])
-            rows.append(f"| {label} | {item['version']} | [Download]({url}) |")
+    for arch in ("arm64", "x64"):
+        selected = [row for row in manifest["packages"] if row["platform"] == "darwin"
+                    and row["arch"] == arch and row["variant"] == "bundled"]
+        label = f"darwin {arch}"
+        if len(selected) != 1:
+            rows.append(f"| {label} | Unavailable | — |")
+            continue
+        item = selected[0]
+        url = r2.public_url_for(request["publicBase"], item["artifact"]["key"])
+        rows.append(f"| {label} | {item['version']} | [Download]({url}) |")
     return (f"## Channel `{request['channel']}` build `{request['buildId']}`\n\n"
             f"Source `{request['commit']}` ({request['sourceVersion']}); sequence {request['sequence']}.\n\n"
             "| Native package | Version | Download |\n|---|---|---|\n" + "\n".join(rows) + "\n")

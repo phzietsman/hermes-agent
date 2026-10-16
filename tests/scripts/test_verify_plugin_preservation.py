@@ -32,25 +32,6 @@ vpp = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(vpp)
 
 
-def _make_link(target, link):
-    try:
-        os.symlink(str(target), str(link), target_is_directory=True)
-    except OSError:
-        if os.name != "nt":
-            raise
-        # Windows without symlink privilege: same reparse-point shape.
-        import _winapi
-
-        _winapi.CreateJunction(str(target), str(link))
-
-
-def _remove_link(link):
-    if os.path.islink(str(link)):
-        os.remove(str(link))
-    else:  # NTFS junction
-        os.rmdir(str(link))
-
-
 @pytest.fixture()
 def home(tmp_path):
     """A controlled temp HERMES_HOME with a non-dependency directory wrapper
@@ -60,27 +41,8 @@ def home(tmp_path):
     directory-only, so the scanner cannot recurse into a dependency graph and
     the test needs no network/Torch."""
     h = tmp_path / "hermes-home"
-    if os.name != "nt":
-        vpp.seed_fixtures(h, tmp_path / "external-mnemosyne-runtime")
-        (h / "profiles/e2e-preserve").rename(h / "profiles/work")
-        return h
-    # Retained native NTFS fixture until the shared-seed successor runs on Windows.
-    # active-home plugin: directory wrapper with marker + payload
-    plugin = h / "plugins" / "mnemosyne-wrapper"
-    plugin.mkdir(parents=True)
-    (plugin / "mnemosyne-wrapper.json").write_text('{"wrapper": true}\n', encoding="utf-8")
-    (plugin / "plugin.py").write_bytes(b"PAYLOAD-BYTES-0\n")
-    # external runtime, owned outside the home, reached through a symlink
-    external = tmp_path / "external-mnemosyne-runtime"
-    external.mkdir()
-    (external / "sidecar-witness.txt").write_text("external-witness-v1\n", encoding="utf-8")
-    (external / "engine.bin").write_bytes(b"\x00\x01\x02")
-    _make_link(external, plugin / "runtime")
-    # profile plugin tree
-    pplugin = h / "profiles" / "work" / "plugins" / "second-plugin"
-    pplugin.mkdir(parents=True)
-    (pplugin / "marker.json").write_text('{"p": 1}\n', encoding="utf-8")
-    (pplugin / "data.bin").write_bytes(b"profile-bytes\n")
+    vpp.seed_fixtures(h, tmp_path / "external-mnemosyne-runtime")
+    (h / "profiles/e2e-preserve").rename(h / "profiles/work")
     return h
 
 
@@ -104,7 +66,7 @@ def test_preservation_cli_fault_matrix(home, tmp_path, relative, action, categor
                "--snapshot", str(snapshot), "--report", str(report)]
     def fingerprint():
         return {str(p): (p.read_bytes() if p.is_file() else None, p.lstat().st_mtime_ns,
-                         os.readlink(p) if p.is_symlink() or p.is_junction() else None)
+                         os.readlink(p) if p.is_symlink() else None)
                 for root in (home, tmp_path / "external-mnemosyne-runtime") for p in root.rglob("*")}
     before = fingerprint()
     result = subprocess.run([sys.executable, VERIFIER, "snapshot", "--home", str(home), "--out", str(snapshot)],
@@ -123,8 +85,8 @@ def test_preservation_cli_fault_matrix(home, tmp_path, relative, action, categor
     if action == "repoint":
         other = tmp_path / "other-runtime"
         other.mkdir()
-        _remove_link(target)
-        _make_link(other, target)
+        os.remove(target)
+        os.symlink(other, target, target_is_directory=True)
     elif action == "tree":
         shutil.rmtree(target)
     elif action == "delete":
@@ -167,7 +129,6 @@ def test_empty_snapshot_is_inconclusive(tmp_path):
 @pytest.mark.platforms("posix")
 def test_unreadable_path_is_hard_error(home, tmp_path):
     # A scanner that cannot see a path must fail loudly, not skip silently.
-    # Skip where chmod-based unreadability is not enforceable (Windows).
     if os.geteuid() == 0:
         pytest.skip("root can read chmod-000 directories")
     secret = home / "plugins" / "mnemosyne-wrapper" / "locked"

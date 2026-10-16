@@ -56,7 +56,7 @@ class AuditEvent(enum.Enum):
 
 
 def _resolve_log_path() -> Path:
-    """Lazy leaf import: honours profile overrides + the native-Windows ``%LOCALAPPDATA%`` fallback."""
+    """Lazy leaf import: honours profile overrides."""
     from hermes_constants import get_hermes_home
     return get_hermes_home() / "logs" / "dashboard-auth.log"
 

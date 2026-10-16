@@ -26,7 +26,6 @@ resolves offline local path-source fixtures):
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -206,7 +205,7 @@ def test_conflicting_candidate_refused_unenabled_and_unimported(admission_env):
     marker.write_bytes(b'{"wrapper":true}\n')
     sidecar = tmp_path / "external-sidecar"
     subprocess.run([shutil.which("uv"), "venv", "--python", sys.executable, str(sidecar)], check=True, capture_output=True, timeout=60)
-    sidecar_python = sidecar / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    sidecar_python = sidecar / "bin/python"
     before = marker.read_bytes()
 
     with pytest.raises(admission.AdmissionRefused) as excinfo:

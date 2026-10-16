@@ -563,13 +563,10 @@ def _prune_dead_supervised_pgids() -> set:
     ``_death_supervisor_lock``. Signal 0 is a pure existence probe (cannot terminate anything).
     It narrows, but cannot close, the window where a dead group's pgid is recycled before we
     notice (residual-risk note in ``tools/mcp_death_supervisor.py``)."""
-    killpg = getattr(os, "killpg", None)
-    if killpg is None:  # windows-footgun: ok - POSIX-only, guarded
-        return set()
     stale = set()
     for pgid in list(_supervised_pgids):
         try:
-            killpg(pgid, 0)
+            os.killpg(pgid, 0)
         except ProcessLookupError:
             stale.add(pgid)
         except (PermissionError, OSError):
@@ -584,8 +581,6 @@ def _update_death_supervisor(verb: str, pgids) -> None:
     """Register or unregister process groups (``verb`` is ``"register"``/``"unregister"``) with
     the shared supervisor. Failures are swallowed: losing the safety net must never fail a live
     MCP session."""
-    if os.name != "posix":
-        return
     wanted = {int(pgid) for pgid in pgids}
     if not wanted:
         return

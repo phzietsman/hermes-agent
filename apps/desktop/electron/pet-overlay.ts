@@ -26,7 +26,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(v, hi))
 
 /**
  * Whether the overlay may start click-through. `setIgnoreMouseEvents(true, { forward: true })`
- * only forwards pointer moves on macOS/Windows; on Linux an ignoring overlay never hears the
+ * only forwards pointer moves on macOS; on Linux an ignoring overlay never hears the
  * cursor re-enter the sprite, so it stays a solid window (the X11 HUD makes the same call).
  */
 export const petOverlayClickThrough = (platform = process.platform) => platform !== 'linux'
@@ -37,7 +37,7 @@ export const petOverlayClickThrough = (platform = process.platform) => platform 
  *
  * The overlay going away on its own (⌘W, a display teardown) must echo back so
  * the pet doesn't stay hidden. But when the app itself is quitting — the
- * before-quit teardown closes the overlay, and on Windows/Linux so does the
+ * before-quit teardown closes the overlay, and on Linux so does the
  * primary window's 'closed' handler — that echo is a bug: it runs popInPet(),
  * which persists `$petOverlayActive=false`, so restorePetOverlay() on the next
  * boot skips restoration and the pet silently reverts to in-window. The quit

@@ -5,7 +5,6 @@ export interface UninstallSectionTranslations {
   uninstallHermes: string
   managedBody: string
   dataKept: (path: string) => string
-  openAppsSettings: string
   chooseHowMuch: string
   confirmUninstall: string
   confirmBody: (what: string) => string

@@ -5,7 +5,7 @@ version: 1.0.1
 author: Orchestra Research
 license: MIT
 dependencies: [guidance, transformers]
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Prompt Engineering, Guidance, Constrained Generation, Structured Output, JSON Validation, Grammar, Microsoft Research, Format Enforcement, Multi-Step Workflows]

@@ -4,7 +4,7 @@ description: "Delegate coding to xAI Grok Build CLI (features, PRs)."
 version: 0.1.1
 author: Matt Maximo (MattMaximo), Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Coding-Agent, Grok, xAI, Code-Review, Refactoring, Automation]

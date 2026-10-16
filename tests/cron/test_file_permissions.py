@@ -1,8 +1,6 @@
 """Tests for file permissions hardening on sensitive files.
 
-POSIX permission bits (0700/0600) are only meaningful on POSIX filesystems;
-native Windows does not implement them, so these tests are host-gated (the
-repo's host-native rule: never fake the platform).
+POSIX permission bits (0700/0600) on cron state files.
 """
 
 import os

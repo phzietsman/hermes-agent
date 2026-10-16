@@ -488,9 +488,9 @@ def test_delivery_pins_the_hermes_entrypoint_beside_this_interpreter(tmp_path, m
     install whose shebang picks the wrong interpreter and dies on import (#108628).
     With no published install launcher, both transports invoke the entrypoint beside
     this interpreter instead; a published launcher outranks that sibling (#124868)."""
-    venv_bin = tmp_path / "venv" / ("Scripts" if sys.platform == "win32" else "bin")
+    venv_bin = tmp_path / "venv" / "bin"
     venv_bin.mkdir(parents=True)
-    hermes_entry = venv_bin / ("hermes.exe" if sys.platform == "win32" else "hermes")
+    hermes_entry = venv_bin / "hermes"
     hermes_entry.write_text("#!/bin/sh\n", encoding="utf-8")
     monkeypatch.setattr(sys, "executable", str(venv_bin / "python3"))
     # An install without a published launcher keeps the sibling fallback; keep this
@@ -1063,38 +1063,6 @@ def test_real_delivery_command_round_trip(tmp_path, stdin_file):
     assert not dm_file.exists()
 
 
-@pytest.mark.platforms("windows")
-def test_delivery_command_round_trip_through_windows_local_shell(tmp_path):
-    """Native runner paths must survive the Git Bash process boundary."""
-    from tools.environments.local import _find_shell
-
-    dm_file = tmp_path / "message with spaces.txt"
-    dm_file.write_text("secret", encoding="utf-8")
-    observed = tmp_path / "observed with spaces.txt"
-    child = tmp_path / "child with spaces.py"
-    child.write_text(
-        "import pathlib, sys\n"
-        "pathlib.Path(sys.argv[1]).write_text('started', encoding='utf-8')\n",
-        encoding="utf-8",
-    )
-    command = bot_mode_dm._delivery_command(
-        [sys.executable, str(child), str(observed)],
-        str(dm_file),
-        stdin_file=False,
-    )
-
-    result = subprocess.run(
-        [_find_shell(), "-lic", command],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 0, result.stderr or result.stdout
-    assert observed.read_text(encoding="utf-8") == "started"
-    assert not dm_file.exists()
-
-
 @pytest.mark.parametrize(
     ("terminal_result", "raises"),
     [
@@ -1399,7 +1367,7 @@ def test_local_turn_survives_undecodable_transport_output(tmp_path, capsys):
 
 def test_local_turn_relays_utf8_reply_under_a_gbk_default_codec(tmp_path, monkeypatch, capsys):
     """#83851: the transport is a Hermes CLI child, which always writes UTF-8 stdio. Decoding it with
-    the host's default codec (cp936 on zh-CN Windows) crashed or garbled the reply; it must round-trip."""
+    the host's default codec (a non-UTF-8 locale) crashed or garbled the reply; it must round-trip."""
     dm_file = tmp_path / "dm.txt"
     dm_file.write_text("hello", encoding="utf-8")
     reply = "✅ 已完成…"

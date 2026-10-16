@@ -25,7 +25,7 @@ negated spec (``"not macos"``) lists on every lane since it admits all the
 others (and the named one keeps its import, harmlessly). Matching the
 literal word only would drop every ``platforms("posix")`` file from the
 macOS lane. The match is anchored inside the string literal so bare
-identifiers (a variable named ``windows``) don't produce false positives.
+identifiers (a variable named ``macos``) don't produce false positives.
 
 Usage:
     python scripts/ci/list_os_marked_tests.py macos [tests_root]
@@ -42,14 +42,13 @@ import re
 import sys
 from pathlib import Path
 
-_VALID_PLATFORMS = ("linux", "macos", "windows")
+_VALID_PLATFORMS = ("linux", "macos")
 
 # Mirrors tests/_fixtures/platform_gating.py::_PLATFORM_ALIASES, keyed by lane name rather than
 # sys.platform value: this side never runs on the host it is asking about.
 _SPEC_HOSTS = {
     "linux": frozenset({"linux"}),
     "macos": frozenset({"macos"}),
-    "windows": frozenset({"windows"}),
     "posix": frozenset({"linux", "macos"}),
     "any": frozenset(_VALID_PLATFORMS),
 }

@@ -41,15 +41,11 @@ def _safe_copy_db(src: Path, dst: Path, *, timeout_seconds: float = 10.0) -> boo
         # writes its first byte.  O_NOFOLLOW also refuses a planted symlink on
         # platforms that support it.  Tighten an existing internal staging
         # file as well (NamedTemporaryFile callers already create it 0600).
-        if os.name != "nt":
-            open_flags = os.O_WRONLY | os.O_CREAT
-            if hasattr(os, "O_NOFOLLOW"):
-                open_flags |= os.O_NOFOLLOW
-            secure_fd = os.open(dst, open_flags, 0o600)
-            try:
-                os.fchmod(secure_fd, 0o600)
-            finally:
-                os.close(secure_fd)
+        secure_fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        try:
+            os.fchmod(secure_fd, 0o600)
+        finally:
+            os.close(secure_fd)
         # timeout=0.0 disables sqlite3's implicit busy wait so the progress callback owns the
         # full locked-source deadline instead of adding the default timeout before each callback.
         conn = sqlite3.connect(f"{src.resolve().as_uri()}?mode=ro", uri=True, timeout=0.0)
@@ -69,7 +65,6 @@ def _safe_copy_db(src: Path, dst: Path, *, timeout_seconds: float = 10.0) -> boo
         return True
     except Exception as exc:
         logger.warning("SQLite safe copy failed for %s: %s", src, exc)
-        # Windows won't remove the partial destination while SQLite still has it open.
         _close_quietly(backup_conn)
         backup_conn = None
         with suppress(OSError):

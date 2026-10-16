@@ -100,7 +100,7 @@ class PluginWorld:
 
     def imports(self, name="plugin-worker-proof", pin="1.0") -> None:
         selected = self.selected()
-        python = selected / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        python = selected / "bin/python"
         code = (
             "import importlib.util, pathlib; import plugin_core_dep, plugin_proof_dep; "
             f"assert pathlib.Path(plugin_core_dep.__file__).is_relative_to({str(selected)!r}); "

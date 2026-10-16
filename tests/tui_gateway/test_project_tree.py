@@ -225,52 +225,6 @@ def test_unrecorded_and_recorded_main_share_one_lane():
     assert len(main_lanes[0]["sessions"]) == 2
 
 
-def test_main_checkout_detected_when_roots_differ_only_in_path_spelling():
-    # The two roots come from DIFFERENT git probes: `rev-parse --show-toplevel`
-    # emits forward slashes, while the `--git-common-dir` path goes through
-    # os.path.dirname and keeps Windows backslashes. The main checkout must be
-    # recognized by path IDENTITY, not by raw string equality — otherwise the
-    # repo's own checkout is misread as a linked worktree and the sidebar shows
-    # both a dir-labeled lane and a branch-labeled "main" lane for one checkout.
-    resolve = _resolver(
-        {
-            "C:/repo": ("C:\\repo", "C:/repo"),
-        }
-    )
-    sessions = [_session("C:/repo", branch="main")]
-
-    tree = pt.build_tree([], sessions, [], resolve, hydrate=True)
-    project = next(p for p in tree["projects"] if pt._path_key(p["id"]) == pt._path_key("C:/repo"))
-    lanes = [g for repo in project["repos"] for g in repo["groups"]]
-
-    assert len(lanes) == 1
-    assert lanes[0]["isMain"] is True
-    # Labeled by branch (a main checkout), never by the directory basename.
-    assert lanes[0]["label"] == "main"
-
-
-def test_main_and_linked_worktree_do_not_duplicate_one_checkout():
-    # End-to-end shape of the reported bug: the repo's own checkout plus a real
-    # linked worktree. Mixed separators across probes must still yield exactly
-    # one lane per checkout — a branch lane for main, a dir lane for the linked
-    # worktree — not three lanes for two checkouts.
-    resolve = _resolver(
-        {
-            "C:/repo": ("C:\\repo", "C:/repo"),
-            "C:/repo-wt": ("C:\\repo", "C:/repo-wt"),
-        }
-    )
-    sessions = [_session("C:/repo", branch="main"), _session("C:/repo-wt", branch="feature")]
-
-    tree = pt.build_tree([], sessions, [], resolve, hydrate=True)
-    project = next(p for p in tree["projects"] if pt._path_key(p["id"]) == pt._path_key("C:/repo"))
-    lanes = [g for repo in project["repos"] for g in repo["groups"]]
-
-    assert len(lanes) == 2
-    assert [g["label"] for g in lanes] == ["main", "repo-wt"]
-    assert [g["isMain"] for g in lanes] == [True, False]
-
-
 def test_persisted_repo_root_used_when_no_live_probe():
     # No resolver (remote backend): fall back to the persisted git_repo_root and
     # split the main checkout by the session's recorded branch.
@@ -299,49 +253,6 @@ def test_non_git_cwd_preserves_legacy_workspace_grouping():
     # fork a duplicate lane against the live overlay's `::branch::main` id.
     assert _lane_ids(project) == ["/work/notes::branch::main"]
     assert tree["scoped_session_ids"] == [legacy["id"]]
-
-
-def test_equivalent_windows_cwds_collapse_into_one_auto_project():
-    sessions = [
-        _session("C:/work/notes"),
-        _session(r"c:\WORK\notes"),
-        _session("C:/work/notes/"),
-    ]
-
-    tree = pt.build_tree([], sessions, [], resolve=lambda _cwd: None, hydrate=True)
-
-    assert len(tree["projects"]) == 1
-    project = tree["projects"][0]
-    assert project["id"] == "C:/work/notes"
-    assert project["sessionCount"] == 3
-    assert len(project["repos"]) == 1
-    assert len(project["repos"][0]["groups"]) == 1
-    assert len(project["repos"][0]["groups"][0]["sessions"]) == 3
-
-
-def test_windows_path_identity_preserves_explicit_project_priority():
-    explicit = _project("p_notes", "Notes", ["C:/Work/Notes"])
-    session = _session("c:\\work\\notes\\")
-
-    tree = pt.build_tree([explicit], [session], [], resolve=lambda _cwd: None, hydrate=True)
-
-    assert [p["id"] for p in tree["projects"]] == ["p_notes"]
-    assert tree["projects"][0]["sessionCount"] == 1
-    assert tree["scoped_session_ids"] == [session["id"]]
-
-
-def test_wsl_localhost_cwds_collapse_into_one_auto_project():
-    # Root-relative WSL spellings (single leading backslash) are Windows paths,
-    # so case/separator variants collapse instead of spawning duplicate autos.
-    sessions = [
-        _session(r"\wsl.localhost\Ubuntu\home\alice\proj"),
-        _session("//wsl.localhost/Ubuntu/home/alice/PROJ"),
-    ]
-
-    tree = pt.build_tree([], sessions, [], resolve=lambda _cwd: None, hydrate=True)
-
-    assert len(tree["projects"]) == 1
-    assert tree["projects"][0]["sessionCount"] == 2
 
 
 def test_posix_path_identity_remains_case_sensitive():
@@ -376,22 +287,6 @@ def test_unicode_normalization_forms_share_one_project_identity():
     assert project["sessionCount"] == 1
     # No stray auto-project for the NFD spelling of the same folder.
     assert not any(p.get("isAuto") and "bist" in str(p["id"]) for p in tree["projects"])
-
-
-def test_windows_unicode_normalization_and_case_share_one_identity():
-    import unicodedata
-
-    folder_nfc = unicodedata.normalize("NFC", "D:/Projects/SV/Bist\u00e5nd")
-    cwd_nfd = unicodedata.normalize("NFD", "d:/projects/sv/bist\u00e5nd")
-    assert folder_nfc != cwd_nfd
-
-    explicit = _project("p_sv", "SV", [folder_nfc])
-    session = _session(cwd_nfd)
-
-    tree = pt.build_tree([explicit], [session], [], resolve=lambda _cwd: None, hydrate=True)
-
-    project = next(p for p in tree["projects"] if p["id"] == "p_sv")
-    assert project["sessionCount"] == 1
 
 
 def test_explicit_project_claims_sessions_and_beats_auto():
@@ -714,14 +609,6 @@ def test_heuristic_lane_ids_for_kanban_and_wt_suffix_are_unchanged():
     assert wt["lane_key"] == "/www/app-wt-feature"
     assert wt["lane_label"] == "feature"
     assert wt["is_main"] is False
-
-
-def test_equivalent_windows_spellings_derive_one_lane_key():
-    """Lane identity must collapse separator/trailing-slash variants (#62165)."""
-    a = pt._place_by_heuristic("C:/work/notes")
-    b = pt._place_by_heuristic("C:\\work\\notes\\")
-    assert a is not None and b is not None
-    assert pt._lane_key(a["lane_key"]) == pt._lane_key(b["lane_key"])
 
 
 def test_cwdless_session_with_repo_root_stays_in_its_explicit_project():

@@ -190,19 +190,15 @@ class TestDynamicShellWordSpellings:
         assert detect_dangerous_command(command) == (False, None, None), command
 
 
-class TestWindowsShellDestructiveCommands:
-    def test_windows_destructive_requires_approval(self):
+class TestPowerShellDestructiveCommands:
+    def test_powershell_destructive_requires_approval(self):
         cases = [
-            (r"cmd /c del /f /q C:\tmp\hermes-victim\file.txt", "Windows cmd destructive delete"),
-            (r"cmd.exe /k rmdir /s /q C:\tmp\hermes-victim", "Windows cmd destructive delete"),
-            # Regression: PowerShell runs the verb as the default positional arg,
-            # so `powershell Remove-Item ...` with NO explicit -Command must still
-            # be gated (the original pattern required -Command and missed this).
-            (r"powershell Remove-Item -Recurse -Force C:\tmp\hermes-victim",
-             "Windows PowerShell destructive delete"),
+            # PowerShell runs the verb as the default positional arg, so `pwsh Remove-Item ...`
+            # with NO explicit -Command must still be gated.
+            ("pwsh Remove-Item -Recurse -Force /tmp/hermes-victim", "PowerShell destructive delete"),
             # `ri` is the canonical Remove-Item alias.
-            (r"powershell ri -Recurse -Force C:\tmp\x", "Windows PowerShell destructive delete"),
-            ("powershell -EncodedCommand SQBFAFgA", "PowerShell encoded command execution"),
+            ("pwsh ri -Recurse -Force /tmp/x", "PowerShell destructive delete"),
+            ("pwsh -EncodedCommand SQBFAFgA", "PowerShell encoded command execution"),
         ]
         for command, expected_desc in cases:
             dangerous, key, desc = detect_dangerous_command(command)
@@ -213,13 +209,11 @@ class TestWindowsShellDestructiveCommands:
     def test_powershell_benign_path_containing_del_not_matched_as_delete(self):
         # The path text must not be mistaken for a destructive verb. Running a
         # script via -File is independently approval-worthy.
-        dangerous, key, desc = detect_dangerous_command(
-            r"powershell -File C:\del-logs\run.ps1"
-        )
+        dangerous, key, desc = detect_dangerous_command("pwsh -File ./del-logs/run.ps1")
         assert dangerous is True
-        assert key != "Windows PowerShell destructive delete"
+        assert key != "PowerShell destructive delete"
 
-    def test_plain_text_does_not_trigger_windows_delete(self):
+    def test_plain_text_does_not_trigger_delete(self):
         dangerous, key, desc = detect_dangerous_command(
             "echo remember to del old notes"
         )
@@ -646,41 +640,6 @@ class TestSensitiveInPlaceEditPattern:
 
     def test_sed_in_place_regular_file_safe(self):
         dangerous, key, desc = detect_dangerous_command("sed -i 's/a/b/' notes.txt")
-        assert dangerous is False
-        assert key is None
-
-
-class TestWindowsAbsolutePathFolding:
-    """Windows absolute home / Hermes-home prefixes must fold to ~/ and
-    ~/.hermes/ in dangerous-command detection.
-
-    Regression: on native Windows the home prefix uses backslash separators
-    (``C:\\Users\\alice\\.ssh\\authorized_keys``). Detection stripped backslash
-    escapes *before* folding, dissolving those separators, so writes to startup,
-    SSH, and Hermes config/env files returned "safe" without an approval prompt.
-    The OS-specific ``Path.home()`` / ``get_hermes_home()`` tests above only
-    exercise this branch on a Windows host; these monkeypatch a Windows-style
-    HOME/HERMES_HOME so the fold is verified on the POSIX CI runner too."""
-
-    def test_windows_home_multiseg_and_forward_slash_fold(self, monkeypatch):
-        # The multi-segment suffix (\.ssh\authorized_keys) must also have its
-        # separators normalized, not just the home prefix.
-        monkeypatch.setenv("HOME", r"C:\Users\tester")
-        for cmd in (
-            r"cat key >> C:\Users\tester\.ssh\authorized_keys",
-            "cat key >> C:/Users/tester/.ssh/authorized_keys",
-            r"echo 'pwned' > C:\Users\tester\.bashrc",
-        ):
-            dangerous, key, _ = detect_dangerous_command(cmd)
-            assert dangerous is True, cmd
-            assert key is not None
-
-
-    def test_windows_unrelated_path_not_flagged(self, monkeypatch):
-        monkeypatch.setenv("HOME", r"C:\Users\tester")
-        dangerous, key, _ = detect_dangerous_command(
-            r"cp report.txt C:\Users\tester\notes.txt"
-        )
         assert dangerous is False
         assert key is None
 

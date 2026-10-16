@@ -4,16 +4,11 @@ import path from 'node:path'
 export interface SourcePythonOptions {
   /** Explicit developer interpreter (`HERMES_DESKTOP_PYTHON`), honoured as-is. */
   override?: string
-  isWindows?: boolean
   fileExists?: (candidate: string) => boolean
 }
 
 /** A checkout's own interpreter paths, in preference order. */
-function interpreterPaths(isWindows: boolean): string[] {
-  return isWindows
-    ? [path.join('.venv', 'Scripts', 'python.exe'), path.join('venv', 'Scripts', 'python.exe')]
-    : [path.join('.venv', 'bin', 'python'), path.join('venv', 'bin', 'python')]
-}
+const INTERPRETER_PATHS: string[] = [path.join('.venv', 'bin', 'python'), path.join('venv', 'bin', 'python')]
 
 function defaultFileExists(candidate: string): boolean {
   try {
@@ -39,13 +34,13 @@ function defaultFileExists(candidate: string): boolean {
  */
 export function resolveSourcePython(
   root: string,
-  { override, isWindows = process.platform === 'win32', fileExists = defaultFileExists }: SourcePythonOptions = {}
+  { override, fileExists = defaultFileExists }: SourcePythonOptions = {}
 ): string | null {
   if (override && fileExists(override)) {
     return override
   }
 
-  for (const relative of interpreterPaths(isWindows)) {
+  for (const relative of INTERPRETER_PATHS) {
     const candidate: string = path.join(root, relative)
 
     if (fileExists(candidate)) {

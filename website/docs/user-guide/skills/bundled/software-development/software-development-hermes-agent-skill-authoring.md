@@ -78,7 +78,7 @@ description: Concise capability statement, under sixty chars.
 version: 0.1.0                    # semver; new skills start at 0.1.0
 author: Real Name (github-handle), Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]   # audit, don't guess — see Platform Gating
+platforms: [linux, macos]   # audit, don't guess — see Platform Gating
 metadata:
   hermes:
     tags: [Short, Descriptive, Tags]

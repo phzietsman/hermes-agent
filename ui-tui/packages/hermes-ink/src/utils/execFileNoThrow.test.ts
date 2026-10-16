@@ -6,10 +6,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { execFileNoThrow } from './execFileNoThrow.js'
 
-// These tests shell out to /bin/sh, use chmodSync(0o755), and rely on
-// POSIX sleep/job control. They will not work on Windows.
-const onWindows = process.platform === 'win32'
-
 // We simulate `wl-copy`'s daemonization behavior with a tiny shell script:
 //   1. Fork a short-lived background sleeper that inherits stdio (so the
 //      parent process's pipes can never close).
@@ -64,7 +60,7 @@ afterEach(() => {
   rmSync(scriptDir, { recursive: true, force: true })
 })
 
-describe.skipIf(onWindows)('execFileNoThrow with daemon-style children', () => {
+describe('execFileNoThrow with daemon-style children', () => {
   // Formerly a documented forever-hang: without resolveOnExit, the 'close'
   // event doesn't fire when the immediate child has exited but a forked
   // daemon still holds stdio open, and even the SIGTERM at timeout used to

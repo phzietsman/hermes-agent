@@ -16,7 +16,7 @@ from dataclasses import asdict
 def runtime_outside_gateway_evidence(runtime: dict) -> bool:
     """A serve/dashboard row the gateway matrix neither covers nor needs to.
 
-    Its supervisor owns the restart (Desktop backend, launchd/systemd unit, Windows service), or it
+    Its supervisor owns the restart (Desktop backend, launchd/systemd unit), or it
     is a manual serve whose restart ``defer_manual_serve`` has handed to its own durable reminder.
     Unclassified backends and failed transfers stay evidence against settlement (#115090, #111494).
     """

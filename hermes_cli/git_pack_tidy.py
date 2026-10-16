@@ -31,11 +31,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional
 
-from hermes_cli._subprocess_compat import (
-    NO_LAZY_FETCH_ENV,
-    noninteractive_git_env,
-    windows_hide_flags,
-)
+from hermes_cli._subprocess_compat import NO_LAZY_FETCH_ENV, noninteractive_git_env
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +49,7 @@ _STATE_VERSION = 2  # v1 could record a pack as unique after comparing it with o
 # Two tidies at once could each erase a pack because the other still has its copies.
 _LOCK_FILE = "hermes-pack-tidy.lock"
 # Payload first: git loads a pack only when both .idx and .pack exist, so once .pack is gone the pack is
-# gone for git, and a failure on .pack itself (a reader still maps it on Windows) changes nothing.
+# gone for git, and a failure on .pack itself changes nothing.
 _PACK_SUFFIXES = (".pack", ".idx", ".rev", ".bitmap", ".mtimes", ".promisor", ".keep")
 _IDX_V2 = b"\xfftOc\x00\x00\x00\x02"
 _FANOUT = 8
@@ -99,7 +95,7 @@ class _Index:
         return False
 
     def close(self) -> None:
-        self._map.close()  # Windows refuses to unlink a mapped file
+        self._map.close()
 
 
 def _git_env() -> Dict[str, str]:
@@ -126,8 +122,6 @@ def _pinned(pack: Path, cutoff: float) -> bool:
 
 
 def _unlink(part: Path) -> None:
-    if os.name == "nt":
-        os.chmod(part, 0o666)  # git writes packs read-only; Windows refuses to unlink those
     part.unlink()
 
 
@@ -268,20 +262,14 @@ def _erase_redundant_packs(pack_dir: Path, deadline: float, result: TidyResult, 
 
 def _merge_git(repo_root: Path, staging: Path, batch: List[Path], timeout: float):
     """``git pack-objects --stdin-packs`` over *batch* into *staging*, in the update's custody (a
-    mutator: it holds the checkout lock fd, and inside an update it is job-bound on Windows).
-
-    ``None`` when it ran out of time or could not start; a custody refusal propagates, so an update
-    stops the way it does for any updater git Windows will not bind."""
-    from hermes_cli.update_custody import CustodyRefused, run_git
+    mutator: it holds the checkout lock fd). ``None`` when it ran out of time or could not start."""
+    from hermes_cli.update_custody import run_git
 
     try:
         return run_git(
             ["git"], ["-c", "pack.packSizeLimit=0", "pack-objects", "-q", "--stdin-packs", str(staging / "pack")],
             cwd=str(repo_root), env=_git_env(), input="".join(p.name + "\n" for p in batch),
-            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
-            creationflags=windows_hide_flags())
-    except CustodyRefused:
-        raise
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
     except (OSError, subprocess.SubprocessError):
         return None
 
@@ -363,7 +351,7 @@ def tidy_partial_clone_packs(repo_root: Path, *, budget_seconds: float = TIDY_BU
     result = TidyResult()
     pack_dir = Path(repo_root) / ".git" / "objects" / "pack"
     try:
-        if not pack_dir.is_dir() or _partial_clone_filter(repo_root, creationflags=windows_hide_flags()) is None:
+        if not pack_dir.is_dir() or _partial_clone_filter(repo_root) is None:
             return result
         deadline = time.monotonic() + budget_seconds
         lock = _take_lock(pack_dir.parent.parent)

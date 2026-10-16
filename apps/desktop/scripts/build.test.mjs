@@ -22,9 +22,9 @@ test('the install stamp is written while the committed assets are still in place
   roots.push(root)
   const source = join(root, 'source')
   const icons = join(root, 'icons')
-  const asset = join(source, 'apps/desktop/assets/icon.ico')
+  const asset = join(source, 'apps/desktop/assets/icon.png')
   put(asset, 'committed icon')
-  put(join(icons, 'apps/desktop/assets/icon.ico'), 'flavored icon')
+  put(join(icons, 'apps/desktop/assets/icon.png'), 'flavored icon')
 
   // write-build-stamp asks git whether tracked files changed, so it must see
   // the committed bytes, not the flavored copy.

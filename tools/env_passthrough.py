@@ -59,9 +59,8 @@ def _is_hermes_provider_credential(name: str) -> bool:
             "env passthrough: provider credential blocklist import failed; "
             "failing closed and refusing passthrough registration for %r: %s", name, e)
         return True
-    # Case-folded membership too: the remote-exec env builder resolves each
-    # registered name via os.getenv(), which is case-insensitive on Windows, so
-    # ``openai_api_key`` would tunnel the real OPENAI_API_KEY into children.
+    # Case-folded membership too: a variant casing (``openai_api_key``) is treated
+    # as the credential itself.
     return _is_hermes_internal_secret(name) or _is_provider_env_blocklisted(name)
 
 

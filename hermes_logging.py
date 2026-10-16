@@ -15,7 +15,7 @@ import os
 import queue
 import sys
 import threading
-from logging.handlers import QueueHandler, QueueListener
+from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from pathlib import Path
 from time import monotonic as _monotonic
 from typing import Optional, Sequence
@@ -26,79 +26,6 @@ from hermes_constants import (
 
 # setup_logging() is idempotent: a second call is a no-op unless ``force=True``.
 _logging_initialized = False
-
-# True only when CLH was rejected at import because portalocker cannot take a
-# lock on this Windows box; file handlers then use stdlib rotation (rollover
-# disabled — see the module-header comment) and setup_logging() warns once.
-_WINDOWS_CLH_FALLBACK = False
-_WINDOWS_CLH_FALLBACK_REASON = ""
-_fallback_warned = False
-
-
-def _portalocker_probe() -> bool:
-    """Return True when portalocker can actually take a lock on this box.
-
-    concurrent-log-handler locks every write through portalocker, which on
-    Windows instantiates Win32Locker and imports pywintypes. Bundled payloads
-    have shipped with that import broken (the venv's .pth files were never
-    processed), and portalocker 3.x gives no msvcrt fallback — every emit then
-    dies with the ImportError, CLH retries 20x, and the suppressed "Cannot
-    acquire lock" RuntimeError below hides it completely. Probe a scratch file
-    once at import so we can fall back to stdlib rotation instead of silently
-    dropping every record. No-op (True) off Windows, where stdlib is in use.
-    """
-    global _WINDOWS_CLH_FALLBACK_REASON
-    if sys.platform != "win32":
-        return True
-    try:
-        import portalocker
-        import tempfile
-    except Exception as exc:
-        _WINDOWS_CLH_FALLBACK_REASON = repr(exc)
-        return False
-    fd, path = tempfile.mkstemp(prefix="hermes-portalocker-")
-    try:
-        with os.fdopen(fd, "r+b") as stream:
-            portalocker.lock(stream, portalocker.LOCK_EX)
-            portalocker.unlock(stream)
-    except Exception as exc:
-        _WINDOWS_CLH_FALLBACK_REASON = repr(exc)
-        return False
-    finally:
-        try:
-            os.unlink(path)
-        except OSError:
-            pass
-    return True
-
-
-# Windows-ONLY swap (#44873): stdlib ``RotatingFileHandler.doRollover()`` calls
-# ``os.rename()``, which fails with ``PermissionError [WinError 32]`` whenever
-# another process holds an append handle on ``agent.log`` — essentially always
-# in Hermes (TUI, gateway, hy_memory, MCP servers, CLI commands all log) —
-# pinning the file at the size threshold and spamming stderr on every emit.
-# ``concurrent-log-handler`` serializes rollover with a cross-process lock.
-# POSIX keeps stdlib: renames of open files work, and managed mode (NixOS)
-# relies on stdlib's exact ``_open()``/``doRollover()`` lifecycle for the
-# 0660 chmod and eager file creation; CLH opens lazily and rotates differently.
-if sys.platform == "win32":
-    if _portalocker_probe():
-        from concurrent_log_handler import (  # noqa: E402
-            ConcurrentRotatingFileHandler as RotatingFileHandler,
-        )
-    else:
-        # portalocker cannot take a lock on this box (typical cause: a sealed
-        # bundle whose venv never processed pywin32.pth, so `import pywintypes`
-        # fails and portalocker's Win32Locker has no msvcrt fallback). CLH
-        # would silently drop every record through the suppressed lock-timeout
-        # below; fall back to stdlib rotation instead. Rollover is disabled in
-        # the fallback: multi-process appends make Windows renames fail with
-        # WinError 32, the exact #44873 trap CLH exists to avoid.
-        from logging.handlers import RotatingFileHandler  # noqa: E402
-
-        _WINDOWS_CLH_FALLBACK = True
-else:
-    from logging.handlers import RotatingFileHandler  # noqa: E402
 
 # Thread-local per-conversation session context.
 _session_context = threading.local()
@@ -161,47 +88,6 @@ def _safe_stderr():  # type: ignore[return]
         return wrapped
     except Exception:
         return stream  # best-effort: no buffer / wrapping failed -> original stream
-
-
-def _is_windows_concurrent_log_lock_timeout(exc: BaseException | None) -> bool:
-    """True for concurrent-log-handler's Windows lock timeout.
-
-    Slash-command workers and the gateway share rotating files on Windows Desktop;
-    when another process holds the rollover lock too long CLH raises this
-    RuntimeError, which must not escape into Desktop chat output.
-    """
-    return (
-        sys.platform == "win32"
-        and isinstance(exc, RuntimeError)
-        and "Cannot acquire lock after 20 attempts" in str(exc)
-    )
-
-
-_windows_lock_timeout_warned = False
-_windows_lock_timeout_warn_lock = threading.Lock()
-
-
-def _warn_windows_lock_timeout_once() -> None:
-    """Report a suppressed CLH lock timeout exactly once per process.
-
-    Every emit after the first failure raises the same RuntimeError, so the
-    warning must be one-shot or it would spam errors.log as badly as the
-    stderr noise it replaces. CLH does not chain the underlying cause (the
-    RuntimeError is raised outside the except, from the retry loop's else
-    clause), so the message cannot include it; a constantly repeating timeout
-    means file logging is degraded — the startup portalocker probe in this
-    module should have caught a dead portalocker and fallen back already.
-    """
-    global _windows_lock_timeout_warned
-    with _windows_lock_timeout_warn_lock:
-        if _windows_lock_timeout_warned:
-            return
-        _windows_lock_timeout_warned = True
-    logging.getLogger("hermes_logging").warning(
-        "concurrent-log-handler timed out acquiring the cross-process log "
-        "lock; this and later records were dropped (the Desktop slash-worker "
-        "surface stays clean, but file logging is degraded)."
-    )
 
 
 def _is_unavailable_log_stream(exc: BaseException | None) -> bool:
@@ -339,7 +225,6 @@ def setup_logging(
     ``gateway.log`` and ``mode="gui"`` adds ``gui.log``.
     """
     global _logging_initialized
-    global _fallback_warned
     home = hermes_home or get_hermes_home()
     log_dir = mkdir_under_hermes_home(home / "logs")
 
@@ -381,16 +266,6 @@ def setup_logging(
             log_dir / filename, level=lvl, max_bytes=size, backup_count=count,
             formatter=RedactingFormatter(_LOG_FORMAT),
             log_filter=_ComponentFilter(COMPONENT_PREFIXES[component]) if component else None,
-        )
-
-    if _WINDOWS_CLH_FALLBACK and not _fallback_warned:
-        # One-shot, and the file handlers above are already live, so this lands
-        # in errors.log/agent.log — the fallback must never be invisible again.
-        _fallback_warned = True
-        logging.getLogger("hermes_logging").warning(
-            "concurrent-log-handler unavailable on this Windows install (%s); "
-            "file logging fell back to stdlib rotation without rollover.",
-            _WINDOWS_CLH_FALLBACK_REASON or "portalocker probe failed",
         )
 
     if _logging_initialized and not force:
@@ -511,8 +386,7 @@ class _ManagedRotatingFileHandler(RotatingFileHandler):
         if file_exists:
             self._reopen_if_externally_rotated()
         # Only when the file is gone (or its reopen just failed), so a healthy emit pays no extra
-        # stat. ``stream is None`` alone is not a signal: on Windows concurrent-log-handler closes
-        # the stream after every write.
+        # stat. ``stream is None`` alone is not a signal: a lazily-opened handler has none yet.
         if (self.stream is None and (had_stream or not file_exists) and self._skip_write_when_dir_missing
                 and not os.path.isdir(os.path.dirname(self.baseFilename))):
             self.skipped_missing_dir = True
@@ -525,17 +399,8 @@ class _ManagedRotatingFileHandler(RotatingFileHandler):
             self._unavailable_reported = False
 
     def handleError(self, record: logging.LogRecord) -> None:
-        """Suppress the known Windows ``concurrent-log-handler`` lock timeout.
-
-        CLH's ``emit()`` routes that RuntimeError here, so this is the single point to
-        silence it before stdlib prints to stderr (which the Desktop slash-worker
-        captures into chat output). Silencing is not silent: warn once through the
-        logging system so a wedged lock is visible in the logs instead of a black hole.
-        """
+        """Report an unavailable log destination once instead of a traceback per record."""
         exc = sys.exc_info()[1]
-        if _is_windows_concurrent_log_lock_timeout(exc):
-            _warn_windows_lock_timeout_once()
-            return
         if _is_unavailable_log_stream(exc):
             # The QueueListener must not turn a failing log destination into a traceback for
             # every queued record. Name the path once, drop the stale stream; the next emit
@@ -584,10 +449,6 @@ def _new_file_handler(
 ) -> "_ManagedRotatingFileHandler":
     """Create the ``logs/`` directory and a configured ``_ManagedRotatingFileHandler``."""
     mkdir_under_hermes_home(path.parent)
-    if _WINDOWS_CLH_FALLBACK:
-        # stdlib fallback: no rollover, or the file pins at the size threshold
-        # and every emit re-triggers the WinError 32 rename failure (#44873).
-        max_bytes, backup_count = 0, 0
     handler = _ManagedRotatingFileHandler(
         str(path), maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
     )
@@ -825,9 +686,7 @@ def release_profile_log_handlers(profile_home: str | Path) -> int:
     """Release this process's routed log files below a profile before it is removed.
 
     The Desktop serve process can route records for several profiles through one
-    ``QueueListener``. On Windows, each routed concurrent log handler keeps its
-    lock file open, so closing only external profile resources still leaves
-    ``logs/.__agent.lock`` and ``logs/.__errors.lock`` unavailable to rmtree.
+    ``QueueListener``; each routed handler keeps its log files open until released here.
     """
     global _queue_listener
     try:

@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ خروج إجباري..."
     interrupting_again_hint: "⚡ جارٍ مقاطعة الوكيل... (اضغط Ctrl+C مجددًا للخروج الإجباري)"
     interrupting: "⚡ جارٍ مقاطعة الوكيل..."
-    suspend_unsupported: "التعليق (Ctrl+Z) غير مدعوم على Windows."
     suspended: "تم تعليق {agent_name}. شغّل `fg` لإعادة {agent_name}."
     steer_failed_queued: "فشل التوجيه ({error}) — أُضيف إلى قائمة الانتظار للدور التالي."
     steered: "⏩ تم التوجيه: '{preview}'"

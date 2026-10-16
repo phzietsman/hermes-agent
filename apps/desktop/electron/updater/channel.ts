@@ -198,11 +198,7 @@ export class ChannelResolver {
       throw new Error('Channel manifest request binding mismatch')
     }
 
-    if (
-      channel.policy === 'preview' &&
-      (request.version !== `0.0.${request.sequence}` ||
-        request.windowsVersion !== `0.${Math.floor(request.sequence / 65536)}.${request.sequence % 65536}.0`)
-    ) {
+    if (channel.policy === 'preview' && request.version !== `0.0.${request.sequence}`) {
       throw new Error('Channel package version does not match sequence')
     }
 
@@ -216,9 +212,7 @@ export class ChannelResolver {
       throw new Error('Channel has no package for this platform and architecture')
     }
 
-    const signer = entry.platform === 'darwin' ? entry.teamId : entry.publisher
-
-    if (!this.deps.signer || signer !== this.deps.signer) {
+    if (!this.deps.signer || entry.teamId !== this.deps.signer) {
       throw new Error('Channel package signing identity mismatch')
     }
 
@@ -247,12 +241,9 @@ export class ChannelResolver {
     }
 
     for (const entry of manifest.packages) {
-      const expectedIdentity = entry.platform === 'darwin' ? request.identity.appId : request.identity.msixAppIdWithOrg
-      const expectedVersion = entry.platform === 'darwin' ? request.version : request.windowsVersion
-
       if (
-        entry.identity !== expectedIdentity ||
-        entry.version !== expectedVersion ||
+        entry.identity !== request.identity.appId ||
+        entry.version !== request.version ||
         entry.feed.channel !== 'stable' ||
         !prefixes.some((prefix: string): boolean => entry.artifact.key.startsWith(prefix)) ||
         !prefixes.some((prefix: string): boolean => entry.feed.key.startsWith(prefix))
@@ -260,12 +251,8 @@ export class ChannelResolver {
         throw new Error('Channel package identity, version or immutable prefix mismatch')
       }
 
-      if (entry.platform === 'darwin' && !entry.feed.key.endsWith(`/${entry.feed.channel}-mac.yml`)) {
+      if (!entry.feed.key.endsWith(`/${entry.feed.channel}-mac.yml`)) {
         throw new Error('Invalid native macOS feed descriptor')
-      }
-
-      if (entry.platform === 'win32' && !entry.feed.key.endsWith('.appinstaller')) {
-        throw new Error('Invalid native Windows feed descriptor')
       }
     }
   }

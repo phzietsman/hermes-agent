@@ -28,8 +28,7 @@ from agent.acp_openai_bridge import (
     extract_tool_calls_from_text as _extract_tool_calls_from_text,
     render_tool_bridge_sections as _render_tool_bridge_sections,
 )
-from agent.file_safety import (
-    get_nt_namespace_error, get_read_block_error, get_write_denied_error, is_write_approval_required)
+from agent.file_safety import get_read_block_error, get_write_denied_error, is_write_approval_required
 from agent.redact import redact_sensitive_text
 from tools.environments.local import hermes_subprocess_env
 
@@ -117,7 +116,7 @@ def _resolve_home_dir() -> str:
     try:
         import pwd
 
-        return pwd.getpwuid(os.getuid()).pw_dir.strip() or tempfile.gettempdir()  # windows-footgun: ok — POSIX fallback inside try/except (pwd import fails on Windows)
+        return pwd.getpwuid(os.getuid()).pw_dir.strip() or tempfile.gettempdir()
     except Exception:
         return tempfile.gettempdir()
 
@@ -225,9 +224,6 @@ def _render_message_content(content: Any) -> str:
 
 
 def _ensure_path_within_cwd(path_text: str, cwd: str, *, verb: str) -> Path:
-    # Raw-string check BEFORE resolve(): resolving an NT-namespace path is the NTLM-leak trigger.
-    if nt_error := get_nt_namespace_error(path_text, verb=verb):
-        raise PermissionError(nt_error)
     if not Path(path_text).is_absolute():
         raise PermissionError("ACP file-system paths must be absolute.")
     resolved, root = Path(path_text).resolve(), Path(cwd).resolve()
@@ -358,14 +354,9 @@ class CopilotACPClient:
                 "HERMES_COPILOT_ACP_COMMAND / HERMES_COPILOT_ACP_ARGS to a working pair."
             )
         try:
-            from hermes_cli._subprocess_compat import windows_hide_flags  # hide the Windows console flash (#56747); pipes intact for the ACP wire
-
-            # Hide the console the CLI child would otherwise flash on Windows (#56747). Hide-only — stdio
-            # pipes stay intact for the ACP wire.
             proc = subprocess.Popen(
                 [self._acp_command] + self._acp_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True, encoding='utf-8', errors='replace', bufsize=1, cwd=self._acp_cwd, env=_build_subprocess_env(),
-                creationflags=windows_hide_flags(),
             )
         except FileNotFoundError as exc:
             raise RuntimeError(f"Could not start Copilot ACP command '{self._acp_command}'. Install GitHub Copilot CLI or set "

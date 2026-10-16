@@ -87,7 +87,7 @@ test('a failed run reports only a bucketed stage, never error text', async (): P
     const recorder = new UpdateRunRecorder({ dir: () => dir, appVersion: () => '1.0.0' })
 
     await expect(
-      recorder.track('microsoft-store', null, async () => {
+      recorder.track('electron-updater', null, async () => {
         stages.forEach((stage: string): void => recorder.noteProgress(stage))
         throw new Error(secret)
       })

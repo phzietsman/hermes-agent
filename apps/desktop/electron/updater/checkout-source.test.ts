@@ -34,9 +34,7 @@ interface FixtureIdentity {
   appNamePascal: string
   artifactNamePascal: string
   appId: string
-  msixAppIdWithOrg: string
   cliName: string
-  windowsExecutableName: string
 }
 
 interface FixtureHead {
@@ -86,7 +84,6 @@ interface FixtureRequest {
   releaseTag: string
   sequence: number
   version: string
-  windowsVersion: string
   identity: FixtureIdentity
   bundleEnv: Record<string, string>
   publicBase: string
@@ -121,9 +118,7 @@ function channelRecord(channel: 'stable' | 'canary', sequence: number): FixtureR
       appNamePascal: 'Hermes',
       artifactNamePascal: 'Hermes',
       appId: 'chat.nous.hermes',
-      msixAppIdWithOrg: 'NousResearch.Hermes',
-      cliName: 'hermes',
-      windowsExecutableName: 'hermes'
+      cliName: 'hermes'
     },
     head: {
       buildId: 'a'.repeat(32),
@@ -147,9 +142,7 @@ function buildManifest(
     appNamePascal: 'Hermes',
     artifactNamePascal: 'Hermes',
     appId: 'chat.nous.hermes',
-    msixAppIdWithOrg: 'NousResearch.Hermes',
-    cliName: 'hermes',
-    windowsExecutableName: 'hermes'
+    cliName: 'hermes'
   }
 
   const sequence: number = channel === 'stable' ? 1 : 2
@@ -166,7 +159,6 @@ function buildManifest(
       releaseTag: tag,
       sequence,
       version: tag.replace(/^v/, ''),
-      windowsVersion: `0.0.${sequence}.0`,
       identity,
       bundleEnv: {},
       publicBase: 'https://hermes-assets.nousresearch.com'
@@ -363,7 +355,6 @@ urllib.request.build_opener = local_build
 
     const deps: CheckoutStrategyDeps = {
       hermesHome: home,
-      isWindows: process.platform === 'win32',
       isMac: process.platform === 'darwin',
       defaultUpdateBranch: 'main',
       updateHandoffDwellMs: 0,
@@ -377,15 +368,12 @@ urllib.request.build_opener = local_build
           hermesHome: home,
           force: opts.force
         }),
-      resolveUpdaterBinary: (): null => null,
       remoteGatewayActive: (): boolean => false,
 
       emitUpdateProgress: vi.fn(),
       rememberLog: vi.fn(),
       startHermes: async (): Promise<void> => {},
 
-      stopBackendsForUpdate: vi.fn(async (): Promise<void> => {}),
-      repairMacUpdaterHelper: (): void => {},
       preflightStateDb: (): void => {},
       runningAppBundle: (): null => null,
       markQuittingForHandoff: (): void => {},
@@ -406,11 +394,10 @@ urllib.request.build_opener = local_build
     )
 
     const scriptDirectory: string = path.join(root, 'scripts', 'desktop-update')
-    const script: string = path.join(scriptDirectory, process.platform === 'win32' ? 'windows.ps1' : 'posix.sh')
+    const script: string = path.join(scriptDirectory, 'posix.sh')
     fs.mkdirSync(scriptDirectory, { recursive: true })
-    fs.writeFileSync(path.join(scriptDirectory, 'runtime.ps1'), '')
     fs.mkdirSync(path.join(root, '.hermes', 'bin'), { recursive: true })
-    fs.writeFileSync(path.join(root, '.hermes', 'bin', 'hermes.exe'), '')
+    fs.writeFileSync(path.join(root, '.hermes', 'bin', 'hermes'), '')
 
     for (const channel of ['stable', 'canary'] as const) {
       await setChannel(channel)
@@ -424,8 +411,6 @@ urllib.request.build_opener = local_build
       })
       fs.rmSync(scriptDirectory, { recursive: true, force: true })
       expect(await strategy.apply()).toMatchObject({ manual: true, command: `hermes update --channel ${channel}` })
-      deps.resolveUpdaterBinary = (): string => path.join(temporary, 'frozen-updater')
-      expect(await strategy.apply()).toMatchObject({ manual: true, command: `hermes update --channel ${channel}` })
       expect(spawned).toHaveLength(0)
       fs.mkdirSync(scriptDirectory, { recursive: true })
       fs.writeFileSync(script, '')
@@ -435,16 +420,14 @@ urllib.request.build_opener = local_build
       fs.rmSync(markerPath(home), { force: true })
       expect(handoff?.args).toContain(script)
       expect(handoff?.args).toContain(channel)
-      expect(handoff?.args).toContain(process.platform === 'win32' ? '-Channel' : '--channel')
+      expect(handoff?.args).toContain('--channel')
       expect(handoff?.args).not.toContain('--branch')
       expect(handoff?.args).not.toContain('-Branch')
-      expect(handoff?.command).not.toBe(deps.resolveUpdaterBinary())
       expect(handoff?.options.env?.HERMES_HOME).toBe(home)
       expect(handoff?.options.env?.HERMES_INSTALL_ROOT).toBe(root)
       expect(handoff?.options.env?.PYTHONPATH).toBe('')
       expect(handoff?.options.env?.PYTHONHOME).toBe('')
       expect(handoff?.options.env?.HERMES_RUNTIME_DIR).toBeUndefined()
-      deps.resolveUpdaterBinary = (): null => null
       expect(git(['rev-parse', 'HEAD'], root)).toBe(commits[3])
       git(['checkout', '--detach', sha], root)
       expect(await strategy.check()).toMatchObject({ targetSha: sha, updateAvailable: false })
@@ -454,9 +437,7 @@ urllib.request.build_opener = local_build
     // The R2 record, not GitHub metadata, decides availability: retire the
     // canary object and the resolver must fail closed before any handoff.
     responses.delete(`/releases/channels/canary.json`)
-    vi.mocked(deps.stopBackendsForUpdate).mockClear()
     expect(await strategy.apply()).toMatchObject({ ok: false, error: 'release-unavailable' })
-    expect(deps.stopBackendsForUpdate).not.toHaveBeenCalled()
     expect(spawned).toHaveLength(0)
     await setChannel('main')
     expect(await readSourceUpdate({ python, git: 'git', updateRoot: root, hermesHome: home })).toMatchObject({
@@ -473,7 +454,7 @@ urllib.request.build_opener = local_build
     })
     expect(await strategy.apply()).toMatchObject({ ok: true, handedOff: true })
     expect(spawned.pop()?.args).toEqual(
-      expect.arrayContaining([process.platform === 'win32' ? '-Branch' : '--branch', 'feature/gui'])
+      expect.arrayContaining(['--branch', 'feature/gui'])
     )
     fs.rmSync(markerPath(home), { force: true })
     fs.rmSync(scriptDirectory, { recursive: true, force: true })

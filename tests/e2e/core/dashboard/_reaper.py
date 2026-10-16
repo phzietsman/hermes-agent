@@ -130,7 +130,7 @@ def kill_identified(idents: dict[Identity, str]) -> list[str]:
         if start_time(pid) != started:
             continue
         try:
-            os.kill(pid, signal.SIGKILL)  # windows-footgun: ok — Linux-only suite, never reached on Windows
+            os.kill(pid, signal.SIGKILL)
         except ProcessLookupError:
             continue
         killed.append(f"{pid}: {cmd[:160]}")

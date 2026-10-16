@@ -66,8 +66,6 @@ def test_looks_like_path():
 
 
 @pytest.mark.parametrize("system,machine,expected", [
-    ("win32", "ARM64", "sherpa"),
-    ("win32", "AMD64", "openwakeword"),
     ("darwin", "x86_64", "sherpa"),
     ("darwin", "arm64", "openwakeword"),
     ("linux", "x86_64", "openwakeword"),
@@ -223,7 +221,7 @@ def _voice_loop_ready(monkeypatch, stt=True, tts=True):
     monkeypatch.setattr("pm.extras._PLATFORM_GATES", {})
 
 
-@pytest.mark.parametrize("system,machine", [("win32", "ARM64"), ("darwin", "x86_64")])
+@pytest.mark.parametrize("system,machine", [("linux", "aarch64"), ("darwin", "x86_64")])
 @pytest.mark.parametrize("provider", ["auto", *ww._PROVIDERS])
 def test_loaded_provider_requirements_preserve_choices_and_require_keys(tmp_path, monkeypatch, system, machine, provider):
     from functools import partial
@@ -550,7 +548,7 @@ def test_detector_opens_configured_input_device_and_reports_backend(monkeypatch)
             "max_input_channels": 2,
             "default_samplerate": 48000.0,
         },
-        query_hostapis=lambda index: {"name": "Windows WASAPI"},
+        query_hostapis=lambda index: {"name": "ALSA"},
     )
     np = pytest.importorskip("numpy")
     monkeypatch.setattr(ww, "_import_audio", lambda: (fake_sd, np))
@@ -575,26 +573,12 @@ def test_detector_opens_configured_input_device_and_reports_backend(monkeypatch)
             "selector": "Microphone Array",
             "name": "Microphone Array",
             "hostapi_index": 2,
-            "hostapi": "Windows WASAPI",
+            "hostapi": "ALSA",
             "max_input_channels": 2,
             "default_samplerate": 48000.0,
         }
     finally:
         det.stop()
-
-
-@pytest.mark.platforms("windows")
-def test_windows_silent_hint_names_selected_device():
-    hint = ww.silent_audio_hint(
-        {
-            "selector": 3,
-            "name": "Microphone Array",
-            "hostapi": "Windows WASAPI",
-        }
-    )
-    assert "Microphone Array (Windows WASAPI)" in hint
-    assert "wake_word.input_device" in hint
-    assert "macOS" not in hint
 
 
 @pytest.mark.platforms("macos")
@@ -729,7 +713,7 @@ def test_wedged_stream_halts_without_blocking_read_and_aborts_before_close(monke
 
 
 def test_starved_read_available_falls_back_to_blocking_read(monkeypatch, caplog):
-    """A stream that never advances read_available (#118552, Windows DirectSound) must
+    """A stream that never advances read_available (#118552) must
     not spin in the poll guard forever: after the stall window it warns once, then
     reads blocking — audio flows on such devices, so frames keep arriving."""
     class _StarvedStream(_FakeStream):

@@ -48,21 +48,7 @@ def read_handoff(path: str | Path) -> dict[str, Any]:
 
 
 def post_swap_python() -> Path:
-    """Interpreter for the child: the project venv's python when this process runs from (or
-    under) the project's Windows console shim — the shim can never be re-executed on Windows
-    because it holds itself open for the whole process lifetime (#88838, #89599) — else the
-    running interpreter."""
-    if sys.platform != "win32":
-        return Path(sys.executable)
-    from hermes_cli._launchers import _is_windows
-    from hermes_constants import project_venv_dir
-    from pm.environments import venv_python
-
-    venv_dir = project_venv_dir(Path(__file__).resolve().parents[1])
-    if venv_dir is not None and _is_windows():
-        candidate = venv_python(venv_dir, windows=True)
-        if candidate.is_file():
-            return candidate
+    """Interpreter for the child: the running interpreter."""
     return Path(sys.executable)
 
 
@@ -78,12 +64,11 @@ def post_swap_command(handoff_path: Path, argv_tail: list[str]) -> list[str]:
 
 
 def post_swap_child_env() -> dict[str, str]:
-    """Environment for the child. ``HERMES_UPDATE_REEXEC`` marks it as already off the Windows
-    shim (no second re-exec at the sync boundary). The lock hand-off pid is only claimed when
-    nobody upstream (Tauri/Electron updater) already named theirs."""
+    """Environment for the child. The lock hand-off pid is only claimed when nobody upstream
+    (Tauri/Electron updater) already named theirs."""
     from hermes_cli.update_lock import HANDOFF_PID_ENV
 
-    env = {**os.environ, POST_SWAP_ENV: "1", "HERMES_UPDATE_REEXEC": "1"}
+    env = {**os.environ, POST_SWAP_ENV: "1"}
     env.setdefault(HANDOFF_PID_ENV, str(os.getpid()))
     return env
 
@@ -92,7 +77,7 @@ def _takeover_request(payload: dict[str, Any], argv_tail: list[str] | None) -> d
     """Map a historical post-swap payload onto the takeover request schema.
 
     Payloads written before the takeover seam (e.g. release 0.21.3) name the
-    desktop flag and the Windows resume token differently and carry no
+    desktop flag and the paused-gateway resume token differently and carry no
     assume_yes at all; `update_finish.py` reads the new names with bare
     subscriptions, so an unmapped payload KeyErrors mid-completion with the
     checkout already swapped. New-schema payloads pass through unchanged.

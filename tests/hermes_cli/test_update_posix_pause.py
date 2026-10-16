@@ -36,7 +36,7 @@ def test_a_killed_updaters_supervised_units_are_adopted_by_the_next_update(tmp_p
         time.sleep(120)
     """ % _UNIT, env={"HERMES_HOME": str(tmp_path)})
     assert owner.stdout.readline().strip() == "written"
-    owner.send_signal(signal.SIGKILL)  # windows-footgun: ok — module skips on Windows
+    owner.send_signal(signal.SIGKILL)
     owner.wait(timeout=10)
 
     nxt = _child("""
@@ -85,7 +85,7 @@ _KILLED_AFTER_RECORDING = """
     def killed(token, entries):  # the update dies mid-stop, after (or before) asking this gateway
         if asked:
             r.mark_stop_sent(token, pid)
-        os.kill(os.getpid(), signal.SIGKILL)  # windows-footgun: ok — POSIX-only test
+        os.kill(os.getpid(), signal.SIGKILL)
     m._stop_gateways = killed
     m._pause(m._empty_token())
 """
@@ -106,7 +106,7 @@ def test_a_killed_updates_record_owes_only_what_it_stopped(tmp_path, kind, asked
         owner = _child(_KILLED_AFTER_RECORDING, str(gateway.pid), kind, "1" if asked else "0", str(tmp_path),
                        env={"HERMES_HOME": str(tmp_path)})
         owner.wait(timeout=60)
-        assert owner.returncode == -signal.SIGKILL, "premise: the update was not killed mid-stop"  # windows-footgun: ok — POSIX-only test
+        assert owner.returncode == -signal.SIGKILL, "premise: the update was not killed mid-stop"
         probe = _child("""
             import json
             from hermes_cli import update_pause_record as r
@@ -195,9 +195,9 @@ def test_a_launchd_job_is_paused_through_launchd_and_restarted_through_it(tmp_pa
     plist = tmp_path / f"{label}.plist"
     plist.write_bytes(plistlib.dumps({"Label": label, "ProgramArguments": ["/bin/sleep", "600"],
                                       "RunAtLoad": True, "KeepAlive": True}))
-    domain = f"gui/{os.getuid()}"  # windows-footgun: ok — macOS-only test (platforms("macos"))
+    domain = f"gui/{os.getuid()}"
     if subprocess.run(["launchctl", "print", domain], capture_output=True, check=False).returncode:
-        domain = f"user/{os.getuid()}"  # windows-footgun: ok — macOS-only test (platforms("macos"))
+        domain = f"user/{os.getuid()}"
 
     def pid() -> int | None:
         return _launchd_print_service_pid(domain, label)[1]

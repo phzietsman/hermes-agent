@@ -4,7 +4,7 @@ description: Delegate coding tasks to the Blackbox AI multi-model CLI.
 version: 1.0.1
 author: Hermes Agent (Nous Research)
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Coding-Agent, Blackbox, Multi-Agent, Judge, Multi-Model]

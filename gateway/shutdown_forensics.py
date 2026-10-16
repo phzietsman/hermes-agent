@@ -13,7 +13,6 @@ import os
 import shutil
 import signal
 import subprocess
-import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -137,14 +136,12 @@ def spawn_async_diagnostic(log_path: Path, signal_name: str, *,
     """Fire-and-forget ``ps``-style snapshot appended to ``log_path``: a detached subprocess (own
     ``timeout`` so a wedged ``ps`` self-cleans) rather than a blocking process listing in the signal
     handler, which can freeze the loop >2s on a busy host. Returns the subprocess PID, or ``None``
-    on failure / Windows (bash -c is available on every POSIX target; Windows has no ps anyway).
+    on failure.
     The listing is comm-only: full argv is not persisted.
     """
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
     except OSError:
-        return None
-    if sys.platform == "win32":
         return None
     script = _async_diagnostic_script(signal_name, os.getpid())
     try:  # O_APPEND so concurrent diagnostics from rapid signals don't trample each other

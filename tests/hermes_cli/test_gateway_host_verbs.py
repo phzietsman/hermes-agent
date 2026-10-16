@@ -99,11 +99,7 @@ def test_start_all_never_sweeps_a_live_host_multiplexer(host_owner, monkeypatch,
 
 
 def test_named_profile_start_all_starts_the_default_host_service(monkeypatch, tmp_path):
-    """With no live owner, `-p X gateway start --all` must start the host root, never X's gateway.
-
-    Skipping the generic named-profile guard alone is insufficient on Windows: the Windows backend
-    derives its Scheduled Task name, launcher HERMES_HOME and detached child from the active home.
-    """
+    """With no live owner, `-p X gateway start --all` must start the host root, never X's gateway."""
     import hermes_constants
 
     root = tmp_path / "hermes"
@@ -121,7 +117,7 @@ def test_named_profile_start_all_starts_the_default_host_service(monkeypatch, tm
     )
     monkeypatch.setattr(gw, "_host_multiplexer_for_all_verb", lambda: None)
     monkeypatch.setattr(gw, "_service_mgmt_blocked", lambda: False)
-    monkeypatch.setattr(gw, "_service_backend", lambda: "windows")
+    monkeypatch.setattr(gw, "_service_backend", lambda: "launchd")
 
     calls = []
 
@@ -143,11 +139,8 @@ def test_named_profile_start_all_starts_the_default_host_service(monkeypatch, tm
     monkeypatch.setattr(gw, "_wait_for_api_server_port_free",
                         lambda **k: _observe("port") or True)
 
-    def _windows_start():
-        _observe("start")
-
     # Keep the real _service_call dispatch in the path; only replace the OS-specific leaf.
-    monkeypatch.setattr(gw, "_gw_windows", lambda: SimpleNamespace(start=_windows_start))
+    monkeypatch.setattr(gw, "launchd_start", lambda: _observe("start"))
 
     gw._cmd_start(SimpleNamespace(system=False, all=True, force=False))
 
@@ -194,7 +187,7 @@ def test_named_profile_restart_all_with_host_down_restarts_the_default_root(monk
     monkeypatch.setattr(gw, "_wait_for_gateway_exit", lambda **k: True)
     monkeypatch.setattr(gw, "_wait_for_api_server_port_free", lambda **k: True)
     monkeypatch.setattr(gw, "_discard_dead_host_record", lambda: False)
-    monkeypatch.setattr(gw, "_installed_service_kind_for", lambda windows: None)
+    monkeypatch.setattr(gw, "_installed_service_kind", lambda: None)
     monkeypatch.setattr(gw, "run_gateway",
                         lambda **k: pytest.fail("the root ran IN the named profile's process"))
     monkeypatch.setattr(gw, "get_python_path", lambda: sys.executable)
@@ -244,7 +237,7 @@ def test_restart_all_does_not_attach_to_the_process_it_just_stopped(
     monkeypatch.setattr(gw, "_stop_installed_service", lambda system: False)
     monkeypatch.setattr(gw, "kill_gateway_processes", lambda **k: 1)
     monkeypatch.setattr(gw, "_wait_for_api_server_port_free", lambda *a, **k: None)
-    monkeypatch.setattr(gw, "_installed_service_kind_for", lambda *a, **k: None)
+    monkeypatch.setattr(gw, "_installed_service_kind", lambda: None)
     monkeypatch.setattr(gw, "_print_unfolded_gateway_note", lambda owner: None)
 
     def _stopped(*a, **k):

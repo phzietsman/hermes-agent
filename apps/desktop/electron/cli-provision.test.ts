@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { test, type TestContext } from 'vitest'
+import { test } from 'vitest'
 
 import { provisionCliLinks, removeBundleCliLinks } from './cli-provision'
 
@@ -19,7 +19,7 @@ function fixture(): { root: string; binDir: string; source: string } {
   return { root, binDir, source }
 }
 
-test.runIf(process.platform !== 'win32')(
+test(
   'retiring a bundle removes only its direct CLI links, including dangling ones',
   (): void => {
     const { root, binDir, source }: ReturnType<typeof fixture> = fixture()
@@ -43,7 +43,7 @@ test.runIf(process.platform !== 'win32')(
   }
 )
 
-test('repairs owned dangling CLI links without changing foreign or live entries', context => {
+test('repairs owned dangling CLI links without changing foreign or live entries', () => {
   const { root, binDir, source } = fixture()
   const messages: string[] = []
   const target = path.join(binDir, 'hermes')
@@ -51,15 +51,7 @@ test('repairs owned dangling CLI links without changing foreign or live entries'
   try {
     const oldSource = path.join(root, 'old', 'agent-payload', 'bin', 'hermes')
 
-    try {
-      fs.symlinkSync(oldSource, target)
-    } catch (error) {
-      if (process.platform === 'win32' && (error as NodeJS.ErrnoException).code === 'EPERM') {
-        context.skip('Windows symlinks require Developer Mode or elevation')
-      }
-
-      throw error
-    }
+    fs.symlinkSync(oldSource, target)
 
     provisionCliLinks({ hermes: source }, binDir, message => messages.push(message))
     assert.equal(fs.readlinkSync(target), source)
@@ -92,23 +84,15 @@ test('repairs owned dangling CLI links without changing foreign or live entries'
   }
 })
 
-test('qualified CLI paths expose their filenames, not shared canonical command keys', (context: TestContext): void => {
+test('qualified CLI paths expose their filenames, not shared canonical command keys', (): void => {
   const { root, binDir, source }: ReturnType<typeof fixture> = fixture()
 
   try {
     const plain: string = path.join(binDir, 'hermes')
     fs.writeFileSync(plain, 'stable command')
 
-    try {
-      fs.symlinkSync(source, path.join(binDir, 'probe'))
-      fs.unlinkSync(path.join(binDir, 'probe'))
-    } catch (error) {
-      if (process.platform === 'win32' && (error as NodeJS.ErrnoException).code === 'EPERM') {
-        context.skip('Windows symlinks require Developer Mode or elevation')
-      }
-
-      throw error
-    }
+    fs.symlinkSync(source, path.join(binDir, 'probe'))
+    fs.unlinkSync(path.join(binDir, 'probe'))
 
     for (const name of ['hermes-canary', 'hermes-abcdef1', 'hermes-1234567']) {
       const cli: string = path.join(path.dirname(source), name)
@@ -127,7 +111,7 @@ test('qualified CLI paths expose their filenames, not shared canonical command k
   }
 })
 
-test('a failed link swap preserves its source and target, then provisions later commands', context => {
+test('a failed link swap preserves its source and target, then provisions later commands', () => {
   const { root, binDir, source } = fixture()
   const target = path.join(binDir, 'hermes')
   const oldSource = path.join(root, 'old', 'agent-payload', 'bin', 'hermes')
@@ -136,15 +120,7 @@ test('a failed link swap preserves its source and target, then provisions later 
   let swaps = 0
 
   try {
-    try {
-      fs.symlinkSync(oldSource, target)
-    } catch (error) {
-      if (process.platform === 'win32' && (error as NodeJS.ErrnoException).code === 'EPERM') {
-        context.skip('Windows symlinks require Developer Mode or elevation')
-      }
-
-      throw error
-    }
+    fs.symlinkSync(oldSource, target)
 
     fs.writeFileSync(acpSource, 'ACP command\n')
     provisionCliLinks({ hermes: source, 'hermes-acp': acpSource }, binDir, message => messages.push(message), {

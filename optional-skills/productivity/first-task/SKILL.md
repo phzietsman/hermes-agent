@@ -4,7 +4,7 @@ description: "Run the first task chat that setup hands off."
 version: 0.3.0
 author: "Siddharth Balyan (alt-glitch) + Hermes Agent"
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [onboarding, first-run, desktop, handoff]
@@ -100,9 +100,9 @@ Do not stop with nothing.
 Use the commands for the OS in the "What setup learned" line.
 
 1. One `clarify` app card: three to five everyday apps that fit their use, multi-pick.
-2. Check 1, one command. macOS: `which brew && ls -d "/Applications/Slack.app" "/Applications/Zoom.app" 2>&1`. Windows: `winget list --accept-source-agreements`. Linux: `which <app> ...`, plus `flatpak list` when flatpak is there.
-3. Install only the picks the check did not find, one app per command. macOS: `brew install --cask <app>`. Windows: `winget install --id <id> -e --source winget --accept-source-agreements --accept-package-agreements` (a fresh profile otherwise stops at an agreements prompt the terminal cannot answer). Linux: `flatpak install -y flathub <id>`; a package that needs `sudo` goes on the list in step 5 instead. Say "already installed" for the others. Never reinstall.
-4. On Arm, after the installs, say when an app is x64 only. macOS: one `lipo -archs` command for the new apps. Windows: read the architecture winget reports for the installer it picked in the install output (arm64, or x64 under emulation); do not infer it from the manifest.
+2. Check 1, one command. macOS: `which brew && ls -d "/Applications/Slack.app" "/Applications/Zoom.app" 2>&1`. Linux: `which <app> ...`, plus `flatpak list` when flatpak is there.
+3. Install only the picks the check did not find, one app per command. macOS: `brew install --cask <app>`. Linux: `flatpak install -y flathub <id>`; a package that needs `sudo` goes on the list in step 5 instead. Say "already installed" for the others. Never reinstall.
+4. On Arm, after the installs, say when an app is x64 only. macOS: one `lipo -archs` command for the new apps.
 5. List for them anything that needs a password, a licence or a payment. Never disable security settings.
 6. One line on what changed and the next slice (developer tools, drivers), then the close card.
 

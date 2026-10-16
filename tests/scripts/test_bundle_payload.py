@@ -22,16 +22,6 @@ def test_release_version_comes_from_the_release_identity_not_the_checkout(tmp_pa
     assert release_version(tmp_path, "v1.2.4") == "1.2.4"
 
 
-def test_wrapper_rejects_unresolved_template_fields(tmp_path, monkeypatch):
-    from scripts.build import launchers
-
-    template = tmp_path / "launcher_wrapper.py"
-    template.write_text('entry = "__HERMES_ENTRY_MODULE__"\nmissing = "__HERMES_NEW__"\n', encoding="utf-8")
-    monkeypatch.setattr(launchers, "__file__", str(tmp_path / "payload.py"))
-    with pytest.raises(ValueError, match="__HERMES_NEW__"):
-        launchers.render_wrapper("entry:run", "../app", "../venv/Lib/site-packages")
-
-
 @pytest.mark.platforms("posix")
 def test_relocation_preserves_sibling_and_framework_links(tmp_path):
     root = tmp_path / "payload"

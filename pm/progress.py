@@ -122,7 +122,7 @@ class LiveTail:
         self._draw(f"{self.indent}→ {self.label}… {line.strip()}")
 
     def _draw(self, text: str) -> None:
-        # Pad instead of an ANSI erase: a bare CR works on every Windows console.
+        # Pad instead of an ANSI erase: a bare CR works on every terminal.
         width = max(20, shutil.get_terminal_size().columns - 1)
         text = text[:width]
         self._emit("\r" + text + " " * max(0, self._drawn - len(text)))

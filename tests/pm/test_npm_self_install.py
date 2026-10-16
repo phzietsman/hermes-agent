@@ -1,8 +1,6 @@
 """npm's self-install keeps its cache out of the store's download entry.
 
-A cache beside the archive turned the entry's removal into a tree delete
-that failed on Windows while Defender held the fresh tarball copy
-(``[WinError 145] The directory is not empty: ...fetch-<sha>\\.npm-cache``).
+The download entry must hold only the archive, so its removal stays a file delete.
 """
 
 from __future__ import annotations
@@ -20,7 +18,7 @@ def _fake_node(store: Store, target: str) -> None:
     node_bin = get_package("node").binary(store.entry("node-1"), target)
     node_bin.parent.mkdir(parents=True, exist_ok=True)
     node_bin.write_bytes(b"node")
-    cli_root = node_bin.parent if target.startswith("win32") else node_bin.parent.parent / "lib"
+    cli_root = node_bin.parent.parent / "lib"
     cli = cli_root / "node_modules" / "npm" / "bin" / "npm-cli.js"
     cli.parent.mkdir(parents=True)
     cli.write_text("", encoding="utf-8")

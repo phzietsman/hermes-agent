@@ -15,7 +15,6 @@ import json
 import os
 import stat
 import subprocess
-import sys
 import time
 
 import pytest
@@ -158,7 +157,6 @@ class TestSubprocessEnvironment:
         assert "PYTHONHOME" not in env
         assert env["KEEP_ME"] == "yes"
 
-    @pytest.mark.skipif(os.name == "nt", reason="POSIX PATH-floor semantics")
     def test_subprocess_env_floors_version_manager_only_path(self, monkeypatch):
         """Profile workers (kanban bots, cron) can inherit a PATH of only
         version-manager dirs (observed in the wild: one nvm dir repeated
@@ -182,7 +180,6 @@ class TestSubprocessEnvironment:
         assert "/usr/bin" in parts
         assert "/bin" in parts
 
-    @pytest.mark.skipif(os.name == "nt", reason="POSIX PATH-floor semantics")
     def test_floor_preserves_existing_entries_and_order(self):
         """The floor only adds dirs — never drops or reorders what the
         caller's environment already had."""
@@ -1183,7 +1180,6 @@ class TestTimeoutProcessGroupKill:
     blocked forever, and the wedged call's activity heartbeat pins the session at
     "now" in the sidebar indefinitely."""
 
-    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX process groups")
     def test_timeout_kills_grandchild_and_returns_promptly(self, tmp_path, monkeypatch):
         """A grandchild that outlives the direct child and holds the inherited stdout
         pipe must not keep browser_exec blocked past the timeout (it wedged permanently

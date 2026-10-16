@@ -119,13 +119,6 @@ _STEWARD_UNINSTALL_MESSAGES = {
 _STEWARD_MANAGED_BY_DESKTOP = "✗ Hermes is managed by the desktop app.\n"
 
 _STEWARD_DESKTOP_UNINSTALL_BY_PLATFORM = {
-    "win32": (
-        _STEWARD_MANAGED_BY_DESKTOP +
-        "\n"
-        "Remove the app from Windows Settings → Apps → Installed apps.\n" +
-        _STEWARD_DELETE_DATA_PREAMBLE +
-        _STEWARD_DELETE_DATA_DESKTOP
-    ),
     "darwin": (
         _STEWARD_MANAGED_BY_DESKTOP +
         "\n"

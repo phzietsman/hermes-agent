@@ -137,7 +137,7 @@ _FAIL_CLOSED_INPROC_EXTS = frozenset({'.json', '.yaml', '.yml', '.toml'})
 
 class LintMixin:
     """Post-write syntax lint + LSP diagnostics. Requires ``_exec``,
-    ``_has_command``, ``_escape_shell_arg``, ``_escape_native_tool_arg`` and
+    ``_has_command``, ``_escape_shell_arg`` and
     ``env`` from the host class."""
 
     def _check_lint(self, path: str, content: Optional[str] = None) -> LintResult:
@@ -181,8 +181,7 @@ class LintMixin:
             base_cmd = linter_cmd.split()[0]
             if not self._has_command(base_cmd):
                 return LintResult(skipped=True, message=f"{base_cmd} not available")
-            # Native Windows binaries need C:/... not MSYS /c/... (→ phantom ENOENT).
-            result = self._exec(linter_cmd.replace("{file}", self._escape_native_tool_arg(path)), timeout=30)
+            result = self._exec(linter_cmd.replace("{file}", self._escape_shell_arg(path)), timeout=30)
         if result.exit_code != 0 and _looks_like_linter_unusable(base_cmd, result.stdout):
             from tools.ansi_strip import strip_ansi
             cleaned = strip_ansi(result.stdout).strip()
@@ -196,22 +195,19 @@ class LintMixin:
         import shutil
         import subprocess
 
-        from hermes_cli._subprocess_compat import windows_hide_flags
         from hermes_constants import with_hermes_node_path
-        from tools.environments.local import _IS_WINDOWS, _msys_to_windows_path, hermes_subprocess_env
+        from tools.environments.local import hermes_subprocess_env
 
         tool, *args = _MANAGED_NODE_LINTERS[ext]
         executable = shutil.which(tool, path=with_hermes_node_path({"PATH": ""})["PATH"])
         if executable is None:
             return None
         cwd = getattr(self.env, "cwd", None) or self.cwd
-        if _IS_WINDOWS:
-            path, cwd = _msys_to_windows_path(path), cwd and _msys_to_windows_path(cwd)
         try:
             proc = subprocess.run(
                 [executable, *args, path], cwd=cwd or None, env=with_hermes_node_path(hermes_subprocess_env()),
                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, encoding="utf-8", errors="replace", timeout=30, creationflags=windows_hide_flags())
+                text=True, encoding="utf-8", errors="replace", timeout=30)
         except subprocess.TimeoutExpired:
             return ExecuteResult(stdout=f"{tool} timed out after 30s", exit_code=124)
         return ExecuteResult(stdout=proc.stdout or "", exit_code=proc.returncode)

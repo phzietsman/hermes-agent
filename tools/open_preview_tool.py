@@ -6,7 +6,6 @@ the normalizer + open action. Emits ``preview.open`` via ``desktop_ui``: the ren
 the pane for the window that asked and never steals focus for a background session.
 """
 
-import os
 import re
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -43,13 +42,6 @@ def _local_fs_path(target: str) -> Path | None:
         path = unquote(parsed.path or "")
         if parsed.netloc and parsed.netloc not in {"", "localhost"}:
             path = f"//{parsed.netloc}{path}"
-        elif (
-            os.name == "nt"
-            and len(path) >= 3
-            and path[0] == "/"
-            and path[2] == ":"
-        ):
-            path = path[1:]
         return Path(path) if path else None
     return Path(raw).expanduser()
 

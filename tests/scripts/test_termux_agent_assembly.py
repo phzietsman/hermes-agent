@@ -28,7 +28,7 @@ def test_bionic_facts_and_agent_keep_fixed_prefix_and_tui_only(tmp_path):
         executable.write_bytes(b"foreign binary must not be executed")
         executable.chmod(0o755)
     python = get_package("python").binary(payload / "tools/python", target)
-    site = dependency_site(payload / "venv", Lockfile(lock).version("python"), target)
+    site = dependency_site(payload / "venv", Lockfile(lock).version("python"))
     site.mkdir(parents=True)
     pm = payload / "pm-runtime"
     (pm / "deps").mkdir(parents=True)

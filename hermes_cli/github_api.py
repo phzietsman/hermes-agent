@@ -44,11 +44,10 @@ def _gh_cli_token() -> Optional[str]:
     if _gh_cli_probed:
         return _gh_cli_cache
     _gh_cli_probed = True
-    from hermes_cli._subprocess_compat import windows_hide_flags
     try:
         result = subprocess.run(
             ["gh", "auth", "token"], capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=_GH_CLI_TIMEOUT_SECONDS, stdin=subprocess.DEVNULL, creationflags=windows_hide_flags(),
+            timeout=_GH_CLI_TIMEOUT_SECONDS, stdin=subprocess.DEVNULL,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         logger.debug("gh CLI token lookup unavailable: %s", exc)

@@ -15,17 +15,13 @@ import {
 } from './pool-spawn-coordinator'
 import { createPoolStopper } from './pool-stop'
 
-test.skipIf(process.platform === 'win32')(
+test(
   'eviction, update and quit share physical exit before releasing a slot',
   async (): Promise<void> => {
     let signals = 0
     let released = false
 
-    const physical = {
-      forceKillProcessTree: (): never => {
-        throw new Error('POSIX test')
-      }
-    }
+    const physical = {}
 
     const lifecycle = createLocalBackendLifecycle<ChildProcess>({
       cancelSetup: (): void => {},
@@ -97,7 +93,7 @@ test.skipIf(process.platform === 'win32')(
   }
 )
 
-test.skipIf(process.platform === 'win32')(
+test(
   'a claim completed after eviction retains its live child capacity',
   async (): Promise<void> => {
     const slots = new LocalBackendSpawnCoordinator(1)
@@ -106,11 +102,7 @@ test.skipIf(process.platform === 'win32')(
     assert.throws((): void => assertPoolEntryStillOwned('not-spawned', unspawned, new Map(), signal))
     assert.equal(slots.activeCount, 0, 'pre-spawn cancellation releases its reservation')
 
-    const physical = {
-      forceKillProcessTree: (): never => {
-        throw new Error('POSIX test')
-      }
-    }
+    const physical = {}
 
     const lifecycle = createLocalBackendLifecycle<ChildProcess>({
       cancelSetup: (): void => {},

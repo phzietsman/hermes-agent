@@ -2,7 +2,7 @@
  * Review 5411222842: the update gate judges a marker on Electron's main
  * thread every poll while one exists, so its creation-time and process-state
  * probes must never spawn synchronously (`execFileSync` ps / getconf /
- * powershell blocked the UI for up to 5 s / 15 s). They go through async
+ * blocked the UI for up to 5 s / 15 s). They go through async
  * `execFile`; the synchronous variants stay for the module-init repair lock.
  */
 
@@ -60,7 +60,7 @@ test.skipIf(process.platform !== 'linux')('the Linux creation-time probe never s
 
 // macOS reads `ps`; procps on Linux prints the same columns, so the darwin
 // branch runs here against a real `ps`.
-test.skipIf(process.platform === 'win32')('the macOS probes ask ps without blocking the main thread', async () => {
+test('the macOS probes ask ps without blocking the main thread', async () => {
   const reference = psCreateTime(owner.pid)
   syncSpawns.length = 0
 

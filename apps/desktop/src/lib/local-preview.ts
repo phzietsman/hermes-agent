@@ -1,7 +1,6 @@
 import DOMPurify from 'dompurify'
 
 import { isDesktopFsRemoteMode, readDesktopFileDataUrl, readDesktopFileText } from '@/lib/desktop-fs'
-import { isWindowsAbsolutePath } from '@/lib/path-compare'
 import type { PreviewTarget } from '@/store/preview'
 
 const HTML_EXTENSIONS = new Set(['.htm', '.html'])
@@ -64,11 +63,10 @@ function joinPath(base: string, rel: string) {
     return rel
   }
 
-  const normalizedBase = base.replace(/\\/g, '/')
-  const root = normalizedBase.match(/^(?:\/\/|(?:[A-Za-z]:)?\/)/)?.[0] ?? ''
-  const parts = normalizedBase.slice(root.length).split('/').filter(Boolean)
+  const root = base.startsWith('/') ? '/' : ''
+  const parts = base.slice(root.length).split('/').filter(Boolean)
 
-  for (const part of rel.replace(/\\/g, '/').split('/')) {
+  for (const part of rel.split('/')) {
     if (!part || part === '.') {
       continue
     }
@@ -86,17 +84,10 @@ function joinPath(base: string, rel: string) {
 }
 
 function pathToFileUrl(path: string) {
-  const isWindowsUnc = path.startsWith('\\\\')
-  const normalized = isWindowsUnc || /^[a-z]:[\\/]/i.test(path) ? path.replace(/\\/g, '/') : path
-
-  const encoded = normalized
+  const encoded = path
     .split('/')
     .map(part => encodeURIComponent(part))
     .join('/')
-
-  if (isWindowsUnc) {
-    return `file://${encoded.slice(2)}`
-  }
 
   return `file://${encoded.startsWith('/') ? encoded : `/${encoded}`}`
 }
@@ -242,7 +233,7 @@ export function localPreviewTarget(rawTarget: string, cwd?: string | null): Prev
     } catch {
       path = raw.replace(/^file:\/\//i, '')
     }
-  } else if (!raw.startsWith('/') && !isWindowsAbsolutePath(raw) && cwd) {
+  } else if (!raw.startsWith('/') && cwd) {
     path = joinPath(cwd, raw)
   }
 

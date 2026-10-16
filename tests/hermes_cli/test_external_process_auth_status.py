@@ -44,7 +44,7 @@ def _clean_copilot_env(tmp_path, monkeypatch):
 def test_get_auth_status_dispatches_external_process_by_auth_type(
     tmp_path, monkeypatch, _clean_copilot_env
 ):
-    fake = tmp_path / ("copilot.exe" if os.name == "nt" else "copilot")
+    fake = tmp_path / "copilot"
     fake.write_text("", encoding="utf-8")
     fake.chmod(0o755)
     monkeypatch.setenv("HERMES_COPILOT_ACP_COMMAND", str(fake))
@@ -80,32 +80,13 @@ def test_external_process_status_finds_user_local_cli_outside_backend_path(
     assert resolve_external_process_provider_credentials("copilot-acp")["command"] == str(cli)
 
 
-@pytest.mark.platforms("windows")
-def test_external_process_status_finds_user_profile_local_cli_as_native_path(
-    tmp_path, monkeypatch, _clean_copilot_env
-):
-    """The Windows user-local hit is one native path, not a mixed-separator join."""
-    local_bin = tmp_path / ".local" / "bin"
-    local_bin.mkdir(parents=True)
-    cli = local_bin / "copilot.exe"
-    cli.write_text("", encoding="utf-8")
-    monkeypatch.setenv("PATH", str(tmp_path / "backend-bin"))
-
-    status = get_external_process_provider_status("copilot-acp")
-    resolved = status["resolved_command"]
-
-    assert status["configured"] is True
-    assert "/" not in resolved and os.path.samefile(resolved, cli)
-    assert resolve_external_process_provider_credentials("copilot-acp")["command"] == resolved
-
-
 def test_external_process_status_resolves_relative_configured_path_from_cwd(
     tmp_path, monkeypatch, _clean_copilot_env
 ):
     """An operator's relative command path keeps resolving against the launch cwd."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    cli = bin_dir / ("copilot.exe" if os.name == "nt" else "copilot")
+    cli = bin_dir / "copilot"
     cli.write_text("", encoding="utf-8")
     cli.chmod(0o755)
     monkeypatch.chdir(tmp_path)
@@ -304,7 +285,7 @@ def test_explicit_filter_drops_unverified_external_process_row(tmp_path, monkeyp
 def test_cli_command_reflects_configured_executable(tmp_path, monkeypatch, _clean_copilot_env):
     from hermes_cli.web_server_oauth import _external_process_cli_command
 
-    fake = tmp_path / ("copilot.exe" if os.name == "nt" else "copilot")
+    fake = tmp_path / "copilot"
     fake.write_text("", encoding="utf-8")
     fake.chmod(0o755)
     monkeypatch.setenv("HERMES_COPILOT_ACP_COMMAND", str(fake))

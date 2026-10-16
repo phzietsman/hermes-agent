@@ -44,7 +44,6 @@ def _termux_example_image_path(filename: str = "cat.png") -> str:
         "/storage/emulated/0",
         "/storage/self/primary",
     ]
-    # Literal "/" so the Android hint is right even on Windows.
     for root in candidates:
         if os.path.isdir(root):
             return f"{root}/Pictures/{filename}"
@@ -104,19 +103,13 @@ def _resolve_attachment_path(raw_path: str) -> Path | None:
             parsed = urlparse(token)
             if parsed.scheme == "file":
                 expanded = unquote(parsed.path or "")
-                if parsed.netloc and os.name == "nt":
-                    expanded = f"//{parsed.netloc}{expanded}"
-                elif os.name == "nt" and len(expanded) >= 3 and expanded[0] == "/" and expanded[1].isalpha() and expanded[2] == ":":
-                    # file:///C:/... parses to path "/C:/..." — drop the leading slash
-                    # so it resolves as a drive-letter path.
-                    expanded = expanded[1:]
         except Exception:
             expanded = token
     expanded = os.path.expandvars(os.path.expanduser(expanded))
-    if os.name != "nt":
-        normalized = expanded.replace("\\", "/")
-        if len(normalized) >= 3 and normalized[1] == ":" and normalized[2] == "/" and normalized[0].isalpha():
-            expanded = f"/mnt/{normalized[0].lower()}/{normalized[3:]}"
+    # A Windows drive path dropped into a WSL terminal resolves through the /mnt mount.
+    normalized = expanded.replace("\\", "/")
+    if len(normalized) >= 3 and normalized[1] == ":" and normalized[2] == "/" and normalized[0].isalpha():
+        expanded = f"/mnt/{normalized[0].lower()}/{normalized[3:]}"
     path = Path(expanded)
     if not path.is_absolute():
         base_dir = Path(os.getenv("TERMINAL_CWD", os.getcwd()))
@@ -152,7 +145,7 @@ def _detect_file_drop(user_input: str) -> "dict | None":
     if not stripped:
         return None
 
-    # Optionally quoted; then /, ~, ./, ../, a Windows drive prefix, or (unquoted) file://.
+    # Optionally quoted; then /, ~, ./, ../, a Windows drive prefix (WSL drops), or (unquoted) file://.
     quoted = stripped[:1] in {"'", '"'}
     unquoted = stripped[1:] if quoted else stripped
     starts_like_path = (
@@ -437,14 +430,13 @@ def _apply_backslash_line_continuation(text: str) -> str:
 
 
 def _preserve_ctrl_enter_newline() -> bool:
-    """Environments delivering Ctrl+Enter as bare LF (Windows Terminal, WSL, SSH, Ghostty): c-j must stay newline.
+    """Environments delivering Ctrl+Enter as bare LF (Windows Terminal under WSL, SSH, Ghostty): c-j must stay newline.
 
     See issue #22379.
     """
     env = os.environ
     if (
-        sys.platform == "win32"
-        or any(env.get(v) for v in ("SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "WT_SESSION",
+        any(env.get(v) for v in ("SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "WT_SESSION",
                                     "GHOSTTY_RESOURCES_DIR", "GHOSTTY_BIN_DIR"))
         or env.get("TERM", "").lower() == "xterm-ghostty" or env.get("TERM_PROGRAM", "").lower() == "ghostty"
         or "microsoft" in env.get("WSL_DISTRO_NAME", "").lower()
@@ -464,15 +456,15 @@ def _preserve_ctrl_enter_newline() -> bool:
 def _bind_prompt_submit_keys(kb, handler, *, multiline_shortcuts_enabled: Optional[bool] = None) -> None:
     """Enter always submits; c-j submits only with multiline shortcuts off AND where Ctrl+Enter isn't c-j.
 
-    Even when the setting is disabled, environments where Ctrl+Enter is known to arrive as c-j (Windows,
-    WSL, SSH, Windows Terminal, Ghostty) keep c-j reserved for newline; otherwise Ctrl+Enter submits instead
+    Even when the setting is disabled, environments where Ctrl+Enter is known to arrive as c-j (WSL,
+    SSH, Windows Terminal, Ghostty) keep c-j reserved for newline; otherwise Ctrl+Enter submits instead
     of composing. See _preserve_ctrl_enter_newline() and issue #22379.
     """
     from cli import _cli_multiline_shortcuts_enabled, _preserve_ctrl_enter_newline
     if multiline_shortcuts_enabled is None:
         multiline_shortcuts_enabled = _cli_multiline_shortcuts_enabled()
     kb.add("enter")(handler)
-    if sys.platform != "win32" and not multiline_shortcuts_enabled and not _preserve_ctrl_enter_newline():
+    if not multiline_shortcuts_enabled and not _preserve_ctrl_enter_newline():
         kb.add("c-j")(handler)
 
 
@@ -480,16 +472,6 @@ def _disable_prompt_toolkit_cpr_warning(app) -> None:
     """Let prompt_toolkit fall back from CPR without printing into the prompt."""
     with suppress(Exception):
         app.renderer.cpr_not_supported_callback = None
-
-
-def _terminal_may_leak_cpr() -> bool:
-    """Suppress prompt_toolkit CPR queries (delayed replies leak into input); Windows keeps pt's default.
-
-    Delayed CPR replies (``ESC[<row>;<col>R`` / visible ``^[[<row>;<col>R``) leak into the status line and
-    can freeze input when the reply is slow (#13870 on SSH/slow PTYs). The same race hits local POSIX TTYs
-    under heavy subagent / status-line load — see ``tests/hermes_cli/test_cpr_local_leak.py``.
-    """
-    return os.environ.get("PROMPT_TOOLKIT_NO_CPR", "") == "1" or sys.platform != "win32"
 
 
 def _build_cpr_disabled_output(stdout):
@@ -519,9 +501,14 @@ def _build_cpr_disabled_output(stdout):
 
 
 def _select_classic_cli_pt_output(stdout):
-    """CPR-disabled ``Vt100_Output`` when CPR may leak, else None (Application keeps pt's default)."""
-    from cli import _build_cpr_disabled_output, _terminal_may_leak_cpr
-    return _build_cpr_disabled_output(stdout) if _terminal_may_leak_cpr() else None
+    """CPR-disabled ``Vt100_Output`` (None when it can't be built: Application keeps pt's default).
+
+    Delayed CPR replies (``ESC[<row>;<col>R`` / visible ``^[[<row>;<col>R``) leak into the status line and
+    can freeze input when the reply is slow (#13870 on SSH/slow PTYs); the same race hits local TTYs
+    under heavy subagent / status-line load.
+    """
+    from cli import _build_cpr_disabled_output
+    return _build_cpr_disabled_output(stdout)
 
 
 def _strip_leaked_terminal_responses_with_meta(text: str) -> tuple[str, bool]:

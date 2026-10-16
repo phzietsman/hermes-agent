@@ -28,9 +28,8 @@ logger = logging.getLogger(__name__)
 
 _PROFILE_RESCAN_INTERVAL_SECS = 30.0
 _PROFILE_SIGNATURE_FILES = ("config.yaml", ".env")
-# Bound for one own-gateway liveness probe (``live_gateway_pid_for_home``): the control-socket
-# read it can end in has no timeout of its own — on Windows the named pipe stalls there until
-# its peer answers — so the await needs one. A healthy identify answers in milliseconds.
+# Bound for one own-gateway liveness probe (``live_gateway_pid_for_home``) so a stalled probe
+# cannot park the loop. A healthy identify answers in milliseconds.
 _OWN_GATEWAY_PROBE_TIMEOUT_SECS = 5.0
 
 
@@ -120,8 +119,7 @@ class GatewayProfileReconcileMixin:
             for name in list(current):
                 if name == active or name in known:
                     continue
-                # The probe can end in a control-socket read that has no timeout of its own
-                # (a Windows named pipe stalls there until its peer answers). Inline on the
+                # The probe can stall (control-socket read, process-table scans). Inline on the
                 # loop thread it parked shutdown_watchdog liveness probes and the multiplexer
                 # was hard-killed with exit 75 (#132547). Probe off the loop, bounded: a
                 # stalled probe only wedges one bounded housekeeping worker for this cycle

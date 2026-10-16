@@ -1,7 +1,6 @@
-"""Tests for --replace child-process reaping (POSIX taskkill /T parity).
+"""Tests for --replace child-process reaping.
 
-On Windows, ``terminate_pid(force=True)`` tree-kills via ``taskkill /T``.
-On POSIX, ``--replace`` historically signalled only the recorded gateway PID,
+``--replace`` historically signalled only the recorded gateway PID,
 so adapter subprocesses that survived their parent kept holding scoped token
 locks and blocked the replacement gateway.  ``_snapshot_gateway_children`` /
 ``reap_gateway_children`` close that gap: the replacer snapshots the old

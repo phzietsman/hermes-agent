@@ -41,7 +41,7 @@ describe('detectBundleSwap', () => {
     expect(detectBundleSwap(RUNNING, onDisk)).toBe(true)
   })
 
-  // The Windows locked-binary case (#92233): the swap leg failed, so the
+  // The locked-binary case (#92233): the swap leg failed, so the
   // bundle on disk is still the one we are running. A relaunch would repair
   // nothing and cost the user their window.
   it('is quiet when the on-disk stamp matches the running one', () => {

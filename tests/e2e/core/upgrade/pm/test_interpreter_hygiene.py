@@ -5,7 +5,7 @@ generation's site-packages. Two kinds of stray environment sit next to that on r
 
 * the pre-PM in-tree ``venv/`` a main-era install leaves behind after migrating (#123965), and
 * a repo-local ``.venv`` a user or a dev tool created with another Python (3.11 here; #123972,
-  whose Windows crash is ``pydantic_core`` built for the wrong ABI; this is the Linux analogue).
+  ``pydantic_core`` built for the wrong ABI).
 
 Both are seeded as real ``uv venv`` environments whose site-packages carry a ``sitecustomize``
 and a ``.pth`` hook that record every interpreter that ever puts them on ``sys.path``. After a

@@ -113,13 +113,11 @@ class TestIsSafePath:
         dg = _load_lib()
         assert dg.is_safe_path(Path("/etc/passwd")) is False
 
-    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX /tmp path contract")
     def test_rejects_tmp_traversal_and_near_prefixes(self, _isolate_env):
         dg = _load_lib()
         assert dg.is_safe_path(Path("/tmp/hermes-safe/../not-hermes/file")) is False
         assert dg.is_safe_path(Path("/tmp-near/hermes-safe/file")) is False
 
-    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX symlink contract")
     def test_rejects_final_and_nested_symlink_escapes(self, _isolate_env):
         dg = _load_lib()
         temporary = Path(tempfile.mkdtemp(prefix="hermes-disk-cleanup-", dir="/tmp"))
@@ -138,7 +136,6 @@ class TestIsSafePath:
             shutil.rmtree(temporary)
             shutil.rmtree(outside_dir)
 
-    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX symlink contract")
     def test_symlink_loop_fails_closed(self, _isolate_env, monkeypatch, tmp_path):
         """Resolution failures must fail closed, never raise into the caller.
 

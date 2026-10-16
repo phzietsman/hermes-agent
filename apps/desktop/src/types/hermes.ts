@@ -1332,7 +1332,7 @@ export interface ToolsetModelsResponse {
 
 /** Shape of `GET /api/tools/computer-use/status`.
  *
- *  cua-driver runs on macOS, Windows, and Linux. `ready` is the single OS-aware
+ *  cua-driver runs on macOS and Linux. `ready` is the single OS-aware
  *  readiness signal: on macOS both TCC grants (Accessibility + Screen
  *  Recording, which attach to cua-driver's own `com.trycua.driver` identity,
  *  not Hermes); elsewhere, driver health from `cua-driver doctor`. `null`
@@ -1352,7 +1352,7 @@ export interface ComputerUseCheck {
 }
 
 export interface ComputerUseStatus {
-  /** `sys.platform`: "darwin" | "win32" | "linux" | ... */
+  /** `sys.platform`: "darwin" | "linux" | ... */
   platform: string
   /** cua-driver has a runtime backend for this platform. */
   platform_supported: boolean

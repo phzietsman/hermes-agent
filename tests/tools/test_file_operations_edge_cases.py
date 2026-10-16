@@ -6,7 +6,6 @@ Covers:
 """
 
 import os
-import sys
 
 import pytest
 from unittest.mock import MagicMock, patch
@@ -113,7 +112,6 @@ class TestCheckLintBracePaths:
         assert "SyntaxError" in result.output
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="POSIX sh stand-ins for node")
 def test_local_js_lint_runs_pm_node_never_the_users(tmp_path, monkeypatch):
     """Hermes's own post-write lint uses PM's Node even when the user's node sorts first on
     PATH, and skips (never falls back to the user's) when PM has no Node."""

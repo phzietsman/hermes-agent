@@ -27,14 +27,13 @@ logger = logging.getLogger("tools.computer_use.cua_backend")
 # shell window via list_windows, WITH interactable elements (icons, taskbar).
 _FULL_SCREEN_SENTINELS = {"screen", "fullscreen", "full screen", "all"}
 _DESKTOP_SHELL_SENTINELS = {"desktop"}
-# Shell window identifiers (substring of app_name + title, case-insensitive). Windows: Progman/WorkerW =
-# desktop, Shell_TrayWnd = taskbar; macOS: Finder/Dock. The backdrop subset is preferred over the taskbar.
-_DESKTOP_WINDOW_NAMES = ("progman", "workerw", "program manager", "shell_traywnd", "taskbar", "finder", "desktop", "dock")
-_DESKTOP_BACKDROP_NAMES = ("progman", "workerw", "program manager", "finder", "desktop")
+# Shell window identifiers (substring of app_name + title, case-insensitive). macOS: Finder/Dock. The backdrop
+# subset is preferred over the taskbar/dock.
+_DESKTOP_WINDOW_NAMES = ("taskbar", "finder", "desktop", "dock")
+_DESKTOP_BACKDROP_NAMES = ("finder", "desktop")
 _NO_DESKTOP_WINDOW_MSG = ("<no desktop/shell window found for app={app!r}; cua-driver captures one window at a time "
                           "and exposes no whole-virtual-desktop or per-monitor capture. Call list_apps / "
-                          "capture(app='<AppName>') to target a specific window instead. On Windows the taskbar is "
-                          "'Shell_TrayWnd' and the desktop is 'Progman'.>")
+                          "capture(app='<AppName>') to target a specific window instead.>")
 _NO_APP_MATCH_MSG = ("<no on-screen window matched app={app!r}; call list_apps to see available app names or bundle "
                      "IDs (macOS reports localized names, e.g. '計算機' instead of 'Calculator'; some Linux/Qt apps "
                      "only resolve via list_apps metadata)>")
@@ -232,7 +231,7 @@ class _CaptureMixin:
             return windows
         if app.strip().lower() in _DESKTOP_SHELL_SENTINELS:
             # Desktop-shell request: the OS shell window WITH its interactable elements (desktop icons), so
-            # "click the taskbar" works. Prefer the backdrop (Progman/WorkerW/Finder) over the taskbar so the
+            # "click the taskbar" works. Prefer the backdrop (Finder/desktop) over the taskbar so the
             # capture shows the full desktop rather than the task strip.
             desktop = sorted((w for w in windows if _is_desktop_window(w)),
                              key=lambda w: not _is_desktop_window(w, _DESKTOP_BACKDROP_NAMES))
@@ -310,8 +309,8 @@ class _CaptureMixin:
         # Schema-filler ids (models zero-fill optional properties) must not read as a targeting request.
         pid, window_id = [None if _is_placeholder_id(v) else v for v in (pid, window_id)]
         exact_target = pid is not None or window_id is not None
-        # Full-screen lane bypasses enumeration entirely (also keeps screenshots working when Windows UIA
-        # enumeration hangs). app='desktop' deliberately does NOT take it: desktop icons stay clickable.
+        # Full-screen lane bypasses enumeration entirely. app='desktop' deliberately does NOT take it: desktop
+        # icons stay clickable.
         if not exact_target and app and app.strip().lower() in _FULL_SCREEN_SENTINELS:
             return self._capture_full_screen(mode)
         windows = self._resolve_capture_windows(mode, app, pid, window_id)
@@ -332,11 +331,8 @@ class _CaptureMixin:
 
     def _capture_full_screen(self, mode: str) -> CaptureResult:
         """Composited PrtScn-style grab via `get_desktop_state` (the shell window would only show wallpaper + icons).
-        Never enumerates, so it also works when Windows UIA hangs. Pixels only — `elements` is empty and `note` points
-        the model at the interactive lanes. ``capture_scope`` is switched to desktop for the call and restored afterwards.
-
-        Bonus resilience (2ndNatureAI, #60081): this lane works even when Windows UIA enumeration
-        (`list_windows` / `list_apps`) hangs (trycua/cua#2110/#2113), because it never enumerates.
+        Never enumerates. Pixels only — `elements` is empty and `note` points the model at the interactive lanes.
+        ``capture_scope`` is switched to desktop for the call and restored afterwards.
         """
         self._clear_active_target()
         previous_scope: Optional[str] = None

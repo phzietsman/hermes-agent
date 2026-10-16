@@ -28,7 +28,7 @@ test('bounded stop retains a live child and its slot until late exit, without ev
       kill: vi.fn()
     })
 
-    const deps = { forceKillProcessTree: () => {} }
+    const deps = {}
 
     const lifecycle = createLocalBackendLifecycle<WaitableChild>({
       stopChild: child => stopBackendChild(child, deps),
@@ -130,7 +130,7 @@ test('real spawn failures finalize before a pending identity claim settles', asy
       finishClaim()
       await claimed
       await releaseLocalBackendSlotAfterExit(release, () =>
-        waitForBackendExit(child, { forceKillProcessTree: () => {} }, 20)
+        waitForBackendExit(child, {}, 20)
       )
       assert.equal(coordinator.activeCount, 1, 'late failed-start cleanup owns only the old lease')
       releaseNext()

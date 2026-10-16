@@ -6,7 +6,7 @@
     response = agent.run_conversation("Tell me about the latest Python updates")
 """
 
-# hermes_bootstrap must be the very first import (UTF-8 stdio on Windows; no-op on POSIX).
+# hermes_bootstrap must be the very first import (PM dependency activation).
 try:
     import hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError as exc:  # partial `hermes update` left the bootstrap unregistered

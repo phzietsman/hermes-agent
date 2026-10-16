@@ -415,8 +415,8 @@ def coding_compact_skill_categories(*, platform: Optional[str] = None, cwd: Opti
 
 def _git(cwd: Path, *args: str) -> str:
     """``git -C <cwd> <args>`` → stripped stdout, or ``""`` on any failure. bounded_git_probe
-    bounds post-kill cleanup on Windows — plain ``subprocess.run(timeout=...)`` deadlocked
-    when a killed git left a suspended descendant holding the pipe handles.
+    bounds post-kill cleanup — plain ``subprocess.run(timeout=...)`` deadlocked when a killed git
+    left a suspended descendant holding the pipe handles.
 
     See #66037.
     """

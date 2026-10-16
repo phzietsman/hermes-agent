@@ -5,7 +5,6 @@ import asyncio
 import logging
 import mimetypes
 import os
-import platform
 import re
 import signal
 import subprocess
@@ -17,11 +16,7 @@ from typing import Dict, Optional, Any
 from gateway.platforms._shared import (
     apply_yaml_bridge as _apply_yaml_bridge, extra_or_secret as _extra_or_secret, get_scoped_secret, send_error
 )
-from hermes_cli._subprocess_compat import windows_detach_popen_kwargs
 from hermes_constants import (find_node_executable, get_hermes_dir, with_hermes_node_path)
-
-_IS_WINDOWS = platform.system() == "Windows"
-
 
 def _wenv(name: str, default: str = "") -> str:
     """WHATSAPP_* env via the profile secret scope (multiplexed profiles see their own .env, not the process-global value)."""
@@ -64,23 +59,10 @@ def _session_dir(extra) -> Path:
         "session_path", get_hermes_dir("platforms/whatsapp/session", "whatsapp/session"))))))
 
 
-def _windows_listener_pids(port: int) -> list:
-    """PIDs in LISTENING state on ``port`` via netstat (Windows)."""
-    from hermes_cli._subprocess_compat import windows_hide_flags
-    result = subprocess.run(["netstat", "-ano", "-p", "TCP"], timeout=5, creationflags=windows_hide_flags(), **_RUN_TEXT)
-    rows = (line.split() for line in result.stdout.splitlines())
-    return _safe_ints(p[4] for p in rows if len(p) >= 5 and p[3] == "LISTENING" and p[1].endswith(f":{port}"))
-
-
-def _port_listener_pids(port: int) -> list:
-    """Listening PIDs on ``port`` for this platform: netstat on Windows, lsof/ss elsewhere."""
-    return _windows_listener_pids(port) if _IS_WINDOWS else _listener_pids_on_port(port)
-
-
 def _pid_looks_like_node_bridge(pid: int) -> bool:
     """Fail-closed: the live process must be a ``node`` executable (a scan-time PID can be a stranger by kill time).
 
-    ``_kill_port_process`` discovers PIDs from a netstat/lsof scan of a TCP port — a bare number naming a
+    ``_kill_port_process`` discovers PIDs from an lsof/ss scan of a TCP port — a bare number naming a
     *stranger* process (#89614 class: an unverified scan-time PID force-killed later can be anything,
     including a critical system process). Before any kill, require the live process to actually look like
     our Baileys bridge: a ``node`` executable. Any ambiguity (process gone, unreadable cmdline) refuses the
@@ -95,21 +77,15 @@ def _pid_looks_like_node_bridge(pid: int) -> bool:
 
 
 def _kill_port_process(port: int) -> None:
-    """Kill any node bridge *listening* on the given TCP port (never a client); SIGTERM on POSIX, taskkill /F on Windows."""
+    """SIGTERM any node bridge *listening* on the given TCP port (never a client)."""
     with suppress(Exception):
-        for pid in _port_listener_pids(port):
+        for pid in _listener_pids_on_port(port):
             # Killing a mistyped or recycled PID is unrecoverable — verify first.
             if pid <= 0 or not _pid_looks_like_node_bridge(pid):
                 logger.warning("[whatsapp] Not killing PID %s on port %d: process is not a node bridge (or identity unverifiable)", pid, port)
                 continue
-            if _IS_WINDOWS:
-                from hermes_cli._subprocess_compat import windows_hide_flags
-                # Only SubprocessError is swallowed per-PID; an OSError (e.g. taskkill missing) aborts the scan.
-                with suppress(subprocess.SubprocessError):
-                    subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True, stdin=subprocess.DEVNULL, timeout=5, creationflags=windows_hide_flags())
-            else:
-                with suppress(OSError):  # ProcessLookupError/PermissionError are OSError subclasses
-                    os.kill(pid, signal.SIGTERM)
+            with suppress(OSError):  # ProcessLookupError/PermissionError are OSError subclasses
+                os.kill(pid, signal.SIGTERM)
 
 
 def _bridge_pid_is_ours(pid: int, expected_start) -> bool:
@@ -185,17 +161,6 @@ def _write_bridge_pidfile(session_path: Path, pid: int, port: Optional[int] = No
 def _terminate_bridge_process(proc, *, force: bool = False) -> None:
     """Terminate the bridge process using process-tree semantics where possible."""
     action = "kill" if force else "terminate"
-    if _IS_WINDOWS:
-        try:
-            result = subprocess.run(
-                ["taskkill", "/PID", str(proc.pid), "/T"] + (["/F"] if force else []),
-                stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10,
-            )
-        except FileNotFoundError:
-            return getattr(proc, action)()
-        if result.returncode != 0:
-            raise OSError((result.stderr or result.stdout or "").strip() or f"taskkill failed for PID {proc.pid}")
-        return
     import psutil
     with suppress(psutil.NoSuchProcess):
         parent = psutil.Process(proc.pid)
@@ -662,7 +627,7 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                     # our own stale bridge was just reaped by its pidfile: a holder that remains is left running.
                     await asyncio.sleep(1)
                     try:
-                        held = bool(_port_listener_pids(self._bridge_port))
+                        held = bool(_listener_pids_on_port(self._bridge_port))
                     except Exception:
                         held = True  # listeners could not be listed: still no evidence to kill on
                     if held:
@@ -686,7 +651,7 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                 raise RuntimeError("Node.js is no longer available; run `hermes pm install`")
             self._bridge_process = subprocess.Popen(
                 [node, str(bridge_path), "--port", str(self._bridge_port), "--session", str(self._session_path),
-                 "--mode", _wenv("WHATSAPP_MODE", "self-chat")], stdin=subprocess.DEVNULL, stdout=bridge_log_fh, stderr=bridge_log_fh, env=self._bridge_env(), **windows_detach_popen_kwargs())
+                 "--mode", _wenv("WHATSAPP_MODE", "self-chat")], stdin=subprocess.DEVNULL, stdout=bridge_log_fh, stderr=bridge_log_fh, env=self._bridge_env(), start_new_session=True)
             _write_bridge_pidfile(self._session_path, self._bridge_process.pid, self._bridge_port)
             if not await self._wait_for_bridge():
                 return False

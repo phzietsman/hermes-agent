@@ -802,7 +802,6 @@ class TestImport:
 
 
 
-    @pytest.mark.skipif(os.name != "posix", reason="POSIX file permissions only")
     def test_restores_secret_files_with_0600_perms(self, tmp_path, monkeypatch):
         """Secret files must end up at 0600 after restore (zipfile drops mode bits)."""
         hermes_home = tmp_path / ".hermes"
@@ -1153,7 +1152,6 @@ class TestImportAtomicWrites:
         assert (honcho / "config.json").read_text() == original
         assert list(honcho.glob(".config.json.*")) == []
 
-    @pytest.mark.skipif(os.name != "posix", reason="POSIX symlinks")
     def test_symlinked_target_keeps_its_symlink(self, tmp_path, monkeypatch):
         """A symlinked target is written through, not replaced by a regular file.
 
@@ -1182,7 +1180,6 @@ class TestImportAtomicWrites:
         assert link.is_symlink(), "import replaced the symlink with a regular file"
         assert real.read_text() == "model: restored\n"
 
-    @pytest.mark.skipif(os.name != "posix", reason="POSIX symlinks")
     def test_symlinked_external_target_keeps_its_symlink(self, tmp_path, monkeypatch):
         """Same guard on the `_external/` branch — the realistic dotfiles case."""
         dst_home = tmp_path / "dst"
@@ -1213,7 +1210,6 @@ class TestImportAtomicWrites:
         assert link.is_symlink(), "import replaced the symlink with a regular file"
         assert real.read_text() == '{"peer":"restored"}'
 
-    @pytest.mark.skipif(os.name != "posix", reason="POSIX file modes")
     def test_restore_preserves_existing_file_mode(self, tmp_path, monkeypatch):
         """Staging through mkstemp must not silently tighten restored files to 0600.
 

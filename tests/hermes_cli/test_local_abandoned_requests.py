@@ -115,7 +115,7 @@ class _FakeChild:
 
 
 def test_reap_orphans_kills_only_our_parentless_binaries(tmp_path, monkeypatch):
-    exe = tmp_path / "llama-server.exe"
+    exe = tmp_path / "llama-server"
     exe.write_text("")
 
     orphan = _FakeChild(300)
@@ -130,7 +130,7 @@ def test_reap_orphans_kills_only_our_parentless_binaries(tmp_path, monkeypatch):
     procs = [
         _info(300, str(exe), 9999),          # dead parent -> reap
         _info(301, str(exe), 1),             # live parent -> keep
-        _info(302, str(tmp_path / "other.exe"), 9999),  # foreign -> keep
+        _info(302, str(tmp_path / "other"), 9999),  # foreign -> keep
     ]
     reaped = []
     for p in procs:
@@ -149,8 +149,6 @@ def test_reap_orphans_kills_only_our_parentless_binaries(tmp_path, monkeypatch):
     sup = LlamaServerSupervisor.__new__(LlamaServerSupervisor)
     sup.binary = exe
     sup.proc = None
-    sup._job = None
     sup._reap_orphaned_children()
 
-    expected = [] if __import__("sys").platform == "win32" else [300]
-    assert reaped == expected  # Windows uses retained job handles, never binary scans.
+    assert reaped == [300]

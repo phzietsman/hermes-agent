@@ -387,7 +387,7 @@ def test_dispatcher_grants_only_the_assigned_worker_scope(tmp_path, monkeypatch)
     monkeypatch.setenv("HERMES_DELEGATED_CHILD_CONTEXT", str(tmp_path))
     pid = _default_spawn(task, str(tmp_path), board="default")
     assert pid is not None
-    os.waitpid(pid, 0)  # windows-footgun: ok — Linux-only real dispatcher spawn
+    os.waitpid(pid, 0)
     result = json.loads(output.read_text())
     assert result["ok"] and result["beat"] is True, result
     assert kb.get_task(conn, tid).status == "done"

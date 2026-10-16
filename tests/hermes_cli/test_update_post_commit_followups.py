@@ -200,8 +200,8 @@ def test_owed_restart_rearms_a_settled_obligation_and_a_later_run_keeps_owing_it
 
 
 def test_followup_line_is_the_one_both_desktop_handoffs_parse(tmp_path, monkeypatch, capsys):
-    """The hand-offs read owed follow-ups from this printed line (review regression 1): pin the
-    producer against the exact parsers in posix.sh (sed) and windows.ps1 (.NET regex)."""
+    """The hand-off reads owed follow-ups from this printed line (review regression 1): pin the
+    producer against the exact parser in posix.sh (sed)."""
     import re
     from pathlib import Path
 
@@ -215,9 +215,6 @@ def test_followup_line_is_the_one_both_desktop_handoffs_parse(tmp_path, monkeypa
     steps = subprocess.run(["bash", "-c", f"{function}\nowed_followup_steps"], env={**os.environ, "OUT": out},
                            capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
     assert steps == "gateway_restart windows_resume"
-    pattern = re.search(r"\[regex\]::Matches\(\(\$res\.Output -join \"`n\"\), \"([^\"]+)\"\)",
-                        (scripts / "windows.ps1").read_text(encoding="utf-8")).group(1)
-    assert [m.group(1) for m in re.finditer(pattern, out)] == ["gateway_restart", "windows_resume"]
 
 
 def test_interrupt_after_the_run_closed_as_success_never_tells_the_gateway_1(tmp_path, monkeypatch):
@@ -314,7 +311,7 @@ def test_both_completion_children_run_in_utf8_mode(tmp_path, monkeypatch):
     monkeypatch.setattr(update_completion, "_settle_after_commit", lambda *a: 0)
     request = {"source": str(tmp_path), "receipt": {"update_id": "u1"}, "bytecode_cache": str(tmp_path / "bc")}
     update_completion._prepare(request, tmp_path / "request.json", tmp_path / "result.json")
-    monkeypatch.setattr(update_completion.sys, "platform", "win32")  # skip the Linux libatomic pre-install
+    monkeypatch.setattr(update_completion, "_preinstall_libatomic", lambda root: None)
     with pytest.raises(OSError):
         update_completion.run_completion({**request, "home": str(tmp_path)})
     assert len(calls) == 2

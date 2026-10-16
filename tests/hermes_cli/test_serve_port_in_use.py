@@ -2,7 +2,7 @@
 
 The reporter's repro: something already listens on the serve port (another
 ``hermes serve``, the gateway, anything) → ``hermes serve`` printed only
-uvicorn's ``ERROR: [Errno 98/10048] error while attempting to bind on
+uvicorn's ``ERROR: [Errno 98/48] error while attempting to bind on
 address`` and exited 1 — indistinguishable from a broken backend for the
 desktop spawn and for scripts.
 
@@ -73,7 +73,7 @@ def test_addr_in_use_error_classification():
 
     assert _is_addr_in_use_error(OSError(errno.EADDRINUSE, "in use")) is True
     assert _is_addr_in_use_error(OSError(98, "linux")) is True
-    assert _is_addr_in_use_error(OSError(10048, "winsock")) is True
+    assert _is_addr_in_use_error(OSError(48, "macos")) is True
     assert _is_addr_in_use_error(OSError(errno.EACCES, "denied")) is False
 
 

@@ -21,8 +21,8 @@ test('macOS uses the floating window level and all-spaces visibility', () => {
   assert.deepEqual(calls, ['alwaysOnTop:true:floating', 'allWorkspaces:true:true'])
 })
 
-test('Linux and Windows only set the screen-saver always-on-top level', () => {
-  for (const platform of ['linux', 'win32']) {
+test('Linux only sets the screen-saver always-on-top level', () => {
+  for (const platform of ['linux']) {
     const calls: string[] = []
 
     const win = {

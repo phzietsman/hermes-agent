@@ -218,9 +218,7 @@ def _safe_restore_db(src: Path, dst: Path) -> bool:
         return True
     except Exception as exc:
         logger.warning("SQLite safe restore failed for %s -> %s: %s", src, dst, exc)
-        # Release our own handle on *dst* before the fallback: on Windows an
-        # open connection blocks unlink() with WinError 32, which would make
-        # the fallback below dead code exactly when it is needed.
+        # Release our own handle on *dst* before the fallback.
         if dst_conn is not None:
             try:
                 dst_conn.close()
@@ -436,12 +434,8 @@ def _extract_member_atomically(
                 # Apply the mode to the temp file BEFORE the replace so the
                 # target never transits through mkstemp's 0600, and so
                 # ``atomic_replace``'s EXDEV/EBUSY ``shutil.copystat`` fallback
-                # copies the intended bits rather than 0600.  fchmod is
-                # Unix-only; Windows takes the path-based chmod.
-                if hasattr(os, "fchmod"):
-                    os.fchmod(dst.fileno(), mode)
-                else:
-                    os.chmod(tmp_name, mode)
+                # copies the intended bits rather than 0600.
+                os.fchmod(dst.fileno(), mode)
             # Stream instead of ``src.read()``: a multi-gigabyte state.db member
             # must not be held in memory in one piece.
             with zf.open(member) as src:

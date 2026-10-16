@@ -8,13 +8,10 @@ so tests monkeypatching it there keep working."""
 
 import logging
 import os
-import platform
 import sys
 from pathlib import Path
 
 from tools.environments.local_env_policy import _ACTIVE_VENV_MARKER_VARS
-
-_IS_WINDOWS = platform.system() == "Windows"
 
 logger = logging.getLogger("tools.environments.local")
 
@@ -34,11 +31,10 @@ def _same_path(left: Path, right: Path) -> bool:
 def _build_hermes_repo_root_aliases(
     resolved_root: Path, lexical_root: Path, configured_home: Path,
 ) -> tuple[Path, ...]:
-    """Exact repo-root spellings emitted by Hermes launchers. Mirrors
-    ``gateway_windows._preserve_hermes_home_path`` (physical path under the resolved
-    HERMES_HOME -> configured spelling) so a junction-backed install matches without
-    treating arbitrary HERMES_HOME descendants as Hermes-owned. A repo-level junction
-    (possibly cross-drive) is accepted only when a strict resolve proves
+    """Exact repo-root spellings emitted by Hermes launchers: the physical path under
+    the resolved HERMES_HOME maps back to the configured spelling, so a symlink-backed
+    install matches without treating arbitrary HERMES_HOME descendants as Hermes-owned.
+    A repo-level symlink is accepted only when a strict resolve proves
     <root>/<repo dirname> is the physical root (fail-closed)."""
     candidates = [resolved_root, lexical_root]
     # Profile re-home: with --profile the configured home is <root>/profiles/<name>
@@ -54,8 +50,8 @@ def _build_hermes_repo_root_aliases(
                 candidates.append(home / os.path.relpath(str(resolved_root), str(resolved_home)))
         except (OSError, ValueError):
             pass
-    # Repo-level junction recovery (commonpath raises across drives, so the
-    # home-relative mapping above cannot express a cross-drive link).
+    # Repo-level symlink recovery: a repo linked in from outside the home is not
+    # expressible by the home-relative mapping above.
     for home in home_candidates:
         repo_candidate = home / resolved_root.name
         try:
@@ -70,29 +66,20 @@ def _build_hermes_repo_root_aliases(
     return tuple(aliases)
 
 
-def _validated_runtime_venv(env: dict) -> Path | None:
-    """Producer-owned runtime venv identified by VIRTUAL_ENV, or None. The variable
-    alone is not provenance (users carry unrelated venvs): require the legacy Windows
-    base-Python producer's exact ``<repo>/venv`` layout AND a real ``pyvenv.cfg``."""
+def _validated_runtime_venv() -> Path | None:
+    """The PM-selected runtime venv when this checkout records runtime facts, else None."""
     from pm.environments import runtime_facts_path, selected_venv
 
     root = Path(__file__).resolve().parents[2]
     if runtime_facts_path(root).is_file():
         return selected_venv(root)
-    candidate = Path(env.get("VIRTUAL_ENV") or "")
-    if not env.get("VIRTUAL_ENV") or not any(
-            _same_path(candidate, root / "venv") for root in _state()._hermes_repo_root_aliases):
-        return None
-    try:
-        return candidate if (candidate / "pyvenv.cfg").is_file() else None
-    except OSError:
-        return None
+    return None
 
 
-def _get_hermes_site_packages(env: dict) -> list[Path]:
+def _get_hermes_site_packages() -> list[Path]:
     """Exact site-packages dirs owned by the Hermes runtime (cached):
-    ``site.getsitepackages()`` with a ``sys.prefix`` fallback, plus a validated
-    Windows base-interpreter launch's ``VIRTUAL_ENV/Lib/site-packages``."""
+    ``site.getsitepackages()`` with a ``sys.prefix`` fallback, plus the PM-selected
+    runtime venv's site-packages."""
     local = _state()
     if local._hermes_site_packages is None:
         result: list[Path] = []
@@ -104,12 +91,11 @@ def _get_hermes_site_packages(env: dict) -> list[Path]:
                 pass
             if not result:
                 pyver = f"python{sys.version_info[0]}.{sys.version_info[1]}"
-                result.append(Path(sys.prefix) / "Lib" / "site-packages" if _IS_WINDOWS
-                              else Path(sys.prefix) / "lib" / pyver / "site-packages")
+                result.append(Path(sys.prefix) / "lib" / pyver / "site-packages")
         local._hermes_site_packages = list(result)
     result = list(local._hermes_site_packages)
 
-    runtime_venv = _validated_runtime_venv(env)
+    runtime_venv = _validated_runtime_venv()
     if runtime_venv is not None:
         from pm.environments import site_packages
         runtime_site_packages = site_packages(runtime_venv)
@@ -119,9 +105,7 @@ def _get_hermes_site_packages(env: dict) -> list[Path]:
 
 
 def _strip_hermes_owned_pythonpath_and_runtime_markers(env: dict) -> None:
-    """Strip Hermes-owned PYTHONPATH entries, then the runtime marker vars. Order is
-    load-bearing: PYTHONPATH filtering runs BEFORE the markers go so a validated Windows
-    base-interpreter launch (VIRTUAL_ENV -> <repo>/venv) can still prove ownership."""
+    """Strip Hermes-owned PYTHONPATH entries, then the runtime marker vars."""
     _strip_hermes_owned_pythonpath(env)
     for _marker in _ACTIVE_VENV_MARKER_VARS:
         env.pop(_marker, None)
@@ -139,7 +123,7 @@ def _strip_hermes_owned_pythonpath(env: dict) -> None:
     pp = env.get("PYTHONPATH")
     if not pp:
         return
-    owned_paths = [*_get_hermes_site_packages(env), *_state()._hermes_repo_root_aliases]
+    owned_paths = [*_get_hermes_site_packages(), *_state()._hermes_repo_root_aliases]
     entries = pp.split(os.pathsep)
     stripped = [e for e in entries if e and any(_same_path(Path(e), p) for p in owned_paths)]
     kept = [e for e in entries if e not in stripped]

@@ -55,8 +55,7 @@ def _play_via_tempfile(audio_iter: Iterable[bytes], stop_evt: threading.Event, s
             wf.setframerate(sample_rate)
             for aligned in _align_int16_chunks(audio_iter, stop_evt):
                 wf.writeframes(aligned)
-        # wave.open() on a file object does NOT close it; on Windows the open write
-        # handle blocks the player and the unlink below (WinError 32).
+        # wave.open() on a file object does NOT close it; flush before the player reads it.
         tmp.close()
         from tools.voice_mode import play_audio_file
         play_audio_file(tmp_path)

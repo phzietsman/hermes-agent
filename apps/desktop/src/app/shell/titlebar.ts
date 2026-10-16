@@ -20,7 +20,7 @@ export function titlebarIconSizeCss(scale = 1): string {
 
 export const TITLEBAR_FALLBACK_WINDOW_BUTTON_X = 24
 // Edge inset used when no left-side native controls take up that space —
-// Windows/Linux (native overlay is on the right) and macOS fullscreen
+// Linux (native overlay is on the right) and macOS fullscreen
 // (traffic lights are hidden). Matches the right-cluster's 0.75rem padding.
 export const TITLEBAR_EDGE_INSET = 14
 
@@ -29,7 +29,7 @@ export const MACOS_TAHOE_DARWIN_MAJOR = 25
 
 // macOS traffic-light row only: nudge the left toolbar cluster down to sit on
 // the same optical center as the native buttons on pre-Tahoe macOS. null
-// windowButtonPosition means Windows/Linux, macOS fullscreen, or Tahoe.
+// windowButtonPosition means Linux, macOS fullscreen, or Tahoe.
 export const TITLEBAR_MAC_TRAFFIC_LIGHTS_Y_NUDGE = 'calc(var(--spacing) * 0.9)'
 
 export interface TitlebarChromeContext {
@@ -97,7 +97,7 @@ export function titlebarControlsPosition(
   const top = Math.max(0, TITLEBAR_CONTROLS_TOP)
 
   // No left-side native controls to dodge:
-  //   - Windows/Linux: native min/max/close render on the right via titleBarOverlay.
+  //   - Linux: native min/max/close render on the right via titleBarOverlay.
   //   - macOS fullscreen: traffic lights are hidden.
   // In both cases, pin the cluster to the edge with a small inset.
   if (windowButtonPosition === null || isFullscreen) {

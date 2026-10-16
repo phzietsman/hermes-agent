@@ -638,7 +638,7 @@ class WhatsAppCloudAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                 logger.warning(
                     "[whatsapp_cloud] ffmpeg not found on PATH — voice messages will be delivered as MP3 audio "
                     "attachments instead of native voice notes (green waveform bubble). Install ffmpeg to enable: "
-                    "Windows `winget install Gyan.FFmpeg`, macOS `brew install ffmpeg`, Linux package manager."
+                    "macOS `brew install ffmpeg`, Linux package manager."
                 )
             return None
         return await asyncio.to_thread(transcode_to_ogg_opus, mp3_path, output_path=mp3_path.rsplit(".", 1)[0] + ".ogg")

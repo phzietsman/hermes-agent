@@ -23,7 +23,13 @@ import { resetSessionBackground } from '@/store/composer-status'
 import { notify, notifyError } from '@/store/notifications'
 import { clearPreviewArtifacts } from '@/store/preview-status'
 import { clearAllPrompts } from '@/store/prompts'
-import { $sessions, knownSessionOwner, ownerLookupSessionRows, sessionMatchesStoredId } from '@/store/session'
+import {
+  $sessions,
+  $terminalBackend,
+  knownSessionOwner,
+  ownerLookupSessionRows,
+  sessionMatchesStoredId
+} from '@/store/session'
 import {
   requestForSessionProfile,
   type SessionOwnerScope,
@@ -248,12 +254,12 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
 
         if (attachment.kind === 'image' || attachment.kind === 'file') {
           const next = await uploadComposerAttachment(attachment, {
-            backendCwd: readState()?.cwd,
             remote,
             requestGateway: requestSessionGateway,
             sessionId: liveSessionId,
             storedSessionId: storedIdRef.current,
-            onSessionRecovered
+            onSessionRecovered,
+            terminalBackend: $terminalBackend.get()
           })
 
           if (options.updateComposerAttachments ?? true) {

@@ -44,9 +44,7 @@ def _arch_guard(store_dir: Path) -> list[str]:
         if binary is None or not binary.is_file():
             continue
         verdict = machine_matches_binary(binary, target)
-        # A package that declares this target as emulated (x64 binary run
-        # under Windows ARM64 built-in emulation) is fine with the x64 PE.
-        if verdict is False and target not in package.emulated_arch_targets:
+        if verdict is False:
             problems.append(f"{name}: {binary.name} is not a {target} binary")
     return problems
 
@@ -105,10 +103,6 @@ def stage_native(args) -> int:
     # Resolve before HOME isolation so the build warms the cache CI saves.
     cache = Path(getattr(args, "cache", None) or os.environ.get("UV_CACHE_DIR") or uv_cache_dir()).resolve()
     base_env = dict(os.environ)
-    if current_target() == "win32-arm64":
-        from pm.native_build import prepare_windows_environment
-
-        base_env = prepare_windows_environment(source=root, state=out.parent / ".build-deps", env=base_env)
     # Rustup resolves its installed toolchain under HOME unless these are explicit.
     # Preserve the build host's compiler and Cargo cache before isolating app state.
     for key, directory in (("CARGO_HOME", ".cargo"), ("RUSTUP_HOME", ".rustup")):
@@ -270,7 +264,7 @@ def _prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
     from scripts.build.inputs import AgentInputs, RESOURCE_ENV, dependency_site
     from scripts.bundles.native_prepared import publish_prepared
 
-    site = dependency_site(venv_dir, python_fact["version"], current_target())
+    site = dependency_site(venv_dir, python_fact["version"])
     (site / "hermes-agent.pth").write_text(
         Path(os.path.relpath(repo_dir, site)).as_posix() + "\n", encoding="utf-8")
     from scripts.bundles.payload import relativize_links

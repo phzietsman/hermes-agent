@@ -55,7 +55,7 @@ try {
     if (Date.now() > deadline) throw new Error('Renderer did not become ready')
     await new Promise(resolve => setTimeout(resolve, 250))
   }
-  const binary = path.join(desktop, 'node_modules/electron/dist', process.platform === 'darwin' ? 'Electron.app/Contents/MacOS/Electron' : process.platform === 'win32' ? 'electron.exe' : 'electron')
+  const binary = path.join(desktop, 'node_modules/electron/dist', process.platform === 'darwin' ? 'Electron.app/Contents/MacOS/Electron' : 'electron')
   electron = spawn(binary, [entry], { cwd: desktop, env, stdio: 'inherit' })
   console.log(`Connector rehearsal: ${sandbox}\nRenderer: ${url}\nReal service; OAuth requires your approval. Reuse the sandbox path to reopen this identity.`)
   electron.on('exit', stop)

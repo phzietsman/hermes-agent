@@ -47,8 +47,7 @@ def _get_flush_dir():
     from hermes_constants import assert_named_profile_home_live
     assert_named_profile_home_live(flush_dir)
     flush_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if os.name == "posix":
-        os.chmod(flush_dir, 0o700)
+    os.chmod(flush_dir, 0o700)
     return flush_dir
 
 
@@ -57,20 +56,19 @@ def _write_payload(flush_dir: Path, payload: Dict[str, Any]) -> Path:
     from utils import atomic_json_write
     final_path = flush_dir / f"pending-{uuid.uuid4().hex}.json"
     atomic_json_write(final_path, payload, mode=0o600, default=str)
-    if os.name == "posix":
-        # Persist the directory entry too; keep the published file (the only recovery copy) even if
-        # fsync fails.
+    # Persist the directory entry too; keep the published file (the only recovery copy) even if
+    # fsync fails.
+    try:
+        directory_fd = os.open(flush_dir, os.O_RDONLY)
+    except OSError as exc:
+        logger.debug("Failed to fsync pending-message directory: %s", exc)
+    else:
         try:
-            directory_fd = os.open(flush_dir, os.O_RDONLY)
+            os.fsync(directory_fd)
         except OSError as exc:
             logger.debug("Failed to fsync pending-message directory: %s", exc)
-        else:
-            try:
-                os.fsync(directory_fd)
-            except OSError as exc:
-                logger.debug("Failed to fsync pending-message directory: %s", exc)
-            finally:
-                os.close(directory_fd)
+        finally:
+            os.close(directory_fd)
     return final_path
 
 

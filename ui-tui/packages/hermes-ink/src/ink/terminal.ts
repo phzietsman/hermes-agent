@@ -19,7 +19,6 @@ export type Progress = {
 /**
  * Checks if the terminal supports OSC 9;4 progress reporting.
  * Supported terminals:
- * - ConEmu (Windows) - all versions
  * - Ghostty 1.2.0+
  * - iTerm2 3.6.6+
  *
@@ -35,11 +34,6 @@ export function isProgressReportingAvailable(): boolean {
   // notifications rather than progress indicators
   if (process.env.WT_SESSION) {
     return false
-  }
-
-  // ConEmu supports OSC 9;4 for progress (all versions)
-  if (process.env.ConEmuANSI || process.env.ConEmuPID || process.env.ConEmuTask) {
-    return true
   }
 
   const version = coerce(process.env.TERM_PROGRAM_VERSION)
@@ -337,13 +331,13 @@ export function skipKittyKeyboardProtocol(): boolean {
 }
 
 /** True if the terminal scrolls the viewport when it receives cursor-up
- *  sequences that reach above the visible area. On Windows, conhost's
+ *  sequences that reach above the visible area. Under conhost,
  *  SetConsoleCursorPosition follows the cursor into scrollback
  *  (microsoft/terminal#14774), yanking users to the top of their buffer
  *  mid-stream. WT_SESSION catches WSL-in-Windows-Terminal where platform
  *  is linux but output still routes through conhost. */
 export function hasCursorUpViewportYankBug(): boolean {
-  return process.platform === 'win32' || !!process.env.WT_SESSION
+  return !!process.env.WT_SESSION
 }
 
 // Computed once at module load — terminal capabilities don't change mid-session.

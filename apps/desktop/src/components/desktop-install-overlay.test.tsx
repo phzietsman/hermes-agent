@@ -96,8 +96,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
     installDesktopMock(
       bootstrapState({
         setupChoice: {
-          platform: 'win32',
-          activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent',
+          platform: 'linux',
+          activeRoot: '/home/me/.hermes/hermes-agent',
           local: 'none',
           bundled: false
         }
@@ -118,8 +118,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
     const desktop = installDesktopMock(
       bootstrapState({
         setupChoice: {
-          platform: 'win32',
-          activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent',
+          platform: 'linux',
+          activeRoot: '/home/me/.hermes/hermes-agent',
           local: 'none',
           bundled: false
         }
@@ -145,8 +145,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
     const desktop = installDesktopMock(
       bootstrapState({
         setupChoice: {
-          platform: 'win32',
-          activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent',
+          platform: 'linux',
+          activeRoot: '/home/me/.hermes/hermes-agent',
           local: 'none',
           bundled: false
         }
@@ -169,8 +169,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
     const desktop = installDesktopMock(
       bootstrapState({
         setupChoice: {
-          platform: 'win32',
-          activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent',
+          platform: 'linux',
+          activeRoot: '/home/me/.hermes/hermes-agent',
           local: 'none',
           bundled: false
         }
@@ -197,8 +197,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
     const desktop = installDesktopMock(
       bootstrapState({
         setupChoice: {
-          platform: 'win32',
-          activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent',
+          platform: 'linux',
+          activeRoot: '/home/me/.hermes/hermes-agent',
           local: 'none',
           bundled: false
         }
@@ -217,7 +217,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
       desktop.emitBootstrapEvent({
         type: 'setup-choice',
         active: false,
-        platform: 'win32',
+        platform: 'linux',
         activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent-repaired'
       })
     })
@@ -590,7 +590,7 @@ it.each([
     footer: boolean
   ): Promise<void> => {
     const state: DesktopBootstrapState = bootstrapState({
-      setupChoice: { platform: 'win32', activeRoot: 'C:\\Hermes', local: local ?? 'none', bundled }
+      setupChoice: { platform: 'linux', activeRoot: '/opt/hermes', local: local ?? 'none', bundled }
     })
 
     if (local === undefined && state.setupChoice) {

@@ -82,34 +82,21 @@ def _sqlite_connect(path: Path) -> sqlite3.Connection:
 
 
 def _try_lock_nb(handle) -> bool:
-    """One non-blocking exclusive lock attempt on ``handle``; False when held elsewhere.
-    Windows: 1-byte ``msvcrt.locking`` range at offset 0; POSIX: ``flock``."""
-    if _kb._IS_WINDOWS:
-        import msvcrt
+    """One non-blocking exclusive ``flock`` attempt on ``handle``; False when held elsewhere."""
+    import fcntl
 
-        handle.seek(0)
-        getattr(msvcrt, "locking")(handle.fileno(), getattr(msvcrt, "LK_NBLCK"), 1)
-    else:
-        import fcntl
-
-        try:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            return False
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return False
     return True
 
 
 def _unlock(handle) -> None:
-    """Release a lock taken by :func:`_try_lock_nb` (same byte range / flock)."""
-    if _kb._IS_WINDOWS:
-        import msvcrt
+    """Release a lock taken by :func:`_try_lock_nb`."""
+    import fcntl
 
-        handle.seek(0)
-        getattr(msvcrt, "locking")(handle.fileno(), getattr(msvcrt, "LK_UNLCK"), 1)
-    else:
-        import fcntl
-
-        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 @contextlib.contextmanager
@@ -168,7 +155,7 @@ def _dispatch_tick_lock(db_path: Path):
     multi-writer corruption; this is defense-in-depth behind
     ``_guard_supervised_gateway_conflict``. Non-blocking on purpose: the
     gateway's async watcher must never stall; the loser retries next interval.
-    Without ``fcntl``/``msvcrt`` it degrades to a no-op (yields ``True``).
+    An unopenable lock file degrades to a no-op (yields ``True``).
 
     Motivation (issue #35240): a ``hermes gateway run --replace`` / ``gateway restart`` invoked from a shell
     on a systemd/launchd host can leave an orphan gateway whose dispatcher escapes the service cgroup,

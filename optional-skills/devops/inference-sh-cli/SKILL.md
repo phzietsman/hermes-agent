@@ -4,7 +4,7 @@ description: Run 150+ AI apps (image, video, LLM) via inference.sh CLI.
 version: 1.0.0
 author: okaris
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [AI, image-generation, video, LLM, search, inference, FLUX, Veo, Claude]

@@ -21,7 +21,7 @@ export class ExternalStrategy {
     return {
       supported: false,
       mechanism: 'external',
-      reason: this.stamp?.source === 'commit-build' ? 'commit-build' : 'bundled-not-appinstaller',
+      reason: this.stamp?.source === 'commit-build' ? 'commit-build' : 'externally-managed',
       message: this.stamp?.source === 'commit-build' ? COMMIT_BUILD_UPDATE_MESSAGE : EXTERNAL_UNSUPPORTED_MESSAGE,
       fetchedAt: Date.now()
     }

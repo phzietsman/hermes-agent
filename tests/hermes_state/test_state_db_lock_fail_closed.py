@@ -44,8 +44,7 @@ def _make_unopenable(lock_path: Path) -> None:
     """Make ``open(lock_path, "a+b")`` raise a real OSError.
 
     A directory standing where the code expects a regular file yields
-    IsADirectoryError on POSIX and PermissionError on Windows — both OSError,
-    both raised by the kernel. This stands in for the ENOSPC/EMFILE the field
+    IsADirectoryError, an OSError raised by the kernel. This stands in for the ENOSPC/EMFILE the field
     reports hit, without needing to fill a real disk.
     """
     lock_path.unlink(missing_ok=True)

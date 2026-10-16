@@ -329,8 +329,7 @@ def test_prepared_environment_python_imports_app_from_unrelated_script(tmp_path)
 
 def test_site_layout_uses_explicit_target_version_not_builder_python(tmp_path):
     from scripts.build.inputs import dependency_site
-    assert dependency_site(tmp_path, "3.99.1+vendor", "linux-x64") == tmp_path / "lib/python3.99/site-packages"
-    assert dependency_site(tmp_path, "3.99.1", "win32-arm64") == tmp_path / "Lib/site-packages"
+    assert dependency_site(tmp_path, "3.99.1+vendor") == tmp_path / "lib/python3.99/site-packages"
 
 
 def test_automatic_frontends_use_requested_snapshot_not_current_checkout(tmp_path, monkeypatch):

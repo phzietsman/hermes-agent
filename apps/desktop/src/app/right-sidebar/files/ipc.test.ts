@@ -54,63 +54,32 @@ describe('readProjectDir', () => {
     await expect(readProjectDir('/repo')).resolves.toEqual({ entries: [], error: 'no-bridge' })
   })
 
-  it('filters gitignored entries when readDir returns Windows-style paths', async () => {
-    gitRoot.mockResolvedValue('C:\\repo')
+  it('filters gitignored entries with Unicode names and rules', async () => {
+    gitRoot.mockResolvedValue('/repo')
     readDir.mockImplementation(async path => {
-      if (path === 'C:\\repo\\src') {
+      if (path === '/repo/src') {
         return ok([
-          { name: 'debug.log', path: 'C:\\repo\\src\\debug.log', isDirectory: false },
-          { name: '临时.txt', path: 'C:\\repo\\src\\临时.txt', isDirectory: false },
-          { name: 'keep.ts', path: 'C:\\repo\\src\\keep.ts', isDirectory: false }
+          { name: 'debug.log', path: '/repo/src/debug.log', isDirectory: false },
+          { name: '临时.txt', path: '/repo/src/临时.txt', isDirectory: false },
+          { name: 'keep.ts', path: '/repo/src/keep.ts', isDirectory: false }
         ])
       }
 
-      if (path === 'C:/repo') {
-        return ok([{ name: '.gitignore', path: 'C:/repo/.gitignore', isDirectory: false }])
-      }
-
-      if (path === 'C:/repo/src') {
-        return ok([])
+      if (path === '/repo') {
+        return ok([{ name: '.gitignore', path: '/repo/.gitignore', isDirectory: false }])
       }
 
       return ok([])
     })
     readFileDataUrl.mockResolvedValue(dataUrl('# Unicode 路径规则\nsrc/*.log\nsrc/临时.txt\n'))
 
-    const result = await readProjectDir('C:\\repo\\src', 'C:\\repo')
+    const result = await readProjectDir('/repo/src', '/repo')
 
     expect(result.entries.map(entry => entry.name)).toEqual(['keep.ts'])
     // The rule lookup anchors at the nearest git root of the LISTED directory,
     // so the bridge is asked about dirPath first (the mock answers with the repo root).
-    expect(gitRoot).toHaveBeenCalledWith('C:/repo/src')
-    expect(readFileDataUrl).toHaveBeenCalledWith('C:/repo/.gitignore')
-  })
-
-  it('filters gitignored entries when Windows path casing differs across IPC results', async () => {
-    gitRoot.mockResolvedValue('C:\\Repo')
-    readDir.mockImplementation(async path => {
-      if (path === 'c:\\repo\\src') {
-        return ok([
-          { name: 'debug.log', path: 'c:\\repo\\src\\debug.log', isDirectory: false },
-          { name: 'keep.ts', path: 'c:\\repo\\src\\keep.ts', isDirectory: false }
-        ])
-      }
-
-      if (path === 'C:/Repo') {
-        return ok([{ name: '.gitignore', path: 'C:/Repo/.gitignore', isDirectory: false }])
-      }
-
-      if (path === 'C:/Repo/src') {
-        return ok([])
-      }
-
-      return ok([])
-    })
-    readFileDataUrl.mockResolvedValue(dataUrl('src/*.log\n'))
-
-    const result = await readProjectDir('c:\\repo\\src', 'c:\\repo')
-
-    expect(result.entries.map(entry => entry.name)).toEqual(['keep.ts'])
+    expect(gitRoot).toHaveBeenCalledWith('/repo/src')
+    expect(readFileDataUrl).toHaveBeenCalledWith('/repo/.gitignore')
   })
 
   it('keeps gitignored entries — and skips the gitignore reads — when the root opted in', async () => {

@@ -145,7 +145,7 @@ def _now() -> int:
 
 
 # Contract A1/A2/A3 marker bodies, judged by the real posix.sh against a real live process; every
-# other reader (Python, Electron, PowerShell, Rust) must give the same verdict.
+# other reader (Python, Electron) must give the same verdict.
 _MATRIX = {
     "crlf-v2-matching-ct": (lambda pid, ct: f"{pid}\r\n{_now()}\r\nct:{ct}\r\n", "live"),
     "bom-v2-matching-ct": (lambda pid, ct: f"\ufeff{pid}\n{_now()}\nct:{ct}\n", "live"),

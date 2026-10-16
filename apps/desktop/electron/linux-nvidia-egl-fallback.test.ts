@@ -123,7 +123,6 @@ describe('decideNvidiaEglFallback — behavioral probe', () => {
 describe('decideNvidiaEglFallback — exclusions', () => {
   it('stays off on non-linux platforms and without an NVIDIA driver', () => {
     expect(decideNvidiaEglFallback({ ...PROBE, platform: 'darwin' }).enable).toBe(false)
-    expect(decideNvidiaEglFallback({ ...PROBE, platform: 'win32' }).enable).toBe(false)
     expect(decideNvidiaEglFallback({ ...PROBE, driverMajor: null, marker: { state: 'booting' } }).enable).toBe(false)
   })
 

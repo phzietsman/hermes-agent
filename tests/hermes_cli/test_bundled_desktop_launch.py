@@ -75,14 +75,6 @@ def _linux_bundle(tmp_path: Path) -> Path:
     return repo
 
 
-def _windows_bundle(tmp_path: Path) -> Path:
-    app = tmp_path / "Hermes"
-    repo = _payload(app)
-    _exe(app / "Hermes.exe")
-    _exe(app / "Uninstall Hermes.exe")
-    return repo
-
-
 def _macos_bundle(tmp_path: Path) -> Path:
     app = tmp_path / "Hermes.app"
     repo = _payload(app / "Contents", resources_name="Resources")
@@ -93,13 +85,9 @@ def _macos_bundle(tmp_path: Path) -> Path:
 def _host_bundle(tmp_path: Path) -> tuple[Path, Path]:
     """A bundle in THIS host's shape, plus its expected launcher.
 
-    cmd_gui resolves the launcher with the real sys.platform, and the
-    Linux rule depends on POSIX execute bits that do not exist on Windows
-    — so the cmd_gui tests must stage the host's own shape.
+    cmd_gui resolves the launcher with the real sys.platform, so the
+    cmd_gui tests must stage the host's own shape.
     """
-    if sys.platform == "win32":
-        repo = _windows_bundle(tmp_path)
-        return repo, tmp_path / "Hermes" / "Hermes.exe"
     if sys.platform == "darwin":
         return _macos_bundle(tmp_path), tmp_path / "Hermes.app/Contents/MacOS/Hermes"
     repo = _linux_bundle(tmp_path)
@@ -107,18 +95,12 @@ def _host_bundle(tmp_path: Path) -> tuple[Path, Path]:
 
 
 class TestResolveBundleLayout:
-    @pytest.mark.platforms("posix")  # POSIX-only: the Linux launcher rule reads execute bits, which os.access reports as always-set on Windows
     def test_linux_launcher_is_the_one_non_helper_executable(self, tmp_path):
         repo = _linux_bundle(tmp_path)
         layout = resolve_bundle_layout(repo, platform="linux")
         assert layout.app_root == tmp_path / "linux-unpacked"
         assert layout.payload.name == "agent-payload"
         assert layout.launcher == tmp_path / "linux-unpacked" / "Hermes"
-
-    def test_windows_launcher_is_never_the_uninstaller(self, tmp_path):
-        repo = _windows_bundle(tmp_path)
-        layout = resolve_bundle_layout(repo, platform="win32")
-        assert layout.launcher == tmp_path / "Hermes" / "Hermes.exe"
 
     def test_macos_app_root_climbs_out_of_contents_resources(self, tmp_path):
         repo = _macos_bundle(tmp_path)
@@ -128,9 +110,9 @@ class TestResolveBundleLayout:
         assert layout.launcher == tmp_path / "Hermes.app" / "Contents" / "MacOS" / "Hermes"
 
     def test_ambiguous_launcher_reports_none_rather_than_guessing(self, tmp_path):
-        repo = _windows_bundle(tmp_path)
-        _exe(repo.parent.parent.parent / "Other.exe")
-        assert resolve_bundle_layout(repo, platform="win32").launcher is None
+        repo = _linux_bundle(tmp_path)
+        _exe(repo.parent.parent.parent / "Other")
+        assert resolve_bundle_layout(repo, platform="linux").launcher is None
 
     def test_a_checkout_is_not_a_bundle(self, tmp_path):
         checkout = tmp_path / "hermes-agent"
@@ -192,9 +174,7 @@ class TestLaunchDetached:
         assert seen["kwargs"]["stdout"] is subprocess.DEVNULL
         assert seen["kwargs"]["stderr"] is subprocess.DEVNULL
         assert seen["kwargs"]["stdin"] is subprocess.DEVNULL
-        # POSIX detaches with a new session; Windows with creation flags.
-        detach_key = "creationflags" if sys.platform == "win32" else "start_new_session"
-        assert seen["kwargs"][detach_key]
+        assert seen["kwargs"]["start_new_session"]
 
     def test_a_real_detached_child_runs(self, tmp_path):
         """The one E2E rung: spawn a real process and prove it ran."""
@@ -212,7 +192,6 @@ class TestLaunchDetached:
         assert marker.read_text() == "yes"
 
 
-@pytest.mark.platforms("windows", "linux", "macos")
 class TestCmdGuiOnABundle:
     """The behavior the checkout ladder got wrong: never build in a bundle."""
 

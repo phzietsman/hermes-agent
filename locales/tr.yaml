@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ Zorla çıkılıyor..."
     interrupting_again_hint: "⚡ Ajan kesiliyor... (zorla çıkmak için Ctrl+C'ye tekrar basın)"
     interrupting: "⚡ Ajan kesiliyor..."
-    suspend_unsupported: "Askıya alma (Ctrl+Z) Windows'ta desteklenmiyor."
     suspended: "{agent_name} askıya alındı. {agent_name} uygulamasını geri getirmek için `fg` çalıştırın."
     steer_failed_queued: "Yönlendirme başarısız oldu ({error}) — sonraki tur için sıraya alındı."
     steered: "⏩ Yönlendirildi: '{preview}'"

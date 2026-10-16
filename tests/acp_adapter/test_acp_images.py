@@ -50,7 +50,6 @@ def test_acp_resource_link_file_is_inlined_as_text(tmp_path):
         "# Notes\n\nAttached file body"
     )
 
-@pytest.mark.platforms("windows")
 def test_native_drive_path_and_file_uri_refer_to_same_attachment(tmp_path):
     from acp_adapter.content import _path_from_file_uri
     path = tmp_path / "notes with spaces.md"

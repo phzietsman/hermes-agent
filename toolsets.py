@@ -89,7 +89,7 @@ TOOLSETS = {
         ["video_generate", "xai_video_edit", "xai_video_extend"],
     ),
     "computer_use": _ts(
-        "Background desktop control via cua-driver (macOS/Windows/Linux) — "
+        "Background desktop control via cua-driver (macOS/Linux) — "
         "screenshots, mouse, keyboard, scroll, drag. Does NOT steal the user's cursor "
         "or keyboard focus. Works with any tool-capable model.",
         ["computer_use"],

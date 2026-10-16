@@ -1,7 +1,6 @@
 const featureFlags = {
   /** Local-models GUI surfaces (settings pane, pickers, statusbar, tips). */
   localModels: ({ argv }) =>
-    process.platform === 'win32' ||
     process.platform === 'darwin' ||
     (process.platform === 'linux' && (process.arch === 'x64' || process.arch === 'arm64')) ||
     argv.includes('--local')

@@ -184,7 +184,7 @@ WORKDIR /opt/hermes
 # the two-authorities failure the pm design exists to end. The image is now
 # a pin consumer: the stdlib-only pm provisioner reads pm/lock.json and
 # stages the pinned uv + full Chromium (sha256-verified at
-# download — the same code path pm.sh/pm.ps1 and the desktop payload use)
+# download — the same code path pm.sh and the desktop payload use)
 # into the image's own runtime dir, a self-contained store baked under
 # /opt/hermes, outside the /opt/data volume so it survives the overlay.
 # PM alone resolves the pinned uv for dependency preparation; build consumers

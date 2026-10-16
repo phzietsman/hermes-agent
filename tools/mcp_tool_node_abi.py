@@ -7,7 +7,6 @@ user's ``npx`` shares with ours) dies at startup with ``NODE_MODULE_VERSION`` /
 names the remedy: rebuild the server under Hermes's Node.
 """
 
-import os
 import re
 import shlex
 from pathlib import Path
@@ -48,22 +47,19 @@ def _package_of(module_path: str) -> tuple[Optional[Path], str]:
 
 
 def _remedy(root: Optional[Path], package: str, node: Path, npm: Path) -> str:
-    """The fix in the host shell's syntax: delete an npx cache entry (Hermes's npx reinstalls it on the
-    next start) or rebuild with Hermes's npm, Hermes's Node first on PATH because npm's shebang and its
-    lifecycle scripts both run the first ``node`` there."""
-    windows = os.name == "nt"
-    q = (lambda p: "'" + str(p).replace("'", "''") + "'") if windows else (lambda p: shlex.quote(str(p)))
+    """The shell fix: delete an npx cache entry (Hermes's npx reinstalls it on the next start) or
+    rebuild with Hermes's npm, Hermes's Node first on PATH because npm's shebang and its lifecycle
+    scripts both run the first ``node`` there."""
+    def q(p) -> str:
+        return shlex.quote(str(p))
+
     target = f" {q(package)} --prefix {q(root)}" if root is not None else ""
-    if windows:
-        rebuild = f"$env:Path = {q(str(node.parent) + ';')} + $env:Path; & {q(npm)} rebuild{target}"
-    else:
-        rebuild = f"PATH={q(node.parent)}:\"$PATH\" {q(npm)} rebuild{target}"
+    rebuild = f"PATH={q(node.parent)}:\"$PATH\" {q(npm)} rebuild{target}"
     if root is None:
         return f"in the server's package directory run {rebuild}"
     if root.parent.name != "_npx":
         return rebuild
-    delete = f"Remove-Item -Recurse -Force {q(root)}" if windows else f"rm -rf {q(root)}"
-    return f"{delete} (Hermes reinstalls it on the next start), or {rebuild}"
+    return f"rm -rf {q(root)} (Hermes reinstalls it on the next start), or {rebuild}"
 
 
 def node_abi_error(server_name: str, stderr_text: str) -> Optional[NodeAbiMismatchError]:

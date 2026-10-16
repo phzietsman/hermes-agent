@@ -57,7 +57,7 @@ def quote_command_placeholder(value: str, quote_context: Optional[str]) -> str:
         return value.replace("'", r"'\''")
     if quote_context == '"':
         return value.replace("\\", "\\\\").replace('"', r'\"').replace("$", r"\$").replace("`", r"\`")
-    return subprocess.list2cmdline([value]) if os.name == "nt" else shlex.quote(value)
+    return shlex.quote(value)
 
 
 def render_command_template(command_template: str, placeholders: Dict[str, str]) -> str:
@@ -99,17 +99,6 @@ def terminate_command_process_tree(proc: subprocess.Popen) -> None:
     """Best-effort termination of a shell process and all of its children."""
     if proc.poll() is not None:
         return
-    if os.name == "nt":
-        try:
-            # CREATE_NO_WINDOW: taskkill is a console-subprocess — the kill itself must not
-            # flash a window on windowless hosts, same class of defect as the spawn above.
-            from hermes_cli._subprocess_compat import windows_hide_flags
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL, timeout=5, stdin=subprocess.DEVNULL,
-                           creationflags=windows_hide_flags())
-        except Exception:
-            proc.kill()
-        return
     try:
         import psutil  # type: ignore
     except ImportError:
@@ -136,25 +125,6 @@ def command_failure_detail(exc: subprocess.CalledProcessError) -> str:
     return "; ".join(parts) or "no command output"
 
 
-def provider_popen_group_kwargs(os_name: str) -> Dict[str, Any]:
-    """Process-group spawn kwargs for a command-provider child, per platform.
-
-    On Windows the shell=True spawn routes through cmd.exe, a console-subsystem
-    shim: with only CREATE_NEW_PROCESS_GROUP it allocates a *visible* console
-    window flash on every provider run from a windowless host (pythonw gateway,
-    TUI, Desktop). The shared detach bundle (hermes_cli._subprocess_compat.
-    windows_detach_flags_without_breakaway) adds CREATE_NO_WINDOW so the child
-    owns a hidden console its descendants inherit instead — deliberately without
-    CREATE_BREAKAWAY_FROM_JOB: this child is foreground-owned and killed by us on
-    idle timeout, so job teardown propagation must keep working. POSIX keeps the
-    session detach (setsid) so the tree can be signalled on idle timeout.
-    """
-    from hermes_cli._subprocess_compat import windows_detach_flags_without_breakaway
-    if os_name == "nt":
-        return {"creationflags": windows_detach_flags_without_breakaway()}
-    return {"start_new_session": True}
-
-
 def run_command_provider(
     command: str, timeout: float, env_passthrough: Optional[list] = None,
 ) -> subprocess.CompletedProcess:
@@ -172,14 +142,11 @@ def run_command_provider(
         value = resolve_passthrough_value(key, os.environ.get(key))
         if value is not None:
             scrubbed[key] = value
-    # Own process group so the whole tree can be signalled on idle timeout; on Windows the
-    # shared bundle also hides the console (shell=True spawns via cmd.exe, which otherwise
-    # flashes a window on windowless hosts). Lossy UTF-8 decode: locale-mismatched bytes
-    # must not raise in the reader threads.
-    group = provider_popen_group_kwargs(os.name)
+    # Own session so the whole tree can be signalled on idle timeout. Lossy UTF-8 decode:
+    # locale-mismatched bytes must not raise in the reader threads.
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, encoding="utf-8", errors="replace", env=delegated_child_subprocess_env(scrubbed),
-                            stdin=subprocess.DEVNULL, **group)
+                            stdin=subprocess.DEVNULL, start_new_session=True)
     output_queue: "queue.Queue[tuple[str, Optional[str]]]" = queue.Queue()
     chunks: Dict[str, list[str]] = {"stdout": [], "stderr": []}
     open_streams = {"stdout", "stderr"}

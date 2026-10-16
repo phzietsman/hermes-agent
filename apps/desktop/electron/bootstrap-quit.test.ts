@@ -8,7 +8,7 @@ import { test } from 'vitest'
 import { runBootstrap } from './bootstrap-runner'
 
 for (const boundary of ['resolution', 'manifest'] as const) {
-  test.skipIf(process.platform === 'win32')(`quit during ${boundary} cancels bootstrap before stages`, async () => {
+  test(`quit during ${boundary} cancels bootstrap before stages`, async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-bootstrap-quit-'))
     const controller = new AbortController()
     const marker = path.join(home, 'manifest-started')

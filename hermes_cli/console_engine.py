@@ -9,6 +9,7 @@ import functools
 import importlib
 import io
 import json
+import shlex
 import sys
 from contextlib import closing
 from dataclasses import dataclass
@@ -108,12 +109,8 @@ def _table_summary(summary: str, *, limit: int = 76) -> str:
 
 
 def _split_line(line: str) -> list[str]:
-    # Windows-safe splitter: plain shlex posix=True eats backslashes in paths.
-    # See #78293.
-    # See #83934.
-    from hermes_cli._subprocess_compat import split_command_line
     try:
-        return split_command_line(line)
+        return shlex.split(line)
     except ValueError as exc:
         raise ConsoleCommandError(f"Could not parse command: {exc}") from exc
 

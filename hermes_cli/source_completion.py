@@ -1,6 +1,6 @@
 """The tail every source install and update shares.
 
-A fresh install (``scripts/install.sh`` / ``scripts/install.ps1``) and a finished
+A fresh install (``scripts/install.sh``) and a finished
 update must land in the same state: launchers published, product builds current,
 and the post-build maintenance (skills sync, config migration) applied. One
 implementation, two callers -- an install and an update cannot drift apart.
@@ -98,14 +98,6 @@ def _complete_locked(
     from hermes_cli.update_cmd_maint import _run_post_update_maintenance
     from hermes_cli.venv_sync import publish_launchers
 
-    try:
-        from hermes_cli._subprocess_compat import expose_pm_git
-
-        # The builds, the release-history refresh and the install stamp all run
-        # git; a fresh Windows machine has only PM's.
-        expose_pm_git(root)
-    except Exception as exc:  # noqa: BLE001 — git-less steps below still complete
-        print(f"⚠ Could not provide git for the source completion: {exc}", file=sys.stderr)
     owed: list[tuple[str, str]] = []
 
     def step(name: str, run) -> None:

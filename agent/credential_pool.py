@@ -149,16 +149,9 @@ FAILURE_REASON_BILLING = "billing"
 # billing gets the short transient cooldown; genuine depletion re-latches.
 FAILURE_REASON_BILLING_UNVERIFIED = "billing_unverified"
 
-# Throttle window for the "no available entries" INFO line. Selection runs on
-# every model call; on Windows several processes share one rotating log behind
-# a cross-process lock, and per-selection logging stormed that lock, pegged a
-# core, and stalled the event loop (Desktop backend readiness timeouts).
-# Credential selection runs on a hot path (every model call, plus auxiliary tasks like
-# compression/moa/titles), so when a pool is empty or fully exhausted the un-throttled log fires on *every*
-# selection. On Windows several Hermes processes share one rotating log guarded by concurrent-log-handler's
-# cross-process lock; that per-selection volume storms the lock (``RuntimeError: Cannot acquire lock after
-# 20 attempts``), pegs a core, and stalls the asyncio event loop long enough to fail the Desktop backend
-# readiness handshake ("Timed out connecting to Hermes backend after 15000ms"). Logging the condition at
+# Throttle window for the "no available entries" INFO line. Credential selection runs on a hot path (every
+# model call, plus auxiliary tasks like compression/moa/titles), so when a pool is empty or fully exhausted the
+# un-throttled log fires on *every* selection and floods the shared log. Logging the condition at
 # most once per window preserves the signal while removing the storm — same class of fix as the warn-once
 # dedup in #58265.
 NO_AVAILABLE_ENTRIES_LOG_THROTTLE_SECONDS = 60.0

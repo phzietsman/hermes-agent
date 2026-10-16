@@ -16,8 +16,7 @@ included), and produces the bounded responses to write back to the
 subprocess. Everything else — colors, other escape sequences, partial
 UTF-8 — passes through untouched.
 
-Only the POSIX ``ptyprocess`` path uses this. On Windows, ConPTY is a real
-console host that answers queries itself.
+Used by the ``ptyprocess`` path.
 """
 
 from __future__ import annotations

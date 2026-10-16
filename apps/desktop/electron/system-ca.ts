@@ -12,11 +12,11 @@ interface SystemCaResult {
   error?: string
 }
 
-// Platforms whose OS trust store tls.getCACertificates('system') can enumerate: the Windows
-// cert store and the macOS keychain (Node reads user + System keychains there, honoring the
+// Platforms whose OS trust store tls.getCACertificates('system') can enumerate: the
+// macOS keychain (Node reads user + System keychains there, honoring the
 // "Always Trust" SSL policy — Node ≥ 22.15). Linux is deliberately absent: its 'system' store
 // is the OpenSSL directory scan, which the default trust already covers.
-const SYSTEM_CA_PLATFORMS = new Set(['win32', 'darwin'])
+const SYSTEM_CA_PLATFORMS = new Set(['darwin'])
 
 function installSystemCaTrust(tlsApi: NodeTlsCaApi, platform = process.platform): SystemCaResult {
   if (!SYSTEM_CA_PLATFORMS.has(platform)) {
@@ -39,7 +39,7 @@ function installSystemCaTrust(tlsApi: NodeTlsCaApi, platform = process.platform)
       }
     }
 
-    // Prefer existing defaults. Expired Windows roots can divert OpenSSL onto
+    // Prefer existing defaults. Expired system roots can divert OpenSSL onto
     // an expired chain even when a valid bundled trust path exists.
     const seen = new Set<string>()
     const now = Date.now()

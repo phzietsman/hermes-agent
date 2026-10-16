@@ -189,7 +189,7 @@ def test_importing_launch_does_not_patch_ssl_context():
 
 
 def test_cold_downloader_trusts_a_stored_intermediate_without_its_root(tmp_path):
-    """Windows can cache an intermediate (Let's Encrypt "Root YR") without its
+    """A store can hold an intermediate (Let's Encrypt "Root YR") without its
     root; Python < 3.13 then refused every GitHub asset before PM existed."""
     from datetime import datetime, timedelta, timezone
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ Forçando saída..."
     interrupting_again_hint: "⚡ Interrompendo o agente... (pressione Ctrl+C de novo para forçar a saída)"
     interrupting: "⚡ Interrompendo o agente..."
-    suspend_unsupported: "Suspender (Ctrl+Z) não é suportado no Windows."
     suspended: "{agent_name} foi suspenso. Execute `fg` para trazer {agent_name} de volta."
     steer_failed_queued: "Falha no redirecionamento ({error}) — enfileirado para o próximo turno."
     steered: "⏩ Redirecionado: '{preview}'"

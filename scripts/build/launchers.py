@@ -1,25 +1,7 @@
 """Shared payload launcher rendering; all paths are supplied by the assembler."""
 from __future__ import annotations
 
-import json
-import os
-import re
 from pathlib import Path
-import subprocess
-import tempfile
-
-
-def render_wrapper(entry: str, repo: str, site: str) -> str:
-    module, func = entry.split(":", 1)
-    text = (Path(__file__).with_name("launcher_wrapper.py")).read_text(encoding="utf-8-sig")
-    for key, value in {"ENTRY_MODULE": module, "ENTRY_FUNC": func, "REPO_REL": repo, "SITE_REL": site}.items():
-        if '"' in value or "\n" in value or "__" in value:
-            raise ValueError(f"invalid launcher value: {key}")
-        text = text.replace(f"__HERMES_{key}__", value)
-    unresolved = re.search(r"__HERMES_\w+?__", text)
-    if unresolved:
-        raise ValueError(f"unresolved launcher placeholder: {unresolved.group()}")
-    return text
 
 
 def posix_launcher(name: str, entry: str, *, python: str, repo: str, site: str, target: str) -> str:
@@ -65,9 +47,8 @@ SITE={shell_path(site)}
 unset PYTHONPATH PYTHONHOME
 export PYTHONPATH="$REPO:$SITE"
 # PYTHONPATH cannot process .pth files (only site.addsitedir() can), and
-# the venv's .pth files are load-bearing (pywin32.pth -> win32\\lib ->
-# `import pywintypes` on Windows bundles; the win32 wrapper mirrors this
-# in launcher_wrapper.py). The -c bootstrap below runs addsitedir() on it.
+# the venv's .pth files are load-bearing. The -c bootstrap below runs
+# addsitedir() on it.
 export HERMES_SITE="$SITE"
 export PYTHONPYCACHEPREFIX="${{PYTHONPYCACHEPREFIX:-${{XDG_CACHE_HOME:-$HOME/.cache}}/hermes-pycache}}"
 {extra}exec "$PYTHON" -P -c {shlex.quote(code)} "$@"
@@ -75,29 +56,16 @@ export PYTHONPYCACHEPREFIX="${{PYTHONPYCACHEPREFIX:-${{XDG_CACHE_HOME:-$HOME/.ca
 
 
 def write_launchers(root: Path, entries: dict[str, str], *, python: str,
-                    repo: str, site: str, target: str, bin_dir: str = "bin",
-                    run=subprocess.run) -> dict[str, str]:
+                    repo: str, site: str, target: str, bin_dir: str = "bin") -> dict[str, str]:
     """Mint only declared commands; the caller owns completion publication."""
     bindir = root / bin_dir
     bindir.mkdir(parents=True, exist_ok=True)
-    windows = target.startswith("win32")
     for name, entry in entries.items():
-        if windows:
-            with tempfile.TemporaryDirectory(prefix="hermes-mint-") as temp:
-                wrapper = Path(temp) / "wrapper.py"
-                wrapper.write_text(render_wrapper(entry, f"../{repo}", f"../{site}"), encoding="utf-8")
-                module, func = entry.split(":", 1)
-                env = {**os.environ, "HERMES_MINT_BIN_DIR": str(bindir),
-                       "HERMES_MINT_SPECS": json.dumps([{"name": name, "module": module, "func": func}]),
-                       "HERMES_MINT_WRAPPER": str(wrapper),
-                       "HERMES_MINT_PYTHON": "<launcher_dir>\\..\\" + python.replace("/", "\\")}
-                run([str(root / python), str(Path(__file__).with_name("mint_launchers.py"))], env=env, check=True)
-        else:
-            script = posix_launcher(name, entry, python=python, repo=repo, site=site, target=target)
-            output = bindir / name
-            output.write_text(script, encoding="utf-8")
-            output.chmod(0o755)
-    commands = {name: f"{bin_dir}/{name}{'.exe' if windows else ''}" for name in entries}
+        output = bindir / name
+        output.write_text(posix_launcher(name, entry, python=python, repo=repo, site=site, target=target),
+                          encoding="utf-8")
+        output.chmod(0o755)
+    commands = {name: f"{bin_dir}/{name}" for name in entries}
     for command in commands.values():
         if not (root / command).is_file():
             raise FileNotFoundError(f"payload launcher missing: {command}")

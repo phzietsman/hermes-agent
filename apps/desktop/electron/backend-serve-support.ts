@@ -3,14 +3,12 @@ import path from 'node:path'
 
 import { sourceDeclaresServe } from './backend-command'
 import { execProbe, isTimeoutError, PROBE_TIMEOUT_MS } from './backend-probes'
-import { windowsShellCommand } from './windows-child-options'
 
 interface ServeCandidate {
   command?: string | null
   root?: string
   args?: string[]
   env?: Record<string, string>
-  shell?: boolean
   label?: string
 }
 
@@ -20,7 +18,7 @@ interface ServeCandidate {
 // of crashing on an unknown subcommand.
 //
 // Fast path: read the runtime's own dashboard.py (instant, covers managed
-// installs, dev checkouts, and the Windows venv). Fallback: probe the CLI once
+// installs and dev checkouts). Fallback: probe the CLI once
 // (covers a bare `hermes` resolved from PATH with no known source root). Result
 // is cached per resolved runtime so we probe at most once per backend — except
 // a probe that failed by timeout, which is evicted so the next start re-probes
@@ -60,26 +58,20 @@ export function createBackendServeSupportResolver(hermesHome: string, rememberLo
       if (supported === null) {
         try {
           const prefix = backend.args && backend.args[0] === '-m' ? backend.args.slice(0, 2) : []
-          // Same cold-Windows Python-startup class as the runtime probes
+          // Same cold Python-startup class as the runtime probes
           // (#61764/#72632/#72707): `serve --help` imports at least as much as
           // `hermes --version` (~10.5s measured cold), and a false negative here
           // is cached for the process lifetime, silently routing a modern
           // runtime through the legacy `dashboard` form. Share the probe budget
           // and its timeout-only retry instead of a thinner local bound.
           await execProbe(
-            windowsShellCommand(backend.command, Boolean(backend.shell)),
+            backend.command,
             [...prefix, 'serve', '--help'],
             {
               cwd: backend.root || undefined,
               env: { ...process.env, HERMES_HOME: hermesHome, ...(backend.env || {}) },
               timeout: PROBE_TIMEOUT_MS,
-              stdio: 'ignore',
-              // `.cmd`/`.bat` shim backends carry shell: true in their descriptor
-              // (see resolveHermesBackend step 4); execFileSync of a .cmd without
-              // shell throws EINVAL on modern Node, which the catch below would
-              // mis-cache as "serve unsupported" for the process lifetime.
-              shell: Boolean(backend.shell),
-              windowsHide: true
+              stdio: 'ignore'
             }
           )
           supported = true

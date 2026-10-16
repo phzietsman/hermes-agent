@@ -49,7 +49,6 @@ uv.lock                         @NousResearch/hermes-agent-core
 
 # The installers users pipe into a shell, and the generator for the pins they carry.
 /scripts/install.sh             @NousResearch/hermes-agent-core
-/scripts/install.ps1            @NousResearch/hermes-agent-core
 /scripts/install.cmd            @NousResearch/hermes-agent-core
 /scripts/gen-bootstrap-pins.py  @NousResearch/hermes-agent-core
 

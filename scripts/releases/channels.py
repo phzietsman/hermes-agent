@@ -9,7 +9,7 @@ import uuid
 
 from hermes_cli.release_channels import (
     ChannelError, ChannelNotFound, ChannelReader, artifact_key, build_prefix,
-    canonical_json, channel_key, decode_json, package_versions, public_base as validate_public_base,
+    canonical_json, channel_key, decode_json, package_version, public_base as validate_public_base,
     validate_name, validate_record, validate_repository, validate_request, validate_manifest, require_sha256,
 )
 from scripts.releases import r2
@@ -97,8 +97,7 @@ def preview_identity(name: str, token: str) -> dict:
     pascal = f"HermesChannel{token}"
     return {"token": token, "displayName": f"Hermes {name}",
             "appId": f"ai.hermes.channel.h{token}", "appNamePascal": pascal,
-            "artifactNamePascal": pascal, "cliName": f"hermes-{name}",
-            "windowsExecutableName": pascal, "msixAppIdWithOrg": f"NousResearch.{pascal}"}
+            "artifactNamePascal": pascal, "cliName": f"hermes-{name}"}
 
 
 class ChannelPublisher:
@@ -220,10 +219,10 @@ class ChannelPublisher:
             record, etag = current
             self._preview("allocate", record)
             sequence = record["nextSequence"]
-            version, windows_version = package_versions(sequence)
+            version = package_version(sequence)
             request = {"schema": 1, "buildId": uuid.uuid4().hex, "channel": name,
                        "sequence": sequence, "repository": self.repository, "commit": commit,
-                       "sourceVersion": source_version, "version": version, "windowsVersion": windows_version,
+                       "sourceVersion": source_version, "version": version,
                        "identity": deepcopy(record["identity"]), "bundleEnv": bundle_env,
                        "publicBase": self.public_base}
             if controller_commit is not None:
@@ -256,12 +255,12 @@ class ChannelPublisher:
             raise ChannelError("Protected publication requires the successful release gate")
 
     def allocate_protected(self, name: str, commit: str, source_version: str, *,
-                           release_tag: str, version: str, windows_version: str,
+                           release_tag: str, version: str,
                            identity: dict, policy: str, release_gate,
                            archive_ref: str | None = None) -> dict:
         """Reserve accepted legacy bytes, never authorize a custom build as stable."""
         facts = {"schema": 1, "channel": name, "repository": self.repository, "commit": commit,
-                 "sourceVersion": source_version, "version": version, "windowsVersion": windows_version,
+                 "sourceVersion": source_version, "version": version,
                  "releaseTag": release_tag, "identity": deepcopy(identity), "bundleEnv": {},
                  "publicBase": self.public_base}
         if archive_ref is not None:
@@ -394,7 +393,6 @@ class ChannelPublisher:
                 raise ChannelError("A newer build is published; stale completion refused")
             if policy is not None and record["head"] is not None:
                 from scripts.releases.semver import compare
-                from scripts.releases.stable import windows_version
                 from hermes_cli.update_channel import canary_timestamp
                 previous_head = record["head"]
                 previous = self.store.get(previous_head["manifestKey"])
@@ -411,8 +409,7 @@ class ChannelPublisher:
                     )
                 else:
                     source_increases = compare(request["version"], previous_request["version"]) > 0
-                if (not source_increases
-                        or windows_version(request["windowsVersion"]) <= windows_version(previous_request["windowsVersion"])):
+                if not source_increases:
                     raise ChannelError("Protected native versions must increase; stale completion refused")
             if self.verify_build is None or self.verify_build(request, manifest) is not True:
                 raise ChannelError("Publication requires complete native build qualification")

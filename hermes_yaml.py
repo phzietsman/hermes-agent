@@ -28,7 +28,7 @@ def _load(document: str | bytes, *, pure: bool) -> Any:
 def safe_load(stream: str | bytes | IO[str] | IO[bytes]) -> Any:
     """Read standard YAML data; existing configs use YAML 1.1 booleans.
 
-    The pure parser defines what parses: Windows ARM64 has no C extension, and libyaml rejects
+    The pure parser defines what parses: some platforms have no C extension, and libyaml rejects
     documents the pure parser accepts (``[{url: http://h}]``), so a C rejection is re-read pure.
     """
     document = stream if isinstance(stream, (str, bytes)) else stream.read()

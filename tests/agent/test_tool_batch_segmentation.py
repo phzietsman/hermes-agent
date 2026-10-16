@@ -632,9 +632,8 @@ class TestSegmentedDispatchIntegration:
 class TestPathCanonicalization:
     """Regression tests for _canonical_path / _extract_parallel_scope_path fixes.
 
-    Verifies that symlink aliases, relative/absolute cwd mismatches, and
-    (on Windows) case-insensitive aliases are never placed in the same
-    parallel segment.
+    Verifies that symlink aliases and relative/absolute cwd mismatches are
+    never placed in the same parallel segment.
     """
 
     def test_relative_and_absolute_same_target_use_separate_segments(self, tmp_path):
@@ -709,21 +708,4 @@ class TestPathCanonicalization:
         assert _paths_overlap(path_with_cwd, path_absolute), (
             "execution_cwd-relative path and absolute path must overlap; "
             "process cwd must not be used when execution_cwd is provided"
-        )
-
-
-    # ``platforms("windows")`` rather than ``skipif(sys.platform != "win32")``: the
-    # Windows CI job greps for the marker to decide which files to import, so
-    # a bare skipif leaves this running on no host at all.
-    @pytest.mark.platforms("windows")
-    def test_case_insensitive_paths_overlap_windows(self, tmp_path):
-        """On Windows, FILE.txt and file.txt are the same file — they must
-        be detected as overlapping after normcase() canonicalisation."""
-        from agent.tool_dispatch_helpers import _canonical_path, _paths_overlap
-
-        upper = _canonical_path(str(tmp_path / "FILE.txt"), execution_cwd=tmp_path)
-        lower = _canonical_path(str(tmp_path / "file.txt"), execution_cwd=tmp_path)
-
-        assert _paths_overlap(upper, lower), (
-            "Case-insensitive aliases must overlap on Windows"
         )

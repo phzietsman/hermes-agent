@@ -31,14 +31,12 @@ export interface MarkerGateCallbacks {
 
 export interface MarkerGateHost {
   hermesHome: string
-  isWindows: boolean
   log: (line: string) => void
   updateRoot: () => string
 }
 
 export function markerGateProbe(host: MarkerGateHost, { onLiveMarker, onHeld, onOverride }: MarkerGateCallbacks = {}) {
-  // One creation-time probe per pid for this wait: on Windows each probe is a
-  // powershell spawn and the gate polls every second.
+  // One creation-time probe per pid for this wait: the gate polls every second.
   const createTime = cachedCreateTimeProbe()
 
   // Owner liveness (pid + creation time) only: a failed receipt never
@@ -54,14 +52,13 @@ export function markerGateProbe(host: MarkerGateHost, { onLiveMarker, onHeld, on
     onHeld,
     onOverride,
     log: host.log,
-    checkoutLockMayBeHeld: () => checkoutLockMayBeHeld(host.updateRoot(), host.isWindows),
+    checkoutLockMayBeHeld: () => checkoutLockMayBeHeld(host.updateRoot()),
     // A missing or pre-protocol-2 script answers `unsupported`; one that
     // exists but cannot be read answers `error` (R8 M5).
     reclaim: () =>
       runMarkerHelper('reclaim', {
         updateRoot: host.updateRoot(),
-        hermesHome: host.hermesHome,
-        isWindows: host.isWindows
+        hermesHome: host.hermesHome
       })
   })
 }

@@ -10,8 +10,7 @@ Probe-gated gaps live in ``tests/e2e/core/delivery/_pending_fixes.py``.
 Strict acceptance: ``HERMES_E2E_STRICT_ACCEPTANCE`` turns ``known_failure`` blocks into hard
 failures (the gap's own assertion, annotated): ``1`` every block, or a comma list of owners
 (``upd-txn``) for the blocks whose reason starts with ``<owner>:``. Only an acceptance run of an
-integrated batch sets it (the ``strict_acceptance`` dispatch input of ci.yaml /
-windows-install-update-e2e.yml), where an expected failure would accept exactly the gap the
+integrated batch sets it (the ``strict_acceptance`` dispatch input of ci.yaml), where an expected failure would accept exactly the gap the
 batch claims to close; gaps other work owns keep their xfail. Never a user setting.
 """
 

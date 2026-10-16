@@ -8,7 +8,6 @@ import subprocess
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Optional
 
-from pm.filesystem import native
 
 if TYPE_CHECKING:
     from pm.store import Store
@@ -26,21 +25,18 @@ def compose_env(diffs: list[dict], base: Optional[dict] = None) -> dict[str, str
     """Dependents win over their dependencies for every key: diffs arrive
     deps-first, later ones take precedence — npm's pinned shim must shadow
     the npm bundled inside node, and a package's exports beat inherited env.
-    'PATH' values are lists of dirs, prepended.
-
-    Diff values are paths under a store root, which PM spells extended-length
-    on Windows; a child environment gets their ordinary spelling."""
+    'PATH' values are lists of dirs, prepended."""
     env = dict(os.environ if base is None else base)
     path_dirs: list[str] = []
     for diff in reversed(diffs):
         for key, value in diff.items():
             if key == "PATH":
                 dirs = value if isinstance(value, list) else [value]
-                path_dirs.extend(native(d) for d in dirs if native(d) not in path_dirs)
+                path_dirs.extend(str(d) for d in dirs if str(d) not in path_dirs)
     for diff in diffs:
         for key, value in diff.items():
             if key != "PATH":
-                env[key] = native(str(value))
+                env[key] = str(value)
     if path_dirs:
         key = next((k for k in env if k.upper() == "PATH"), "PATH")
         existing = env.get(key, "")
@@ -82,13 +78,9 @@ class Package:
     # How the lockfile `version` field labels this package for `pm update`:
     #   "semver" — one shared version across targets (node 26.7.0, uv 0.12.3).
     #   "minor"  — the version label is major.minor; each target's exact
-    #              patch lives in ITS artifact urls (ffmpeg's posix vs win32
+    #              patch lives in ITS artifact urls (ffmpeg's macOS vs Linux
     #              builds have no shared release cadence).
     version_style: str = "semver"
-    # Targets where this package's binary is the x64 build run under
-    # Windows ARM64 built-in emulation (no native arm64 artifact exists).
-    # The arch guard accepts the x64 PE on these targets.
-    emulated_arch_targets: frozenset[str] = frozenset()
 
     def missing_reason(self, target: str) -> Optional[str]:
         return self.gaps.get(target)
@@ -170,7 +162,7 @@ class Package:
         """'' when the binary is present and arch-plausible on target."""
         if not binary.is_file():
             return _missing_reason(binary, entry)
-        if machine_matches_binary(binary, target) is False and target not in self.emulated_arch_targets:
+        if machine_matches_binary(binary, target) is False:
             return f"{binary.name} is not a {target} binary"
         return ""
 
@@ -214,7 +206,7 @@ class DebPackage(Package):
         the digest already proved the bytes."""
         expected = entry / self.prefix_rel / self.main_rel(target)
         if not expected.is_file() and not expected.is_symlink():
-            return f"{expected.relative_to(entry)} missing under {native(entry)}"
+            return f"{expected.relative_to(entry)} missing under {entry}"
         return ""
 
     def main_rel(self, target: str) -> str:
@@ -317,7 +309,7 @@ class StatePackage(Package):
 
 def machine_matches_binary(binary: Path, target: str) -> Optional[bool]:
     """Does this executable's architecture match the target? Reads the
-    PE/ELF/Mach-O header directly. None = unknown format (scripts, shims),
+    ELF/Mach-O header directly. None = unknown format (scripts, shims),
     which is not a mismatch."""
     import struct
 
@@ -325,13 +317,6 @@ def machine_matches_binary(binary: Path, target: str) -> Optional[bool]:
     try:
         with open(binary, "rb") as f:
             head = f.read(64)
-            if head[:2] == b"MZ":
-                f.seek(int.from_bytes(head[60:64], "little"))
-                sig = f.read(6)
-                if sig[:4] != b"PE\0\0":
-                    return None
-                machine = int.from_bytes(sig[4:6], "little")
-                return machine == {"x64": 0x8664, "arm64": 0xAA64}.get(arch)
             if head[:4] == b"\x7fELF":
                 machine = int.from_bytes(head[18:20], "little")
                 return machine == {"x64": 0x3E, "arm64": 0xB7}.get(arch)
@@ -360,14 +345,14 @@ def _missing_reason(binary: Path, entry: Path) -> str:
     """Why a package's expected binary is not where it should be — the
     diagnosis that tells you whether the pin's layout is wrong."""
     rel = binary.relative_to(entry).as_posix()
-    return f"{rel} missing under {native(entry)}; {_entry_listing(entry)}"
+    return f"{rel} missing under {entry}; {_entry_listing(entry)}"
 
 
 def _probe_reason(binary: Path, proc: "subprocess.CompletedProcess") -> str:
     """Why a --version probe failed: the exit code plus output tail."""
     out = (proc.stdout or b"") + (proc.stderr or b"")
     tail = out.decode(errors="replace").strip()[-300:]
-    return f"{native(binary)} --version exited {proc.returncode}" + (f": {tail}" if tail else "")
+    return f"{binary} --version exited {proc.returncode}" + (f": {tail}" if tail else "")
 
 
 class Runner:

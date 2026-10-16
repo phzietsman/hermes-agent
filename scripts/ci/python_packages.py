@@ -13,7 +13,7 @@ import sys
 
 def main(argv: list[str] | None = None) -> int:
     from pm import ensure_environment
-    from scripts.ci.setup_toolchain import add_path, file_commands, python3_alias
+    from scripts.ci.setup_toolchain import add_path, file_commands
 
     argv = list(sys.argv[1:] if argv is None else argv)
     boundary = argv.index("--") if "--" in argv else len(argv)
@@ -24,7 +24,6 @@ def main(argv: list[str] | None = None) -> int:
     if boundary < len(argv) and not command:
         parser.error("-- requires a Python command")
     python = ensure_environment("ci-tools", args.requirements, explicit=True)
-    python3_alias(python)
     if command:
         environment = {key: value for key, value in os.environ.items()
                        if key not in {"PYTHONHOME", "VIRTUAL_ENV"}}

@@ -67,7 +67,7 @@ def _ledger_gateway_home(pid: int) -> str | None:
 
 def gateway_pid_home(pid: int) -> str | None:
     """The home gateway *pid* runs on: its live environment, else the exact-birth ledger witness;
-    ``None`` when neither proves one. Discovery, the Windows pause record and its readiness check
+    ``None`` when neither proves one. Discovery, the pause record and its readiness check
     share it, so the home discovery proved is the home the restart debt keeps."""
     from hermes_cli.dashboard_procs import _hermes_home_for_pid
     try:

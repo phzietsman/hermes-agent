@@ -150,7 +150,7 @@ loudly and ignored — it never blocks startup, but the admin should check
 The following are intentionally **out of scope for v1** and may come later:
 
 - A hard boundary that the agent itself cannot escape.
-- Native managed locations on macOS and Windows (v1 is Linux/POSIX-first).
+- Native managed locations on macOS (v1 is Linux/POSIX-first).
 - Drop-in fragment directories (`managed.d/`) for layered policy.
 - Signed / integrity-checked managed files.
 - Remote / device-management (MDM) delivery.

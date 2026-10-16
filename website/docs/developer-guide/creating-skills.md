@@ -105,7 +105,6 @@ Skills can restrict themselves to specific operating systems using the `platform
 ```yaml
 platforms: [macos]            # macOS only (e.g., iMessage, Apple Reminders)
 platforms: [macos, linux]     # macOS and Linux
-platforms: [windows]          # Windows only
 ```
 
 When set, the skill is automatically hidden from the system prompt, `skills_list()`, and slash commands on incompatible platforms. If omitted or empty, the skill loads on all platforms (backward compatible).

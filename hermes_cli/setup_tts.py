@@ -29,7 +29,6 @@ def _install_tts_extra(extra: str) -> bool:
 # sys.platform -> (manual install hint, install command); anything else uses "linux".
 _ESPEAK_INSTALL = {
     "darwin": ("Install with: brew install espeak-ng", ["brew", "install", "espeak-ng"]),
-    "win32": ("Install with: choco install espeak-ng", ["choco", "install", "espeak-ng", "-y"]),
     "linux": ("Install with: sudo apt install espeak-ng", ["sudo", "apt", "install", "-y", "espeak-ng"]),
 }
 

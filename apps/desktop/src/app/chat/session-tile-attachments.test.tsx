@@ -10,7 +10,7 @@ import {
   createComposerAttachmentOccurrenceId,
   createComposerAttachmentScope
 } from '@/store/composer'
-import { $connection, $sessions } from '@/store/session'
+import { $connection, $sessions, $terminalBackend } from '@/store/session'
 import { $sessionStates, type SessionTileDelegate, setSessionTileDelegate } from '@/store/session-states'
 
 import { deferred } from '../../test/deferred'
@@ -37,7 +37,7 @@ vi.mock('@/hermes', () => ({
 
 const RUNTIME_ID = 'runtime-tile'
 const STORED_ID = 'stored-tile'
-const HOST_PATH = 'C:\\Users\\alice\\Pictures\\photo.png'
+const HOST_PATH = '/Users/alice/Pictures/photo.png'
 const STAGED_PATH = '/root/.hermes/attachments/photo.png'
 const THUMBNAIL = 'data:image/png;base64,dGh1bWJuYWls'
 const FULL_SOURCE = 'data:image/png;base64,b3JpZ2luYWw='
@@ -64,12 +64,12 @@ function makeUrlAttachment(label: string): ComposerAttachment {
 
 function makeFileAttachment(): ComposerAttachment {
   return {
-    detail: 'C:\\Users\\alice\\Documents\\report.txt',
+    detail: '/Users/alice/Documents/report.txt',
     id: 'file:report.txt',
     kind: 'file',
     label: 'report.txt',
-    path: 'C:\\Users\\alice\\Documents\\report.txt',
-    refText: '@file:`C:\\Users\\alice\\Documents\\report.txt`'
+    path: '/Users/alice/Documents/report.txt',
+    refText: '@file:`/Users/alice/Documents/report.txt`'
   }
 }
 
@@ -111,6 +111,8 @@ describe('session tile attachment occurrence ownership', () => {
   beforeEach(() => {
     requestGateway.mockReset()
     $connection.set({ mode: 'local' } as never)
+    // A container backend cannot see host paths, so attachments cross as bytes.
+    $terminalBackend.set('docker')
     $sessions.set([])
     $sessionStates.set({
       [RUNTIME_ID]: {
@@ -128,6 +130,7 @@ describe('session tile attachment occurrence ownership', () => {
   afterEach(() => {
     Reflect.deleteProperty(window, 'hermesDesktop')
     $connection.set(null)
+    $terminalBackend.set('')
     $sessions.set([])
     $sessionStates.set({})
   })

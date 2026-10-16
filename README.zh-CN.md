@@ -38,12 +38,6 @@ curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 支持 Linux、macOS 和 WSL2。安装程序会自动处理平台特定的配置。
 
 > **Android / Termux：** aarch64 设备可使用预发布的 APT 软件包，其中包含 Python、Node.js 和 TUI。请按照 [Termux 指南](https://hermes-agent.nousresearch.com/docs/getting-started/termux)安装，不要使用桌面和服务器的安装脚本。
->
-> **Windows：** 在 PowerShell 中运行：
-> ```powershell
-> iex (irm https://hermes-agent.nousresearch.com/install.ps1)
-> ```
-> 安装完成后，可能需要重启终端，然后运行 `hermes` 开始对话。
 
 安装后：
 

@@ -101,6 +101,6 @@ function assertScriptHandoff(run: (installRoot: string, startedAt?: string) => R
   assert.equal(fs.existsSync(oversized.home), false, 'the self-test sandbox must not leak into the OS temp directory')
 }
 
-test.skipIf(process.platform === 'win32')('POSIX hand-off preserves the Desktop marker acquisition time', () => {
+test('POSIX hand-off preserves the Desktop marker acquisition time', () => {
   assertScriptHandoff(runPosix)
 })

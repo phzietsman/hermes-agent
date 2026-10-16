@@ -137,7 +137,7 @@ def test_deliver_validates_profile_and_runs_transport(home, monkeypatch):
     argv = calls["argv"]
     # argv[0] may be a resolved venv path (#93590) — match by basename.
     assert argv[1:3] == ["-p", "ops"]
-    assert argv[0].rsplit("\\", 1)[-1].rsplit("/", 1)[-1] in ("hermes", "hermes.exe")
+    assert os.path.basename(argv[0]) == "hermes"
     assert "Bot Chat" in argv and "--query-file" in argv
 
     # 'hermes' alias resolves to default
@@ -615,7 +615,7 @@ def test_reported_turn_still_lingering_at_the_cap_is_booked_from_its_latest_repo
         assert procs[0].poll() is None, "the lingering child must survive the booking"
         assert not (tmp_path / "dm.txt.turn.json").exists(), "the report is the runner's to clean up"
         # Decoding stays pinned through the runner (#93590 sibling defect): without encoding= the
-        # child's UTF-8 output is decoded with the locale codec — cp1252/GBK on Windows — mangling
+        # child's UTF-8 output is decoded with the locale codec — mangling
         # non-ASCII replies; errors="replace" keeps a bad byte from raising instead of delivering.
         assert popen.call_args.kwargs["encoding"] == "utf-8" and popen.call_args.kwargs["errors"] == "replace"
     finally:

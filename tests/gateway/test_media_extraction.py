@@ -26,10 +26,10 @@ class TestMediaExtraction:
         )
 
         capture_name = "computer_use_0123456789abcdef0123456789abcdef.png"
-        canonical = rf"C:\Users\Alice\AppData\Local\hermes\cache\images\{capture_name}"
+        canonical = f"/Users/alice/.hermes/cache/images/{capture_name}"
         response = (
             "Here is the screenshot.\n"
-            f"MEDIA:/Users/Alice/AppData/Local/hermes/cache/images/{capture_name}"
+            f"MEDIA:/home/alice/.hermes/cache/images/{capture_name}"
         )
         messages = [
             {
@@ -55,7 +55,7 @@ class TestMediaExtraction:
         )
 
         capture_name = "computer_use_fedcba9876543210fedcba9876543210.jpg"
-        canonical = rf"D:\Hermes Data\cache\images\{capture_name}"
+        canonical = f"/Volumes/Hermes Data/cache/images/{capture_name}"
         response = f'MEDIA:"/Users/Alice/Hermes Data/cache/images/{capture_name}"'
         messages = [
             {
@@ -88,7 +88,7 @@ class TestMediaExtraction:
         )
 
         capture_name = "computer_use_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"
-        canonical = rf"C:\Users\Alice\AppData\Local\hermes\cache\images\{capture_name}"
+        canonical = f"/Users/alice/.hermes/cache/images/{capture_name}"
         messages = [
             {
                 "role": "tool",
@@ -109,8 +109,8 @@ class TestMediaExtraction:
 
         old_name = "computer_use_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png"
         current_name = "computer_use_cccccccccccccccccccccccccccccccc.png"
-        old_canonical = rf"C:\cache\images\{old_name}"
-        current_canonical = rf"C:\cache\images\{current_name}"
+        old_canonical = f"/srv/cache/images/{old_name}"
+        current_canonical = f"/srv/cache/images/{current_name}"
         history = [
             {
                 "role": "tool",
@@ -139,10 +139,9 @@ class TestMediaExtraction:
     def test_malformed_json_result_fails_closed(self):
         """Truncated JSON must not repair to a doubled-backslash artifact.
 
-        JSON escaping doubles backslashes; regex-scanning the raw string
-        would yield ``C:\\\\Users\\\\...`` — a path that exists nowhere. When
-        json.loads fails, the helper must yield nothing rather than rewrite
-        the response to a corrupted path.
+        Regex-scanning the raw JSON string would yield escaped text — a path
+        that exists nowhere. When json.loads fails, the helper must yield
+        nothing rather than rewrite the response to a corrupted path.
         """
         import json as _json
 
@@ -151,7 +150,7 @@ class TestMediaExtraction:
         )
 
         capture_name = "computer_use_dddddddddddddddddddddddddddddddd.png"
-        canonical = rf"C:\Users\Alice\AppData\Local\hermes\cache\images\{capture_name}"
+        canonical = f"/Users/alice/.hermes/cache/images/{capture_name}"
         payload = _json.dumps(
             {
                 "summary": f"capture\n  (shareable screenshot saved to {canonical})",
@@ -159,7 +158,7 @@ class TestMediaExtraction:
             }
         )
         truncated = payload[:-5]  # starts with '{' but no longer parses
-        response = f"MEDIA:/Users/Alice/AppData/Local/hermes/cache/images/{capture_name}"
+        response = f"MEDIA:/home/alice/.hermes/cache/images/{capture_name}"
         messages = [
             {"role": "tool", "name": "computer_use", "content": truncated},
         ]
@@ -180,7 +179,7 @@ class TestMediaExtraction:
         )
 
         capture_name = "computer_use_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png"
-        canonical = rf"C:\cache\images\{capture_name}"
+        canonical = f"/srv/cache/images/{capture_name}"
         response = f"MEDIA:/cache/images/{capture_name}"
         current_turn = [
             {"role": "user", "content": "Send the screenshot."},

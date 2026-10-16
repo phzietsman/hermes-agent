@@ -56,8 +56,7 @@ export function applyZoomLevel(webContents, level) {
 
 // Chromium can drop webContents zoom when a BrowserWindow is resized, minimized
 // and restored, crosses onto a monitor with different display scaling, or loses
-// and regains focus (alt-tab on Windows high-DPI displays triggers a DPI
-// re-evaluation). macOS and Windows provide trailing `resized`/`moved` events;
+// and regains focus. macOS provides trailing `resized`/`moved` events;
 // Linux only provides the noisy `resize`/`move` pair, so debounce those
 // fallbacks before re-applying the persisted level.
 export const ZOOM_RESIZE_REASSERT_DELAY_MS = 100
@@ -79,20 +78,15 @@ export function zoomReassertWindowEvents(platform = process.platform) {
     return ['show', 'restore', 'focus', 'resize', 'move']
   }
 
-  if (platform === 'win32') {
-    return ['show', 'restore', 'focus', 'maximize', 'unmaximize', 'resized', 'moved']
-  }
-
   return ['show', 'restore', 'focus', 'resized', 'moved']
 }
 
 // Linux/Wayland fires `focus` on intra-app focus shifts (sidebar clicks,
 // Ctrl+Tab session switching, tile activation) — not just the cross-app
-// alt-tab the Windows high-DPI immediate-reassert guard (#50837) targets.
+// alt-tab.
 // An undebounced reassert on every such focus event re-applies the persisted
 // zoom level mid-interaction, producing a visible zoom/DPI jump. Debounce
-// `focus` alongside `resize`/`move` on Linux; Windows alt-tab keeps its
-// immediate path because `platform` is `win32` there.
+// `focus` alongside `resize`/`move` on Linux.
 const DEBOUNCED_REASSERT_EVENTS = new Set(['resize', 'move'])
 
 export function isDebouncedReassertEvent(event, platform = process.platform) {
@@ -171,7 +165,7 @@ export function installZoomReassertOnWindowEvents(win, reassert, platform = proc
  * only learns of changes through `hermes:zoom:changed`, which never fired —
  * which is why touching the setting appeared to fix it). #48658, #38854, #79863.
  *
- * Verified on real Electron 40.10.2 / Chromium 144 (win32): at
+ * Verified on real Electron 40.10.2 / Chromium 144: at
  * `did-navigate-in-page` the frame already reports the target route's level, so
  * restorePersistedZoomLevel's drift-guard sees the drop and re-applies — and
  * still no-ops when the route's record already matches. Subframe hash changes

@@ -75,7 +75,7 @@ function armGrab(state: PressState, workspaceTransfer: boolean): void {
  * HUD-only: press and hold the composer, then drag to move the window. On X11,
  * Ctrl+primary-button is an immediate grab that also works over selected text.
  *
- * The way to move the HUD on macOS/Windows. An `-webkit-app-region: drag`
+ * The way to move the HUD on macOS. An `-webkit-app-region: drag`
  * handle is the obvious alternative and cannot work THERE: the window manager
  * takes a drag region's mouse input whole, which starves `useHudClickThrough`
  * of the moves it decides solidity from, so the window is already transparent

@@ -18,7 +18,6 @@ model issuing the tool calls; outcomes are read on disk and in the tool results 
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -28,8 +27,6 @@ import pytest
 from tests.e2e.core._pending_fixes import known_gate
 from tests.e2e.core.security import _helpers as H
 from tests.e2e.core.security._traversal import digest, result_json, run_tool_calls
-
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX symlinks and ../ spellings")
 
 
 CONFINED_SCENARIOS = (

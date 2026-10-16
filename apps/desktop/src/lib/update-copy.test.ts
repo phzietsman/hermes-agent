@@ -8,9 +8,7 @@ const copy = {
   availableTitleBackend: 'Backend update available',
   availableBodyBackend: 'A newer version of the connected Hermes backend is ready to install.',
   availableBodyNoChangelog: 'A newer version is ready. Release notes aren’t available for this install type.',
-  availableBodyRelease: (tag: string) => `Hermes ${tag} is ready to install.`,
-  availableBodyAppInstaller:
-    'A new version of Hermes is ready. Hermes will close, Windows will finish the update, and Hermes will reopen on its own.'
+  availableBodyRelease: (tag: string) => `Hermes ${tag} is ready to install.`
 }
 
 describe('resolveUpdateCopy', () => {
@@ -56,32 +54,12 @@ describe('resolveUpdateCopy', () => {
     expect(r.body).toBe(copy.availableBody)
   })
 
-  it.each(['app-installer', 'microsoft-store'] as const)(
-    '%s uses Windows update copy without commit vocabulary',
-    mechanism => {
-      const r = resolveUpdateCopy({ target: 'client', shownItems: 5, mechanism, copy })
-      expect(r.body).toBe(copy.availableBodyAppInstaller)
-    }
-  )
-
-  it('app-installer mechanism with a known tag names the release', () => {
-    const r = resolveUpdateCopy({
-      target: 'client',
-      shownItems: 0,
-      mechanism: 'app-installer',
-      latestTag: 'v0.18.3',
-      copy
-    })
-
-    expect(r.body).toBe('Hermes v0.18.3 is ready to install.')
-  })
-
   it('other mechanisms keep the commit vocabulary', () => {
-    const r = resolveUpdateCopy({ target: 'client', shownItems: 5, mechanism: 'windows-handoff', copy })
+    const r = resolveUpdateCopy({ target: 'client', shownItems: 5, mechanism: 'posix-handoff', copy })
     expect(r.body).toBe(copy.availableBody)
   })
 
-  it('macOS feed updates name the release without Windows or commit vocabulary', () => {
+  it('macOS feed updates name the release without commit vocabulary', () => {
     expect(
       resolveUpdateCopy({
         target: 'client',

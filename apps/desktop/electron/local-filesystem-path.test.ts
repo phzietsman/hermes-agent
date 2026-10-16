@@ -8,10 +8,7 @@ test('recognizes every bare local filesystem path shape', () => {
   for (const value of [
     '/tmp/report.pdf',
     '///tmp/foo',
-    '~/logs/desktop.log',
-    'C:\\Users\\x\\a.md',
-    'C:/Work/report.html',
-    '\\\\server\\share\\a.md'
+    '~/logs/desktop.log'
   ]) {
     assert.equal(looksLikeLocalFilesystemPath(value), true, `expected ${value} to be a local path`)
   }

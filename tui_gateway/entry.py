@@ -40,12 +40,7 @@ def _close_rpc_stdin_on_exec() -> None:
     descriptors survive subprocess execution unless they are explicitly
     close-on-exec, so a dependency that launches a child without ``stdin=``
     could otherwise consume a request before this process reads it.
-
-    Windows does not provide the POSIX FD_CLOEXEC contract used here; retain
-    its existing descriptor behavior rather than changing its launch paths.
     """
-    if os.name != "posix":
-        return
     try:
         os.set_inheritable(sys.stdin.fileno(), False)
     except (OSError, ValueError):
@@ -117,9 +112,7 @@ def _log_signal(signum: int, frame) -> None:
     """Capture WHICH thread and WHERE a termination signal hit us, then exit. ``sys.exit(0)``
     alone raced the worker pool (a thread holding ``_stdout_lock`` mid-flush blocks interpreter
     shutdown), so: log all thread stacks, give the configured grace to drain, then ``os._exit``."""
-    # SIGPIPE/SIGHUP don't exist on Windows — only look up attributes present.
-    names = {int(sig): attr for attr in ("SIGPIPE", "SIGTERM", "SIGHUP", "SIGINT", "SIGBREAK")
-             if (sig := getattr(signal, attr, None)) is not None}
+    names = {int(getattr(signal, attr)): attr for attr in ("SIGPIPE", "SIGTERM", "SIGHUP", "SIGINT")}
     name = names.get(signum, f"signal {signum}")
 
     def _dump(f):
@@ -148,24 +141,20 @@ def _log_signal(signum: int, frame) -> None:
 
 def _install_signal(signame, handler):
     """Install a signal handler if legal here: signal.signal() raises off the main thread
-    (Desktop build path imports entry from a worker) and Windows lacks SIGPIPE/SIGHUP."""
-    sig = getattr(signal, signame, None)
-    if sig is None or threading.current_thread() is not threading.main_thread():
+    (Desktop build path imports entry from a worker)."""
+    if threading.current_thread() is not threading.main_thread():
         return
     with suppress(ValueError, OSError, RuntimeError):  # platform rejected the handler
-        signal.signal(sig, handler)
+        signal.signal(getattr(signal, signame), handler)
 
 
 # SIGPIPE: ignore, don't exit — SIG_DFL killed the process silently whenever a background
 # thread wrote to a pipe the TUI had gone quiet on; ignoring lets write_json see
 # BrokenPipeError and exit via _log_exit. Terminal signals route through _log_signal so
-# kills/hangups are diagnosable (SIGBREAK = Windows SIGHUP).
+# kills/hangups are diagnosable.
 _install_signal("SIGPIPE", signal.SIG_IGN)
 _install_signal("SIGTERM", _log_signal)
-if hasattr(signal, "SIGHUP"):
-    _install_signal("SIGHUP", _log_signal)
-elif hasattr(signal, "SIGBREAK"):
-    _install_signal("SIGBREAK", _log_signal)
+_install_signal("SIGHUP", _log_signal)
 _install_signal("SIGINT", signal.SIG_IGN)
 
 

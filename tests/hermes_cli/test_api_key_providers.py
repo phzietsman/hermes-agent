@@ -292,7 +292,7 @@ class TestRuntimeProviderResolution:
         assert result["api_mode"] == "codex_responses"
 
     def test_runtime_copilot_acp_uses_process_runtime(self, monkeypatch, tmp_path):
-        cli = tmp_path / ("copilot.exe" if os.name == "nt" else "copilot")
+        cli = tmp_path / "copilot"
         cli.write_text("", encoding="utf-8")
         cli.chmod(0o755)
         monkeypatch.setenv("PATH", str(tmp_path))

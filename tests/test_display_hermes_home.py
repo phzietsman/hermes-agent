@@ -1,17 +1,12 @@
-"""display_hermes_home() renders POSIX separators on every platform.
+"""display_hermes_home() renders a consistent ``~/``-relative POSIX path.
 
-Maintainer catch (#95681 arc): on Windows with a custom HERMES_HOME under
-the user profile (e.g. AppData/Local/hermes), ``"~/" +
-str(home.relative_to(Path.home()))`` produced the mixed-separator chimera
-``~/AppData\\Local\\hermes`` — which then leaked into every consumer that
-appends sub-paths (the skill_manage schema showed the agent
-``~/AppData\\Local\\hermes/skills/``). The ``~/`` shorthand implies POSIX
-rendering; the whole string must be consistent.
+Regression for #95681: a nested custom HERMES_HOME leaked a mixed-separator
+string into consumers that append sub-paths (the skill_manage schema).
 """
 import os
 import sys
 import unittest
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -19,8 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 class TestDisplayHermesHomePosix(unittest.TestCase):
     def test_nested_home_renders_forward_slashes(self):
-        """Simulate the Windows shape portably: home nested several levels
-        under the user profile must render with forward slashes only."""
+        """A home nested several levels under the user profile renders with forward slashes only."""
         import hermes_constants as hc
 
         fake_userhome = Path.home()
@@ -41,7 +35,7 @@ class TestDisplayHermesHomePosix(unittest.TestCase):
     def test_outside_home_falls_back_to_absolute(self):
         import hermes_constants as hc
 
-        outside = Path("/opt/hermes-custom") if os.name != "nt" else Path("C:/opt/hermes-custom")
+        outside = Path("/opt/hermes-custom")
         with patch.object(hc, "get_hermes_home", return_value=outside):
             out = hc.display_hermes_home()
         self.assertEqual(out, str(outside))

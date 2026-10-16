@@ -2,7 +2,7 @@
 // read a page <title> (bot walls, JS-rendered pages), we briefly load the URL
 // in an offscreen window and read its title. That window loads arbitrary
 // user-linked pages, so it must never emit sound, trigger real downloads, or
-// become visible — on Windows Desktop a hidden title-fetch window has still
+// become visible — a hidden title-fetch window has still
 // painted a blank top-level frame over the chat (#64867), so the invisibility
 // contract is encoded in the launch options, not just show: false.
 

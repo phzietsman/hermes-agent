@@ -69,15 +69,12 @@ export function resolveAppIcon(
  * `app.asar.unpacked` for builds that leave assets outside the archive.
  */
 export function appIconCandidates(opts: {
-  isWindows: boolean
   appRoot: string
-  resourcesPath?: string
   unpackedPathFor: (p: string) => string
 }): string[] {
-  const { isWindows, appRoot, resourcesPath, unpackedPathFor } = opts
+  const { appRoot, unpackedPathFor } = opts
 
   return [
-    ...(isWindows ? [path.join(resourcesPath ?? '', 'icon.ico'), path.join(appRoot, 'assets', 'icon.ico')] : []),
     // The unpacked on-disk copy first (dist/** is asarUnpack'ed), as resolveWebDist() does: statting
     // any path inside app.asar goes through Electron's asar fs.Stats shim, which emits Node's DEP0180
     // on every packaged launch (#96857). In a dev tree unpackedPathFor is the identity.

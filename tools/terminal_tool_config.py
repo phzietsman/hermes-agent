@@ -10,7 +10,6 @@ import logging
 import json
 import os
 import posixpath
-import re
 from contextlib import contextmanager
 from typing import Any, overload
 
@@ -53,40 +52,26 @@ def _safe_getcwd() -> str:
         return _tenv("TERMINAL_CWD") or os.path.expanduser("~")
 
 
-# Host-cwd shapes that cannot exist inside a container sandbox: POSIX user dirs and ANY Windows
-# drive path (``D:\\...``, ``e:/...``) as they leak toward a Linux ``-w`` flag.
+# Host-cwd shapes that cannot exist inside a container sandbox: POSIX user dirs leak toward a
+# Linux ``-w`` flag.
 _HOST_CWD_PREFIXES = ("/Users/", "/home/")
-_WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 def _is_host_cwd(path: str) -> bool:
-    return path.startswith(_HOST_CWD_PREFIXES) or bool(_WINDOWS_DRIVE_RE.match(path))
-
-
-def _is_windows_drive_path(path: str) -> bool:
-    """True for any ``D:\\...`` / ``e:/...`` path. Not a username check."""
-    return bool(path) and bool(_WINDOWS_DRIVE_RE.match(path))
+    return path.startswith(_HOST_CWD_PREFIXES)
 
 
 def _host_path_key(path: str) -> str:
-    """Compare host paths without caring about slash style or drive-letter case.
-
-    A trailing slash is not significant, except we never collapse a drive root
-    (``C:/``) into a bare ``C:`` that would prefix-match every path on that drive.
-    """
-    text = (path or "").replace("\\", "/")
-    if len(text) >= 2 and text[1] == ":":
-        text = text[0].lower() + text[1:]
-    if len(text) > 3:
-        text = text.rstrip("/")
-    return text
+    """Compare host paths without caring about a trailing slash (``/`` itself stays ``/``)."""
+    text = path or ""
+    return text.rstrip("/") or text[:1]
 
 
 def translate_mounted_host_path(path: str, host_root: str, container_root: str) -> str | None:
     """Map *path* onto *container_root* when it is *host_root* or a child of it.
 
-    Returns None when *path* is not under that host directory. Slash style and
-    drive-letter case do not matter; a sibling directory (``proj`` vs ``proj-other``)
+    Returns None when *path* is not under that host directory. A trailing slash does
+    not matter; a sibling directory (``proj`` vs ``proj-other``)
     is not a child.
     """
     if not isinstance(path, str) or not isinstance(host_root, str) or not isinstance(container_root, str):
@@ -185,7 +170,7 @@ def coerce_ssh_remote_cwd(cwd: str | None, env_type: str | None) -> str | None:
 def _is_mounted_host_cwd(cwd: str, mounted_host: str | None) -> bool:
     """True when *cwd* is the host directory mounted at ``/workspace``.
 
-    Checked before the ``/Users`` / ``/home`` / drive-letter heuristic: a WSL
+    Checked before the ``/Users`` / ``/home`` heuristic: a WSL
     checkout under ``/mnt/...`` or an absolute path under ``/srv/...`` is
     ``os.path.isabs`` and would otherwise look like a valid container workdir.
     """
@@ -202,8 +187,7 @@ def _is_mounted_host_cwd(cwd: str, mounted_host: str | None) -> bool:
 def _is_unusable_container_cwd(cwd: str, *, mounted_host: str | None = None) -> bool:
     """True if *cwd* is a host or relative path that can't be a container
     workdir: ``docker run -w`` needs an absolute in-sandbox path, otherwise the
-    container fails to start (exit 125). Windows drive paths aren't ``isabs``
-    on POSIX, so they're caught by the prefix check.
+    container fails to start (exit 125).
 
     The directory mounted at ``/workspace`` is unusable inside the container
     even when it matches none of those prefixes. That equality check runs

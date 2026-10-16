@@ -118,7 +118,7 @@ test('source builds declare the same artifact schema, without a payload', () => 
 test('buildStampPayload keeps schemaVersion + provenance in the staged shape', () => {
   const payload = buildStampPayload(baseStamp, {
     HERMES_DESKTOP_VARIANT: 'bundled'
-  }, 'win32', { runtime })
+  }, 'linux', { runtime })
   assert.equal(payload.schemaVersion, 1)
   assert.equal(payload.commit, baseStamp.commit)
   assert.equal(payload.source, 'ci')
@@ -126,7 +126,7 @@ test('buildStampPayload keeps schemaVersion + provenance in the staged shape', (
 })
 
 test('commit builds retain exact provenance without entering an update channel', () => {
-  for (const platform of ['win32', 'darwin']) {
+  for (const platform of ['linux', 'darwin']) {
     const env = { HERMES_DESKTOP_VARIANT: 'bundled', HERMES_BUILD_COMMIT: baseStamp.commit }
     const payload = buildStampPayload(baseStamp, env, platform, { runtime })
     assert.equal(payload.commit, baseStamp.commit)

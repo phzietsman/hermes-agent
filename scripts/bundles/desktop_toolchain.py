@@ -28,7 +28,7 @@ def bootstrap_environment(source: Path, work: Path, cache: Path,
                           env: Mapping[str, str]) -> dict[str, str]:
     """Return launch state; never import PM, mutate the process, or write files."""
     source, work, cache = source.resolve(), work.resolve(), cache.resolve()
-    owned = {"HOME", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HERMES_HOME", "HERMES_RUNTIME_DIR",
+    owned = {"HOME", "HERMES_HOME", "HERMES_RUNTIME_DIR",
              "HERMES_PYTHON_SRC_ROOT", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME",
              "UV_CACHE_DIR", "NPM_CONFIG_CACHE", "NPM_EXECPATH", "NPM_NODE_EXECPATH",
              "NPM_CONFIG_USERCONFIG", "NPM_CONFIG_GLOBALCONFIG", "NPM_CONFIG_PREFIX",
@@ -36,15 +36,12 @@ def bootstrap_environment(source: Path, work: Path, cache: Path,
     result = {key: value for key, value in env.items() if key.upper() not in _INSTALL_ENV | owned}
     canonical = {key.upper(): value for key, value in env.items()}
     # Rustup must still find the runner's installed toolchain after HOME moves.
-    home_key = "USERPROFILE" if os.name == "nt" else "HOME"
-    original_home = Path(canonical.get("HERMES_REAL_HOME") or canonical.get(home_key) or Path.home())
+    original_home = Path(canonical.get("HERMES_REAL_HOME") or canonical.get("HOME") or Path.home())
     for key, directory in (("CARGO_HOME", ".cargo"), ("RUSTUP_HOME", ".rustup")):
         result[key] = canonical.get(key) or str(original_home / directory)
     home = work / "home"
     result.update({
-        "HOME": str(home), "USERPROFILE": str(home),
-        "LOCALAPPDATA": str(home / "AppData/Local"),
-        "APPDATA": str(home / "AppData/Roaming"),
+        "HOME": str(home),
         "HERMES_HOME": str(work / "hermes-home"),
         "HERMES_RUNTIME_DIR": str(cache / "tools"),
         "HERMES_PYTHON_SRC_ROOT": str(source),
@@ -99,10 +96,6 @@ def prepare_tools(source: Path, work: Path, cache: Path,
     if store_root() != cache / "tools":
         raise ValueError("desktop tools require the isolated preparation worker")
     prepared = dict(env)
-    if pm.current_target() == "win32-arm64":
-        from pm.native_build import prepare_windows_environment
-
-        prepared = prepare_windows_environment(source=source, state=cache / "native/prerequisites", env=prepared)
     if pm.current_target().startswith("darwin"):
         # python-build-standalone's sysconfig names its absent build-host tools.
         prepared.setdefault("AR", "/usr/bin/ar")
@@ -131,19 +124,13 @@ def native_cache_path(cache: Path, env: Mapping[str, str]) -> Path:
 
     target = current_target()
     keys = {"CC", "CXX", "AR", "CFLAGS", "CXXFLAGS", "LDFLAGS", "RUSTFLAGS", "RUSTUP_TOOLCHAIN",
-            "SDKROOT", "MACOSX_DEPLOYMENT_TARGET", "WindowsSDKVersion", "VCToolsVersion",
-            "WindowsSdkDir", "INCLUDE", "LIB", "LIBPATH", "OPENSSL_DIR", "OPENSSL_LIB_DIR",
+            "SDKROOT", "MACOSX_DEPLOYMENT_TARGET", "OPENSSL_DIR", "OPENSSL_LIB_DIR",
             "OPENSSL_INCLUDE_DIR", "OPENSSL_STATIC"}
     selected = {key: value for key, value in env.items() if key in keys or key.startswith("CC_")}
     identity = {"recipe": 1, "target": target, "host": platform.platform(),
                 "libc": platform.libc_ver(), "inputs": selected, "probes": [], "openssl": {}}
-    commands = [["rustc", "-vV"]]
-    if target.startswith("win32"):
-        commands.append(["cl", "/Bv"])
-        complete = bool(env.get("WindowsSDKVersion") and env.get("VCToolsVersion"))
-    else:
-        commands.extend([[env.get("CC") or "cc", "--version"], [env.get("CXX") or "c++", "--version"]])
-        complete = True
+    commands = [["rustc", "-vV"], [env.get("CC") or "cc", "--version"], [env.get("CXX") or "c++", "--version"]]
+    complete = True
     commands.extend([[value, "--version"] for key, value in selected.items() if key.startswith("CC_")])
     if target.startswith("darwin"):
         commands.extend([["xcrun", "--show-sdk-path"], ["xcrun", "--show-sdk-build-version"]])
@@ -161,15 +148,12 @@ def native_cache_path(cache: Path, env: Mapping[str, str]) -> Path:
                     identity["openssl"][f"{kind}/{path.relative_to(root).as_posix()}"] = hashlib.file_digest(stream, "sha256").hexdigest()
     else:
         commands.append(["openssl", "version", "-a"])
-        if target == "win32-arm64":
-            complete = False  # The provider must identify the linked static libraries.
     for command in commands:
         try:
             result = subprocess.run(command, env=dict(env), capture_output=True, text=True, encoding="utf-8",
                                     errors="replace", timeout=30, stdin=subprocess.DEVNULL)
             output = result.stdout + result.stderr
-            # cl /Bv reports its identity and exits 2 when no source is supplied.
-            valid = result.returncode in ((0, 2) if command == ["cl", "/Bv"] else (0,)) and bool(output.strip())
+            valid = result.returncode == 0 and bool(output.strip())
             identity["probes"].append([command, output])
             complete = complete and valid
         except (OSError, subprocess.TimeoutExpired):
@@ -179,8 +163,7 @@ def native_cache_path(cache: Path, env: Mapping[str, str]) -> Path:
     encoded = json.dumps(identity, sort_keys=True)
     owned = str(cache.resolve())
     encoded = encoded.replace(json.dumps(owned)[1:-1], "<build-cache>")
-    # uv builds sdists below this root. Keep the partition compact so compiler
-    # outputs fit Windows MAX_PATH; the target is already part of the identity.
+    # uv builds sdists below this root; the target is already part of the identity.
     digest = hashlib.sha256(encoded.encode()).hexdigest()[:32] if complete else uuid.uuid4().hex
     return cache.resolve() / "python/runtime" / digest
 

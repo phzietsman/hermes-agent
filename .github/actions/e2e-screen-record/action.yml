@@ -6,7 +6,7 @@ description: >
   fails on a zero-frame file. A missing ffmpeg is a hard error - a graceful
   skip makes the missing tool invisible and the artifact silently loses its
   recording. ffmpeg itself comes from the PM toolchain (locked, sha256-pinned,
-  native per-OS incl. win32-arm64) - the caller must run actions/setup-pm with
+  native per-OS) - the caller must run actions/setup-pm with
   `packages: ffmpeg` first.
 
 inputs:
@@ -80,22 +80,13 @@ runs:
         killall cfprefsd 2>/dev/null || true
 
     - name: Start recording (posix)
-      if: inputs.mode == 'start' && runner.os != 'Windows'
+      if: inputs.mode == 'start'
       shell: bash
       run: bash "$GITHUB_ACTION_PATH/../../../tests/install/e2e-assets/record-start.sh" '${{ inputs.output }}'
 
-    - name: Start recording (windows)
-      if: inputs.mode == 'start' && runner.os == 'Windows'
-      shell: powershell
-      run: powershell -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_ACTION_PATH\..\..\..\tests\install\e2e-assets\record-start.ps1" -OutFile "${{ inputs.output }}"
-
     # ---- stop ---------------------------------------------------------------
     - name: Stop recording (posix)
-      if: inputs.mode == 'stop' && runner.os != 'Windows'
+      if: inputs.mode == 'stop'
       shell: bash
       run: bash "$GITHUB_ACTION_PATH/../../../tests/install/e2e-assets/record-stop.sh" '${{ inputs.output }}'
 
-    - name: Stop recording (windows)
-      if: inputs.mode == 'stop' && runner.os == 'Windows'
-      shell: powershell
-      run: powershell -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_ACTION_PATH\..\..\..\tests\install\e2e-assets\record-stop.ps1" -OutFile "${{ inputs.output }}"

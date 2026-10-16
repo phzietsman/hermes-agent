@@ -24,7 +24,6 @@ from fastapi import APIRouter, HTTPException
 from gateway.status import (
     multiplexer_liveness_for_profile, profile_name_for_home, profile_platforms_from_multiplexer,
     resolve_gateway_liveness, retained_gateway_state)
-from hermes_cli._subprocess_compat import windows_hide_flags
 from hermes_cli.config import OPTIONAL_ENV_VARS, get_env_path
 from hermes_constants import get_process_hermes_home
 from hermes_cli.web_deps import LateState, late
@@ -377,12 +376,12 @@ def _ensure_whatsapp_bridge_dependencies(bridge_dir: Path) -> None:
             if installed is None or installed.binary is None:
                 raise pm.InstallError("npm", "npm binary is missing after preparation")
             npm = str(installed.binary)
-        # npm output is UTF-8; encoding= guards the Windows ANSI-code-page
-        # default against undefined bytes crashing the reader thread.
+        # npm output is UTF-8; encoding= guards a non-UTF-8 locale default
+        # against undefined bytes crashing the reader thread.
         result = subprocess.run(
             [npm, "install", "--silent"], cwd=str(bridge_dir), capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=env_int("WHATSAPP_NPM_INSTALL_TIMEOUT", 300),
-            env=env, creationflags=windows_hide_flags(),
+            env=env,
         )
     except subprocess.TimeoutExpired as exc:
         raise HTTPException(status_code=500, detail="Installing WhatsApp bridge dependencies timed out.") from exc
@@ -424,7 +423,6 @@ def _spawn_whatsapp_pairing_process(session_path: Path, mode: str) -> subprocess
         [node, str(bridge_script), "--pair-only", "--pair-json", "--session", str(session_path)],
         cwd=str(bridge_dir), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
         encoding="utf-8", errors="replace", start_new_session=True, env=env,
-        creationflags=windows_hide_flags(),
     )
 
 

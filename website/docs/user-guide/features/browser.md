@@ -218,15 +218,7 @@ When you turn the toggle back off, Hermes deletes the snapshot store
 credentials don't linger after you revoke consent.
 
 :::note A running browser can block the login/autofill databases
-On Windows a running Chrome/Edge/Brave holds its cookie and login databases with
-an exclusive (deny-all) lock, so Hermes cannot copy them while the browser is
-open — it fails fast with a "fully quit the browser and retry" message rather
-than hang or produce a signed-out session. Real-profile browsing on Windows
-therefore requires the browser **fully quit**, including any background/tray
-instance (Chrome's "continue running background apps when closed" keeps a
-`chrome.exe` alive after you close the window).
-
-On macOS and Linux the profile is not file-locked, but each authentication
+The profile is not file-locked, but each authentication
 database is snapshotted through SQLite's online backup with a five-second
 budget, and a running Chrome typically holds `Login Data`, `Login Data For
 Account` and `Web Data` with a hot write lock that never yields within that
@@ -234,22 +226,13 @@ budget (`Cookies` usually snapshots fine). When that happens Hermes stops the
 launch and names the databases it could not read — for example "chrome is
 running and holds the profile's Login Data, Login Data For Account, Web Data
 with a write lock" — so in practice **quit the browser before launching a
-real-profile session on macOS/Linux too**. You can reopen it once the session is
+real-profile session**. You can reopen it once the session is
 up (the snapshot is a separate directory), but the auth files are re-synced on
 every fresh session launch, so a browser left running then hits the same lock.
 Hermes preserves committed
 WAL data through SQLite rather than falling back to a raw file copy, which could
 silently lose recent logins. Unreadable or corrupt databases also stop the
 launch, with the SQLite error named in the message.
-
-Set `browser.real_profile_autoclose: true` to let Hermes **offer to close the
-browser for you** when it's holding the profile lock (the Windows case). Even with this on, Hermes never
-closes it automatically — when the profile is locked it always stops and the
-agent asks you first; only on your approval does it run `hermes browser
-close-profile` (terminates the browser process tree bound to that profile,
-losing unsaved tabs), then retries. If the profile is still locked after that
-(e.g. a background/tray instance relaunched), Hermes stays blocked and tells you
-to fully quit the browser — it won't loop or kill again on its own.
 :::
 
 - **Supported browsers:** Chrome, Edge, Brave, Brave Origin, Chromium (whichever is your OS
@@ -290,10 +273,6 @@ Three things to set up before scheduling one:
   needs its credentials saved ahead of time, authenticator key included. That is
   the [credential vault's](./credential-vault.md#headless-sessions) job, and it
   is what carries a run after your own session has expired.
-
-**Windows prerequisite:** the browser has to be fully quit before a snapshot can
-be taken at all, so a scheduled tick needs it closed beforehand — Hermes never
-closes it without asking you first (see the note above).
 
 The bundled `product-price-monitor` skill is a worked example of the recurring
 shape — a JSON watch contract written during setup, then one scheduled tick that

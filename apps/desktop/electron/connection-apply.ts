@@ -67,7 +67,7 @@ async function resolveTerminalConnectionForSender(webContentsId, getTarget, ensu
  *  SSH-execs kill. backendShutdown's finally() calls app.quit() and
  *  re-enters before-quit with an empty map. Without `inFlight`, Electron
  *  exits while disconnect is running and the detached serve --isolated
- *  stays at pid 1 (post-#95085 leftover on #91668: window X on Windows). */
+ *  stays at pid 1 (post-#95085 leftover on #91668). */
 function sshQuitShouldBlock({
   teardownDone,
   connectionCount,

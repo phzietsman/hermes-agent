@@ -46,10 +46,6 @@ function readClipboardCommands(
     return [{ cmd: 'pbpaste', args: [] }]
   }
 
-  if (platform === 'win32') {
-    return [{ cmd: 'powershell', args: POWERSHELL_READ_ARGS, base64: true }]
-  }
-
   const attempts: Array<{ args: readonly string[]; cmd: string; base64?: boolean }> = []
 
   if (env.WSL_INTEROP || env.WSL_DISTRO_NAME) {
@@ -70,7 +66,6 @@ function readClipboardCommands(
  *
  * Uses native platform tools in fallback order:
  * - macOS: pbpaste
- * - Windows: PowerShell Get-Clipboard -Raw
  * - WSL: powershell.exe Get-Clipboard -Raw
  * - Linux Wayland: wl-paste --type text
  * - Linux X11: xclip -selection clipboard -out
@@ -84,8 +79,7 @@ export async function readClipboardText(
     try {
       const result = await run(attempt.cmd, [...attempt.args], {
         encoding: 'utf8',
-        maxBuffer: CLIPBOARD_MAX_BUFFER,
-        windowsHide: true
+        maxBuffer: CLIPBOARD_MAX_BUFFER
       })
 
       if (typeof result.stdout === 'string') {
@@ -103,7 +97,7 @@ export async function readClipboardText(
   return null
 }
 
-// PowerShell on Windows/WSL decodes piped stdin with the system ANSI code
+// PowerShell on WSL decodes piped stdin with the system ANSI code
 // page (e.g. CP936), not UTF-8, so $input-based writes mangle CJK/emoji. We
 // instead base64-encode the UTF-8 bytes and pass them as a -Command argument,
 // decoding with UTF8.GetString — this removes the stdin-encoding variable
@@ -118,10 +112,6 @@ function _powershellWriteScript(b64: string): string {
 function writeClipboardCommands(platform: NodeJS.Platform, env: NodeJS.ProcessEnv): WriteCmd[] {
   if (platform === 'darwin') {
     return [{ cmd: 'pbcopy', args: [], stdin: true }]
-  }
-
-  if (platform === 'win32') {
-    return [{ cmd: 'powershell', args: ['-NoProfile', '-NonInteractive'], stdin: false }]
   }
 
   const attempts: WriteCmd[] = []
@@ -145,7 +135,6 @@ function writeClipboardCommands(platform: NodeJS.Platform, env: NodeJS.ProcessEn
  *
  * Tries native platform tools in fallback order:
  * - macOS: pbcopy
- * - Windows: PowerShell Set-Clipboard
  * - WSL: powershell.exe Set-Clipboard
  * - Linux Wayland: wl-copy --type text/plain
  * - Linux X11: xclip -selection clipboard -in
@@ -167,8 +156,7 @@ export async function writeClipboardText(
       const ok = await new Promise<boolean>(resolve => {
         if (cmdEntry.stdin) {
           const child = start(cmdEntry.cmd, [...cmdEntry.args], {
-            stdio: ['pipe', 'ignore', 'ignore'],
-            windowsHide: true
+            stdio: ['pipe', 'ignore', 'ignore']
           })
 
           child.unref()
@@ -180,8 +168,7 @@ export async function writeClipboardText(
           const script = _powershellWriteScript(b64)
 
           const child = start(cmdEntry.cmd, [...cmdEntry.args, '-Command', script], {
-            stdio: ['ignore', 'ignore', 'ignore'],
-            windowsHide: true
+            stdio: ['ignore', 'ignore', 'ignore']
           })
 
           child.unref()

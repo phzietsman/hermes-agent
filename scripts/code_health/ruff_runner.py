@@ -52,7 +52,7 @@ def _version_of(cmd: list[str]) -> str | None:
 def resolve_ruff(repo: Path) -> list[str]:
     """Command prefix for the pinned ruff: a matching install, else ``uvx ruff@<pin>``."""
     pin = pinned_version(repo)
-    candidates = [Path(sys.prefix) / "bin" / "ruff", Path(sys.prefix) / "Scripts" / "ruff.exe"]
+    candidates = [Path(sys.prefix) / "bin" / "ruff"]
     on_path = shutil.which("ruff")
     if on_path:
         candidates.insert(0, Path(on_path))

@@ -87,10 +87,6 @@ _OPTIONAL_IMPORTS = {
     "slack_bolt": "slack-bolt", "slack_sdk": "slack-sdk", "sounddevice": "sounddevice",
     "telegram": "python-telegram-bot", "uvloop": "uvloop",
     "vercel": "vercel", "youtube_transcript_api": "youtube-transcript-api",
-    # Windows-only core requirements (their markers exclude Linux).
-    "pywintypes": "pywin32", "win32api": "pywin32", "win32con": "pywin32", "win32event": "pywin32",
-    "win32file": "pywin32", "win32job": "pywin32", "win32process": "pywin32", "win32security": "pywin32",
-    "winerror": "pywin32", "winpty": "pywinpty",
 }
 
 # Shipped modules that cannot import on this platform for a reason other than a missing

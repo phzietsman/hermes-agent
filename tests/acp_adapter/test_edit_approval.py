@@ -102,8 +102,7 @@ def test_patch_replace_rejection_does_not_mutate(tmp_path):
 def test_workspace_auto_approval_allows_workspace_and_tmp_but_not_sensitive(tmp_path):
     workspace_file = tmp_path / "src.py"
     # Use tempfile.gettempdir() so this test exercises the same code path on
-    # Linux (`/tmp`), macOS (`/private/var/folders/...`) and Windows
-    # (`%LOCALAPPDATA%\Temp`). Before the fix this branch only worked on Linux.
+    # Linux (`/tmp`) and macOS (`/private/var/folders/...`).
     tmp_file = Path(tempfile.gettempdir()) / "hermes-acp-auto-approve-test.txt"
     env_file = tmp_path / ".env"
 

@@ -8,9 +8,9 @@ import { delimiter, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 
-// npm.cmd needs a shell. Use npm's JS entrypoint so paths remain argv on Windows.
+// Use npm's JS entrypoint, never its shell wrapper, so paths remain argv.
 export function npmCommand({ env = process.env } = {}) {
-  const names = process.platform === 'win32' ? ['npm.cmd', 'npm'] : ['npm']
+  const names = ['npm']
   const candidates = [env.npm_execpath]
   for (const dir of (env.PATH || env.Path || '').split(delimiter)) {
     for (const name of names) {
@@ -35,7 +35,7 @@ export function npmCommand({ env = process.env } = {}) {
 }
 
 // npm's own manifest states its version — no child spawn. A node-under-node spawn
-// hits Windows Job-Object EBUSY (#123933), and the probe runs before the reuse
+// can hit EBUSY (#123933), and the probe runs before the reuse
 // short-circuit: a read-only version read must not abort an otherwise complete run.
 // npm_execpath may point through a symlink; the manifest sits beside the resolved
 // CLI, never beside the link. Layouts without a readable manifest return undefined
@@ -65,7 +65,7 @@ function completedInstallMatches({ source, receipt, hiddenLock, key, nativeKey }
     .every(path => existsSync(join(source, path, 'package.json')))
 }
 
-// An interrupted Windows update can leave a nested .bin that npm ci's own rmdir
+// An interrupted update can leave a nested .bin that npm ci's own rmdir
 // cannot clear (ENOTEMPTY, #75584); only deleting node_modules recovers it. npm's
 // debug log names the code while stdio stays on the terminal, so give each run
 // its own logs dir and retry once only on that code. Other failures keep the tree.
@@ -129,7 +129,7 @@ export function prepareNodeDependencies({ source, workspaces, env = process.env,
   const hiddenLock = join(source, 'node_modules/.package-lock.json')
   const inputs = createHash('sha256').update(JSON.stringify({
     node: process.versions.node, npm: npmVersion, platform: process.platform, arch: process.arch, args,
-    // npm names are case-insensitive; Windows Python uppercases inherited keys.
+    // npm names are case-insensitive.
     config: Object.entries(env).filter(([key]) => /^npm_config_/i.test(key) && !/^npm_config_(cache|offline|prefer_offline)$/i.test(key))
       .map(([key, value]) => [key.toLowerCase(), value]).sort(),
   }))

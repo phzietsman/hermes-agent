@@ -1,6 +1,5 @@
 """Pyright uses the project environment before the Hermes runtime fallback."""
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -64,7 +63,7 @@ def test_pyright_uses_the_project_interpreter_before_hermes(tmp_path, monkeypatc
             [sys.executable, "-m", "venv", "--without-pip", str(environment)],
             check=True, capture_output=True, text=True, timeout=30,
         )
-        python = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        python = environment / "bin" / "python"
         if environment.name == "explicit-environment":
             monkeypatch.setenv("VIRTUAL_ENV", str(environment))
         spec = server.build_spawn(str(project), context)

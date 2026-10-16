@@ -195,17 +195,6 @@ _RECENT_WORKER_EXIT_TTL_SECONDS = 600
 _RECENT_WORKER_EXITS_MAX = 4096
 _recent_worker_exits: "dict[int, tuple[int, float]]" = {}
 
-# Windows has no ``waitpid(-1)``: a child's exit code is only recoverable
-# through a live handle, so ``_default_spawn`` parks each worker's ``Popen``
-# here (Windows only) and ``reap_worker_zombies`` polls it. Entry: ``pid -> Popen``.
-_live_worker_procs: "dict[int, subprocess.Popen]" = {}
-
-
-def _wait_status_from_returncode(returncode: int) -> int:
-    """Encode a ``Popen.returncode`` in the wait-status layout the registry stores."""
-    return (int(returncode) & 0xFF) << 8
-
-
 def _record_worker_exit(pid: int, raw_status: int) -> None:
     """Record a reaped child's exit status; duplicate pids overwrite (latest wins)."""
     if not pid or pid <= 0:
@@ -233,10 +222,8 @@ def _classify_worker_exit(pid: int) -> "tuple[str, Optional[int]]":
     if entry is None:
         return ("unknown", None)
     raw, _ = entry
-    # Bit-level POSIX wait-status decode instead of os.WIFEXITED/WEXITSTATUS/
-    # WIFSIGNALED/WTERMSIG: those helpers do not exist on Windows, where the
-    # registry is fed by reap_worker_zombies' Popen poll. Low 7 bits = signal
-    # (0 = normal exit, 0x7F = stopped), bits 8-15 = exit code.
+    # Bit-level POSIX wait-status decode: low 7 bits = signal (0 = normal exit,
+    # 0x7F = stopped), bits 8-15 = exit code.
     raw = int(raw)
     signal_number = raw & 0x7F
     if signal_number == 0:
@@ -279,20 +266,8 @@ def _worker_log_exit_code(task_id: str, board: Optional[str] = None) -> Optional
 
 
 def reap_worker_zombies() -> "list[int]":
-    """Reap exited workers without blocking; returns reaped PIDs. POSIX reaps
-    every child via ``waitpid(-1)``; Windows polls the ``Popen`` handles
-    parked by ``_default_spawn`` (the only way to learn a child's exit code
-    there), so the rate-limit sentinel exit is classified on both hosts."""
+    """Reap exited workers without blocking via ``waitpid(-1)``; returns reaped PIDs."""
     reaped: "list[int]" = []
-    if _kb._IS_WINDOWS:
-        for pid, proc in list(_live_worker_procs.items()):
-            returncode = proc.poll()
-            if returncode is None:
-                continue
-            _record_worker_exit(pid, _wait_status_from_returncode(returncode))
-            _live_worker_procs.pop(pid, None)
-            reaped.append(pid)
-        return reaped
     try:
         while True:
             try:
@@ -311,10 +286,7 @@ def reap_worker_zombies() -> "list[int]":
 def _pid_alive(pid: Optional[int]) -> bool:
     """Return True if ``pid`` is still running on this host.
 
-    Uses ``gateway.status._pid_exists`` (OpenProcess on Windows, ``os.kill(pid, 0)``
-    on POSIX). **DO NOT** call ``os.kill(pid, 0)`` directly on Windows — there
-    ``sig=0`` is ``CTRL_C_EVENT`` broadcast to the console group, potentially
-    killing unrelated processes.
+    Uses ``gateway.status._pid_exists``.
 
     Zombies (exited, not yet reaped) still pass the existence check, so a
     worker would look "alive" forever between exit and reap. Linux: peek at
@@ -414,11 +386,9 @@ def _pid_recycled(pid: Optional[int], started_at) -> bool:
         return True
 
 
-def _kill_fn(signal_fn) -> Optional[Callable[[int, int], None]]:
-    """``signal_fn`` test hook, else ``os.kill`` when the platform has one."""
-    if signal_fn is not None:
-        return signal_fn
-    return os.kill if hasattr(os, "kill") else None
+def _kill_fn(signal_fn) -> Callable[[int, int], None]:
+    """``signal_fn`` test hook, else ``os.kill``."""
+    return signal_fn if signal_fn is not None else os.kill
 
 
 def _poll_worker_exit(pid: int, started_at: Optional[int] = None) -> bool:
@@ -433,8 +403,7 @@ def _poll_worker_exit(pid: int, started_at: Optional[int] = None) -> bool:
 def _sigkill(kill, pid: int) -> bool:
     """Best-effort SIGKILL; True when the signal was delivered."""
     try:
-        # signal.SIGKILL doesn't exist on Windows; SIGTERM maps to TerminateProcess.
-        kill(int(pid), getattr(signal, "SIGKILL", signal.SIGTERM))
+        kill(int(pid), signal.SIGKILL)
         return True
     except (ProcessLookupError, OSError):
         return False
@@ -467,8 +436,6 @@ def _terminate_reclaimed_worker(
     info["host_local"] = True
 
     kill = _kill_fn(signal_fn)
-    if kill is None:
-        return info
     if started_at == UNVERIFIED_WORKER_FINGERPRINT:
         # Never signal by bare number: a dead PID is "gone" (reclaim proceeds), a live one is held.
         info["signal_refused"] = True
@@ -692,7 +659,7 @@ def enforce_max_runtime(conn: sqlite3.Connection, *, signal_fn=None) -> list[str
         # mismatch) is never signalled: the worker is already gone.
         killed = False
         kill = _kill_fn(signal_fn)
-        if kill is not None and not (_kb._pid_alive(pid) and _pid_recycled(pid, started_at)):
+        if not (_kb._pid_alive(pid) and _pid_recycled(pid, started_at)):
             with contextlib.suppress(ProcessLookupError, OSError):
                 kill(pid, signal.SIGTERM)
             # Short polling wait — no time.sleep on the write txn.
@@ -1835,7 +1802,7 @@ def _system_memory_sample() -> dict:
 def derive_default_max_in_progress(sample: Optional[Mapping[str, Any]] = None) -> Optional[int]:
     """Memory-derived default for ``kanban.max_in_progress`` when unset:
     ``clamp(MemTotal / MEMORY_GUARD_MB_PER_WORKER, FLOOR, CEILING)``. Returns
-    ``None`` (no cap) when total memory is unknown, so macOS/Windows dev
+    ``None`` (no cap) when total memory is unknown, so macOS dev
     machines are unaffected.
     """
     if sample is None:
@@ -2528,48 +2495,26 @@ def _looks_like_path(value: str) -> bool:
         expanded.startswith("~")
         or os.path.isabs(expanded)
         or bool(os.path.dirname(expanded))
-        or "\\" in expanded
-        or bool(re.match(r"^[A-Za-z]:", expanded))
     )
-
-
-def _is_windows_batch_shim(path: str) -> bool:
-    """Return true for Windows shell/batch shims that should not be argv[0]."""
-    return path.lower().endswith((".cmd", ".bat"))
-
-
-def _path_search_names(command: str) -> list[str]:
-    """Return executable names to try for an unqualified command."""
-    if not _kb._IS_WINDOWS or os.path.splitext(command)[1]:
-        return [command]
-    raw = os.environ.get("PATHEXT") or ".COM;.EXE;.BAT;.CMD"
-    return [command + ext for ext in raw.split(";") if ext]
 
 
 def _safe_which_no_cwd(command: str) -> Optional[str]:
     """Resolve a bare command from PATH without implicit current-dir search.
 
-    On Windows ``shutil.which`` may search the current directory before PATH
-    for bare names — unsafe for a dispatcher. Only explicit PATH entries are
-    considered; empty / ``.`` entries are skipped.
+    Only explicit PATH entries are considered; empty / ``.`` entries (which
+    mean the current directory) are skipped — unsafe for a dispatcher.
     """
     for raw_dir in os.environ.get("PATH", "").split(os.pathsep):
         if not raw_dir or raw_dir == ".":
             continue
-        directory = os.path.expanduser(raw_dir)
-        for name in _path_search_names(command):
-            candidate = os.path.join(directory, name)
-            if os.path.isfile(candidate) and (_kb._IS_WINDOWS or os.access(candidate, os.X_OK)):
-                return candidate
+        candidate = os.path.join(os.path.expanduser(raw_dir), command)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
     return None
 
 
 def _hermes_path_argv(path: str) -> list[str]:
-    """argv for a resolved Hermes executable path. Windows batch shims
-    (``.cmd``/``.bat``) are unsafe as argv[0] because the argument vector
-    includes task-derived values; prefer the module form."""
-    if _kb._IS_WINDOWS and _is_windows_batch_shim(path):
-        return _module_hermes_argv()
+    """argv for a resolved Hermes executable path."""
     return [_absolute_hermes_path(path)]
 
 
@@ -2578,8 +2523,7 @@ def _resolve_hermes_argv() -> list[str]:
     (path-like -> absolute; bare names keep PATH semantics, never a
     same-directory file), then the running interpreter's ``sys.executable -m
     hermes_cli.main`` (exactly this install; also covers shim-less cron,
-    systemd ``User=``, launchd), then ``which("hermes")`` (Windows: safe PATH
-    search, batch shims fall back to the module form) only when ``hermes_cli``
+    systemd ``User=``, launchd), then ``which("hermes")`` only when ``hermes_cli``
     is not importable. The module argv must win over PATH: a PATH-first lookup
     lets an attacker-planted ``hermes`` shadow the running install (#111569).
     Mirrors ``gateway.run._resolve_hermes_bin``; local because ``hermes_cli``
@@ -2603,7 +2547,7 @@ def _resolve_hermes_argv() -> list[str]:
     except Exception:
         pass
 
-    hermes_bin = _safe_which_no_cwd("hermes") if _kb._IS_WINDOWS else shutil.which("hermes")
+    hermes_bin = shutil.which("hermes")
     if hermes_bin:
         return _hermes_path_argv(hermes_bin)
     return _module_hermes_argv()
@@ -2957,7 +2901,6 @@ def _default_spawn(task: Task, workspace: str, *, board: Optional[str] = None) -
             stderr=subprocess.STDOUT,
             env=env,
             start_new_session=True,
-            creationflags=subprocess.CREATE_NO_WINDOW if _kb._IS_WINDOWS else 0,
         )
     except FileNotFoundError:
         log_f.close()
@@ -2967,8 +2910,6 @@ def _default_spawn(task: Task, workspace: str, *, board: Optional[str] = None) -
         )
     # Intentionally NOT closing log_f: the child keeps writing after return;
     # the OS-level FD stays open in the child until it exits.
-    if _kb._IS_WINDOWS:
-        _live_worker_procs[proc.pid] = proc
     return proc.pid
 
 

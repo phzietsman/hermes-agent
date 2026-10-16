@@ -12,12 +12,12 @@ const roots = []
 test('desktop development composition reuses prepared icon pixels instead of provisioning them again', async () => {
   const { buildSourceDesktop } = await import('../apps/desktop/scripts/build.mjs')
   const input = fixture()
-  put(join(input.icons, 'apps/desktop/assets/icon.ico'), 'prepared packaging icon')
+  put(join(input.icons, 'apps/desktop/assets/icon.png'), 'prepared packaging icon')
   const commands = []
   buildSourceDesktop({ source: input.source, icons: input.icons,
     run: (command, args) => commands.push([command, ...args]),
   })
-  expect(readFileSync(join(input.source, 'apps/desktop/assets/icon.ico'), 'utf8')).toBe('prepared packaging icon')
+  expect(readFileSync(join(input.source, 'apps/desktop/assets/icon.png'), 'utf8')).toBe('prepared packaging icon')
   // path.join builds platform-native separators, so accept both `/` and `\`.
   const compile = commands.find(command => command.some(arg => /[/\\]scripts[/\\]build[/\\]desktop\.mjs$/.test(arg)))
   expect(compile[compile.indexOf('--icons') + 1]).toBe(input.icons)
@@ -44,7 +44,7 @@ function fixture() {
   for (const helper of ['scripts/msix-shared.mjs', 'scripts/release-content-types.json']) {
     cpSync(join(repo, helper), join(source, helper))
   }
-  symlinkSync(join(repo, 'node_modules'), join(app, 'node_modules'), 'junction')
+  symlinkSync(join(repo, 'node_modules'), join(app, 'node_modules'), 'dir')
   const icons = join(root, 'icons')
   put(join(icons, 'apps/desktop/public/apple-touch-icon.png'), 'fresh icon')
   put(join(app, 'public/apple-touch-icon.png'), 'stale icon')
@@ -97,12 +97,12 @@ test('desktop compiler consumes explicit immutable inputs, replaces variants, an
   expect(files(join(input.out, 'node_modules/node-pty')).some(([name]) => name.endsWith('.node'))).toBe(true)
   const run = () => JSON.parse(execFileSync(process.execPath, [join(input.out, 'electron-main.mjs')], { cwd: tmpdir(), encoding: 'utf8' }))
   expect(run().identity.light).toBe(true)
-  put(input.stamp, JSON.stringify({ schemaVersion: 1, payload: 'bundled', updateMechanism: 'microsoft-store', commit: 'b'.repeat(40), tag: null }))
+  put(input.stamp, JSON.stringify({ schemaVersion: 1, payload: 'bundled', updateMechanism: 'external', commit: 'b'.repeat(40), tag: null }))
   // Ambient variant/tag must not override explicit stamp inputs or cached CJS identity.
   execFileSync(process.execPath, [join(repo, 'scripts/build/desktop.mjs'), ...Object.entries(input).flatMap(([key, value]) => [`--${key === 'nativeDeps' ? 'native-deps' : key}`, value])], {
     cwd: tmpdir(), env: { ...process.env, PATH: '', HERMES_DESKTOP_VARIANT: 'light', HERMES_PAYLOAD_TAG: 'v1.0.0+canary.20260911T000000Z' }, stdio: 'pipe',
   })
-  expect(run().identity.store).toBe(true)
+  expect(run().identity.appId).toBe('com.nousresearch.hermes-bundled')
   expect(run().identity.light).toBe(false)
   expect(run().stamp.commit).toBe('b'.repeat(40))
   const built = files(input.out)
@@ -120,7 +120,7 @@ test('desktop output cannot overlap a source directory symlinked outside the che
   const externalSource = join(root, 'external-source')
   mkdirSync(join(source, 'apps/desktop'), { recursive: true })
   put(join(externalSource, 'index.js'), 'source must not change')
-  symlinkSync(externalSource, join(source, 'apps/desktop/src'), 'junction')
+  symlinkSync(externalSource, join(source, 'apps/desktop/src'), 'dir')
   const out = join(externalSource, 'product')
   const before = files(root)
 
@@ -179,7 +179,7 @@ test('the mid-compile guard ignores the build clock but still fails on a real pr
   expect(() => recordProduct({ source: input.source, product: 'desktop', out: input.out, inputs })).not.toThrow()
   // A real provenance change, by contrast, is a genuine mid-compile change: the
   // compiler captured inputs BEFORE the stamp moved, so the guard must fire.
-  for (const field of [{ commit: 'd'.repeat(40) }, { payload: 'store' }, { tag: 'v9.9.9' }]) {
+  for (const field of [{ commit: 'd'.repeat(40) }, { payload: 'bundled' }, { tag: 'v9.9.9' }]) {
     put(input.stamp, JSON.stringify({ ...JSON.parse(stamp), ...field }))
     expect(() => recordProduct({ source: input.source, product: 'desktop', out: input.out, inputs }))
       .toThrow(/inputs changed/)

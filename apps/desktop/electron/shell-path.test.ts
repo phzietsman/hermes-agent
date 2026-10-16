@@ -113,15 +113,6 @@ test('applyLoginShellPath reports unchanged when the login PATH adds nothing new
   assert.equal(env.PATH, '/opt/homebrew/bin:/usr/bin')
 })
 
-test('applyLoginShellPath is a no-op on Windows', async () => {
-  const env: any = { Path: 'C:\\Windows\\System32' }
-  const result = await applyLoginShellPath({ env, platform: 'win32' })
-
-  assert.equal(result.applied, false)
-  assert.equal(result.reason, 'win32')
-  assert.equal(env.Path, 'C:\\Windows\\System32')
-})
-
 test('ensureLoginShellPath is single-flight — concurrent callers share one shell probe', async () => {
   const env: any = { SHELL: '/bin/zsh', PATH: '/usr/bin' }
   const calls: any[] = []

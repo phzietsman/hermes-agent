@@ -27,10 +27,9 @@ test('isWindowsBinaryPathInWsl blocks Windows binary types on WSL', () => {
 })
 
 test('detectRemoteDisplay keeps GPU on for local sessions', () => {
-  // Plain local X11, Wayland, native Windows, native macOS — no remote signal.
+  // Plain local X11, Wayland, native macOS — no remote signal.
   assert.equal(detectRemoteDisplay({ env: { DISPLAY: ':0' }, platform: 'linux' }), null)
   assert.equal(detectRemoteDisplay({ env: { WAYLAND_DISPLAY: 'wayland-0' }, platform: 'linux' }), null)
-  assert.equal(detectRemoteDisplay({ env: { SESSIONNAME: 'Console' }, platform: 'win32' }), null)
   assert.equal(detectRemoteDisplay({ env: {}, platform: 'darwin' }), null)
 })
 
@@ -50,17 +49,13 @@ test('detectRemoteDisplay flags SSH sessions on any platform', () => {
     'ssh-session'
   )
   assert.equal(detectRemoteDisplay({ env: { SSH_CLIENT: '1.2.3.4 5 22' }, platform: 'darwin' }), 'ssh-session')
-  assert.equal(detectRemoteDisplay({ env: { SSH_TTY: '/dev/pts/0' }, platform: 'win32' }), 'ssh-session')
+  assert.equal(detectRemoteDisplay({ env: { SSH_TTY: '/dev/pts/0' }, platform: 'linux' }), 'ssh-session')
 })
 
 test('detectRemoteDisplay flags forwarded X11 displays but not local ones', () => {
   assert.match(String(detectRemoteDisplay({ env: { DISPLAY: 'localhost:10.0' }, platform: 'linux' })), /x11-forwarding/)
   assert.match(String(detectRemoteDisplay({ env: { DISPLAY: '192.168.1.5:0' }, platform: 'linux' })), /x11-forwarding/)
   assert.equal(detectRemoteDisplay({ env: { DISPLAY: ':1' }, platform: 'linux' }), null)
-})
-
-test('detectRemoteDisplay flags RDP sessions', () => {
-  assert.match(String(detectRemoteDisplay({ env: { SESSIONNAME: 'RDP-Tcp#7' }, platform: 'win32' })), /^rdp/)
 })
 
 test('detectRemoteDisplay honors the HERMES_DESKTOP_DISABLE_GPU override both ways', () => {
@@ -102,7 +97,7 @@ test('resolveLinuxPasswordStore ignores the env var off linux', () => {
     { store: null, warning: null }
   )
   assert.deepEqual(
-    resolveLinuxPasswordStore({ env: { HERMES_DESKTOP_PASSWORD_STORE: 'kwallet6' }, platform: 'win32' }),
+    resolveLinuxPasswordStore({ env: { HERMES_DESKTOP_PASSWORD_STORE: 'kwallet6' }, platform: 'darwin' }),
     { store: null, warning: null }
   )
 })

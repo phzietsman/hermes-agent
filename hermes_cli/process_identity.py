@@ -1,10 +1,8 @@
-"""Process identity: spawn tags, the machine-wide spawn ledger, and the Windows job-object self-attach.
+"""Process identity: spawn tags and the machine-wide spawn ledger.
 
-Three layers make every long-lived Hermes process positively identifiable, so reapers (``hermes
+Two layers make every long-lived Hermes process positively identifiable, so reapers (``hermes
 update``, Desktop startup sweeps) never guess lineage from PPID archaeology or cmdline matching:
-1. spawn tags (``HERMES_SPAWN`` env stamped by the spawner); 2. a ``(pid, create_time)`` ledger;
-3. Windows job-object self-attach with ``KILL_ON_JOB_CLOSE`` so the whole child tree dies with the
-root — no launcher→worker chains left holding ``.pyd`` locks.
+1. spawn tags (``HERMES_SPAWN`` env stamped by the spawner); 2. a ``(pid, create_time)`` ledger.
 """
 
 from __future__ import annotations
@@ -13,7 +11,6 @@ import hashlib
 import json
 import logging
 import os
-import platform
 import sys
 import threading
 import time
@@ -37,11 +34,6 @@ REAPABLE_PURPOSES = frozenset({"serve", "dashboard", "gateway", "mcp-helper"})
 #: serve/dashboard/gateway subset. The mcp-helper rung stays owned by reap_orphaned_mcp_helpers.
 _BACKEND_OWNER_PURPOSES = REAPABLE_PURPOSES - {"mcp-helper"}
 
-_IS_WINDOWS = platform.system() == "Windows"
-
-# Module-global job handle: must live exactly as long as this process so the
-# kernel closes it (and kills the job) when we die. Never close it manually.
-_JOB_HANDLE = None
 _LEDGER_LOCK = threading.Lock()
 
 
@@ -198,9 +190,9 @@ def _pid_alive_matches(pid: int, create_time: Optional[float], *, strict: bool =
                     and proc.is_running() and proc.status() != psutil.STATUS_ZOMBIE)
         # A zombie keeps its create_time until its parent reaps it, but it is already dead: the
         # dashboard stop check (``gateway.status._pid_exists``) books it stopped, so the ledger must
-        # not report it as a live pre-update survivor. Windows has no zombies (and status() is slow there).
+        # not report it as a live pre-update survivor.
         return _same_incarnation(proc, create_time) and (
-            os.name == "nt" or proc.status() != getattr(psutil, "STATUS_ZOMBIE", "zombie"))
+            proc.status() != getattr(psutil, "STATUS_ZOMBIE", "zombie"))
     except psutil.NoSuchProcess:
         return False
     except Exception:
@@ -403,8 +395,7 @@ def _reparented_orphan(pid: int) -> bool:
 
     Mirrors ``_reap_orphaned_desktop_local_serves``: operator-managed remote backends legitimately
     sit at ppid 1 (systemd, an exited sshd), so ppid alone is never proof — the SSH-lock claim
-    and the 180 s lock-write grace exclude live-supervised backends. Windows: the ppid probe is
-    unavailable there, so this rung never fires (desktop tree-kill reaps instead).
+    and the 180 s lock-write grace exclude live-supervised backends.
     """
     try:
         from hermes_cli.dashboard_procs import (
@@ -497,114 +488,15 @@ def reap_orphaned_mcp_helpers(*, project_root: Optional[Path] = None, kill_fn=No
                 proc = psutil.Process(pid)
                 if not _same_incarnation(proc, entry.get("create_time")):
                     continue  # PID reused since registration
-                # Windows: descendants (npx.cmd → node.exe) have no pgid to group-kill and
-                # reparent with ParentId=null when the direct child exits first (#61059), so
-                # reap the whole tree. On POSIX the killpg-based sweep already reaches them.
-                if _IS_WINDOWS:
-                    _kill_process_tree_windows(proc)
-                else:
-                    proc.terminate()
-                    try:
-                        proc.wait(timeout=2.0)
-                    except psutil.TimeoutExpired:
-                        proc.kill()
+                # Descendants are reached by the killpg-based sweep.
+                proc.terminate()
+                try:
+                    proc.wait(timeout=2.0)
+                except psutil.TimeoutExpired:
+                    proc.kill()
             reaped.append(pid)
         except Exception:
             logger.debug("mcp-helper orphan reap failed for %s", entry, exc_info=True)
     if reaped:
         logger.info("reaped %d orphaned stdio MCP helper(s): %s", len(reaped), reaped)
     return reaped
-
-
-# Layer 3 — Windows job-object self-attach
-
-
-def _kill_process_tree_windows(proc) -> None:
-    """Terminate *proc* and every still-alive descendant (npx.cmd → node.exe), Windows-only
-    (#61059): without a pgid there is no group-kill, and grandchildren reparent to nothing
-    (ParentId=null) once the direct child exits, so they must be reached through the tree."""
-    import psutil
-
-    try:
-        descendants = proc.children(recursive=True)
-    except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
-        descendants = []
-    for child in descendants:
-        try:
-            child.terminate()
-        except Exception:  # noqa: BLE001 - raced away or refused; keep going
-            pass
-    try:
-        proc.terminate()
-    except Exception:  # noqa: BLE001
-        pass
-    try:
-        _, alive = psutil.wait_procs(descendants + [proc], timeout=2.0)
-    except Exception:  # noqa: BLE001 - broken fake/raced process; nothing more to force-kill
-        return
-    for survivor in alive:
-        try:
-            survivor.kill()
-        except Exception:  # noqa: BLE001
-            pass
-
-
-def attach_self_to_kill_on_close_job() -> bool:
-    """Place this process in a job that dies (whole tree) when we die. Windows-only, idempotent.
-
-    ``BREAKAWAY_OK`` keeps children spawned with ``CREATE_BREAKAWAY_FROM_JOB`` (gateway relaunch
-    during update, detached watchers) escaping exactly as before.
-    """
-    global _JOB_HANDLE
-    if not _IS_WINDOWS or _JOB_HANDLE is not None:
-        return _JOB_HANDLE is not None
-    try:
-        import ctypes
-        from ctypes import wintypes
-
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-
-        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
-        JOB_OBJECT_LIMIT_BREAKAWAY_OK = 0x0800
-        JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK = 0x1000
-        JobObjectExtendedLimitInformation = 9
-
-        class IO_COUNTERS(ctypes.Structure):
-            _fields_ = [(n, ctypes.c_ulonglong) for n in (
-                "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
-                "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
-
-        class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
-            _fields_ = [
-                ("PerProcessUserTimeLimit", wintypes.LARGE_INTEGER), ("PerJobUserTimeLimit", wintypes.LARGE_INTEGER),
-                ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
-                ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
-                ("Affinity", ctypes.POINTER(wintypes.ULONG)), ("PriorityClass", wintypes.DWORD),
-                ("SchedulingClass", wintypes.DWORD),
-            ]
-
-        class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
-            _fields_ = [
-                ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
-                ("IoInfo", IO_COUNTERS),
-                *((n, ctypes.c_size_t) for n in (
-                    "ProcessMemoryLimit", "JobMemoryLimit", "PeakProcessMemoryUsed", "PeakJobMemoryUsed")),
-            ]
-
-        job = kernel32.CreateJobObjectW(None, None)
-        if not job:
-            return False
-        info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
-        info.BasicLimitInformation.LimitFlags = (
-            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK
-        )
-        ok = kernel32.SetInformationJobObject(job, JobObjectExtendedLimitInformation, ctypes.byref(info), ctypes.sizeof(info))
-        if not ok or not kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess()):
-            kernel32.CloseHandle(job)
-            return False
-        _JOB_HANDLE = job  # keep alive for the life of the process — never close
-        logger.debug("attached to kill-on-close job object")
-        return True
-    except Exception:
-        logger.debug("job object self-attach failed", exc_info=True)
-        return False

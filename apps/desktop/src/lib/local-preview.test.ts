@@ -133,29 +133,9 @@ describe('remote HTML previews', () => {
     expect(openPreviewInBrowser).toHaveBeenCalledWith('file:///tmp/report%20%231%3F.html')
   })
 
-  it('serializes UNC staging paths as file URLs', async () => {
-    const dataUrl = `data:text/html;base64,${btoa('<h1>remote</h1>')}`
-    const saveImageBuffer = vi.fn(async () => '\\\\server\\share\\report #1.html')
-    const openPreviewInBrowser = vi.fn(async () => undefined)
-    window.hermesDesktop = { openPreviewInBrowser, saveImageBuffer } as never
-
-    await openPreviewTargetInBrowser({ ...remoteTarget, dataUrl })
-
-    expect(openPreviewInBrowser).toHaveBeenCalledWith('file://server/share/report%20%231.html')
-  })
-
   it('preserves backslashes in POSIX local file paths', () => {
     expect(localPreviewTarget('/tmp/report\\draft.html')?.url).toBe('file:///tmp/report%5Cdraft.html')
   })
-
-  // #85132: a Windows absolute path is absolute; joining it onto cwd made
-  // `/repo/C:\\Users\\...` which no filesystem has.
-  it.each(['C:\\Users\\me\\report.html', 'C:/Users/me/report.html', '\\\\server\\share\\report.html'])(
-    'treats Windows absolute path %s as absolute instead of joining it onto cwd',
-    raw => {
-      expect(localPreviewTarget(raw, '/repo')).toMatchObject({ label: 'report.html', path: raw, previewKind: 'html' })
-    }
-  )
 
   it('still joins relative paths onto cwd', () => {
     expect(localPreviewTarget('out/report.html', '/repo')?.path).toBe('/repo/out/report.html')

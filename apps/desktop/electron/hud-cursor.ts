@@ -2,11 +2,11 @@
  * Cursor→page coordinate math for the HUD's Linux click-through fallback.
  *
  * The HUD decides whether to swallow the mouse by hit-testing the document
- * under the cursor, which needs a cursor position in CSS pixels. On macOS and
- * Windows that arrives for free: `setIgnoreMouseEvents(true, { forward: true })`
+ * under the cursor, which needs a cursor position in CSS pixels. On macOS
+ * that arrives for free: `setIgnoreMouseEvents(true, { forward: true })`
  * keeps mousemove flowing to the page even while the window is ignoring, so the
  * renderer can always see where the pointer is and re-arm when it returns to
- * the bar. `forward` is `@platform darwin,win32`. On Linux the moves stop the
+ * the bar. Electron's `forward` has no effect on Linux. On Linux the moves stop the
  * instant the window starts ignoring, the renderer's last known point freezes,
  * and the HUD can never decide to be solid again — the bar goes permanently
  * untouchable.

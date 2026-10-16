@@ -11,8 +11,8 @@ import { macosSysroot, xcrunClangArgv } from '../scripts/macos-sysroot.mjs'
 // hud-modifier-gesture.h is the clean-tap state machine the macOS (.m) and
 // Linux XI2 (-x11.c) helpers both include. Compile its C contract and run it
 // wherever a C toolchain ships with the runner: Linux (the JS CI lane) and
-// macOS. Windows uses the separate C# port.
-test.skipIf(process.platform === 'win32')(
+// macOS.
+test(
   'native modifier gesture state machine only summons on a clean, bounded two-modifier tap',
   () => {
     const dir = mkdtempSync(resolve(tmpdir(), 'hermes-hud-gesture-'))

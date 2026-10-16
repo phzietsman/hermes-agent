@@ -242,8 +242,7 @@ def canonical(value: object) -> bytes:
 def _identity(name: str, token: str) -> dict:
     pascal = f"HermesChannel{token}"
     return {"token": token, "displayName": f"Hermes {name}", "appId": f"ai.hermes.channel.h{token}",
-            "appNamePascal": pascal, "artifactNamePascal": pascal, "cliName": f"hermes-{name}",
-            "windowsExecutableName": pascal, "msixAppIdWithOrg": f"NousResearch.{pascal}"}
+            "appNamePascal": pascal, "artifactNamePascal": pascal, "cliName": f"hermes-{name}"}
 
 
 def stable_objects(commit: str, *, version: str = "2099.1.1", build_id: str = "c" * 32,
@@ -253,7 +252,7 @@ def stable_objects(commit: str, *, version: str = "2099.1.1", build_id: str = "c
     prefix = f"releases/channel-builds/{build_id}/"
     request = {"schema": 1, "buildId": build_id, "channel": "stable", "sequence": 1,
                "repository": repository, "commit": commit, "sourceVersion": version, "version": version,
-               "windowsVersion": version + ".0", "releaseTag": "v" + version, "identity": identity,
+               "releaseTag": "v" + version, "identity": identity,
                "bundleEnv": {}, "publicBase": f"https://{ASSETS}"}
     manifest = {"schema": 1, "receiverProtocol": 1, "request": request, "packages": [
         {"platform": "darwin", "arch": "arm64", "variant": "bundled", "identity": identity["appId"],

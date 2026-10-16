@@ -13,7 +13,7 @@ import { assertExistingPathForOpen } from './hardening'
 // the current reveal-in-folder route silently no-ops on a missing path — the
 // click does nothing at all. The guard must say "missing" before the OS is
 // asked, on all platforms — fs.statSync's ENOENT/ENOTDIR are uniform across
-// macOS/Windows/Linux.
+// macOS/Linux.
 
 test('a missing path throws a missing-file error instead of reaching the OS', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'open-missing-'))

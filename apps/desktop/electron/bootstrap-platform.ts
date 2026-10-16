@@ -46,7 +46,7 @@ const GPU_OVERRIDE_OFF = new Set(['0', 'false', 'no', 'off'])
 /**
  * Decide whether the app is being shown over a remote/forwarded display, where
  * Chromium's GPU compositor produces an unstable, flickering surface (it can't
- * present accelerated layers cleanly over the wire). Native local Windows/macOS
+ * present accelerated layers cleanly over the wire). Native local macOS
  * sessions composite locally and never hit this, so we only fall back to
  * software rendering when a remote display is detected.
  *
@@ -87,16 +87,6 @@ function detectRemoteDisplay(options: { env?: NodeJS.ProcessEnv; platform?: Node
 
     if (display.includes(':') && display.split(':')[0]) {
       return `x11-forwarding (DISPLAY=${display})`
-    }
-  }
-
-  if (platform === 'win32') {
-    // RDP sessions report SESSIONNAME like "RDP-Tcp#7"; the local console is
-    // "Console".
-    const sessionName = String(env.SESSIONNAME || '')
-
-    if (/^rdp-/i.test(sessionName)) {
-      return `rdp (SESSIONNAME=${sessionName})`
     }
   }
 

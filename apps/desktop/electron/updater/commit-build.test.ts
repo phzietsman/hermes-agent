@@ -9,20 +9,11 @@ import { resolveUpdaterMechanism, type UpdaterStrategy } from './index'
 const message: string = "This build doesn't get updates. Ask the developer who gave it to you for a new build."
 
 describe('one-commit artifacts', (): void => {
-  it.each(['win32', 'darwin', 'linux'] as const)(
-    'cannot select an active updater on %s',
-    (platform: NodeJS.Platform): void => {
-      for (const updateMechanism of [
-        'self',
-        'app-installer',
-        'electron-updater',
-        'microsoft-store',
-        'external'
-      ] as const) {
-        expect(resolveUpdaterMechanism({ platform, updateMechanism, source: 'commit-build' })).toBe('external')
-      }
+  it('cannot select an active updater', (): void => {
+    for (const updateMechanism of ['self', 'electron-updater', 'external'] as const) {
+      expect(resolveUpdaterMechanism({ updateMechanism, source: 'commit-build' })).toBe('external')
     }
-  )
+  })
 
   it('refuses both checks and apply with no manual-update escape', async (): Promise<void> => {
     const stamp: InstallStamp = { source: 'commit-build' } as InstallStamp

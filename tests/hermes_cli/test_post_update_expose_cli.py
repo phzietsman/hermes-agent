@@ -5,10 +5,6 @@ step rewrites them when they drift (moved checkout, recreated venv,
 deleted by hand) and — just as load-bearing — REFUSES to touch a
 launcher that belongs to a different install sharing the link dir.
 Real files under a temp HOME; no mocks of the things being tested.
-
-The wrapper-writing surface is POSIX-only by design (Windows exposure is
-installer-owned), so the behaviour tests skip on win32 and the win32
-gate gets its own test.
 """
 
 from __future__ import annotations
@@ -54,22 +50,9 @@ def fake_install(tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_RUNTIME_DIR", str(store))
     interpreter = Path(sys._base_executable).resolve()
     (store / "facts.json").write_text(json.dumps({"schema": 1, "packages": {"python": {
-        "entry": str(interpreter.parent if os.name == "nt" else interpreter.parents[1]),
+        "entry": str(interpreter.parents[1]),
     }}}), encoding="utf-8")
     return home, root
-
-
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize("create", [True, False])
-def test_windows_converges_on_the_installer_user_bin(create, monkeypatch, tmp_path):
-    """Windows converges on the installer's convention ($HERMES_HOME\\bin + User PATH); an update
-    no longer skips as "installer-owned" and leaves a venv\\Scripts machine behind."""
-    calls = []
-    monkeypatch.setattr(_launchers, "_expose_windows_user_bin",
-                        lambda root, *, create: calls.append(create) or {"ok": True, "written": []})
-    monkeypatch.setenv("HERMES_INSTALL_ROOT", str(tmp_path))
-    assert _launchers.expose_cli(create=create) == {"ok": True, "written": []}
-    assert calls == [create]
 
 
 def test_registered_as_a_home_step():

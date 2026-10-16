@@ -11,8 +11,8 @@ Two version styles (``Package.version_style``):
           The update is the highest version every relevant target serves.
   minor  — the lockfile ``version`` field is major.minor; each target's
           exact patch lives in ITS artifact urls. Used when the package
-          has no shared release cadence across its sources (ffmpeg's posix
-          martin-riedl builds vs win32 BtbN autobuilds drift in patch).
+          has no shared release cadence across its sources (ffmpeg's macOS
+          martin-riedl builds vs Linux BtbN autobuilds drift in patch).
           An update moves to the highest MAJOR.MINOR every relevant target
           serves; within it each target pins its own newest patch.
 
@@ -258,7 +258,7 @@ def _get_text(url: str, headers: Optional[dict] = None) -> str:
 # The llama-install.sh installer resolves its build version from
 # `.../resolve/latest` (a short tag like b10679) and downloads prebuilt
 # llama-app binaries from the HF bucket tree {ARCH}/{OS}/{backend}/{CONFIG}/
-# llama-app[.exe].zst. pm does NOT fetch those binaries (CONFIG codes are
+# llama-app.zst. pm does NOT fetch those binaries (CONFIG codes are
 # hardware-probe-derived, not precomputable, and the llama.cpp GitHub
 # releases are our artifact source) — but the bucket's version index is a
 # better "what should we be on" signal than scraping every GitHub release:
@@ -444,18 +444,16 @@ def btbn_index() -> dict[str, dict[str, tuple[str, str]]]:
         months_seen.add(month)
         for asset in release.get("assets", []):
             name = asset.get("name", "")
-            # Windows ships .zip, Linux .tar.xz. `gpl-shared`/`lgpl` differ
-            # in the segment after the arch, so requiring "-gpl-<ver>" right
-            # after it excludes both.
+            # `gpl-shared`/`lgpl` differ in the segment after the arch, so
+            # requiring "-gpl-<ver>" right after it excludes both.
             m = re.fullmatch(
                 r"ffmpeg-n(\d+\.\d+\.\d+)-.+-"
-                r"(win|linux)(64|arm64)-gpl-\d+\.\d+\.(?:zip|tar\.xz)",
+                r"linux(64|arm64)-gpl-\d+\.\d+\.tar\.xz",
                 name,
             )
             if m:
-                version, osname, arch = m.groups()
-                os_key = "win32" if osname == "win" else "linux"
-                target = f"{os_key}-{'x64' if arch == '64' else 'arm64'}"
+                version, arch = m.groups()
+                target = f"linux-{'x64' if arch == '64' else 'arm64'}"
                 out.setdefault(target, {}).setdefault(version, (tag, name))
     return out
 

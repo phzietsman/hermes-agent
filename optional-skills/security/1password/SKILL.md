@@ -4,7 +4,7 @@ description: Set up op CLI, sign in, and read or inject secrets.
 version: 1.0.0
 author: arceus77-7, enhanced by Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [security, secrets, 1password, op, cli]

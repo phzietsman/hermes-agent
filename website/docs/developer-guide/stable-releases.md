@@ -28,7 +28,7 @@ files on `main`.
    any version, blocks a new `release`.
 3. Admit the exact remote annotated tag-object SHA, peeled commit, `GITHUB_REF`,
    `GITHUB_SHA`, checked-out `HEAD`, and ancestry on `origin/main`.
-4. Run the whole source, Docker, Nix, PM bundle, install/update, Termux, Windows,
+4. Run the whole source, Docker, Nix, PM bundle, install/update, Termux,
    signed-package, and native-upgrade acceptance graph.
 5. Push immutable versioned Docker and R2 artifacts from the tested bytes. The
    Docker image is pushed as soon as its own tests pass, tagged by the attempt
@@ -109,7 +109,7 @@ python scripts/release.py release --commit "$(git rev-parse origin/main)" --skip
 
 | | `--skip-bundles` | `--skip-tests` |
 |---|---|---|
-| Source CI (`ci.yaml`), Nix, Termux, Windows live, install/update E2E, bootstrap identity | run | skipped |
+| Source CI (`ci.yaml`), Nix, Termux, install/update E2E | run | skipped |
 | Docker image | built, tested, published | built and published, `tests/docker` skipped |
 | Native PM bundle check | skipped | skipped |
 | Desktop and Termux candidates | skipped | built, signed and staged, with no native smokes or in-build test suites |
@@ -199,7 +199,7 @@ attempt ref and records its registry digest in the final tag. Delayed
 publication promotes that digest registry-side, so it does not depend on
 expiring Actions artifacts.
 
-Windows, macOS, and Termux candidate jobs stage packages and metadata under
+macOS and Termux candidate jobs stage packages and metadata under
 `releases/tag/<attempt ref>/` before acceptance. No stable feed is written at
 this stage. The stable APT pool path also carries the attempt ref:
 `releases/termux/stable/pool/<attempt ref>/<c>/<name>.deb`. The pool upload is
@@ -209,12 +209,9 @@ Immutable uploads accept an existing object only when its bytes match. If an
 archive object, final-tag digest, versioned Docker tag, or read-back differs, stop
 recovery rather than replacing the accepted candidate.
 
-The candidate manifest binds the admitted claim epoch. Admission recomputes the
-stable Windows quad from that epoch and rejects a merely well-formed but incorrect
-MSIX, executable VERSIONINFO, or App Installer version. Native admission also
-reads the Electron artifact filename and macOS plist from the built packages. The
-acceptance graph stamps an isolated bootstrap-installer tree, asks Cargo to read
-the resulting Tauri package version, builds and inspects Python wheel/sdist
+The candidate manifest binds the admitted claim epoch. Native admission reads the
+Electron artifact filename and macOS plist from the built packages. The
+acceptance graph builds and inspects Python wheel/sdist
 metadata and filenames, and checks the Nix and Docker runtime identities. Any
 consumer-facing `0.0.0` or mismatched version fails the gate.
 
@@ -246,18 +243,16 @@ published release with a Termux R2 handoff. Explicit non-publishing desktop buil
 retain no downloadable job artifacts.
 
 The desktop workflow takes a `jobs` input with the groups `darwin-arm64`,
-`darwin-x64`, `win32-arm64`, `win32-x64`, `win32-bundle`, `linux-x64`,
+`darwin-x64`, `linux-x64`,
 `linux-arm64`, and `termux`. Stable calls it once per group, except the linux
-groups, which wait for a real Linux build. Each Mac arch and the Windows bundle
-stage a receipt, and each install arm starts from its own receipt as soon as
+groups, which wait for a real Linux build. Each Mac arch
+stages a receipt, and each install arm starts from its own receipt as soon as
 its own bytes are staged. `acceptance` is the one join that blocks publication.
 
 Every gate and every candidate starts straight after `admit`. CI is a gate that
 `acceptance` requires, not a lock the signed builds wait behind, so a slow gate
 cannot delay a bundle; the price is that a broken `main` still pays for signed
 candidates that `acceptance` then refuses.
-The `smoke-win32-universal` job is gone; the per-arch MSIX smokes cover each
-arch, and the Windows install arms install the `.msixbundle` on both arches.
 
 ## Tag namespaces and receipts
 
@@ -415,7 +410,7 @@ local helper suite. Never store the bootstrap output as a repo channel list.
 The last successful stable release that shipped bundles records
 `releases/stable/release-candidates.json` on the configured R2 public origin.
 A release that skipped bundles does not replace it.
-It identifies actual Windows universal MSIX bundles, macOS ZIPs and package
+It identifies actual macOS ZIPs and package
 provenance. The next run combines those records with its candidate manifest
 and uses the existing native bundled-update drivers.
 
@@ -425,10 +420,7 @@ current schema-2 manifest of its actual published packages and successful native
 smoke results. Schema-1 candidates are rejected; there is no legacy admission
 path. Manifest redirects must stay on the same origin. The baseline tag must be
 a published stable release, package identities must agree, and versions must
-increase. Stable Windows
-packages use electron-builder's `storePackageVersionAt` policy over the admitted
-claim tag object's immutable tagger timestamp (`year.hourOfYear.secondOfHour.0`),
-independently of the SemVer payload tag.
+increase.
 Missing baseline
 artifacts are a blocker, not permission to fabricate or skip acceptance.
 See [the bundled update contract](https://github.com/NousResearch/hermes-agent/blob/main/tests/install/BUNDLED_UPDATES.md).
@@ -455,20 +447,10 @@ See [the bundled update contract](https://github.com/NousResearch/hermes-agent/b
 Actions owns job ordering, runner selection, permissions and environments.
 Python owns shared release admission, manifests, artifact hashes, publication
 and channel promotion under `scripts/releases/` and `scripts/bundles/`.
-Electron-builder configuration/hooks and native Windows/macOS adapters remain
-in JavaScript or PowerShell. These adapters consume release facts rather than
+Electron-builder configuration/hooks and native macOS adapters remain
+in JavaScript. These adapters consume release facts rather than
 reimplementing the release gate. Gate jobs use only Python's standard library;
 they do not install the application or the JS workspace to report a verdict.
-
-`scripts.bundles.release_artifacts` owns App Installer XML and feed publication.
-Its serializer takes explicit package identity, publisher, version, subscription
-URI and artifact URI. Stable promotion uses the accepted candidate metadata;
-canary publication verifies the native bundle manifest against the adapter's
-expected identity before uploading the bundle, then the descriptor. Native SDK
-bundling/signing stays in `stage-msixbundle.mjs`. Store and commit builds stop
-before that feed handoff; `stable-store` submits the verified candidate without
-rebuilding it. Native acceptance uses the same Python serializer, including its
-12-hour on-launch check policy.
 
 Signing and publication credentials stay in their protected job environments.
 The source CI call does not inherit deployment secrets. Configure the existing

@@ -51,7 +51,7 @@ def _excluded_member(ti: tarfile.TarInfo) -> bool:
     dir_parts = parts if ti.isdir() else parts[:-1]
     return any(p in _EXCLUDE_TOP_LEVEL for p in parts) or any(p in TRANSIENT_DIRS for p in dir_parts)
 
-# Snapshot id: UTC ISO with colons replaced by dashes (Windows-safe filename); optional ``-NN`` suffix for same-second snapshots.
+# Snapshot id: UTC ISO with colons replaced by dashes (filename-safe); optional ``-NN`` suffix for same-second snapshots.
 _ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z(-\d{2})?$")
 
 CRON_JOBS_FILENAME = "cron-jobs.json"

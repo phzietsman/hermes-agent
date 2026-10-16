@@ -6,7 +6,6 @@ import { enableRendererAccessibility, shouldEnableRendererAccessibility } from '
 
 test('shouldEnableRendererAccessibility is on by default on the typed platforms', () => {
   assert.equal(shouldEnableRendererAccessibility({}, 'darwin'), true)
-  assert.equal(shouldEnableRendererAccessibility({}, 'win32'), true)
 })
 
 test('shouldEnableRendererAccessibility never enables on platforms without the typed API', () => {
@@ -18,12 +17,12 @@ test('shouldEnableRendererAccessibility never enables on platforms without the t
 test('shouldEnableRendererAccessibility honors the opt-out env bridge', () => {
   for (const off of ['0', 'false', 'no', 'off', 'OFF', ' 0 ', 'disabled', ' Disabled ']) {
     assert.equal(shouldEnableRendererAccessibility({ HERMES_DESKTOP_RENDERER_ACCESSIBILITY: off }, 'darwin'), false)
-    assert.equal(shouldEnableRendererAccessibility({ HERMES_DESKTOP_RENDERER_ACCESSIBILITY: off }, 'win32'), false)
+    assert.equal(shouldEnableRendererAccessibility({ HERMES_DESKTOP_RENDERER_ACCESSIBILITY: off }, 'darwin'), false)
   }
 
   // Absent, empty, or a positive value keeps the feature on.
   assert.equal(shouldEnableRendererAccessibility({ HERMES_DESKTOP_RENDERER_ACCESSIBILITY: undefined }, 'darwin'), true)
-  assert.equal(shouldEnableRendererAccessibility({ HERMES_DESKTOP_RENDERER_ACCESSIBILITY: '' }, 'win32'), true)
+  assert.equal(shouldEnableRendererAccessibility({ HERMES_DESKTOP_RENDERER_ACCESSIBILITY: '' }, 'darwin'), true)
   assert.equal(shouldEnableRendererAccessibility({ HERMES_DESKTOP_RENDERER_ACCESSIBILITY: '1' }, 'darwin'), true)
 })
 
@@ -32,7 +31,7 @@ test('enableRendererAccessibility flips the injected Electron switch exactly whe
   const appApi = { setAccessibilitySupportEnabled: (enabled: boolean) => recorded.push(enabled) }
 
   enableRendererAccessibility({ appApi, env: {}, platform: 'darwin' })
-  enableRendererAccessibility({ appApi, env: {}, platform: 'win32' })
+  enableRendererAccessibility({ appApi, env: {}, platform: 'darwin' })
   enableRendererAccessibility({ appApi, env: { HERMES_DESKTOP_RENDERER_ACCESSIBILITY: '0' }, platform: 'darwin' })
   enableRendererAccessibility({ appApi, env: {}, platform: 'linux' })
 

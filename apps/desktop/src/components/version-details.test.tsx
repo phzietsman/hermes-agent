@@ -44,26 +44,14 @@ describe('VersionDetails', () => {
     },
     { version: { hermesRuntime: { type: 'external' } }, visible: ['Runtime', 'External (uses the machine runtime)'] },
     {
-      version: { distribution: 'desktop-app', updateMechanism: 'microsoft-store' },
-      visible: ['Distribution', 'Microsoft Store'],
-      absent: ['Desktop app (MSIX)']
-    },
-    {
-      version: { distribution: 'desktop-app', updateMechanism: 'app-installer', payload: 'bundled' },
-      visible: ['Desktop app (MSIX)'],
-      absent: ['Microsoft Store']
-    },
-    {
       version: { distribution: 'desktop-app', updateMechanism: 'electron-updater', payload: 'bundled' },
-      visible: ['Desktop app'],
-      absent: ['Desktop app (MSIX)']
+      visible: ['Desktop app']
     },
     // Old-style installer shell (bootstrap artifact over a managed checkout —
-    // e.g. iris's v0.17.6 .app): named as the installer, never as MSIX.
+    // e.g. iris's v0.17.6 .app): named as the installer.
     {
       version: { distribution: 'desktop-app', updateMechanism: 'self', payload: 'bootstrap' },
       visible: ['Desktop app (installer)'],
-      absent: ['Desktop app (MSIX)', 'Microsoft Store']
     },
     // `hermes desktop` packs the same bootstrap payload from a source checkout;
     // a locally built stamp names the source install, never the installer.
@@ -83,7 +71,7 @@ describe('VersionDetails', () => {
       visible: ['Source + hermes desktop'],
       absent: ['Desktop app (installer)']
     },
-    // install.sh / install.ps1 checkout (receipt present) vs a manual git
+    // install.sh checkout (receipt present) vs a manual git
     // clone (live provenance, no receipt): both honestly say Source.
     { version: { installedByScript: true }, visible: ['Source (install script)'] },
     { version: { source: 'git' }, visible: ['Distribution', 'Source'], absent: ['Source (install script)'] },

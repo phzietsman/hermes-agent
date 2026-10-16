@@ -31,8 +31,7 @@ export interface BackendOwnershipDeps {
   /**
    * Overall time budget for one reap sweep. The ownership file legitimately
    * accumulates one record per profile per launch, and each record can cost
-   * up to two identity probes (parent + backend) plus a stop — on Windows
-   * those shell out to PowerShell, whose 5.1 cold starts are slow (#87169).
+   * up to two identity probes (parent + backend) plus a stop, which can be slow on a cold machine.
    * Without a bound, a large roster could stall boot for minutes while the
    * renderer's 45s backend-boot budget expires and the user stares at the
    * connecting screen. When the budget is exhausted the sweep preserves the
@@ -312,7 +311,7 @@ export function createBackendOwnership(deps: BackendOwnershipDeps) {
 }
 
 export function backendCommandMatches(command: unknown): boolean {
-  return /(?:^|[\s/\\"])(?:hermes(?:\.exe)?|hermes_cli\.main|hermes_cli[/\\]main\.py)"?(?:\s+(?:--profile|-p)\s+\S+)?\s+(?:serve|dashboard)(?:\s|$)/i.test(
+  return /(?:^|[\s/\\"])(?:hermes|hermes_cli\.main|hermes_cli[/\\]main\.py)"?(?:\s+(?:--profile|-p)\s+\S+)?\s+(?:serve|dashboard)(?:\s|$)/i.test(
     String(command ?? '')
   )
 }

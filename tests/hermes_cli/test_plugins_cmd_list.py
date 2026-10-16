@@ -133,17 +133,15 @@ def test_declared_capabilities_for_entrypoint_uses_distribution_metadata(
 
 
 def test_entrypoint_spec_does_not_abort_plugin_status(monkeypatch):
-    """An entry-point row stores ``module:attr`` in the path slot. Windows rejects that name
-    (WinError 123); status must not open it as a plugin directory and abort the whole list."""
+    """An entry-point row stores ``module:attr`` in the path slot; status must not open it as a
+    plugin directory and abort the whole list when stat() refuses the name."""
     from pathlib import Path
 
     real_stat = Path.stat
 
     def stat(self, *args, **kwargs):
         if str(self).startswith("mnemosyne_hermes:register"):
-            err = OSError(22, "The filename, directory name, or volume label syntax is incorrect")
-            err.winerror = 123
-            raise err
+            raise OSError(22, "Invalid argument")
         return real_stat(self, *args, **kwargs)
 
     monkeypatch.setattr(Path, "stat", stat)
@@ -154,10 +152,9 @@ def test_entrypoint_spec_does_not_abort_plugin_status(monkeypatch):
     ) == "not enabled"
 
 
-@pytest.mark.platforms("posix")  # chmod is a no-op on Windows
-@pytest.mark.skipif(getattr(os, "geteuid", lambda: 1)() == 0, reason="root ignores file permissions")
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores file permissions")
 def test_unreadable_plugin_dir_is_skipped_by_every_manifest_scan(monkeypatch, tmp_path, caplog):
-    """One plugin directory the process cannot stat() into (Windows WinError 5, POSIX mode 000)
+    """One plugin directory the process cannot stat() into (mode 000)
     must be warned about and skipped — not abort discovery for every other plugin (#111804).
     Covers the loader scan (``scan_directory``) and the list/hub scan (``_scan_level``)."""
     from hermes_cli.plugins_discovery import scan_directory

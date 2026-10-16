@@ -2,7 +2,6 @@
 import argparse
 from copy import deepcopy
 import json
-from pathlib import Path
 import subprocess
 from types import SimpleNamespace
 
@@ -51,8 +50,8 @@ def source(tmp_path, monkeypatch):
     monkeypatch.setattr(update_cmd, "_resolve_update_options", lambda *_: opts)
     monkeypatch.setattr(update_cmd, "_begin_update_receipt_and_plan", lambda *_: None)
     monkeypatch.setattr(main, "_run_pre_update_backup", lambda *_: None)
-    monkeypatch.setattr(main, "_pause_windows_gateways_for_update", lambda: None)
-    monkeypatch.setattr(update_cmd, "_prepare_git_command", lambda **_: (False, ["git"], False))
+    monkeypatch.setattr("hermes_cli.update_cmd_posix_pause.arm_pause", lambda **kw: None)
+    monkeypatch.setattr(update_cmd, "_prepare_git_command", lambda **_: (["git"], False))
     return SimpleNamespace(home=home, origin=origin, root=checkout, commits=commits, parser=parser)
 
 
@@ -231,12 +230,11 @@ def publish_channel_build(channel_archive, name, build_id, commit, *, sequence=1
     prefix = f"releases/channel-builds/{build_id}/"
     identity = {"token": "a" * 16, "displayName": "Preview fixture", "appNamePascal": "Fixture",
                 "artifactNamePascal": "Fixture", "appId": "ai.fixture.preview",
-                "msixAppIdWithOrg": "Fixture.Preview", "cliName": "fixture-preview",
-                "windowsExecutableName": "Fixture"}
+                "cliName": "fixture-preview"}
     version = f"1.2.{sequence}" if stable else f"0.0.{sequence}"
     request = {"schema": 1, "channel": name, "buildId": build_id, "sequence": sequence,
                "repository": "NousResearch/hermes-agent", "commit": commit,
-               "sourceVersion": f"1.2.{sequence}", "version": version, "windowsVersion": version + ".0",
+               "sourceVersion": f"1.2.{sequence}", "version": version,
                "identity": identity, "bundleEnv": {}, "publicBase": base}
     if stable:
         request["releaseTag"] = "v" + version
@@ -340,7 +338,7 @@ def test_offline_retirement_uses_qualified_build_before_current_stable(
     assert "channel_retirement" not in completed[1]
 
 
-@pytest.mark.parametrize("transport", ["git", "shallow", "zip"])
+@pytest.mark.parametrize("transport", ["git", "shallow"])
 def test_retirement_refuses_to_downgrade_newer_source(
         source, monkeypatch, retired_channel_archive, transport):
     git(source.root, "checkout", "--detach", source.commits[2])
@@ -348,55 +346,16 @@ def test_retirement_refuses_to_downgrade_newer_source(
         import shutil
         shutil.rmtree(source.root)
         git(source.root.parent, "clone", "--depth=1", source.origin.as_uri(), str(source.root))
-    if transport == "zip":
-        (source.root / "pyproject.toml").write_text('[project]\nversion = "1.2.2"\n')
-        monkeypatch.setattr(update_cmd, "_prepare_git_command", lambda **_: (True, ["git"], False))
     original = deepcopy(saved(source))
     completed = []
     monkeypatch.setattr(update_cmd, "_complete_source_update", lambda request: completed.append(request))
     with pytest.raises(ValueError, match="newer|downgrade"):
         source_releases.resolve_source_target(retired_channel_archive.name,
-                                              None if transport == "zip" else ["git"], source.root)
+                                              ["git"], source.root)
     with pytest.raises(SystemExit):
         update_cmd._cmd_update_impl(source.parser.parse_args(["update", "--yes"]), False)
     assert git(source.root, "rev-parse", "HEAD") == source.commits[2]
     assert saved(source) == original and not completed
-
-
-@pytest.mark.parametrize("dirty", [False, True])
-def test_tagless_zip_apply_uses_pinned_source_archive(source, monkeypatch, dirty):
-    import urllib.request
-    from hermes_cli import update_cmd_zip
-
-    name = "zip-preview"
-    set_install_channel(name, source.root)
-    install_reader(monkeypatch, reader_result(source, name, "stable"))
-    archive = source.home / "source.zip"
-    git(source.origin, "archive", "--format=zip", "--prefix=hermes-agent-fixture/",
-        "--output=" + str(archive), source.commits[1])
-    urls = []
-    def download(url, filename):
-        import shutil
-        urls.append(url)
-        shutil.copyfile(archive, filename)
-    monkeypatch.setattr(urllib.request, "urlretrieve", download)
-    monkeypatch.setattr(update_cmd, "_prepare_git_command", lambda **_: (True, ["git"], False))
-    completed = []
-    monkeypatch.setattr(update_cmd, "_complete_source_update", lambda req: completed.append(deepcopy(req)))
-    if dirty:
-        (source.root / "notes.txt").write_text("do not remove")
-        with pytest.raises(SystemExit):
-            update_cmd._cmd_update_impl(source.parser.parse_args(["update"]), False)
-        assert not urls and not completed
-        assert (source.root / "content.txt").read_text() == "installed"
-        assert (source.root / "notes.txt").read_text() == "do not remove"
-    else:
-        update_cmd._cmd_update_impl(source.parser.parse_args(["update"]), False)
-        assert urls == [f"https://github.com/NousResearch/hermes-agent/archive/{source.commits[1]}.zip"]
-        assert (source.root / "content.txt").read_text() == "published"
-        assert completed[0]["expected_sha"] == source.commits[1]
-        assert completed[0]["channel_retirement"]["destination"] == "stable"
-    assert saved(source)["channel"] == name
 
 
 @pytest.mark.parametrize("outcome", ["success", "failure", "uncorrelated", "missing"])

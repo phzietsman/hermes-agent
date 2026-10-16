@@ -520,17 +520,18 @@ UPDATE_STOP_CLASSES = frozenset({
 UPDATE_FAILURE_CLASSES |= UPDATE_STOP_CLASSES
 # ---- end iuf c1 ----
 # ---- iuf c2 ----
-# One fresh-install run of scripts/install.sh / install.ps1, from the local receipt the installer
-# leaves (the installer itself never sends); counted by a later Hermes start while collection is on.
+# One fresh-install run of scripts/install.sh, from the local receipt the installer leaves (the
+# installer itself never sends); counted by a later Hermes start while collection is on.
+# `install_ps1` stays in the schema: receipts left by the retired Windows installer still parse.
 INSTALL_RUN_MARK = INSTALL_RUN_METRIC = "hermes.install.run"
 INSTALL_RUN_INSTALLERS = frozenset({"install_ps1", "install_sh", "other"})
 INSTALL_RUN_OUTCOMES = frozenset({"failed", "success"})
-# The installers' stage_names / $Stages ladder (hyphens as underscores).
+# The installer's stage_names ladder (hyphens as underscores).
 INSTALL_RUN_STAGES = frozenset({
     "complete", "config", "gateway", "prerequisites", "products", "python_deps", "repository", "setup", "venv",
 })
 INSTALL_RUN_FAILED_STAGES = INSTALL_RUN_STAGES | {"none", "other"}
-# The code each installer fail()/Fail call site passes; `none` on success.
+# The code each installer fail() call site passes; `none` on success.
 INSTALL_RUN_FAILURE_CLASSES = frozenset({
     "commit_not_on_branch", "curl_missing", "deps_install_failed", "dir_not_checkout", "download_digest_mismatch",
     "download_failed", "filesystem_error", "gateway_failed", "git_checkout_failed", "git_clone_failed",

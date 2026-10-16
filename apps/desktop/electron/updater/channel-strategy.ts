@@ -12,7 +12,7 @@ export interface ChannelRetirementStatus {
 export interface ChannelStrategyDeps {
   resolver: Pick<ChannelResolver, 'resolve'>
   build: ChannelBuild
-  mechanism: 'electron-updater' | 'app-installer'
+  mechanism: 'electron-updater'
   nativeFactory: (target: ChannelTarget) => UpdaterStrategy
 }
 interface NativeSelection {
@@ -76,7 +76,7 @@ export class ChannelStrategy implements UpdaterStrategy {
 
     if (result.kind === 'retirement') {
       // In-place retirement IS a same-identity update to the pinned stable
-      // build: run it through the native factory (app-installer/electron-updater
+      // build: run it through the native factory (electron-updater
       // available → download → apply), identical to a stable update. The
       // suffixed-identity tier never updates at all.
       if (result.retirement.receiverKind === 'in-place') {

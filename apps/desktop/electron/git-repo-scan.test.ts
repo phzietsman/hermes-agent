@@ -81,7 +81,7 @@ describe('scanGitRepos', () => {
   })
 })
 
-describe.runIf(process.platform !== 'win32')('macOS TCC-protected media exclusions (issue #57611 salvage)', () => {
+describe('macOS TCC-protected media exclusions (issue #57611 salvage)', () => {
   it('finds a normal repo but skips root-level media folders on darwin', async () => {
     const root = tempDir()
     const dev = makeRepoAt(root, 'dev', 'proj')
@@ -130,15 +130,14 @@ describe.runIf(process.platform !== 'win32')('macOS TCC-protected media exclusio
 
 describe('repository scan path normalization', () => {
   it('expands tilde and resolves relative paths from home', () => {
-    expect(normalizeRepoScanPath('~/src', { homeDir: '/Users/rudi', platform: 'darwin' })?.value).toBe(
+    expect(normalizeRepoScanPath('~/src', { homeDir: '/Users/rudi' })?.value).toBe(
       '/Users/rudi/src'
     )
-    expect(normalizeRepoScanPath('src', { homeDir: '/Users/rudi', platform: 'linux' })?.value).toBe('/Users/rudi/src')
+    expect(normalizeRepoScanPath('src', { homeDir: '/Users/rudi' })?.value).toBe('/Users/rudi/src')
   })
 
-  it('uses segment-aware, case-insensitive containment on Windows', () => {
-    const options = { homeDir: 'C:\\Users\\Rudi', platform: 'win32' as const }
-    expect(repoScanPathIsWithin('c:\\SRC\\Fever\\repo', 'C:\\src\\fever', options)).toBe(true)
-    expect(repoScanPathIsWithin('C:\\src\\feverish', 'C:\\src\\fever', options)).toBe(false)
+  it('uses segment-aware containment', () => {
+    expect(repoScanPathIsWithin('/src/fever/repo', '/src/fever')).toBe(true)
+    expect(repoScanPathIsWithin('/src/feverish', '/src/fever')).toBe(false)
   })
 })

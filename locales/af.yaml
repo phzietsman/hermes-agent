@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ Sluit geforseerd af..."
     interrupting_again_hint: "⚡ Onderbreek agent... (druk weer Ctrl+C om geforseerd af te sluit)"
     interrupting: "⚡ Onderbreek agent..."
-    suspend_unsupported: "Opskort (Ctrl+Z) word nie op Windows ondersteun nie."
     suspended: "{agent_name} is opgeskort. Voer `fg` uit om {agent_name} terug te bring."
     steer_failed_queued: "Stuur het misluk ({error}) — in tou geplaas vir die volgende beurt."
     steered: "⏩ Gestuur: '{preview}'"

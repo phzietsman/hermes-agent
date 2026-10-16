@@ -10,8 +10,7 @@ from __future__ import annotations
 
 import os
 
-JOB_GROUPS = ("darwin-arm64", "darwin-x64", "win32-arm64", "win32-x64",
-              "win32-bundle", "linux-x64", "linux-arm64", "termux")
+JOB_GROUPS = ("darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "termux")
 ALL_JOBS = ",".join(JOB_GROUPS)
 
 # The workflow jobs each group runs, in the names desktop-bundled-release.yml
@@ -20,9 +19,6 @@ ALL_JOBS = ",".join(JOB_GROUPS)
 GROUP_JOBS = {
     "darwin-arm64": ("build-darwin-arm64",),
     "darwin-x64": ("build-darwin-x64",),
-    "win32-arm64": ("build-win32-arm64",),
-    "win32-x64": ("build-win32-x64",),
-    "win32-bundle": ("assemble-win32-bundle",),
     "termux": ("termux-deb",),
 }
 # The native smoke each group runs after its build. A claim that skipped
@@ -30,8 +26,6 @@ GROUP_JOBS = {
 GROUP_SMOKES = {
     "darwin-arm64": ("smoke-darwin-arm64",),
     "darwin-x64": ("smoke-darwin-x64",),
-    "win32-arm64": ("smoke-win32-arm64",),
-    "win32-x64": ("smoke-win32-x64",),
 }
 
 
@@ -72,7 +66,7 @@ def phase_jobs(selected: dict[str, bool], phase: str, *, skip_tests: bool = Fals
     """
     required = ["validate"]
     if phase == "publish":
-        return required + ["stable-publish", "stable-store"]
+        return required + ["stable-publish"]
     if phase != "candidate":
         raise ValueError(f"Unknown release phase: {phase}")
     for group, jobs in GROUP_JOBS.items():

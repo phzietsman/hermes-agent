@@ -6,7 +6,6 @@ import path from 'node:path'
 import { test } from 'vitest'
 
 import {
-  buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,
   cleanInstallerLogLine,
@@ -18,7 +17,7 @@ import {
   runBootstrap
 } from './bootstrap-runner'
 
-const SCRIPT_NAME = process.platform === 'win32' ? 'install.ps1' : 'install.sh'
+const SCRIPT_NAME = 'install.sh'
 const ZERO_COMMIT = '0000000000000000000000000000000000000000'
 
 function mkTmpHome() {
@@ -66,7 +65,6 @@ test('existing checkout detection requires git metadata', () => {
 test('fresh bootstrap args include the packaged commit pin', () => {
   const installStamp = { commit: 'a'.repeat(40), branch: 'main' }
 
-  assert.deepEqual(buildPinArgs(installStamp), ['-Commit', installStamp.commit, '-Branch', 'main'])
   assert.deepEqual(
     buildPosixPinArgs({
       installStamp,
@@ -80,7 +78,6 @@ test('fresh bootstrap args include the packaged commit pin', () => {
 test('existing-checkout bootstrap args keep branch but skip the packaged commit pin', () => {
   const installStamp = { commit: 'a'.repeat(40), branch: 'main' }
 
-  assert.deepEqual(buildPinArgs(installStamp, { pinCommit: false }), ['-Branch', 'main'])
   assert.deepEqual(
     buildPosixPinArgs({
       installStamp,
@@ -102,7 +99,6 @@ test('fallback install stamps use an unpinned branch ref', () => {
     pinned: false
   })
   // Must NOT pass -Commit / --commit for the all-zero placeholder.
-  assert.deepEqual(buildPinArgs(stamp), ['-Branch', 'main'])
   assert.deepEqual(
     buildPosixPinArgs({
       installStamp: stamp,
@@ -296,7 +292,7 @@ test('installer log lines reach the emitter without escape sequences; \\r redraw
   assert.equal(cleanInstallerLogLine('Ready — café ✓ 中文'), 'Ready — café ✓ 中文')
 })
 
-test.skipIf(process.platform === 'win32')(
+test(
   'a manifest-step failure surfaces the installer tail without escape sequences',
   async () => {
     const home = mkTmpHome()

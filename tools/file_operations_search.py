@@ -60,13 +60,10 @@ _FILENAME_SEARCH_WAIT_SECONDS = 0.05
 
 def _normalized_filename_search_root(env: Any, root: str, fallback_cwd: str) -> str:
     """Normalize a filename-walk root without resolving remote paths locally."""
-    from tools.environments.local import LocalEnvironment, _IS_WINDOWS, _msys_to_windows_path
+    from tools.environments.local import LocalEnvironment
 
     cwd = getattr(env, "cwd", None) or fallback_cwd
     if isinstance(env, LocalEnvironment):
-        if _IS_WINDOWS:
-            root = _msys_to_windows_path(root)
-            cwd = _msys_to_windows_path(cwd)
         if not os.path.isabs(root):
             root = os.path.join(cwd, root)
         return os.path.normcase(os.path.abspath(os.path.normpath(root)))
@@ -121,7 +118,7 @@ def _search_stdout_and_limit(result: ExecuteResult) -> tuple[str, Optional[str]]
 # A real rg/grep output line is a whitespace-free path token followed by ``:``
 # (match/count), ``-`` (context), or nothing (files_only); tool diagnostics
 # ("rg: ...", indented carets) never match.
-_SEARCH_OUTPUT_RE = re.compile(r'^([A-Za-z]:)?[^\s:][^\n]*?[:\-]\d|^[^\s:][^\s]*$')
+_SEARCH_OUTPUT_RE = re.compile(r'^[^\s:][^\n]*?[:\-]\d|^[^\s:][^\s]*$')
 
 
 def _split_tool_diagnostics(output: str) -> tuple[str, str]:
@@ -188,9 +185,8 @@ def _maybe_warn_line_oriented_newline_pattern(result: SearchResult, pattern: str
     return result
 
 
-# Match lines are "file:lineno:content". Windows paths carry a drive letter
-# ("C:\path"), so a naive split(":") breaks — the regex handles both.
-_MATCH_LINE_RE = re.compile(r'^([A-Za-z]:)?(.*?):(\d+):(.*)$')
+# Match lines are "file:lineno:content".
+_MATCH_LINE_RE = re.compile(r'^(.*?):(\d+):(.*)$')
 
 # Output-mode → engine flag (identical for rg and grep).
 _OUTPUT_MODE_FLAGS = {"files_only": "-l", "count": "-c"}
@@ -231,7 +227,7 @@ def _parse_search_output(result, output_mode: str, limit: int, offset: int,
         m = _MATCH_LINE_RE.match(line)
         if m:
             matches.append(SearchMatch(
-                path=(m.group(1) or '') + m.group(2), line_number=int(m.group(3)), content=m.group(4)[:500],
+                path=m.group(1), line_number=int(m.group(2)), content=m.group(3)[:500],
             ))
             continue
         # Context lines only when requested, to avoid false positives on dashy paths.
@@ -247,9 +243,8 @@ def _parse_search_output(result, output_mode: str, limit: int, offset: int,
 
 
 def _posix_roots(roots: List[str]) -> bool:
-    """Darwin-only: every root is POSIX-shaped (no drive letter / backslash)."""
-    return sys.platform == "darwin" and all(
-        not re.match(r"^[A-Za-z]:[\\/]", root) and "\\" not in root for root in roots)
+    """Darwin-only: no root contains a backslash."""
+    return sys.platform == "darwin" and all("\\" not in root for root in roots)
 
 
 def _find_literal_path_expressions(roots: List[str]) -> List[str]:
@@ -266,7 +261,7 @@ def _find_literal_path_expressions(roots: List[str]) -> List[str]:
 class SearchMixin:
     """File-name and content search via rg with find/grep fallbacks. Requires
     ``_exec``, ``_has_command``, ``_expand_path``, ``_escape_shell_arg``,
-    ``_escape_native_tool_arg``, ``env``, ``cwd``, ``_command_cache``,
+    ``env``, ``cwd``, ``_command_cache``,
     ``_rg_resolution_cache`` and ``_rg_modified_capability`` from the host class."""
 
     # --- rg resolution --------------------------------------------------------
@@ -274,8 +269,7 @@ class SearchMixin:
     def _resolve_command(self, cmd: str) -> Optional[str]:
         """Resolve an executable in the command host's namespace. Ordinary commands
         keep the bool hit/miss cache; rg alone caches successful resolved paths and
-        re-probes misses so a mid-session install becomes visible (with off-PATH
-        Windows candidates: cargo, scoop, winget)."""
+        re-probes misses so a mid-session install becomes visible."""
         if cmd != "rg":
             return cmd if self._has_command(cmd) else None
         cached = self._rg_resolution_cache.get(cmd)
@@ -288,23 +282,6 @@ class SearchMixin:
                 resolved = "rg"
             self._rg_resolution_cache[cmd] = resolved
             return resolved
-        from tools.environments.local import LocalEnvironment, _IS_WINDOWS
-
-        if _IS_WINDOWS and isinstance(self.env, LocalEnvironment):
-            user_profile = os.environ.get("USERPROFILE") or str(Path.home())
-            local_app_data = os.environ.get("LOCALAPPDATA")
-            scoop = os.environ.get("SCOOP") or os.path.join(user_profile, "scoop")
-            candidates = [
-                os.path.join(user_profile, ".cargo", "bin", "rg.exe"),
-                os.path.join(scoop, "shims", "rg.exe"),
-            ]
-            if local_app_data:
-                candidates.append(os.path.join(local_app_data, "Microsoft", "WinGet", "Links", "rg.exe"))
-            for candidate in candidates:
-                if os.path.isfile(candidate):
-                    resolved = candidate.replace("\\", "/")
-                    self._rg_resolution_cache[cmd] = resolved
-                    return resolved
         return None
 
     _RG_VERSION_RE = re.compile(
@@ -414,7 +391,7 @@ class SearchMixin:
         from tools.environments.local import LocalEnvironment
 
         if isinstance(self.env, LocalEnvironment):
-            return self._escape_native_tool_arg(executable)
+            return self._escape_shell_arg(executable)
         return "'" + executable.replace("'", "'\"'\"'") + "'"
 
     # --- macOS protected-folder exclusions --------------------------------------
@@ -620,7 +597,7 @@ class SearchMixin:
             else:
                 glob_expr_probe = glob_expr
             probe_words = [rg, flags, "--count-matches", glob_expr_probe,
-                           self._escape_shell_arg(pattern, translate_path=False), self._escape_native_tool_arg(path)]
+                           self._escape_shell_arg(pattern), self._escape_shell_arg(path)]
             probe = self._run_rg_bounded(probe_words, 50, timeout=30)
             total, per_file = 0, []
             for line in (probe.stdout or "").strip().splitlines():
@@ -637,14 +614,12 @@ class SearchMixin:
     def _is_broad_local_search_root(self, path: str) -> bool:
         """Whether a no-rg LOCAL root (filesystem root, $HOME or an ancestor of it) is
         unsafe for recursive find. Controller paths never classify remotes."""
-        from tools.environments.local import LocalEnvironment, _IS_WINDOWS, _msys_to_windows_path
+        from tools.environments.local import LocalEnvironment
 
         if not isinstance(self.env, LocalEnvironment):
             return False
 
         def normalized(value: str) -> str:
-            if _IS_WINDOWS:
-                value = _msys_to_windows_path(value).replace("\\", "/")
             if not os.path.isabs(value):
                 value = os.path.join(getattr(self.env, "cwd", None) or self.cwd, value)
             # Classify the linked target, not the link: ``find -H`` now follows an
@@ -656,9 +631,7 @@ class SearchMixin:
         from tools import file_operations as _fo  # lazy: _HOME is monkeypatched there
         root = normalized(path)
         home = normalized(_fo._HOME)
-        drive = os.path.splitdrive(root)[0]
-        anchor = drive + os.sep if drive else os.path.abspath(os.sep)
-        if root == os.path.normcase(anchor):
+        if root == os.sep:
             return True
         try:
             common = os.path.commonpath([root, home])
@@ -889,9 +862,6 @@ class SearchMixin:
                     "-printf support; install ripgrep 14+ or use order='discovery'."))
             return SearchResult(error="File search failed while running bounded find traversal.")
 
-        from tools.environments.local import LocalEnvironment, _IS_WINDOWS, _msys_to_windows_path
-        if _IS_WINDOWS and isinstance(self.env, LocalEnvironment):
-            raw_files = [_msys_to_windows_path(file_path) for file_path in raw_files]
         return SearchResult(
             files=raw_files[offset:offset + limit], total_count=len(raw_files),
             truncated=len(raw_files) > offset + limit or bool(limit_reason), limit_reason=limit_reason)
@@ -935,7 +905,7 @@ class SearchMixin:
                 return SearchResult(error=capability_error)
         rg = self._quote_executable(rg_executable)
         sort_arg = " --sortr=modified" if order == "modified" else ""
-        root_args = " ".join(self._escape_native_tool_arg(root) for root in command_roots)
+        root_args = " ".join(self._escape_shell_arg(root) for root in command_roots)
         cd_prefix = f"cd {self._escape_shell_arg(scoped_common)} && " if scoped_common else ""
         # ``--`` terminates options so a dash-prefixed root is never parsed as a flag.
         rg_cmd = (f"{rg} --files{sort_arg} -g {self._escape_shell_arg(glob_pattern)}"
@@ -1048,9 +1018,8 @@ class SearchMixin:
             cmd_parts.extend(["--glob", self._escape_shell_arg(file_glob)])
         if output_mode in _OUTPUT_MODE_FLAGS:
             cmd_parts.append(_OUTPUT_MODE_FLAGS[output_mode])
-        cmd_parts.append(self._escape_shell_arg(pattern, translate_path=False))
-        # rg is a native Windows binary (winget/cargo/choco): needs C:/... not MSYS /c/...
-        cmd_parts.append(self._escape_native_tool_arg(path))
+        cmd_parts.append(self._escape_shell_arg(pattern))
+        cmd_parts.append(self._escape_shell_arg(path))
         ml_note = (
             "Pattern contains \\n — multiline mode (-U) was enabled automatically "
             "so the regex can match across line boundaries."
@@ -1067,7 +1036,7 @@ class SearchMixin:
             parts.extend(["--include", self._escape_shell_arg(file_glob)])
         if output_mode in _OUTPUT_MODE_FLAGS:
             parts.append(_OUTPUT_MODE_FLAGS[output_mode])
-        parts.append(self._escape_shell_arg(pattern, translate_path=False))
+        parts.append(self._escape_shell_arg(pattern))
         return parts
 
     def _search_with_grep(self, pattern: str, path: str, file_glob: Optional[str],
@@ -1087,7 +1056,7 @@ class SearchMixin:
         cmd_parts = self._grep_cmd(["grep", "-rnHE", "--exclude-dir='.*'"], pattern, output_mode, context, file_glob)
         # --exclude-dir applies to the root too, so "." would be excluded by '.*';
         # anchor relative paths at the shell's live $PWD.
-        is_absolute = path.startswith(("/", "\\\\")) or bool(re.match(r"^[A-Za-z]:[\\/]", path))
+        is_absolute = path.startswith("/")
         if is_absolute:
             search_root = self._escape_shell_arg(path)
         else:

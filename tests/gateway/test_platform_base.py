@@ -92,8 +92,8 @@ class TestMessageEventIsCommand:
         assert event.is_command() is True
 
     def test_slash_command_with_image_ref_spaces_in_path(self):
-        """Image refs with Windows spaces (e.g. C:\\Users\\John Doe\\img.png) must be correctly stripped."""
-        event = MessageEvent(text="@image:C:\\Users\\John Doe\\My Pictures\\photo.png\n\n/moa what is this?")
+        """Image refs with spaces in the path must be correctly stripped."""
+        event = MessageEvent(text="@image:/Users/John Doe/My Pictures/photo.png\n\n/moa what is this?")
         assert event.is_command() is True
 
     def test_slash_command_with_file_ref_prefix(self):
@@ -105,8 +105,8 @@ class TestMessageEventIsCommand:
         assert event.is_command() is True
 
     def test_slash_command_with_at_in_ref_path(self):
-        """Ref path containing @ (legal on Windows, e.g. john@doe) must be fully stripped."""
-        event = MessageEvent(text="@image:C:\\Users\\john@doe\\photo.png\n\n/moa hi")
+        """Ref path containing @ (e.g. john@doe) must be fully stripped."""
+        event = MessageEvent(text="@image:/Users/john@doe/photo.png\n\n/moa hi")
         assert event.is_command() is True
 
     def test_non_command_with_image_ref(self):
@@ -299,11 +299,8 @@ class TestExtractMedia:
         assert "[[audio_as_voice]]" not in cleaned
         assert "[[as_document]]" not in cleaned
 
-    # Windows path support — regression coverage for #34632
-
-
     def test_relative_path_still_ignored(self):
-        """Relative Windows-style paths (no drive letter) must not match."""
+        """Relative backslash paths must not match."""
         media, _ = BasePlatformAdapter.extract_media(
             r"MEDIA:Users\kotsu\file.pdf"
         )
@@ -584,8 +581,6 @@ class TestMediaDeliveryPathValidation:
         secret = ssh_dir / "id_rsa.txt"
         secret.write_bytes(b"-----BEGIN ...")  # mtime = now
         monkeypatch.setenv("HOME", str(fake_home))
-        # On Windows os.path.expanduser("~") reads USERPROFILE, not HOME.
-        monkeypatch.setenv("USERPROFILE", str(fake_home))
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(secret)) is None
 
@@ -793,8 +788,6 @@ class TestMediaDeliveryDefaultMode:
         doc = workdir / "proposal.docx"
         doc.write_bytes(b"PK\x03\x04")
         monkeypatch.setenv("HOME", str(fake_home))
-        # On Windows os.path.expanduser("~") reads USERPROFILE, not HOME.
-        monkeypatch.setenv("USERPROFILE", str(fake_home))
         # $HOME is itself on the denied-prefix list, mirroring /root.
         monkeypatch.setattr(
             "gateway.platforms.base._MEDIA_DELIVERY_DENIED_PREFIXES",

@@ -18,7 +18,7 @@ logger = logging.getLogger("hermes_cli.config")
 
 
 # ``_normalize_custom_provider_entry`` runs on every ``load_picker_context()`` call, so a warning
-# it emits would fire repeatedly for the same static config; on Windows that storm contends on
+# it emits would fire repeatedly for the same static config; that storm contends on
 # ``concurrent-log-handler``'s cross-process rotation lock and can stall the gateway/serve event
 # loop. Deduplicate per (provider, signature) for the process lifetime.
 _PROVIDER_NORMALIZE_WARNED: set = set()

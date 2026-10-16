@@ -9,7 +9,6 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from pm import paths
-from pm.filesystem import native
 from pm.lock import Lockfile
 from pm.package import InstallError
 from pm.packages import BinaryPackage, _RUST_TRIPLE
@@ -21,7 +20,7 @@ from pm.store import MUSL_TARGETS, flatten_single_dir
 class Bws(BinaryPackage):
     name = "bws"
     optional = True
-    binary_rel = {"posix": "bws", "win32": "bws.exe"}
+    binary_rel = {"posix": "bws"}
     gaps = {"linux-arm64-bionic": "upstream does not ship an Android binary"}
 
     def fetch_url(self, version: str, target: str) -> str:
@@ -50,8 +49,6 @@ class _SignedBinary(BinaryPackage):
     """
     optional = True
     gaps = {
-        "win32-x64": "this integration requires a Linux/macOS host (or WSL)",
-        "win32-arm64": "this integration requires a Linux/macOS host (or WSL)",
         "linux-arm64-bionic": "upstream does not ship an Android binary",
     }
 
@@ -121,12 +118,12 @@ class IronProxy(_SignedBinary):
             key = directory / "public-key.asc"
             if not signature.is_file() or not key.is_file():
                 raise InstallError(self.name, "pinned signature assets missing")
-            imported = subprocess.run([*args, "--import", native(key)], stdin=subprocess.DEVNULL,
+            imported = subprocess.run([*args, "--import", str(key)], stdin=subprocess.DEVNULL,
                                       capture_output=True, timeout=60, check=False)
             if imported.returncode:
                 logging.getLogger(__name__).warning("Could not import iron-proxy signing key; archive checksum remains enforced")
                 return
-            verified = subprocess.run([*args, "--verify", native(signature), native(directory / "checksums.txt")],
+            verified = subprocess.run([*args, "--verify", str(signature), str(directory / "checksums.txt")],
                                       stdin=subprocess.DEVNULL, capture_output=True, timeout=60, check=False)
             if verified.returncode:
                 raise InstallError(self.name, "GPG signature verification failed")

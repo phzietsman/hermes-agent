@@ -9,10 +9,7 @@ process, so threads exercise the true kernel-lock semantics.
 
 from __future__ import annotations
 
-try:
-    import fcntl  # POSIX-only; on Windows the module is skipped wholesale
-except ImportError:  # pragma: no cover - Windows
-    fcntl = None
+import fcntl
 import json
 import os
 import subprocess
@@ -256,7 +253,7 @@ def test_local_delivery_command_never_reenters_the_lock():
 
     argv = bot_relay.local_delivery_command("ops", "/tmp/q.txt")
     assert argv[1:3] == ["-p", "ops"]
-    assert Path(argv[0]).name in ("hermes", "hermes.exe")
+    assert Path(argv[0]).name == "hermes"
     assert "--run-delivery" not in argv
     assert not any("bot_mode_dm" in part for part in argv)
 

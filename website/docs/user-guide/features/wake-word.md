@@ -76,16 +76,16 @@ backend process.
 
 | Engine | Cost | API key | Notes |
 |--------|------|---------|-------|
-| **openWakeWord** | Free | None | TFLite through `pyopen-wakeword`. Includes the **"hey hermes"** model. Custom models require a `.tflite` file. Not available on Intel macOS or native Windows ARM64. |
-| **sherpa** | Free | None | Open-vocabulary detection for typed phrases. Downloads an English model on first use. Supports native Windows ARM64. |
+| **openWakeWord** | Free | None | TFLite through `pyopen-wakeword`. Includes the **"hey hermes"** model. Custom models require a `.tflite` file. Not available on Intel macOS. |
+| **sherpa** | Free | None | Open-vocabulary detection for typed phrases. Downloads an English model on first use. |
 | **Porcupine** | Free tier / paid | `PORCUPINE_ACCESS_KEY` | Picovoice engine; built-in keywords + custom `.ppn` files |
 
 The default provider is **`auto`**. It selects the first platform-supported
 engine in this order: **openWakeWord → sherpa → Porcupine**. The platform is
 that of the Python backend, not a remote desktop client:
 
-- **Native Windows ARM64 and Intel macOS:** sherpa (free, no key).
-- **Windows x64, Apple Silicon, and supported Linux targets:** openWakeWord
+- **Intel macOS:** sherpa (free, no key).
+- **Apple Silicon and supported Linux targets:** openWakeWord
   (free, no key).
 
 An explicit provider stays selected, even if this platform does not support it.
@@ -106,8 +106,8 @@ Packaged builds include the engine dependencies supported by their target.
 
 The `pyopen-wakeword` macOS
 wheel contains an ARM64-only library despite its `universal2` label. Hermes
-excludes that engine on Intel Macs and native Windows ARM64. Sherpa provides
-keyless detection on both targets.
+excludes that engine on Intel Macs. Sherpa provides
+keyless detection there.
 
 Porcupine's default keyword is **"jarvis"**, not "hey hermes". Its `phrase`
 setting is only a display label; choose a built-in keyword or supply a custom
@@ -116,7 +116,7 @@ setting is only a display label; choose a built-in keyword or supply a custom
 `PORCUPINE_ACCESS_KEY` in your profile's `.env`, not `config.yaml`.
 
 The supported `pyopen-wakeword` wheels target Apple Silicon with macOS 15 or
-later, glibc Linux 2.35 or later, and Windows x64. These requirements apply to
+later, and glibc Linux 2.35 or later. These requirements apply to
 that engine, not every Hermes feature. Termux's core/ACP package does not
 include this wake stack.
 
@@ -338,14 +338,14 @@ Fix: System Settings → Privacy & Security → Microphone → enable the Hermes
 backend (it may appear as your terminal, `python`, or Hermes), then toggle the
 wake word off and on.
 
-### "Listening" but receives silence (Windows)
+### "Listening" but receives silence
 
 Desktop push-to-talk and wake-word capture use different microphone paths.
 Push-to-talk uses the desktop application's browser capture, while the
 wake-word listener opens a PortAudio stream in the Python backend. One can work
-while the other selects a silent or unusable Windows input.
+while the other selects a silent or unusable input.
 
-`/wake status` reports the selected input device and Windows audio host API.
+`/wake status` reports the selected input device and audio host API.
 When it reports silence, set `wake_word.input_device` to the numeric index or an
 unambiguous name of the working PortAudio input, then toggle the wake word:
 

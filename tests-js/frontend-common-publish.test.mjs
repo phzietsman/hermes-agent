@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-// Windows antivirus holds a freshly written tree (the HUD helper exe in
+// A scanner can hold a freshly written tree (the HUD helper in
 // native-deps, web_dist after a long build) and publication's renames fail
 // EPERM until the scan ends (#126914). Fault only the renames a test names;
 // every other rename reaches the real filesystem.
@@ -58,10 +58,10 @@ test('a held staging tree publishes once the scanner lets go', async () => {
   let staged
   await withProduct(out, product => {
     staged = fault(product, 'EPERM', 2)
-    writeFileSync(join(product, 'hud-modifier-monitor.exe'), 'new')
+    writeFileSync(join(product, 'hud-modifier-monitor'), 'new')
   })
   expect(staged.calls).toBe(3)
-  expect(readdirSync(out).sort()).toEqual(['.hermes-product', 'hud-modifier-monitor.exe'])
+  expect(readdirSync(out).sort()).toEqual(['.hermes-product', 'hud-modifier-monitor'])
   expect(readdirSync(root)).toEqual(['native-deps'])
 })
 

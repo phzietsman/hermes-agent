@@ -10,12 +10,11 @@
 // these shapes when the renderer hands a raw path through instead of a
 // canonical `file://` URL (hermes-agent 80946, 84361).
 
-const LOCAL_FILESYSTEM_PATH_RE = /^(?:\/(?!\/)|\/\/\/|~\/|[a-zA-Z]:[\\/]|\\\\)/
+const LOCAL_FILESYSTEM_PATH_RE = /^(?:\/(?!\/)|\/\/\/|~\/)/
 const PROTOCOL_RELATIVE_RE = /^\/\/[^/\s]/
 
 /**
- * POSIX `/…`, `///…`, `~/…`, Windows drive (`C:\…`, `C:/…`) and UNC
- * (`\\server\…`) paths. NOT `//host/…` — that is a protocol-relative URL.
+ * POSIX `/…`, `///…`, `~/…` paths. NOT `//host/…` — that is a protocol-relative URL.
  */
 export function looksLikeLocalFilesystemPath(value: string): boolean {
   return LOCAL_FILESYSTEM_PATH_RE.test(value)

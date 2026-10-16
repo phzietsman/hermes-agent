@@ -71,7 +71,6 @@ detect_os() {
   case "$(uname -s)" in
     Darwin) echo "darwin" ;;
     Linux) echo "linux" ;;
-    MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
     *) echo "unknown" ;;
   esac
 }
@@ -167,7 +166,6 @@ try_mise() {
 #   app-x86_64-apple-darwin.zip
 #   app-aarch64-unknown-linux-gnu.zip
 #   app-x86_64-unknown-linux-gnu.zip
-#   app-x86_64-pc-windows-msvc.zip   (.zip only on windows)
 
 triple_for() {
   case "$OS-$ARCH" in
@@ -256,7 +254,6 @@ fi
 case "$OS" in
   darwin) METHODS=(brew npm cargo pip mise) ;;
   linux)  METHODS=(npm cargo pip nix mise brew) ;;
-  windows) METHODS=(npm cargo pip mise) ;;
   *) METHODS=(npm cargo pip) ;;
 esac
 

@@ -9,7 +9,6 @@ import shutil
 import stat
 import tempfile
 import threading
-import time
 from contextlib import suppress
 from pathlib import Path
 from typing import Any, Union
@@ -43,8 +42,6 @@ def file_signature(st: os.stat_result) -> "tuple[int, int, int, int]":
     mtime + size alone miss a replacement that preserves both (``cp -p``, ``rsync -t``, a tar
     restore, a script pinning the timestamp with ``os.utime``). The inode changes on an atomic
     replace and ctime cannot be backdated from user space, so the pair catches those writers.
-    On Windows ``st_ino`` may be 0 and ``st_ctime_ns`` is the creation time — both stable across
-    an in-place rewrite, so the key degrades to mtime + size there rather than misfiring.
     """
     return (st.st_mtime_ns, st.st_size, st.st_ino, st.st_ctime_ns)
 
@@ -58,12 +55,12 @@ def _preserve_file_mode(path: Path) -> "int | None":
 
 
 def _preserve_file_owner(path: Path) -> "tuple[int, int] | None":
-    """Owning ``(uid, gid)`` of *path* on POSIX, else ``None``."""
+    """Owning ``(uid, gid)`` of *path*, else ``None``."""
     try:
-        st = path.stat() if os.name == "posix" else None
+        st = path.stat()
     except OSError:
         return None
-    return (st.st_uid, st.st_gid) if st else None
+    return (st.st_uid, st.st_gid)
 
 
 def _restore_file_metadata(path: Path, owner: "tuple[int, int] | None", mode: "int | None") -> None:
@@ -74,7 +71,7 @@ def _restore_file_metadata(path: Path, owner: "tuple[int, int] | None", mode: "i
     creates 0o600 files; without re-applying *mode* the target would inherit that and break
     volume mounts relying on broader permissions.
     """
-    if owner is not None and hasattr(os, "chown"):
+    if owner is not None:
         with suppress(OSError):
             os.chown(path, owner[0], owner[1])
     if mode is not None:
@@ -84,15 +81,13 @@ def _restore_file_metadata(path: Path, owner: "tuple[int, int] | None", mode: "i
 
 def default_new_file_mode() -> "int | None":
     """The mode ``open(path, "w")`` gives a file it has to create (``0o666 & ~umask``); ``None``
-    when the umask cannot be read or on non-POSIX hosts (Windows mode bits are synthesized).
+    when the umask cannot be read.
 
     ``mkstemp`` always creates at 0600, so publishing a *new* non-secret file through a temp
     file would tighten it to owner-only — the Docker/NAS volume-mount hazard
     :func:`_restore_file_metadata` documents. The transient mask is 0o077: a thread that opens
     a file in the read window gets a tighter file, never a looser one.
     """
-    if os.name != "posix":
-        return None
     try:
         current = os.umask(0o077)
         os.umask(current)
@@ -109,50 +104,7 @@ def _restore_file_mode(path: Path, mode: "int | None") -> None:
     _restore_file_metadata(path, None, mode)
 
 
-_IS_WINDOWS = os.name == "nt"
-# Windows rename failures possibly caused by another handle on the target. CPython opens files
-# without FILE_SHARE_DELETE, so ``os.replace`` onto an open file is denied with 5 ERROR_ACCESS_DENIED
-# (what a held *target* handle actually reports — measured: a plain reader yields 5, NOT 32),
-# 32 ERROR_SHARING_VIOLATION (the *source* temp file is held) or 33 ERROR_LOCK_VIOLATION (byte-range
-# lock on the target). Ambiguous (a real ACL denial is also 5), so recovery is bounded and a
-# still-failing write is re-raised unchanged rather than classified up front.
-_WINDOWS_CONTENDED_REPLACE_ERRORS = frozenset({5, 32, 33})
-# Retry budget for the atomic rename. A rename that wins here keeps the write fully atomic, so the
-# budget covers a realistic hold (desktop auth-init holds auth.json >100 ms): ~200 ms recovered
-# atomically, ~310 ms worst case. The cap matters as much as the count — gateway_state.json is
-# rewritten every turn, so a permanently-held target pays the full budget per write. Jittered so
-# concurrent writers don't retry in lockstep.
-_REPLACE_RETRY_ATTEMPTS = 4
-_REPLACE_RETRY_BASE_DELAY_S = 0.02
-_REPLACE_RETRY_MAX_DELAY_S = 0.1
 _CROSS_DEVICE_ERRNOS = (errno.EXDEV, errno.EBUSY)
-
-
-def _is_contended_windows_replace_error(exc: OSError) -> bool:
-    """Candidate-only: winerror 5 also covers a genuine ACL denial."""
-    return _IS_WINDOWS and getattr(exc, "winerror", None) in _WINDOWS_CONTENDED_REPLACE_ERRORS
-
-
-def _rewrite_in_place(tmp_str: str, real_path: str) -> None:
-    """Overwrite *real_path* through the existing file — last resort for a still-held target.
-
-    Not atomic (a smaller window than a copy, not none), so it runs only after the rename has
-    genuinely failed. Writing through the target also preserves its ACL, which ``os.replace``
-    does not (the temp file's inherited ACL wins there).
-    """
-    with open(tmp_str, "rb") as src:
-        data = src.read()
-    fd = os.open(real_path, os.O_WRONLY | getattr(os, "O_BINARY", 0))
-    try:
-        written = 0
-        while written < len(data):
-            written += os.write(fd, data[written:])
-        os.ftruncate(fd, len(data))
-        with suppress(OSError):
-            os.fsync(fd)
-    finally:
-        os.close(fd)
-    os.unlink(tmp_str)
 
 
 def _copy_fallback(tmp_str: str, real_path: str) -> None:
@@ -171,8 +123,7 @@ def atomic_replace(tmp_path: Union[str, Path], target: Union[str, Path]) -> str:
     Resolves a symlink first so ``os.replace`` writes the real file in place and the symlink
     survives. Otherwise identical to ``os.replace`` unless the rename fails with EXDEV/EBUSY
     (cross-device, bind-mount, busy file: copy/fsync/unlink immediately — these never clear on
-    retry) or a Windows rename contended by another open handle (winerror 5/32/33: bounded retry,
-    then in-place rewrite).
+    retry).
     """
     target_str = str(target)
     real_path = _publish_path(target_str)
@@ -181,29 +132,11 @@ def atomic_replace(tmp_path: Union[str, Path], target: Union[str, Path]) -> str:
         os.replace(tmp_str, real_path)
         return real_path
     except OSError as exc:
-        contended = _is_contended_windows_replace_error(exc)
-        if exc.errno not in _CROSS_DEVICE_ERRNOS and not contended:
+        if exc.errno not in _CROSS_DEVICE_ERRNOS:
             raise
-        if contended:
-            # Lazy: keeps ``utils`` free of a package-level dependency on ``agent``.
-            from agent.retry_utils import jittered_backoff
-            for attempt in range(1, _REPLACE_RETRY_ATTEMPTS + 1):
-                time.sleep(jittered_backoff(attempt, base_delay=_REPLACE_RETRY_BASE_DELAY_S, max_delay=_REPLACE_RETRY_MAX_DELAY_S))
-                try:
-                    os.replace(tmp_str, real_path)
-                    return real_path
-                except OSError as retry_exc:
-                    exc = retry_exc
-                    if retry_exc.errno in _CROSS_DEVICE_ERRNOS:
-                        contended = False  # not contention after all — stop burning the budget
-                        break
-                    if not _is_contended_windows_replace_error(retry_exc):
-                        raise
-        logger.debug("atomic_replace: %s -> %s failed with %s; falling back to %s", tmp_str, real_path,
-                     getattr(exc, "winerror", None) or errno.errorcode.get(exc.errno or 0, exc.errno),
-                     "in-place rewrite" if contended else "copy")
-        # The rewrite re-raises its own error, so an ACL denial is reported as such, not as contention.
-        (_rewrite_in_place if contended else _copy_fallback)(tmp_str, real_path)
+        logger.debug("atomic_replace: %s -> %s failed with %s; falling back to copy", tmp_str, real_path,
+                     errno.errorcode.get(exc.errno or 0, exc.errno))
+        _copy_fallback(tmp_str, real_path)
     return real_path
 
 
@@ -235,14 +168,11 @@ def mkstemp_beside(target: Union[str, Path], **kw: Any) -> tuple[int, str]:
 def fsync_directory(path: Union[str, Path]) -> None:
     """Best-effort fsync of a directory entry so a just-renamed file survives power loss.
 
-    No-op on Windows (directories can't be opened with ``os.open``; the file fsync still applies)
-    and on any OSError — durability of the directory entry is never worth failing a write that
+    No-op on any OSError — durability of the directory entry is never worth failing a write that
     has already been replaced into place.
     """
-    if os.name == "nt":
-        return
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     except OSError:
         return
     try:
@@ -255,8 +185,7 @@ def fsync_directory(path: Union[str, Path]) -> None:
 def rmtree_readonly(path: Union[str, Path], *, ignore_errors: bool = False) -> None:
     """``shutil.rmtree`` that can also delete read-only trees.
 
-    ``shutil.rmtree`` stops at the first entry it cannot unlink.  Git marks
-    loose object files read-only on Windows (``WinError 5``), and package
+    ``shutil.rmtree`` stops at the first entry it cannot unlink.  Package
     installs (Nix store, deb/rpm) are copied ``r--r--r--`` into ``0555``
     directories on POSIX, where unlinking needs a writable *parent*.  Clear the
     write bit on the failing path and on its parent, then retry the exact
@@ -294,8 +223,7 @@ def _atomic_write(path: Path, write, *, prefix: str, encoding: str = "utf-8", mo
     *write(f)* emits the payload into the open handle (text, or bytes when *binary*). The temp file
     is created by ``mkstemp`` — ``O_CREAT|O_EXCL`` at 0600 regardless of umask — so a secret is
     never readable at process umask, not even between create and chmod. *mode* is fchmod'd onto
-    the temp fd BEFORE the replace so the target never transits through mkstemp's 0600 (fchmod is
-    Unix-only; the post-replace chmod is the sole path on Windows). With no *mode* a NEW target
+    the temp fd BEFORE the replace so the target never transits through mkstemp's 0600 . With no *mode* a NEW target
     gets what ``open(path, "w")`` would have given it (process umask) — the callers this replaced
     wrote at umask, and silently tightening every fresh cache/state file to 0600 breaks shared
     volume mounts; an existing target with no *mode* keeps mkstemp's bits, as before. *fsync_dir*
@@ -315,7 +243,7 @@ def _atomic_write(path: Path, write, *, prefix: str, encoding: str = "utf-8", mo
     fd, tmp_path = mkstemp_beside(path, prefix=prefix, suffix=".tmp")
     try:
         with os.fdopen(fd, "wb" if binary else "w", encoding=None if binary else encoding) as f:
-            if mode is not None and hasattr(os, "fchmod"):
+            if mode is not None:
                 os.fchmod(f.fileno(), mode)
             write(f)
             f.flush()
@@ -400,7 +328,7 @@ def read_json_or_empty(path: Union[str, Path]) -> dict:
     (memory-provider ``save_config``), so a corrupt sidecar degrades to defaults instead of
     taking the provider down."""
     try:
-        data = json.loads(Path(path).read_text(encoding="utf-8-sig"))  # utf-8-sig: a Windows-editor BOM must not wipe the config
+        data = json.loads(Path(path).read_text(encoding="utf-8-sig"))  # utf-8-sig: an editor BOM must not wipe the config
     except (OSError, ValueError):
         return {}
     return data if isinstance(data, dict) else {}
@@ -410,8 +338,7 @@ def warn_if_credential_file_broadly_readable(path: Union[str, Path], *, label: s
     """Warn when a credential file is group/world-readable; True when a warning was emitted.
 
     Hand-made secret files (or ones older Hermes wrote without an explicit mode) commonly end up
-    0o644 under the default umask; call this before loading any token/credential file. No-op on
-    non-POSIX (Windows ACLs don't map onto group/other bits; st_mode there is synthesized), when
+    0o644 under the default umask; call this before loading any token/credential file. No-op when
     the file is missing, or when permissions are already tight.
     """
     p = Path(path)
@@ -419,7 +346,7 @@ def warn_if_credential_file_broadly_readable(path: Union[str, Path], *, label: s
         file_mode = p.stat().st_mode
     except OSError:
         return False
-    if os.name != "posix" or not (file_mode & (stat.S_IRGRP | stat.S_IROTH)):
+    if not (file_mode & (stat.S_IRGRP | stat.S_IROTH)):
         return False
     (log or logger).warning("%s%s is group/world-readable (mode 0%o) and contains secrets. Run: chmod 600 %s",
                             f"{label} " if label else "", p.name, stat.S_IMODE(file_mode), p)

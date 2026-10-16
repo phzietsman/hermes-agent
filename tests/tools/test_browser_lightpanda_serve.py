@@ -84,10 +84,6 @@ class TestFindBinary:
         monkeypatch.setattr("tools.browser_tool_install._merge_browser_path", lambda p: p)
         assert lp.find_lightpanda_binary() is None
 
-    @pytest.mark.platforms("windows")
-    def test_none_on_windows(self):
-        assert lp.find_lightpanda_binary() is None
-
 
 
 class TestLaunch:
@@ -130,8 +126,7 @@ class TestLaunch:
         assert kw["stdout"] is subprocess.DEVNULL
         assert hasattr(kw["stderr"], "write")  # a log file, never a pipe
         assert kw["env"] == {"PATH": "/usr/bin"}
-        if os.name != "nt":
-            assert kw["start_new_session"] is True
+        assert kw["start_new_session"] is True
         assert server.cdp_url == "http://127.0.0.1:43111"
         assert server.start_time == 111
         assert lp.get_server("lp_test") is server

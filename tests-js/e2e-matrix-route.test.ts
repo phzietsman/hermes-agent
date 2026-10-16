@@ -10,7 +10,7 @@ const TAGS: string = JSON.stringify([{ ref: 'v2026.6.19', desktop: true }])
 interface Leg {
   name: string
 }
-type Matrices = Record<'linux' | 'windows' | 'macos', { include: Leg[] }>
+type Matrices = Record<'linux' | 'macos', { include: Leg[] }>
 
 function generate(route: string): Matrices {
   return JSON.parse(execFileSync(process.execPath, [script, '--tags', TAGS, '--route', route], { encoding: 'utf8' })) as Matrices
@@ -21,8 +21,8 @@ function legNames(matrices: Matrices): string[] {
 }
 
 test('a leg name, or the job name GitHub shows for it, runs exactly that leg', () => {
-  const leg: Leg | undefined = generate('all').windows.include.find(l =>
-    l.name.includes('installer-script+desktop -> desktop-installer@latest')
+  const leg: Leg | undefined = generate('all').macos.include.find(l =>
+    l.name.includes('installer-script+desktop -> hermes-update')
   )
 
   expect(leg).toBeDefined()
@@ -32,15 +32,14 @@ test('a leg name, or the job name GitHub shows for it, runs exactly that leg', (
 
 test('an OS preset runs that OS whole and no other', () => {
   const all: Matrices = generate('all')
-  const windows: Matrices = generate('windows-desktop')
+  const macos: Matrices = generate('macos-desktop')
 
-  expect(legNames(windows)).toEqual(all.windows.include.map(l => l.name))
-  expect(windows.linux.include).toEqual([])
-  expect(windows.macos.include).toEqual([])
+  expect(legNames(macos)).toEqual(all.macos.include.map(l => l.name))
+  expect(macos.linux.include).toEqual([])
 })
 
 test('a route that selects nothing fails instead of running an empty green matrix', () => {
-  expect(() => generate('windows: no-such-method')).toThrow()
+  expect(() => generate('macos: no-such-method')).toThrow()
 })
 
 test('the pr route runs one script install updated by hermes update per OS start, nothing else', () => {
@@ -50,6 +49,5 @@ test('the pr route runs one script install updated by hermes update per OS start
     'linux: installer-script -> hermes-update (HEAD -> NEXT)',
     'linux: installer-script -> hermes-update (v2026.6.19 -> HEAD)',
     'macos: installer-script -> hermes-update (v2026.6.19 -> HEAD)',
-    'windows: installer-script -> hermes-update (HEAD -> NEXT)',
   ])
 })

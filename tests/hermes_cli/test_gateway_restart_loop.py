@@ -26,15 +26,10 @@ class TestGatewayLifecyclePattern:
     @pytest.mark.parametrize("text", [
         # Branch E (#113667): the supervised gateway IS the interpreter image, so a killer aimed at
         # `python*` carries no hermes/gateway token yet takes it down — on every platform.
-        "taskkill /F /IM python.exe",
-        "taskkill /F /IM python.exe 2>/dev/null | head -2; echo done",
-        'taskkill /F /FI "IMAGENAME eq python.exe"',
-        "taskkill.exe /T /IM pythonw.exe",
-        'task"kill" /I"M" "python.exe" /F',
-        'subprocess.run(["taskkill", "/IM", "python.exe", "/F"])',
         "Stop-Process -Name python -Force",
         "Stop-Process -ProcessName python3.12",
         "Get-Process python | Stop-Process -Force",
+        'subprocess.run(["pkill", "-9", "python3"])',
         "pkill python",
         "pkill -9 python3",
         "pkill -f python",
@@ -44,24 +39,16 @@ class TestGatewayLifecyclePattern:
         "sudo pkill -9 python3",
         "pgrep python | xargs kill -9",
         "kill $(pidof python3)",
-        # Windows spellings of the hermes-gateway forms (salvaged from #94379).
-        "hermes.exe gateway restart",
-        "hermes.cmd gateway stop",
-        r'"C:\Program Files\hermes.exe" gateway restart',
-        "taskkill /F /IM hermes-gateway.exe",
         "Stop-Process -Name hermes-gateway -Force",
     ])
-    def test_interpreter_and_windows_kill_forms_are_blocked(self, text):
+    def test_interpreter_kill_forms_are_blocked(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
 
     @pytest.mark.parametrize("text", [
-        # Other images stay killable (evals/browser_use/orchestrate.py uses the first one).
-        "taskkill /F /IM agent-browser.exe /T",
-        "taskkill /F /IM notepad.exe",
+        # Other images stay killable.
         "Stop-Process -Name chrome",
         "killall node",
         # The ownership-scoped route the rejection points to: explicit PID / proc id.
-        "taskkill /F /PID 46544",
         "kill -9 46544",
         "Stop-Process -Id 46544",
         # Option VALUES are not targets; a `-f` pattern naming a specific script is not the gateway.
@@ -72,8 +59,6 @@ class TestGatewayLifecyclePattern:
         "pkill -f 'hermes-polis/run.sh'",
         "pkill -f my_hermes_bot.py",
         "pgrep python",
-        "hermes.exe gateway start",
-        "my-hermes.exe gateway restart",
         "python -m pytest tests/ -k kill",
         "skill python",
     ])
@@ -1851,8 +1836,7 @@ class TestLifecycleGuardNeverRaises:
         # where the OS actually exposes them (POSIX /dev/null).
         # The important contract is: verdict, not exception.
         assert self._scan(f"bash {tmp_path}") is False
-        if os.name != "nt":
-            assert self._scan("bash /dev/null") is True
+        assert self._scan("bash /dev/null") is True
 
     def test_magic_prefix_binaries_skipped_without_full_read(self, tmp_path):
         """Executable magic (ELF/PE/Mach-O) short-circuits the read: the
@@ -1882,6 +1866,5 @@ class TestLifecycleGuardNeverRaises:
         binary.write_bytes(b"\x7fELF" + bytes(128))
         for value in ("nul\x00byte.sh", str(binary), "/nonexistent/x.sh", str(tmp_path)):
             check_gateway_lifecycle("clean prompt", value)  # must not raise
-        if os.name != "nt":
-            with pytest.raises(GatewayLifecycleBlocked):
-                check_gateway_lifecycle("clean prompt", "/dev/null")
+        with pytest.raises(GatewayLifecycleBlocked):
+            check_gateway_lifecycle("clean prompt", "/dev/null")

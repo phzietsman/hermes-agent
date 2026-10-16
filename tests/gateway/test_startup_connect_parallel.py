@@ -20,9 +20,8 @@ BOTH the serial and the parallel world, so it proved nothing:
 The only assertion that distinguishes them is ``fast_end`` occurring *before*
 ``slow_end`` (true only when the two connects overlap). We record the
 connect start/end events in arrival order, which is fully independent of clock
-resolution -- ``time.monotonic()`` has only ~15 ms resolution on Windows
-(GetTickCount64), so parallel connects can land on the same tick and defeat any
-wall-clock comparison. Event ordering cannot be defeated by a coarse clock.
+resolution -- with a coarse clock parallel connects can land on the same tick and
+defeat any wall-clock comparison. Event ordering cannot be defeated by a coarse clock.
 """
 
 import asyncio
@@ -132,7 +131,7 @@ async def test_startup_connects_platforms_concurrently(monkeypatch, tmp_path):
 async def test_startup_one_failing_platform_does_not_block_others(monkeypatch, tmp_path):
     """A failing/slow platform must not prevent others from connecting (#83791).
 
-    Mirrors the reported Windows symptom: Telegram (dead proxy) must not keep
+    Mirrors the reported symptom: Telegram (dead proxy) must not keep
     WeChat/QQ offline. Here Telegram fails (returns False after a sleep) while
     Discord connects successfully and is registered.
     """

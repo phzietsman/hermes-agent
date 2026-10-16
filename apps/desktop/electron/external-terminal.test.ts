@@ -8,8 +8,7 @@ import {
   resolveTerminalLaunch,
   terminalScriptEnv,
   terminalScriptExtension,
-  tuiResumeArgs,
-  windowsQuote
+  tuiResumeArgs
 } from './external-terminal'
 
 const never = () => null
@@ -25,10 +24,6 @@ test('tuiResumeArgs pins the profile ahead of the mode flag', () => {
 
 test('posixQuote survives embedded single quotes', () => {
   assert.equal(posixQuote("/tmp/o'brien"), `'/tmp/o'\\''brien'`)
-})
-
-test('windowsQuote doubles embedded quotes', () => {
-  assert.equal(windowsQuote('C:\\a "b"'), '"C:\\a ""b"""')
 })
 
 test('terminalScriptEnv drops PATH in any casing and keeps the rest', () => {
@@ -49,8 +44,7 @@ test('buildTerminalScript execs the resolved runtime with its env', () => {
     args: ['-m', 'hermes_cli.main', '--tui', '--resume', 'sess'],
     command: '/home/b/.hermes/hermes-agent/venv/bin/python',
     cwd: "/home/b/o'brien",
-    env: { PYTHONPATH: '/home/b/.hermes/hermes-agent' },
-    platform: 'darwin'
+    env: { PYTHONPATH: '/home/b/.hermes/hermes-agent' }
   })
 
   assert.equal(
@@ -65,27 +59,8 @@ test('buildTerminalScript execs the resolved runtime with its env', () => {
   )
 })
 
-test('buildTerminalScript emits a cmd script on Windows', () => {
-  const script = buildTerminalScript({
-    args: ['--tui', '--resume', 'sess'],
-    command: 'C:\\hermes\\venv\\Scripts\\hermes.exe',
-    cwd: 'C:\\Users\\b',
-    env: { PYTHONUTF8: '1' },
-    platform: 'win32'
-  })
-
-  assert.deepEqual(script.split('\r\n'), [
-    '@echo off',
-    'cd /d "C:\\Users\\b"',
-    'set "PYTHONUTF8=1"',
-    '"C:\\hermes\\venv\\Scripts\\hermes.exe" "--tui" "--resume" "sess"',
-    ''
-  ])
-})
-
 test('terminalScriptExtension matches what the platform binds to a terminal', () => {
   assert.equal(terminalScriptExtension('darwin'), '.command')
-  assert.equal(terminalScriptExtension('win32'), '.cmd')
   assert.equal(terminalScriptExtension('linux'), '.sh')
 })
 
@@ -93,22 +68,6 @@ test('macOS opens the script with no -a so LaunchServices picks the user handler
   assert.deepEqual(resolveTerminalLaunch({ findOnPath: never, platform: 'darwin', scriptPath: '/tmp/x.command' }), {
     command: 'open',
     args: ['/tmp/x.command']
-  })
-})
-
-test('Windows prefers Windows Terminal and falls back to a cmd console', () => {
-  assert.deepEqual(
-    resolveTerminalLaunch({
-      findOnPath: command => (command === 'wt.exe' ? 'C:\\wt.exe' : null),
-      platform: 'win32',
-      scriptPath: 'C:\\x.cmd'
-    }),
-    { command: 'C:\\wt.exe', args: ['cmd.exe', '/k', 'C:\\x.cmd'] }
-  )
-
-  assert.deepEqual(resolveTerminalLaunch({ findOnPath: never, platform: 'win32', scriptPath: 'C:\\x.cmd' }), {
-    command: 'cmd.exe',
-    args: ['/c', 'start', '', 'cmd.exe', '/k', 'C:\\x.cmd']
   })
 })
 

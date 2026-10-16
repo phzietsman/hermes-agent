@@ -1,7 +1,7 @@
 """Tests for hermes_cli.process_identity — spawn tags, the machine spawn
 ledger, and the updater's ledger-identified reap rung.
 
-Layer context (Aug 2026, after the 12-minute Windows update hang): reapers
+Layer context (Aug 2026, after a 12-minute update hang): reapers
 previously inferred process lineage from PPIDs and cmdline shape. These
 primitives make identity positive instead: spawners stamp children
 (HERMES_SPAWN), long-lived processes self-register (pid, create_time,
@@ -148,7 +148,6 @@ def test_register_self_survives_non_utf8_argv(tmp_path):
     assert me["argv"] == " ".join(bad_argv)
 
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX mode bits are platform-specific")
 def test_register_self_writes_ledger_with_0600(tmp_path):
     ledger = tmp_path / "spawn-ledger.json"
     fake = _fake_psutil({999: 50.0})
@@ -261,38 +260,6 @@ def test_spawner_is_dead_tristate():
         # PID reuse: recorded spawner create differs from live process → dead.
         assert pi.spawner_is_dead(_entry(1, 1.0, spawner_pid=500, spawner_create=999.0)) is True
         assert pi.spawner_is_dead(_entry(1, 1.0)) is None
-
-
-# ---------------------------------------------------------------------------
-# Updater rung: _ledger_reapable_backend_pids
-# ---------------------------------------------------------------------------
-
-def _holders(*pids):
-    return [(p, "python.exe", f"python.exe -m hermes_cli.main --profile p{p} serve") for p in pids]
-
-
-def test_updater_reaps_ledger_proven_orphans():
-    from hermes_cli import update_cmd_windows
-
-    entries = [
-        _entry(200, 2.0, spawner_pid=700, spawner_create=7.0),   # spawner dead → reap
-        _entry(201, 2.1, spawner_pid=500, spawner_create=5.0),   # spawner alive → keep
-        _entry(202, 2.2, purpose="chat", spawner_pid=700, spawner_create=7.0),  # not reapable purpose
-    ]
-    fake = _fake_psutil({500: 5.0})
-    with patch.dict(sys.modules, {"psutil": fake}), \
-         patch.object(pi, "ledger_entries", return_value=entries), \
-         patch.object(pi, "spawner_is_dead", wraps=pi.spawner_is_dead):
-        assert update_cmd_windows._ledger_reapable_backend_pids(_holders(200, 201, 202, 203)) == [200]
-
-
-
-
-def test_updater_ledger_rung_never_raises():
-    from hermes_cli import update_cmd_windows
-
-    with patch.object(pi, "ledger_entries", side_effect=RuntimeError("boom")):
-        assert update_cmd_windows._ledger_reapable_backend_pids(_holders(200)) == []
 
 
 def test_desktop_ssh_backend_spawn_shape_is_desktop_owned(monkeypatch):

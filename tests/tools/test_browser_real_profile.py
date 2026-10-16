@@ -37,7 +37,7 @@ class TestRealProfileResolvers:
 
     def test_data_dir_unknown_browser_is_none(self):
         import hermes_cli.browser_connect as bc
-        assert bc.real_profile_data_dir("firefox", "Windows") is None
+        assert bc.real_profile_data_dir("firefox", "Linux") is None
 
 
 
@@ -383,18 +383,13 @@ class TestAgentBrowserCliCapture:
             elapsed = time.monotonic() - start
 
         assert cdp == "http://127.0.0.1:41022"
-        # Pipe capture would stall here for the full 15s timeout on POSIX and
-        # hang past the outer tool deadline on Windows.
+        # Pipe capture would stall here for the full 15s timeout.
         assert elapsed < 10, f"get cdp-url stalled {elapsed:.1f}s behind a grandchild"
 
     @pytest.mark.platforms("linux")
     def test_get_cdp_cleans_capture_files_despite_grandchild(self, tmp_path):
-        """POSIX: the capture files are unlinked even while the daemon
-        grandchild still holds them open. On Windows the inherited handles
-        keep the files until the daemon exits and the unlink is best-effort
-        by design (_unlink_command_output_files swallows OSError), so this
-        assertion is a linux_only test rather than a bare sys.platform check
-        — the contract stays visible in both CI lanes."""
+        """The capture files are unlinked even while the daemon grandchild
+        still holds them open."""
         import sys
 
         stub = tmp_path / "agent_browser_daemon_stub.py"
@@ -446,12 +441,7 @@ class TestAgentBrowserCliCapture:
 
     @pytest.mark.platforms("linux")
     def test_capture_cli_timeout_cleans_capture_files(self, tmp_path):
-        """POSIX: the capture files are unlinked after the timeout kill. On
-        Windows the killed CLI's handles can outlive the kill() return, so
-        the best-effort unlink may hit a still-open file and leave the
-        fixed-name pair behind (bounded: reused and truncated by the next
-        call with the same tag) — hence linux_only, not an inline
-        sys.platform guard."""
+        """The capture files are unlinked after the timeout kill."""
         import subprocess
         import sys
 
@@ -640,16 +630,6 @@ class TestChannelIdentity:
             with patch.object(bc.subprocess, "run", return_value=Mock(stdout="")):
                 assert bc._detect_default_darwin() == bc.UNSUPPORTED_CHANNEL
 
-
-    def test_windows_progid_maps(self):
-        import hermes_cli.browser_connect as bc
-        # Stable ProgIds → family; channel ProgIds are in the channel set.
-        assert dict(bc._WINDOWS_PROGID_MAP)["chromehtml"] == "chrome"
-        assert "chromebhtml" in bc._WINDOWS_CHANNEL_PROGIDS   # Beta
-        assert "msedgebhtml" in bc._WINDOWS_CHANNEL_PROGIDS   # Edge Beta
-        # A channel ProgId must not be a prefix hit for any stable entry.
-        for chan in bc._WINDOWS_CHANNEL_PROGIDS:
-            assert not any(chan.startswith(p) for p, _ in bc._WINDOWS_PROGID_MAP)
 
     def test_channel_sentinel_fails_closed_in_cdp(self):
         """A channel default → _real_profile_cdp fails closed, never launches."""
@@ -859,101 +839,6 @@ class TestReviewRound3:
         monkeypatch.setattr(bc, "get_hermes_home", lambda: tmp_path / "hh")
         bc.cleanup_real_profile_snapshots()  # no raise
 
-    # ── Windows lock probe (unit; the live share-lock is proven in the
-    #    windows-latest E2E — here we cover the probe's contract portably) ──
-    def test_lock_probe_false_when_readable(self, tmp_path):
-        import hermes_cli.browser_connect as bc
-        (tmp_path / "Default" / "Network").mkdir(parents=True)
-        (tmp_path / "Default" / "Network" / "Cookies").write_bytes(b"db")
-        assert bc._profile_is_locked(str(tmp_path), "Default") is False
-
-    def test_lock_probe_false_when_no_cookie_db(self, tmp_path):
-        import hermes_cli.browser_connect as bc
-        (tmp_path / "Default").mkdir(parents=True)
-        assert bc._profile_is_locked(str(tmp_path), "Default") is False
-
-    def test_lock_probe_true_on_permissionerror(self, tmp_path, monkeypatch):
-        import hermes_cli.browser_connect as bc
-        (tmp_path / "Default").mkdir(parents=True)
-        (tmp_path / "Default" / "Cookies").write_bytes(b"db")
-        import builtins
-        real_open = builtins.open
-
-        def deny(path, *a, **k):
-            if str(path).endswith("Cookies"):
-                raise PermissionError("locked")
-            return real_open(path, *a, **k)
-
-        monkeypatch.setattr(builtins, "open", deny)
-        assert bc._profile_is_locked(str(tmp_path), "Default") is True
-
-    def test_snapshot_fails_fast_when_locked(self, tmp_path, monkeypatch):
-        """snapshot_real_profile always BLOCKS when locked — never kills, never
-        proceeds to a heavy copy. autoclose off → plain quit guidance."""
-        import hermes_cli.browser_connect as bc
-        src = self._multi(tmp_path / "real")
-        home = tmp_path / "hh"
-        monkeypatch.setattr(bc, "get_hermes_home", lambda: home)
-        monkeypatch.setattr(bc, "_profile_is_locked", lambda s, p: True)
-        monkeypatch.setattr(bc, "_real_profile_autoclose", lambda: False)
-        called = {"copytree": 0}
-        import shutil as _sh
-        orig_ct = _sh.copytree
-        monkeypatch.setattr(_sh, "copytree",
-                            lambda *a, **k: (called.__setitem__("copytree", called["copytree"] + 1), orig_ct(*a, **k))[1])
-        dst, err = bc.snapshot_real_profile("chrome", src=str(src))
-        assert dst is None
-        assert err and err.startswith(bc._PROFILE_LOCKED_PREFIX)
-        assert called["copytree"] == 0  # bailed before any copy
-
-    def test_snapshot_blocks_when_locked_even_with_autoclose(self, tmp_path, monkeypatch):
-        """Even with autoclose armed, snapshot_real_profile does NOT kill — it
-        blocks and defers the close to the explicit, user-approved step. The
-        message offers the close (mentions Hermes can close it)."""
-        import hermes_cli.browser_connect as bc
-        src = self._multi(tmp_path / "real")
-        home = tmp_path / "hh"
-        monkeypatch.setattr(bc, "get_hermes_home", lambda: home)
-        monkeypatch.setattr(bc, "_profile_is_locked", lambda s, p: True)
-        monkeypatch.setattr(bc, "_real_profile_autoclose", lambda: True)
-        killed = {"n": 0}
-        monkeypatch.setattr(bc, "close_browser_holding_profile",
-                            lambda *a, **k: (killed.__setitem__("n", killed["n"] + 1), (True, "x"))[1])
-        dst, err = bc.snapshot_real_profile("chrome", src=str(src))
-        assert dst is None
-        assert err and err.startswith(bc._PROFILE_LOCKED_PREFIX)
-        assert killed["n"] == 0  # snapshot must NOT invoke the killer itself
-
-    def test_processes_holding_profile_identity_binding(self, tmp_path, monkeypatch):
-        """The process matcher requires BOTH a browser binary AND this exact
-        user-data-dir in the cmdline — never a same-name process on another dir."""
-        import hermes_cli.browser_connect as bc
-
-        class FakeProc:
-            def __init__(self, name, cmdline):
-                self.info = {"name": name, "cmdline": cmdline}
-
-        ud = str(tmp_path / "ud")
-        procs = [
-            FakeProc("chrome.exe", ["chrome.exe", f"--user-data-dir={ud}"]),      # match
-            FakeProc("chrome.exe", ["chrome.exe", "--user-data-dir=C:\\Other"]),  # wrong dir
-            FakeProc("python.exe", ["python.exe", f"--user-data-dir={ud}"]),      # not a browser
-        ]
-
-        class FakePsutil:
-            NoSuchProcess = psutil_exc = type("E", (Exception,), {})
-            AccessDenied = type("E2", (Exception,), {})
-
-            def process_iter(self, attrs=None):
-                return iter(procs)
-
-        import sys as _sys
-        monkeypatch.setitem(_sys.modules, "psutil", FakePsutil())
-        matched = list(bc._processes_holding_profile(ud))
-        assert len(matched) == 1
-        assert matched[0].info["name"] == "chrome.exe"
-        assert f"--user-data-dir={ud}" in " ".join(matched[0].info["cmdline"])
-
     def test_consent_off_triggers_cleanup(self, tmp_path, monkeypatch):
         called = {"n": 0}
         with patch.object(bt_cloud, "_use_real_profile", return_value=False), \
@@ -985,10 +870,9 @@ class TestReviewRound3:
 
 
 
-class TestWindowsLockedProfileCopy:
-    """Windows: a running Chrome holds Cookies/Login Data with an exclusive
-    lock. The auth DBs must be copied via SQLite online-backup (works under the
-    lock), not a raw copy that fails and leaves a signed-out snapshot."""
+class TestLockedProfileCopy:
+    """A running Chrome holds Cookies/Login Data open. The auth DBs must be copied
+    via SQLite online-backup (consistent under a live writer), not a raw copy."""
 
     def _locked_src(self, root):
         import sqlite3

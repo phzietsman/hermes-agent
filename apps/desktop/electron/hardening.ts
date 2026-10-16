@@ -53,7 +53,6 @@ interface SecretFileFs {
 interface SecretFileOptions {
   encoding?: BufferEncoding
   fs?: SecretFileFs
-  platform?: string
 }
 
 /**
@@ -71,22 +70,12 @@ interface SecretFileOptions {
  * file we own, never a symlink and never another user's file. Without them a
  * symlink planted at the path would send the chmod to whatever it resolves to.
  *
- * POSIX only. Windows has no meaningful chmod (Node maps it to the read-only
- * bit), and userData there is already ACL'd to the user profile, so we report
- * success without touching the file rather than flipping it read-only and
- * breaking the next write.
- *
  * Never throws: a chmod can legitimately fail (read-only mount, file owned by
  * another user), and failing to tighten a file is not a reason to lose the
  * user's configured gateway.
  */
 function tightenSecretFileMode(filePath, options: SecretFileOptions = {}) {
   const fsImpl = options.fs || fs
-  const platform = options.platform || process.platform
-
-  if (platform === 'win32') {
-    return true
-  }
 
   try {
     const stat = fsImpl.lstatSync(filePath)
@@ -112,15 +101,7 @@ function tightenSecretFileMode(filePath, options: SecretFileOptions = {}) {
 }
 
 /**
- * Atomically write a credential file, owner-only wherever the OS expresses
- * permissions as mode bits.
- *
- * On POSIX the file is owner-only from the moment it exists. On Windows this
- * only gets the atomic rename: `tightenSecretFileMode` no-ops there (Node maps
- * chmod to the read-only bit), so the file inherits the userData directory's
- * ACL rather than an explicit owner-only one. Tightening Windows ACLs is being
- * handled once, for the Python `_secure_file`, in PR #77527 — the desktop
- * should follow that rather than start a second ACL story here.
+ * Atomically write a credential file, owner-only from the moment it exists.
  *
  * The temp-then-rename dance is what makes the mode subtle: `renameSync` keeps
  * the TEMP file's permissions, so writing the temp at the default umask (0644)
@@ -443,8 +424,7 @@ function resolveRequestedPathForIpc(filePath, options: { purpose?: string; baseD
  * Candidate absolute paths to retry when a preview/download target could not
  * be resolved against the agent's working directory. Attachment references
  * stored in chat history are frequently HOME-relative (e.g.
- * "AppData/Local/hermes/attachments/foo.xlsx" on Windows, or
- * ".hermes/attachments/foo.xlsx" elsewhere) rather than relative to cwd
+ * ".hermes/attachments/foo.xlsx") rather than relative to cwd
  * (#115609). Pure and DI-testable: takes `home`/`hermesHome` as arguments
  * instead of reaching for `app.getPath('home')` / a module-level constant.
  * Returns an empty array for absolute paths, `file:` URLs, and empty input —
@@ -457,9 +437,7 @@ function homeRelativeAttachmentCandidates(raw, home, hermesHome) {
     return []
   }
 
-  const normalized = trimmed.replace(/\\/g, '/')
-
-  return [path.join(home, normalized), path.join(hermesHome, 'attachments', path.basename(normalized))]
+  return [path.join(home, trimmed), path.join(hermesHome, 'attachments', path.basename(trimmed))]
 }
 
 async function statForIpc(fsImpl: { promises: { stat: typeof fs.promises.stat } }, resolvedPath, purpose, typeLabel) {

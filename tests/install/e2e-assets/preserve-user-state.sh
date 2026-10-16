@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Shared user-state preservation hooks for the install E2E drivers
-# (POSIX + macOS + Windows-via-bash). Sourced by installer-script-e2e.sh and
+# (Linux + macOS). Sourced by installer-script-e2e.sh and
 # scripts under tests/install/.
 #
 # The contract under test: a tagged upgrade must not delete or modify the

@@ -8,7 +8,6 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import shutil
@@ -40,7 +39,6 @@ def build_environment(
     Sealed builds prune only the .pth files that refer to build-time state.
     """
     from pm.environment import _fresh_build, managed_environment
-    from pm.native_build import source_build_environment
 
     source, out = Path(source).absolute(), Path(out).absolute()
     if not (source / "pyproject.toml").is_file():
@@ -50,10 +48,6 @@ def build_environment(
     if out.exists() or out.is_symlink():
         raise FileExistsError(f"environment destination already exists: {out}")
     _require_install_allowed(explicit)
-    # A caller-supplied env is already the build environment (bundle staging
-    # prepares its own, shared with its Node builds).
-    if env is None:
-        env = source_build_environment(source)
     environment = managed_environment(
         out, python=Path(python) if python is not None else None,
         cache=Path(cache) if cache is not None else None, env=env,
@@ -160,9 +154,8 @@ def _tool(python: Path, executable: str) -> Path | None:
     if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", executable):
         raise ValueError("tool executable must be a filename, not a path")
     directory = python.parent
-    suffixes = (".exe", ".cmd", "") if os.name == "nt" else ("",)
-    return next((directory / (executable + suffix) for suffix in suffixes
-                 if (directory / (executable + suffix)).is_file()), None)
+    tool = directory / executable
+    return tool if tool.is_file() else None
 
 
 def python_tool(name: str, executable: str, *, root: Path | None = None) -> Path | None:
@@ -251,10 +244,10 @@ def _ensure_generation(
 ) -> Path:
     """Select the generation whose inputs match, building one only when none does.
 
-    Build at the final path: Windows launchers and scripts embed that path.
+    Build at the final path: launchers and scripts embed that path.
     The prior generation survives both successful replacement and failed builds.
     """
-    from pm.filesystem import lock_fd, native
+    from pm.filesystem import lock_fd
     from pm._uv import _toolchain
     from pm.install import _refuse_lazy, lazy_installs_allowed
     from pm.lock import Lockfile, _write
@@ -273,8 +266,7 @@ def _ensure_generation(
     def identity(base_python: Path) -> str:
         # The same pinned artifact can live in different stores. A venv's
         # pyvenv.cfg keeps the original interpreter path, not just its version.
-        # The store spells its root extended-length on Windows; the identity must not.
-        return hashlib.sha256(json.dumps({**inputs, "interpreter": native(base_python)},
+        return hashlib.sha256(json.dumps({**inputs, "interpreter": str(base_python)},
                                          sort_keys=True).encode()).hexdigest()
 
     def current(base_python: Path | None) -> Path | None:

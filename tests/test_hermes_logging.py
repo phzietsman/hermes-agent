@@ -1,5 +1,4 @@
 """Tests for hermes_logging — centralized logging setup."""
-import importlib.util
 import io
 import logging
 import os
@@ -12,13 +11,7 @@ from unittest.mock import patch
 import pytest
 
 import hermes_logging
-# Use whatever RotatingFileHandler class hermes_logging actually resolved so
-# the autouse fixture's isinstance checks (which strip rotating handlers
-# between tests) match the real handlers on every platform. hermes_logging
-# aliases concurrent-log-handler's ConcurrentRotatingFileHandler on Windows
-# (the #44873 fix) but keeps stdlib RotatingFileHandler on POSIX, so importing
-# the name from the module under test keeps the two in lockstep.
-from hermes_logging import RotatingFileHandler
+from logging.handlers import RotatingFileHandler
 
 
 @pytest.fixture(autouse=True)
@@ -404,8 +397,8 @@ class TestSetupLogging:
     ):
         """A live routed profile must not pay the delete check (two stats) on every record.
 
-        ``closed-per-write`` is how concurrent-log-handler behaves on Windows: the stream is
-        closed after every write, which must not read as a skipped write.
+        ``closed-per-write``: a handler whose stream is closed after every write must not
+        read as a skipped write.
         """
         from hermes_constants import reset_hermes_home_override, set_hermes_home_override
 
@@ -536,184 +529,6 @@ class TestAddRotatingHandler:
 
         assert log_path.exists()
         assert stat.S_IMODE(log_path.stat().st_mode) == 0o660
-
-
-
-class TestWindowsConcurrentLogLockTimeout:
-    """Windows concurrent-log-handler lock timeouts stay inside logging."""
-
-    def _make_logger_and_handler(self, log_path: Path):
-        logger = logging.getLogger(f"_test_concurrent_lock_timeout_{log_path.stem}")
-        logger.handlers.clear()
-        logger.propagate = False
-        logger.setLevel(logging.INFO)
-
-        handler = hermes_logging._ManagedRotatingFileHandler(
-            str(log_path), maxBytes=1, backupCount=1, encoding="utf-8",
-        )
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        logger.addHandler(handler)
-        return logger, handler
-
-    @pytest.mark.platforms("windows")
-    def test_helper_only_matches_windows_concurrent_lock_timeout(self):
-        # Windows-only: concurrent-log-handler (and therefore its cross-process
-        # lock timeout) is only installed on Windows — faking sys.platform
-        # exercised the string check without the handler that raises it.
-        assert hermes_logging._is_windows_concurrent_log_lock_timeout(
-            RuntimeError("Cannot acquire lock after 20 attempts")
-        )
-        assert not hermes_logging._is_windows_concurrent_log_lock_timeout(
-            RuntimeError("some other logging failure")
-        )
-
-    @pytest.mark.platforms("linux")
-    def test_helper_never_matches_off_windows(self):
-        # On POSIX the suppression must stay inert: stdlib RotatingFileHandler
-        # is in use, so this RuntimeError text is never a CLH lock timeout.
-        assert not hermes_logging._is_windows_concurrent_log_lock_timeout(
-            RuntimeError("Cannot acquire lock after 20 attempts")
-        )
-
-    @pytest.mark.platforms("windows")
-    def test_lock_timeout_routed_to_handle_error_is_suppressed(self, tmp_path, capsys):
-        """Mirror CLH's real control flow.
-
-        ``concurrent-log-handler``'s ``emit()`` wraps its whole body in
-        ``try/except Exception: self.handleError(record)``, so the lock
-        RuntimeError raised in ``_do_lock()`` is caught *inside* CLH and routed
-        to ``handleError`` with the exception live in ``sys.exc_info()``.  We
-        invoke ``handleError`` the same way CLH would and assert no traceback
-        reaches stderr (the slash-worker surface) — but the suppression must
-        still surface once through the logging system, not stay a black hole.
-
-        Windows-only: the suppression is keyed on the real host, and only on
-        Windows is the base handler CLH at all — the fake platform gave us the
-        branch without the handler that raises."""
-        logger, handler = self._make_logger_and_handler(tmp_path / "agent.log")
-        record = logger.makeRecord(
-            logger.name, logging.INFO, __file__, 0, "force rollover", (), None,
-        )
-        captured_warnings: list[logging.LogRecord] = []
-
-        class _Capture(logging.Handler):
-            def emit(self, record: logging.LogRecord) -> None:
-                captured_warnings.append(record)
-
-        listener = _Capture()
-        logging.getLogger("hermes_logging").addHandler(listener)
-        monkeypatch = pytest.MonkeyPatch()
-        monkeypatch.setattr(hermes_logging, "_windows_lock_timeout_warned", False)
-        try:
-            try:
-                raise RuntimeError("Cannot acquire lock after 20 attempts")
-            except RuntimeError:
-                handler.handleError(record)
-            try:
-                raise RuntimeError("Cannot acquire lock after 20 attempts")
-            except RuntimeError:
-                handler.handleError(record)
-
-            captured = capsys.readouterr()
-            assert "Cannot acquire lock after 20 attempts" not in captured.err
-            assert "--- Logging error ---" not in captured.err
-            # One-shot warning: the second suppressed emit must not re-warn.
-            assert len(captured_warnings) == 1
-            assert "concurrent-log-handler" in captured_warnings[0].getMessage()
-        finally:
-            monkeypatch.undo()
-            logging.getLogger("hermes_logging").removeHandler(listener)
-            logger.removeHandler(handler)
-            handler.close()
-
-    def test_lock_timeout_warning_is_one_shot(self, caplog):
-        """The suppressed-timeout warning is exactly-once per process.
-
-        Every emit after the first CLH lock failure raises the same
-        RuntimeError, so warn-once is what keeps errors.log from being spammed
-        as badly as the stderr noise the suppression replaces."""
-        monkeypatch = pytest.MonkeyPatch()
-        monkeypatch.setattr(hermes_logging, "_windows_lock_timeout_warned", False)
-        try:
-            with caplog.at_level(logging.WARNING, logger="hermes_logging"):
-                hermes_logging._warn_windows_lock_timeout_once()
-                hermes_logging._warn_windows_lock_timeout_once()
-        finally:
-            monkeypatch.undo()
-        warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
-        assert len(warnings) == 1
-        assert "concurrent-log-handler" in warnings[0].getMessage()
-
-    @pytest.fixture
-    def fresh_logging(self):
-        def load():
-            spec = importlib.util.spec_from_file_location(
-                "_hermes_logging_import_test", hermes_logging.__file__,
-            )
-            assert spec is not None and spec.loader is not None
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            return module
-        return load
-
-    @pytest.mark.platforms("windows")
-    def test_fresh_import_selects_working_concurrent_handler(self, tmp_path, fresh_logging):
-        """Native locking must work at import, before the handler class is defined."""
-        from concurrent_log_handler import ConcurrentRotatingFileHandler
-
-        module = fresh_logging()
-        assert module.RotatingFileHandler is ConcurrentRotatingFileHandler
-        assert module._WINDOWS_CLH_FALLBACK is False
-        assert module._WINDOWS_CLH_FALLBACK_REASON == ""
-
-        log_path = tmp_path / "agent.log"
-        handler = module._new_file_handler(
-            log_path, level=logging.INFO, max_bytes=1, backup_count=1,
-            formatter=logging.Formatter("%(message)s"),
-        )
-        try:
-            for message in ("before rollover", "after rollover"):
-                handler.handle(logging.LogRecord("test", logging.INFO, "", 0, message, (), None))
-            handler.flush()
-            assert log_path.read_text(encoding="utf-8-sig").splitlines() == ["after rollover"]
-            assert (tmp_path / "agent.log.1").read_text(encoding="utf-8-sig").splitlines() == ["before rollover"]
-        finally:
-            handler.close()
-
-    @pytest.mark.platforms("windows")
-    def test_fresh_import_retains_lock_failure_and_writes_without_rollover(
-        self, tmp_path, monkeypatch, fresh_logging,
-    ):
-        """A post-import platform fake misses both handler selection and fallback resets."""
-        import portalocker
-        from logging.handlers import RotatingFileHandler as StdlibRotatingFileHandler
-
-        failure = ImportError("pywintypes is required for Win32Locker but not found")
-
-        def fail_lock(stream, flags):
-            raise failure
-
-        monkeypatch.setattr(portalocker, "lock", fail_lock)
-        module = fresh_logging()
-        assert module.RotatingFileHandler is StdlibRotatingFileHandler
-        assert module._WINDOWS_CLH_FALLBACK is True
-        assert module._WINDOWS_CLH_FALLBACK_REASON == repr(failure)
-
-        log_path = tmp_path / "agent.log"
-        handler = module._new_file_handler(
-            log_path, level=logging.INFO, max_bytes=1, backup_count=1,
-            formatter=logging.Formatter("%(message)s"),
-        )
-        try:
-            assert handler.maxBytes == 0
-            assert handler.backupCount == 0
-            for message in ("first message", "second message"):
-                handler.handle(logging.LogRecord("test", logging.INFO, "", 0, message, (), None))
-            handler.flush()
-            assert log_path.read_text(encoding="utf-8-sig").splitlines() == ["first message", "second message"]
-            assert not list(tmp_path.glob("agent.log.*"))
-        finally:
-            handler.close()
 
 
 
@@ -927,15 +742,15 @@ def test_eio_after_successful_reopen_still_names_the_path_once(tmp_path, capsys)
 
 
 class TestSafeStderr:
-    """Tests for _safe_stderr() — Unicode tolerance on Windows console."""
+    """Tests for _safe_stderr() — Unicode tolerance on a non-UTF-8 locale."""
 
 
     def test_wraps_non_utf8_stderr(self, monkeypatch):
-        """On non-UTF-8 systems (e.g. Windows cp949), wraps stderr with UTF-8."""
+        """On non-UTF-8 locales (e.g. cp949), wraps stderr with UTF-8."""
         import io
 
         class FakeStderr:
-            """Simulates a Windows stderr with legacy encoding."""
+            """Simulates a stderr with legacy encoding."""
             encoding = "cp949"
             buffer = io.BytesIO()
 

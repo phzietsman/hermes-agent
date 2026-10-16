@@ -24,22 +24,6 @@ def test_expired_claude_code_token_is_not_connected(monkeypatch):
     assert providers["claude-code"]["status"]["logged_in"] is False
 
 
-def test_windows_claude_code_removal_command_is_unambiguous_powershell():
-    """PowerShell must not see ``rm -f``: ``-f`` is an ambiguous Remove-Item parameter."""
-    from hermes_cli.web_routers.oauth import _oauth_provider_disconnect_command
-
-    command = _oauth_provider_disconnect_command(
-        {"id": "claude-code", "flow": "external"}, platform="win32"
-    )
-
-    assert command is not None
-    assert "Remove-Item" in command
-    assert "-LiteralPath" in command
-    assert "-Force" in command
-    assert "rm -f" not in command
-    assert " -f " not in command and not command.strip().endswith(" -f")
-
-
 def test_disconnect_is_not_success_when_nothing_was_cleared(monkeypatch):
     """A no-op clear must not be a 200 the client can toast as removed."""
     from hermes_cli import auth as auth_mod

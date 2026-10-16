@@ -453,10 +453,6 @@ export async function setupDeadBackend(options: DeadBackendOptions = {}): Promis
  * electron-builder's output layout under release/.
  */
 function resolvePackagedBinaryPath(): string {
-  if (process.platform === 'win32') {
-    return path.join(RELEASE_ROOT, 'win-unpacked', 'Hermes.exe')
-  }
-
   if (process.platform === 'darwin') {
     const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
 

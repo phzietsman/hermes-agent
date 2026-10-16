@@ -2,8 +2,8 @@
  * Pure parse + judge of the update marker `HERMES_HOME/.hermes-update-in-progress`
  * (A7 rule 4, contract in `tests/fixtures/update_marker_corpus.json`).
  *
- * The corpus is authoritative: every reader (Python, Rust, bash, PowerShell,
- * this Desktop) runs its `judge` cases. Process facts are injected
+ * The corpus is authoritative: every reader (Python, bash, this Desktop)
+ * runs its `judge` cases. Process facts are injected
  * (`JudgeEnv`), so the same code serves the corpus table and the real host.
  *
  * Format:

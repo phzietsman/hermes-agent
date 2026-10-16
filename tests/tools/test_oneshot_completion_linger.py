@@ -344,7 +344,6 @@ def _run_e2e_parent(tmp_path, *, linger: bool) -> Path:
     assert "SPAWNED" in proc.stdout
     return marker
 
-@pytest.mark.skipif(sys.platform == "win32", reason="POSIX pipe/session semantics")
 def test_e2e_lingering_parent_keeps_background_delivery_alive(tmp_path):
     """Real processes: parent lingers → the backgrounded delivery survives
     the parent's exit window and completes (marker file written)."""

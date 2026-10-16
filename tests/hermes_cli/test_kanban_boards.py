@@ -193,9 +193,7 @@ class TestBoardCRUD:
         # so the re-creation goes through create_board, as it should.)
         kb.create_board("recycle")
         # First connect populates _INITIALIZED_PATHS for this DB.  Use
-        # connect_closing: `with connect() as conn` does NOT close the fd, and
-        # on Windows an open connection locks kanban.db so remove_board's
-        # rename below fails with WinError 5/32.
+        # connect_closing: `with connect() as conn` does NOT close the fd.
         with kbc.connect_closing(board="recycle") as conn:
             kb.create_task(conn, title="t1", assignee="dev")
         db_path = kb.board_dir("recycle") / "kanban.db"

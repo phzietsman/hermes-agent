@@ -27,10 +27,9 @@ def _describe_transport_error(error: Exception) -> str:
     except Exception:
         return type(error).__name__
 
-# TCP keepalive so a half-open/CLOSE-WAIT long-poll errors out instead of blocking getUpdates forever
-# (Windows leaves SO_KEEPALIVE off). Idle/interval knobs are best-effort per Python/OS combo.
-# Windows does not enable SO_KEEPALIVE on new sockets by default, so a dead api.telegram.org peer can hang
-# forever (#87057).
+# TCP keepalive so a half-open/CLOSE-WAIT long-poll errors out instead of blocking getUpdates forever:
+# new sockets have SO_KEEPALIVE off by default, so a dead api.telegram.org peer can hang forever (#87057).
+# Idle/interval knobs are best-effort per Python/OS combo.
 _TCP_KEEPALIVE_IDLE_S = 30
 _TCP_KEEPALIVE_INTERVAL_S = 10
 _TCP_KEEPALIVE_COUNT = 3

@@ -216,16 +216,11 @@ test('FIX #95701: with no reauth latch every boot-progress update flows as befor
 })
 
 test('FIX #103288: a failed local `ssh -G` probe latches and is never auto-retried', () => {
-  const error = sshClientFailedError(
-    'C:\\Windows\\System32\\OpenSSH\\ssh.exe',
-    new Error('Command failed: ssh.exe -G -- box'),
-    'win32'
-  )
+  const error = sshClientFailedError('/usr/bin/ssh', new Error('Command failed: ssh -G -- box'))
 
   assert.equal(isSshClientFailedBootFailure(error), true)
-  assert.match(error.message, /System32\\OpenSSH\\ssh\.exe/)
+  assert.match(error.message, /\/usr\/bin\/ssh/)
   assert.match(error.message, /Command failed/)
-  assert.match(error.message, /desktop\.ssh_path/)
 
   const context = { attemptedRemote: true, isReauth: false, isSshClientFailed: true }
 
@@ -245,11 +240,4 @@ test('FIX #103288: a failed local `ssh -G` probe latches and is never auto-retri
     true
   )
   assert.equal(shouldLatchSshClientFailure({ attemptedRemote: false, isReauth: false, isSshClientFailed: true }), false)
-})
-
-test('FIX #103288: the desktop.ssh_path hint is Windows-only', () => {
-  const error = sshClientFailedError('ssh', new Error('boom'), 'darwin')
-
-  assert.equal(isSshClientFailedBootFailure(error), true)
-  assert.doesNotMatch(error.message, /ssh_path/)
 })

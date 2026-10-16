@@ -41,9 +41,7 @@ it('packages the Icon Composer layers only where actool can compile them', () =>
 })
 
 it('never packages the layered icon from a non-mac host', () => {
-  for (const platform of ['linux', 'win32']) {
-    expect(macIconResource(desktopRoot, { platform })).toBe(LEGACY_ICNS)
-  }
+  expect(macIconResource(desktopRoot, { platform: 'linux' })).toBe(LEGACY_ICNS)
 })
 
 it('reads the version out of the actool plist and treats any failure as absent', () => {

@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import logging
 import math
-import os
 from pathlib import Path
 
 import psutil
@@ -64,16 +63,13 @@ def recorded_process(state: dict):
         if (not proc.is_running() or not _same_birth(proc, state)
                 or Path(proc.exe()) != Path(exe)):
             return None
-        # Windows retains the original parent PID; POSIX reparents orphans.
-        if os.name == "nt" and proc.ppid() != owner_pid:
-            return None
         parent = proc.parent()
         if parent is not None:
             if parent.pid == owner_pid:
                 if not _same_birth(parent, state, "owner_"):
                     return None
-            elif os.name == "nt" or not _owner_is_dead(state):
-                return None  # POSIX may reparent a router whose recorded owner exited.
+            elif not _owner_is_dead(state):
+                return None  # A router whose recorded owner exited may be reparented.
         return proc
     except (KeyError, TypeError, ValueError, OverflowError, OSError, psutil.Error):
         return None
@@ -120,7 +116,7 @@ def legacy_recorded_process(state: dict):
         root = state_path().parent
         exe = Path(proc.exe())
         exe.relative_to(root)
-        if exe.name.lower() not in ("llama-server", "llama-server.exe"):
+        if exe.name.lower() != "llama-server":
             return None
         if proc.create_time() > state_path().stat().st_mtime:
             return None  # the PID was reused after this record was written
@@ -147,26 +143,6 @@ def legacy_recorded_process(state: dict):
         return None
 
 
-def _legacy_orphan_process(state: dict):
-    """Windows-only legacy stop recovery after the process identity is established."""
-    from hermes_cli.local_runtime.supervisor import state_path
-
-    if os.name != "nt":
-        return None
-    proc = legacy_recorded_process(state)
-    if proc is None:
-        return None
-    try:
-        relative = Path(proc.exe()).relative_to(state_path().parent)
-        if len(relative.parts) != 3 or relative.name.lower() != "llama-server.exe":
-            return None
-        if proc.parent() is not None or proc.ppid() <= 0:
-            return None
-        return proc
-    except (OSError, psutil.Error):
-        return None
-
-
 def stop_recorded_orphan() -> bool:
     """Explicit user stop only. Refuse uncertain identity or a living recorded owner."""
     from hermes_cli.local_runtime.supervisor import LlamaServerSupervisor, state_path
@@ -182,13 +158,12 @@ def stop_recorded_orphan() -> bool:
     try:
         if not psutil.pid_exists(state["pid"]):
             return True  # keep the dead record; endpoint resolution rejects it
-        if is_modern(state):
-            proc = recorded_process(state)
-            if proc is None or not _owner_is_dead(state):
-                return False
-        else:
-            proc = _legacy_orphan_process(state)
-        if proc is None or read_state() != state or not proc.is_running():
+        if not is_modern(state):
+            return False
+        proc = recorded_process(state)
+        if proc is None or not _owner_is_dead(state):
+            return False
+        if read_state() != state or not proc.is_running():
             return False
         # Retain the psutil incarnation object: destructive methods guard PID reuse.
         LlamaServerSupervisor._terminate_tree(proc, verified_root=True)

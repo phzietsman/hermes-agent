@@ -24,7 +24,7 @@ from tui_gateway import server
 def bad_bytes_cmd(tmp_path):
     """A shell command running a child that writes bytes invalid in UTF-8 (and in most
     locale codepages), then text. A script file rather than ``-c`` so the shell.exec
-    approval gate lets it through; quoted paths work under /bin/sh and cmd.exe."""
+    approval gate lets it through."""
     script = tmp_path / "emit_bad_bytes.py"
     script.write_text(
         "import sys\nsys.stdout.buffer.write(bytes([255, 254]) + b' tail-ok')\nsys.stdout.flush()\n",

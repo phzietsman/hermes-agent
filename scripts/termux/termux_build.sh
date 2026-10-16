@@ -275,7 +275,7 @@ from concurrent.futures import ThreadPoolExecutor
 # applied to 3.11/3.12; 3.13 changed it), so markers keying on
 # `sys_platform == 'linux'` no longer admit the termux target -- and
 # `platform_system` stays "Linux" (Android kernel), admitting
-# platform_system-gated deps. windows/darwin markers exclude it as before.
+# platform_system-gated deps. darwin markers exclude it as before.
 TARGET_ENV = {
     "implementation_name": "cpython",
     "implementation_version": "3.14.6",

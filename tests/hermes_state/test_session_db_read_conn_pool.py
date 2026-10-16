@@ -590,7 +590,7 @@ def test_no_read_connection_is_opened_without_descriptor_headroom(db, monkeypatc
 
 
 def test_fd_headroom_guard_fails_open_where_it_cannot_measure(monkeypatch):
-    """No RLIMIT_NOFILE (Windows) means unmeasurable, not tight."""
+    """No usable RLIMIT_NOFILE means unmeasurable, not tight."""
     import hermes_state_readpool as readpool
 
     monkeypatch.setattr(readpool, "_fd_soft_limit", lambda: None)
@@ -602,18 +602,6 @@ def test_fd_headroom_guard_fails_open_where_it_cannot_measure(monkeypatch):
     monkeypatch.setattr(readpool, "_open_fd_count", lambda: -1)
     monkeypatch.setattr(readpool, "_fd_usage_cache", (0.0, None))
     assert readpool._fd_headroom_ok() is False
-
-
-def test_fd_soft_limit_fails_open_for_importable_resource_stub(monkeypatch):
-    """An importable ``resource`` without ``getrlimit`` (third-party Windows stub,
-    #111877) must read as "unmeasurable", not abort every session read."""
-    import sys
-    import types
-
-    monkeypatch.setitem(sys.modules, "resource", types.ModuleType("resource"))
-
-    assert hermes_state_readpool._fd_soft_limit() is None
-    assert hermes_state_readpool._fd_headroom_ok() is True
 
 
 @pytest.mark.requires_wal

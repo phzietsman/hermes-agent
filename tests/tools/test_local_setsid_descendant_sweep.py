@@ -178,7 +178,6 @@ def test_kill_process_never_killpgs_the_callers_own_group(monkeypatch):
     assert killed == [12345]
 
 
-@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group semantics")
 class TestReapUntrackedGroupGuard:
     """ProcessRegistry._reap_untracked terminates through _terminate_host_pid,
     which revalidates the kernel start time captured at spawn before signalling.

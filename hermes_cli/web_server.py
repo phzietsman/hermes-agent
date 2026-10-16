@@ -202,9 +202,8 @@ async def _lifespan(app: "FastAPI"):
     )
     eager_reconcile_thread.start()
 
-    # Import hermes_cli.gateway *before* the yield: on Windows + 3.11 the
-    # import holds the GIL, so run_in_executor still froze the loop 15-22s and
-    # the Desktop's 10s ready-probe timed out (GH-73083).
+    # Import hermes_cli.gateway *before* the yield: the import holds the GIL, so
+    # run_in_executor still froze the loop and the Desktop's ready-probe timed out (GH-73083).
     _warm_gateway_module()
 
     # Snapshot the checkout revision so lazy-import paths (model picker) can
@@ -1443,18 +1442,16 @@ def _on_server_started(
     # headless backend (a URL with no UI behind it).
     app.state.serves_spa = not headless
 
-    # Positive process identity in the machine spawn ledger (+ Windows
-    # kill-on-close job). Registered AFTER the bind so the entry carries the
+    # Positive process identity in the machine spawn ledger. Registered AFTER the bind so the entry carries the
     # ACTUAL port — what lets `hermes update` relaunch a manually-started serve
     # on its real endpoint (#63206).
     def _register_identity() -> None:
-        from hermes_cli.process_identity import attach_self_to_kill_on_close_job, register_self
+        from hermes_cli.process_identity import register_self
 
         register_self(
             "serve" if headless else "dashboard",
             detail={"host": host, "port": actual_port, "profile": initial_profile or "", "isolated": isolated},
         )
-        attach_self_to_kill_on_close_job()
 
     _best_effort("process-identity registration", _register_identity)
 
@@ -1503,8 +1500,8 @@ def _on_server_started(
         except Exception:
             _log.debug("Deferred MCP discovery arm failed", exc_info=True)
 
-    # Collapse the peer-hangup teardown flood (#50005): 50+ identical WinError
-    # 10054 tracebacks per Desktop disconnect become one debug line.
+    # Collapse the peer-hangup teardown flood (#50005): identical connection-reset
+    # tracebacks per Desktop disconnect become one debug line.
     def _install_noise_filter() -> None:
         from tui_gateway.loop_noise import install_loop_noise_filter
 
@@ -1529,54 +1526,16 @@ def _on_server_started(
     _hb_loop.call_later(_hb_interval, _loop_heartbeat, _hb_loop.time() + _hb_interval)
 
 
-def _windows_serve_loop_factory(config):
-    """Loop factory for serve on Windows: always a selector loop.
-
-    uvicorn 0.41's ``asyncio_loop_factory`` returns ProactorEventLoop on
-    win32, on which uvicorn's socket stack binds-but-never-accepts (READY
-    prints, then WinError 10014 accept failures, exit 1, desktop
-    ECONNREFUSED — #120164, regression of #50641). A factory that already
-    yields selector loops (older uvicorn, explicit ``--loop``) passes through.
-    """
-    factory = config.get_loop_factory()
-    if factory is None or factory is asyncio.ProactorEventLoop:  # type: ignore[attr-defined]
-        return asyncio.SelectorEventLoop
-    return factory
-
-
 def _run_serve(serve, config, host: str, port: int) -> None:
-    """Drive ``serve()`` on the loop uvicorn expects.
+    """Drive ``serve()`` with ``asyncio.run``.
 
-    POSIX keeps ``asyncio.run`` (already a SelectorEventLoop / uvloop). On
-    Windows ``asyncio.run`` defaults to a ProactorEventLoop, on which uvicorn
-    binds a socket that never accepts (#50641), so mirror uvicorn's own runner +
-    loop factory there (hand-installed selector policy for uvicorn < 0.36).
     Ctrl+C -> clean return; probe-to-bind port race -> sentinel + exit code.
     """
-    runner = asyncio.run
-    runner_kwargs: dict = {}
-    if sys.platform == "win32":
-        # Resolved FIRST; the serve call is outside this try so genuine
-        # serve-time errors (port in use) propagate instead of double-running.
-        try:
-            from uvicorn._compat import asyncio_run as runner
-
-            runner_kwargs = {"loop_factory": _windows_serve_loop_factory(config)}
-        except Exception:
-            runner = asyncio.run
-            runner_kwargs = {}
-            try:
-                asyncio.set_event_loop_policy(
-                    asyncio.WindowsSelectorEventLoopPolicy()  # type: ignore[attr-defined]
-                )
-            except Exception:
-                pass
-
     # ``capture_signals()`` re-raises the captured signal after graceful
     # shutdown; console Ctrl+C lands as KeyboardInterrupt = clean exit.
-    # (Re-raised SIGTERM/SIGBREAK keep their terminate disposition.)
+    # (A re-raised SIGTERM keeps its terminate disposition.)
     try:
-        runner(serve(), **runner_kwargs)
+        asyncio.run(serve())
     except KeyboardInterrupt:
         return
     except SystemExit as exc:

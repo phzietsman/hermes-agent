@@ -544,7 +544,7 @@ def _default_workers() -> int:
 
 def run_host(stdin: Any = None, stdout: Any = None) -> None:
     os.environ["HERMES_COMPUTE_HOST_CHILD"] = "1"
-    # JSONL framing is byte-oriented; avoid text-stream read-ahead on Windows pipes.
+    # JSONL framing is byte-oriented; avoid text-stream read-ahead.
     stdin = stdin if stdin is not None else getattr(sys.stdin, "buffer", sys.stdin)
     host = ComputeHost(stdout=stdout or sys.stdout)
     shutting_down = threading.Event()

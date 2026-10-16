@@ -163,17 +163,8 @@ home before setup so experimental code does not migrate production data.
 Activate from the repository root in each new shell. Activation prepares the
 checkout through PM and syncs stale dependencies.
 
-Bash:
-
 ```bash
 source ./activate
-hermes --version
-```
-
-PowerShell:
-
-```powershell
-. .\activate.ps1
 hermes --version
 ```
 
@@ -187,8 +178,7 @@ not install JS workspaces or rewrite launchers and shell configuration. `deactiv
 Use the [PM developer workflow](../reference/package-management.md#developer-workflow) to prepare Python 3.14 first.
 Run these commands from that checkout with its prepared Python. Keep the same
 development `HERMES_HOME`. PM must be able to start before it can build another
-environment. On Windows, initialize the native C++ build environment for your
-architecture before building source dependencies.
+environment.
 
 Build an independent interpreter for tests and editor tools:
 
@@ -209,13 +199,14 @@ Do not run raw pip or uv commands to change a PM-built environment.
 To keep the test environment outside the checkout, replace `.venv` with a fresh absolute
 path. Set `HERMES_PYTHON` to that environment's interpreter:
 
-- POSIX: `export HERMES_PYTHON="/absolute/path/to/hermes-dev/bin/python"`
-- PowerShell: `$env:HERMES_PYTHON = 'C:\absolute\path\to\hermes-dev\Scripts\python.exe'`
+```bash
+export HERMES_PYTHON="/absolute/path/to/hermes-dev/bin/python"
+```
 
 The canonical runner discovers repository `.venv` automatically. It clears
 `PYTHONPATH`, so pytest must be installed in the interpreter's own environment.
 This test environment does not replace PM's application selection or tool
-store. Do not point a bundled app at it or install into an MSIX payload.
+store. Do not point a bundled app at it
 
 For an isolated development instance, select a disposable `HERMES_HOME` before
 starting the source command. Use `hermes setup` to configure it rather
@@ -248,7 +239,7 @@ scripts/run_tests.sh
 scripts/run_tests.sh tests/agent/ -v
 ```
 
-On Windows, run the script through Bash. When no local `.venv` or `venv`
+When no local `.venv` or `venv`
 contains pytest, the runner accepts the explicit `HERMES_PYTHON` above. It
 clears credentials, isolates `HERMES_HOME`, and runs each test file in a separate
 subprocess through `scripts/run_tests_parallel.py`. It does not use xdist.
@@ -267,18 +258,16 @@ See [Package management](../reference/package-management.md) for PM commands and
 - **PEP 8** with practical exceptions (no strict line length enforcement)
 - **Comments**: Only when explaining non-obvious intent, trade-offs, or API quirks
 - **Error handling**: Catch specific exceptions. Use `logger.warning()`/`logger.error()` with `exc_info=True` for unexpected errors
-- **Cross-platform**: Never assume Unix (see below)
+- **Cross-platform**: Code must work on both Linux and macOS (see below)
 - **Profile-safe paths**: Never hardcode `~/.hermes` — use `get_hermes_home()` from `hermes_constants` for code paths and `display_hermes_home()` for user-facing messages. See [AGENTS.md](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md#profiles-multi-instance-support) for full rules.
 
 ## Cross-Platform Compatibility
 
-See **[Platform Support](../getting-started/platform-support.md)**. Native Windows uses Git Bash (from [Git for Windows](https://git-scm.com/download/win)) for shell commands. The dashboard uses POSIX PTYs on Unix and the `pywinpty`/ConPTY bridge on Windows. Availability depends on that host's native dependency support. If you're doing Windows-heavy dev, run the Windows-footgun lint (`scripts/check-windows-footguns.py`) before pushing.
+See **[Platform Support](../getting-started/platform-support.md)**.
 
 When contributing code, keep these rules in mind:
 
-- **Don't add unguarded `signal.SIGKILL` references.** It's not defined on Windows. Either route through `gateway.status.terminate_pid(pid, force=True)` (the centralized primitive that does `taskkill /T /F` on Windows and SIGKILL on POSIX), or fall back with `getattr(signal, "SIGKILL", signal.SIGTERM)`.
-- **Use `psutil.pid_exists()` for process liveness.** Do not use `os.kill(pid, 0)` on Windows; it is not a safe probe.
-- **Don't force the terminal to POSIX semantics.** `os.setsid`, `os.killpg`, `os.getpgid`, `os.fork` all raise on Windows — gate them with `if sys.platform != "win32":` or `if os.name != "nt":`.
+- **Use `psutil.pid_exists()` for process liveness** rather than `os.kill(pid, 0)`.
 - **Use explicit text encodings.** User-authored UTF-8 reads use `utf-8-sig` to accept a leading BOM. Writes use `utf-8` without adding a BOM.
 - **Use `pathlib.Path` / `os.path.join` — never manually concat with `/`.** This matters less for strings the OS gives us back and more for strings we construct to hand to subprocesses.
 
@@ -297,13 +286,7 @@ except UnicodeDecodeError:
 
 ### 2. Process management
 
-`os.setsid()`, `os.killpg()`, and signal handling differ across platforms:
-
-```python
-import platform
-if platform.system() != "Windows":
-    kwargs["preexec_fn"] = os.setsid
-```
+Detach child processes with `start_new_session=True` rather than a `preexec_fn`.
 
 ### 3. Path separators
 
@@ -349,7 +332,7 @@ refactor/description   # Code restructuring
 
 1. **Run tests**: `scripts/run_tests.sh` for CI-parity. Use direct `python -m pytest ...` only when the wrapper is unavailable or you are intentionally debugging outside the wrapper.
 2. **Test manually**: Run `hermes` and exercise the code path you changed
-3. **Check cross-platform impact**: Consider macOS, Linux, WSL2, and native Windows. If you touch file I/O, process management, terminal handling, subprocesses, or signals, run `scripts/check-windows-footguns.py`.
+3. **Check cross-platform impact**: Consider macOS, Linux, and WSL2, especially if you touch file I/O, process management, terminal handling, subprocesses, or signals.
 4. **Keep PRs focused**: One logical change per PR
 
 ### PR Description

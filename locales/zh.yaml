@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ 正在强制退出..."
     interrupting_again_hint: "⚡ 正在中断代理...（再按一次 Ctrl+C 强制退出）"
     interrupting: "⚡ 正在中断代理..."
-    suspend_unsupported: "Windows 上不支持挂起（Ctrl+Z）。"
     suspended: "{agent_name} 已挂起。运行 `fg` 可将 {agent_name} 恢复到前台。"
     steer_failed_queued: "引导失败（{error}）— 已排入下一回合。"
     steered: "⏩ 已引导：'{preview}'"

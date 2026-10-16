@@ -20,15 +20,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-# fcntl is Unix-only; Windows uses msvcrt
-try:
-    import fcntl
-except ImportError:
-    fcntl = None
-    try:
-        import msvcrt
-    except ImportError:
-        msvcrt = None
+import fcntl
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Union
 
@@ -40,7 +32,6 @@ from cron.worker_bootstrap import WORKER_MARKER, finish_worker_boot
 from hermes_constants import get_hermes_home, hermes_home_key
 from hermes_cli.observability.shared_metrics_gateway import note_cron_execution, note_cron_skipped
 from cron.env_settings import cron_env_setting
-from hermes_cli._subprocess_compat import windows_hide_flags
 from hermes_cli.config import (
     load_config, load_config_readonly)
 from hermes_cli.fallback_config import get_fallback_chain, scoped_fallback_chain
@@ -576,8 +567,8 @@ def _inflight_key(job_id: str, home: Optional[Union[Path, str]] = None) -> tuple
     return (hermes_home_key(home) if home is not None else hermes_home_key(_get_hermes_home()), job_id)
 
 
-# Home key -> the real home Path that produced it. ``hermes_home_key`` normcases (it lower-cases on
-# Windows), so ``Path(key[0])`` is a case-folded path that matches nothing else on disk; bookkeeping
+# Home key -> the real home Path that produced it. ``hermes_home_key`` resolves symlinks and
+# normcases, so ``Path(key[0])`` need not match the home the caller used; bookkeeping
 # that needs the profile home reads it here instead of reconstructing it from the key.
 _inflight_home_paths: Dict[str, Path] = {}
 
@@ -1317,16 +1308,10 @@ def _get_lock_paths() -> tuple[Path, Path]:
 # opening/locking the file. Everything else — most importantly EMFILE/ENFILE (fd exhaustion, #87644) and
 # EACCES on open() — must be surfaced, never swallowed as lock contention.
 def _is_lock_contention_errno(err: OSError) -> bool:
-    """True when *err* from the lock syscall means another ticker holds the lock (POSIX flock:
-    EWOULDBLOCK/EAGAIN, EACCES on some NFS; msvcrt.locking: EACCES/EDEADLK). Everything else —
-    notably EMFILE/ENFILE and EACCES on open() — must be surfaced, never swallowed as contention."""
-    if err.errno is None:
-        return False
-    if fcntl is not None:
-        return err.errno in (errno.EWOULDBLOCK, errno.EAGAIN, errno.EACCES)
-    if msvcrt is not None:
-        return err.errno in (errno.EACCES, errno.EDEADLK)
-    return False
+    """True when *err* from the lock syscall means another ticker holds the lock (flock:
+    EWOULDBLOCK/EAGAIN, EACCES on some NFS). Everything else — notably EMFILE/ENFILE and EACCES
+    on open() — must be surfaced, never swallowed as contention."""
+    return err.errno in (errno.EWOULDBLOCK, errno.EAGAIN, errno.EACCES)
 
 
 def _is_fd_exhaustion_text(text: str) -> bool:
@@ -1368,7 +1353,7 @@ def drain_delivery_queue(adapters, loop) -> int:
     from cron.delivery_queue import _path, drain
 
     # Only restart-safe workers create the queue file.  Every gateway (macOS,
-    # Windows, launchd, Docker) runs this housekeeping tick, so skip the sqlite
+    # Linux, launchd, Docker) runs this housekeeping tick, so skip the sqlite
     # open/create entirely until a worker has actually queued something.
     if not _path().exists():
         return 0
@@ -3751,7 +3736,6 @@ def _launch_external_cron_worker(job: dict) -> bool:
                 stdout=subprocess.DEVNULL,
                 stderr=stderr_fd,
                 start_new_session=True,
-                creationflags=windows_hide_flags(),
             )
         finally:
             os.close(stderr_fd)
@@ -3835,7 +3819,7 @@ def _launch_external_cron_worker(job: dict) -> bool:
                 # holds nothing useful: name the cause, not the exit code.
                 raise RuntimeError(
                     "restart-safe systemd scope could not be created: the user D-Bus session at "
-                    f"/run/user/{os.getuid()}/bus disappeared after the gateway started. On a "  # windows-footgun: ok — scoped dispatch exists only on Linux
+                    f"/run/user/{os.getuid()}/bus disappeared after the gateway started. On a "
                     "system-level service install, run `sudo loginctl enable-linger <gateway-user>`; "
                     "the next fire dispatches without scope isolation."
                 )
@@ -4115,22 +4099,19 @@ def _maybe_run_worktree_maintenance() -> None:
 
 
 def _acquire_tick_lock(lock_file):
-    """Open + non-blocking lock the tick file (fcntl / msvcrt). Returns the fd, or None on genuine
+    """Open + non-blocking flock the tick file. Returns the fd, or None on genuine
     contention. A real OSError (esp. EMFILE/ENFILE) must NOT pass as contention — the scheduler
     would look healthy while no job runs — so it is re-raised for the ticker to record a FAILED
     tick."""
     lock_fd = None
     try:
-        # Cross-platform file locking: fcntl on Unix, msvcrt on Windows. Only genuine lock contention
+        # Only genuine lock contention
         # (another ticker holds the lock) skips the tick silently. A real OSError — most importantly
         # EMFILE/ENFILE from fd exhaustion — must NOT be swallowed as "another instance holds the lock":
         # that previously made the scheduler appear healthy (tick returned 0, heartbeat recorded success)
         # while no job ever ran again (#87644).
         lock_fd = open(lock_file, "w", encoding="utf-8")
-        if fcntl:
-            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        elif msvcrt:
-            msvcrt.locking(lock_fd.fileno(), msvcrt.LK_NBLCK, 1)
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return lock_fd
     except OSError as exc:
         if lock_fd is not None:
@@ -4151,12 +4132,8 @@ def _acquire_tick_lock(lock_file):
 
 
 def _release_tick_lock(lock_fd) -> None:
-    if fcntl:
-        with contextlib.suppress((OSError, IOError)):
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-    elif msvcrt:
-        with contextlib.suppress((OSError, IOError)):
-            msvcrt.locking(lock_fd.fileno(), msvcrt.LK_UNLCK, 1)
+    with contextlib.suppress((OSError, IOError)):
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
     lock_fd.close()
 
 

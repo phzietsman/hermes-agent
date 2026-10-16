@@ -11,7 +11,6 @@ import os
 import shutil
 import sqlite3
 import subprocess
-import time
 import unicodedata
 from pathlib import Path
 from typing import Optional
@@ -452,10 +451,9 @@ def _cleanup_worktree_workspace(
                 task_id, wp,
             )
             return
-        # Windows cannot delete a directory while this process has its current
-        # directory inside it. Completed workers normally run from their own
-        # linked worktree, so move this process back to the main checkout
-        # before asking Git to remove the worktree.
+        # Completed workers normally run from their own linked worktree; move
+        # this process back to the main checkout so removal never leaves it
+        # inside a deleted directory.
         worktree_path = wp.resolve(strict=False)
         try:
             cwd = Path.cwd().resolve(strict=False)
@@ -477,11 +475,6 @@ def _cleanup_worktree_workspace(
         # the tree became dirty since our check (TOCTOU) removal fails safe.
         release_lsp_clients(str(worktree_path))
         result = _git(repo_root, "worktree", "remove", str(wp), timeout=60)
-        if result.returncode != 0:
-            # Windows can retain a directory handle briefly after cwd changes.
-            # Retry once without --force; Git still enforces its dirty guard.
-            time.sleep(0.1)
-            result = _git(repo_root, "worktree", "remove", str(wp), timeout=60)
         if result.returncode != 0:
             _kb._log.warning(
                 "git worktree remove failed for task %s at %s: %s",

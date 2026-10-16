@@ -5,7 +5,6 @@ import re
 
 import pytest
 
-from tools.environments.local import LocalEnvironment
 from tools.file_operations import SearchResult, ShellFileOperations
 from tools.file_tools import search_tool
 from tools.registry import registry
@@ -333,34 +332,6 @@ def test_resolved_executable_with_spaces_is_used_by_every_rg_invocation():
 
 
 
-@pytest.mark.platforms("windows")
-def test_off_path_windows_rg_miss_is_reprobed_then_success_is_cached(
-    tmp_path, monkeypatch
-):
-    local_app_data = tmp_path / "Local Data"
-    candidate = local_app_data / "Microsoft" / "WinGet" / "Links" / "rg.exe"
-    monkeypatch.setenv("LOCALAPPDATA", str(local_app_data))
-    monkeypatch.setenv("USERPROFILE", str(tmp_path / "User Profile"))
-    monkeypatch.delenv("SCOOP", raising=False)
-    ops = ShellFileOperations(LocalEnvironment(str(tmp_path)))
-    probes = []
-
-    def command_v_miss(command, **kwargs):
-        probes.append(command)
-        from tools.file_operations import ExecuteResult
-        return ExecuteResult(stdout="", exit_code=1)
-
-    monkeypatch.setattr(ops, "_exec", command_v_miss)
-
-    assert ops._resolve_command("rg") is None
-    candidate.parent.mkdir(parents=True)
-    candidate.write_text("")
-    expected = str(candidate).replace("\\", "/")
-    assert ops._resolve_command("rg") == expected
-    assert ops._resolve_command("rg") == expected
-    assert probes == ["command -v rg 2>/dev/null", "command -v rg 2>/dev/null"]
-
-
 def test_remote_resolution_never_probes_controller_host_paths(tmp_path, monkeypatch):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "controller-local"))
     monkeypatch.setenv("USERPROFILE", str(tmp_path / "controller-user"))
@@ -376,42 +347,6 @@ def test_remote_resolution_never_probes_controller_host_paths(tmp_path, monkeypa
     assert ops._resolve_command("rg") is None
     assert env.commands == ["command -v rg 2>/dev/null"]
     assert str(tmp_path) not in env.commands[0]
-
-
-@pytest.mark.platforms("windows")
-def test_remote_msys_shaped_executable_is_not_rewritten_as_controller_path():
-    env = RecordingEnvironment()
-
-    def execute(command, **kwargs):
-        env.commands.append(command)
-        if command.startswith("test -e "):
-            return {"output": "exists\n", "returncode": 0}
-        if command.startswith("command -v rg"):
-            return {"output": "/c/remote-tools/rg\n", "returncode": 0}
-        if "--files" in command:
-            return {"output": "/repo/a.py\n", "returncode": 0}
-        return {"output": "", "returncode": 1}
-
-    env.execute = execute
-
-    result = ShellFileOperations(env).search("*.py", path="/repo", target="files")
-
-    assert result.files
-    assert "'/c/remote-tools/rg' --files" in env.rg_commands[0]
-    assert "C:/remote-tools/rg" not in env.rg_commands[0]
-
-
-@pytest.mark.platforms("windows")
-def test_every_windows_drive_root_is_broad_even_when_home_is_on_another_drive(
-    tmp_path, monkeypatch
-):
-    import tools.file_operations as file_operations
-
-    monkeypatch.setattr(file_operations, "_HOME", "C:/Users/alice")
-    ops = ShellFileOperations(LocalEnvironment(str(tmp_path)))
-
-    assert ops._is_broad_local_search_root("D:/") is True
-    assert ops._is_broad_local_search_root("D:/repo") is False
 
 
 def test_modified_multi_path_search_preserves_exact_order_request():
@@ -444,8 +379,8 @@ def test_modified_multi_path_search_preserves_exact_order_request():
 
 
 def test_comma_delimited_file_roots_preserve_internal_spaces_in_one_search():
-    env = RecordingEnvironment(rg_output="C:/root one/a.py\nC:/root two/b.py\n")
-    combined = "C:/root one, C:/root two"
+    env = RecordingEnvironment(rg_output="/root one/a.py\n/root two/b.py\n")
+    combined = "/root one, /root two"
 
     path_checks = 0
 
@@ -468,9 +403,9 @@ def test_comma_delimited_file_roots_preserve_internal_spaces_in_one_search():
     )
 
     assert result.error is None
-    assert result.files == ["C:/root one/a.py", "C:/root two/b.py"]
+    assert result.files == ["/root one/a.py", "/root two/b.py"]
     assert len(env.rg_commands) == 1
-    assert "'C:/root one' 'C:/root two'" in env.rg_commands[0]
+    assert "'/root one' '/root two'" in env.rg_commands[0]
 
 
 def test_multi_path_modified_capability_error_propagates():

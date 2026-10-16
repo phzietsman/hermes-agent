@@ -12,7 +12,6 @@ export function hudModifierMonitorSupported(
 ): boolean {
   return (
     platform === 'darwin' ||
-    platform === 'win32' ||
     (platform === 'linux' && !!env.DISPLAY && !env.WAYLAND_DISPLAY && env.XDG_SESSION_TYPE?.toLowerCase() !== 'wayland')
   )
 }
@@ -20,10 +19,9 @@ export function hudModifierMonitorSupported(
 export function resolveHudModifierMonitorPath(
   appPath = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 ): string {
-  const binary = process.platform === 'win32' ? 'hud-modifier-monitor.exe' : 'hud-modifier-monitor'
   const target = `${process.platform}-${process.platform === 'darwin' ? 'universal' : process.arch}`
 
-  return resolve(appPath, 'dist/native', target, binary).replace(/\.asar(?=[/\\])/g, '.asar.unpacked')
+  return resolve(appPath, 'dist/native', target, 'hud-modifier-monitor').replace(/\.asar(?=[/\\])/g, '.asar.unpacked')
 }
 
 /** Input remains inside the native process; only readiness/errors and summon cross the pipe. */

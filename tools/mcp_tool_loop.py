@@ -9,8 +9,8 @@ import asyncio
 import concurrent.futures
 import contextlib
 import errno
+import fcntl
 import logging
-import os
 import threading
 import time
 from typing import Any, Coroutine, Optional
@@ -22,7 +22,7 @@ logger = logging.getLogger("tools.mcp_tool")
 
 class _LockCookie:
     """Holds a cross-process file lock; ``release()`` drops it. The file object MUST stay open while
-    held: both fcntl and portalocker locks are tied to the descriptor."""
+    held: the fcntl lock is tied to the descriptor."""
 
     def __init__(self, fh: Any) -> None:
         self._fh = fh
@@ -32,34 +32,21 @@ class _LockCookie:
             return
         # Best effort: an unlock/close failure must never propagate out of discovery.
         with contextlib.suppress(Exception):
-            if os.name == "posix":
-                import fcntl
-                fcntl.flock(self._fh.fileno(), fcntl.LOCK_UN)
-            else:
-                import portalocker
-                portalocker.unlock(self._fh)
+            fcntl.flock(self._fh.fileno(), fcntl.LOCK_UN)
         with contextlib.suppress(Exception):
             self._fh.close()
         self._fh = None
 
 
 def _acquire_lock_on_fh(fh: Any) -> bool:
-    """Non-blocking exclusive lock (fcntl on POSIX, portalocker elsewhere). False when another process
-    holds it; unexpected errors propagate so the caller can treat locking as unavailable."""
-    if os.name == "posix":
-        import fcntl
-        try:
-            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError as e:
-            if e.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK):
-                return False
-            raise
-        return True
-    import portalocker
+    """Non-blocking exclusive fcntl lock. False when another process holds it; unexpected errors
+    propagate so the caller can treat locking as unavailable."""
     try:
-        portalocker.lock(fh, portalocker.LOCK_EX | portalocker.LOCK_NB)
-    except portalocker.LockException:
-        return False
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as e:
+        if e.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK):
+            return False
+        raise
     return True
 
 

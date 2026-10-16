@@ -160,8 +160,7 @@ def test_delegate_child_execute_code_env_bridges_contextvar_and_scrubs_kanban(
     with delegated_child_context():
         env = _scrub_child_env(
             dict(os.environ),
-            is_passthrough=lambda k: k.startswith("HERMES_KANBAN_"),
-            is_windows=False,
+            is_passthrough=lambda k: k.startswith("HERMES_KANBAN_")
         )
 
     assert os.environ.get("HERMES_DELEGATED_CHILD_CONTEXT") is None

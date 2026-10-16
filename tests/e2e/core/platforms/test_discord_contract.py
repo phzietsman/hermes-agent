@@ -9,17 +9,13 @@ pattern, reason); see ``_suite.py``: xfail only on that message, pass once the f
 
 from __future__ import annotations
 
-import sys
 
 import pytest
 
 from tests.e2e.core.platforms._drv_discord import DiscordDriver
 from tests.e2e.core.platforms._suite import rig_fixtures, run_scenario, scenario_params
 
-pytestmark = [
-    pytest.mark.spawns_gateway_lookalike,
-    pytest.mark.skipif(sys.platform == "win32", reason="POSIX process-group gateway harness"),
-]
+pytestmark = pytest.mark.spawns_gateway_lookalike
 
 KNOWN: dict[str, tuple[str, str]] = {
     "planned_restart_notice": (

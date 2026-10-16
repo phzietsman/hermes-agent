@@ -10,7 +10,7 @@ import { promisify } from 'node:util'
 import { build } from 'esbuild'
 import { expect, test } from 'vitest'
 
-// Chromium needs a display. macOS and Windows always have one; a headless Linux
+// Chromium needs a display. macOS always have one; a headless Linux
 // runner gets a virtual one through xvfb-run when it is installed (the js-tests
 // CI image installs it for this file). Resolved once so the skip is explicit:
 // `null` means the test cannot run here, otherwise the command prefix to use.

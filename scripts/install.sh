@@ -404,7 +404,7 @@ check_platform() {
     case "$(uname -s 2>/dev/null)" in
         Linux*) : ;;
         Darwin*) : ;;
-        *) fail "unsupported platform: $(uname -s). On Windows use install.ps1." unsupported_platform ;;
+        *) fail "unsupported platform: $(uname -s)." unsupported_platform ;;
     esac
 }
 
@@ -778,11 +778,10 @@ desktop_product_present() {
     # the artifacts live inside the tree (gitignored), so an update makes them
     # stale instead of removing them.
     # electron-builder suffixes the output dir with the arch on every non-x64
-    # target (linux-arm64-unpacked, mac-arm64, win-arm64-unpacked), so the x64
-    # names alone miss a desktop build on ARM64 Linux/Windows (#94703).
+    # target (linux-arm64-unpacked, mac-arm64), so the x64 names alone miss a
+    # desktop build on ARM64 Linux (#94703).
     local release="$INSTALL_DIR/apps/desktop/release" dir
-    for dir in linux-unpacked linux-arm64-unpacked mac mac-arm64 \
-               win-unpacked win-ia32-unpacked win-arm64-unpacked; do
+    for dir in linux-unpacked linux-arm64-unpacked mac mac-arm64; do
         [ -d "$release/$dir" ] && return 0
     done
     return 1

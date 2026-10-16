@@ -1,7 +1,7 @@
 export const OVERLAY_FALLBACK_WIDTH = 144
 
 interface TitleBarOverlayOptionsInput {
-  platform?: 'linux' | 'mac' | 'windows' | 'wslg'
+  platform?: 'linux' | 'mac' | 'wslg'
   darwinMajor?: number
   titlebarHeight?: number
   color?: string
@@ -20,12 +20,12 @@ interface TitleBarOverlayOptionsInput {
  *
  * macOS uses traffic lights positioned via trafficLightPosition, not a WCO
  * overlay, so it reserves nothing here. Every other desktop platform reserves
- * the same right-side footprint: Electron paints it on Windows/plain Linux,
+ * the same right-side footprint: Electron paints it on plain Linux,
  * while the renderer paints larger controls on WSLg.
  *
  * @param {{ isMac?: boolean }} opts
  */
-export function nativeOverlayWidth({ isWindows = false, isWsl = false, isMac = false } = {}) {
+export function nativeOverlayWidth({ isWsl = false, isMac = false } = {}) {
   if (isMac) {
     return 0
   }
@@ -35,7 +35,7 @@ export function nativeOverlayWidth({ isWindows = false, isWsl = false, isMac = f
 
 /**
  * Build Electron's Window Controls Overlay options for every desktop host.
- * With `titleBarStyle: hidden`, Windows and Linux show no window controls
+ * With `titleBarStyle: hidden`, Linux shows no window controls
  * unless an overlay object is provided. WSLg deliberately returns false so
  * the renderer can paint correctly scaled Windows-style controls instead.
  */

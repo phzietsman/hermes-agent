@@ -490,7 +490,7 @@ export function killToLineEnd(value: string, cursor: number): { value: string; c
  * Only the *super* bit qualifies. It is tempting to reuse `isActionMod`,
  * but that accepts `key.meta` on macOS — and hermes-ink reports Option as
  * `meta`, so Option+Backspace (delete-word, the macOS standard) would be
- * swallowed. On Linux/Windows `isActionMod` is `key.ctrl`, and
+ * swallowed. On Linux `isActionMod` is `key.ctrl`, and
  * Ctrl+Backspace is delete-word there too. `super` is set only by kitty
  * CSI-u / xterm modifyOtherKeys, where it unambiguously means Cmd.
  *

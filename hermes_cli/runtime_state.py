@@ -60,8 +60,6 @@ def runtime_lock(project: Path, *, timeout: float | None = INSTALL_LOCK_TIMEOUT_
 
 
 def _recover_plugin_publication(project: Path, row: dict, journal: Path) -> None:
-    from hermes_cli.fs_utils import rmtree_force
-
     target, backup, metadata = (Path(row[key]) for key in ("target", "backup", "metadata"))
     home = dependency_home_root().resolve()
     if (not target.resolve().is_relative_to(home) or target.parent.name != "plugins"
@@ -71,7 +69,7 @@ def _recover_plugin_publication(project: Path, row: dict, journal: Path) -> None
     committed = row.get("committed") or _digest(runtime_facts_path(project)) != row["facts_before"]
     if committed:
         if backup.exists():
-            rmtree_force(backup)
+            shutil.rmtree(backup)
     else:
         old = base64.b64decode(row["metadata_before"], validate=True) if row["metadata_before"] is not None else None
         current = _bytes(metadata)
@@ -80,10 +78,10 @@ def _recover_plugin_publication(project: Path, row: dict, journal: Path) -> None
             raise ValueError("plugin metadata changed after publication; preserve it for manual recovery")
         if backup.exists():
             if target.exists():
-                rmtree_force(target)
+                shutil.rmtree(target)
             os.replace(backup, target)
         elif not row["target_existed"] and target.exists():
-            rmtree_force(target)
+            shutil.rmtree(target)
         if old is None:
             metadata.unlink(missing_ok=True)
         else:

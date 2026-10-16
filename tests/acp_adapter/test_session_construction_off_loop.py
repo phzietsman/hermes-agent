@@ -106,37 +106,3 @@ def test_concurrent_restores_of_one_session_build_a_single_agent():
         t.join(timeout=10)
     assert len(results) == 2 and results[0] is results[1] is not None
     assert len(restores) == 1, f"restore ran {len(restores)} agent builds for one session id"
-
-
-def test_import_memory_provider_module_imports_without_constructing(tmp_path, monkeypatch):
-    """The ACP startup warm-up (Windows main-thread pre-import, #58083) imports the
-    configured provider's module plus the native stack it defers (hindsight imports numpy
-    only in ``is_available()``), and nothing more: no provider instance, no register()."""
-    import sys
-
-    from plugins import memory as memory_plugins
-
-
-    provider = tmp_path / "plugins" / "warmprov"
-    provider.mkdir(parents=True)
-    (provider / "__init__.py").write_text(
-        "import sys\nsys.modules['_warmprov_marker'] = True\n"
-        "from agent.memory_provider import MemoryProvider\n"
-        "def register(ctx):\n    sys.modules['_warmprov_registered'] = True\n",
-        encoding="utf-8",
-    )
-    native = tmp_path / "plugins" / "_warm_native.py"
-    native.write_text("import sys\nsys.modules['_warm_native_marker'] = True\n", encoding="utf-8")
-    monkeypatch.syspath_prepend(str(tmp_path / "plugins"))
-    monkeypatch.setattr(memory_plugins, "_NATIVE_WARM_IMPORTS", ("_warm_native",), raising=False)
-    sys.modules.pop("_warm_native_marker", None)
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.setattr(memory_plugins, "_external_source_dirs", lambda: [tmp_path / "plugins"])
-    sys.modules.pop("_warmprov_marker", None)
-    sys.modules.pop("_warmprov_registered", None)
-
-    assert memory_plugins.import_memory_provider_module("warmprov") is True
-    assert sys.modules.get("_warmprov_marker") is True
-    assert sys.modules.get("_warm_native_marker") is True
-    assert "_warmprov_registered" not in sys.modules
-    assert memory_plugins.import_memory_provider_module("no-such-provider") is False

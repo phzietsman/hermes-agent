@@ -16,7 +16,6 @@
 
 import { expandRemotePath, shq } from './remote-lifecycle'
 import { REMOTE_MARKER_JUDGE_PY } from './remote-update-marker-programs'
-import { encodedPowerShell, powerShellCommand, psLiteral } from './windows-remote-lifecycle'
 
 const UPDATE_EXIT_INDEPENDENT_HANDOFF = 75
 const DEFAULT_REMOTE_UPDATE_TIMEOUT_MS = 60 * 60 * 1000
@@ -84,7 +83,7 @@ interface RemoteUpdateTarget {
   ssh: {
     exec: (command: string, options?: { timeoutMs?: number; stdinData?: string }) => Promise<string>
   }
-  platform: 'Darwin' | 'Linux' | 'Windows'
+  platform: 'Darwin' | 'Linux'
   hermesPath: string
   hermesHome: string
   pythonPath?: string
@@ -215,10 +214,6 @@ function posixChildPath(home: string, name: string): string {
   return `${home.replace(/\/+$/, '')}/${name}`
 }
 
-function windowsChildPath(home: string, name: string): string {
-  return `${home.replace(/[\\/]+$/, '')}\\${name}`
-}
-
 /**
  * Build the POSIX launch command. The SSH channel waits only for the tiny
  * launcher shell; the updater runs in a new session. Exit 75 is deliberately
@@ -271,66 +266,8 @@ function buildPosixManagedUpdateLaunch(target: RemoteUpdateTarget, correlationId
   )
 }
 
-/** Windows equivalent of buildPosixManagedUpdateLaunch. */
-function buildWindowsManagedUpdateLaunch(target: RemoteUpdateTarget, correlationId: string): string {
-  const correlation = validateCorrelationId(correlationId)
-  const home = validateRemoteValue(target.hermesHome, 'Hermes home')
-  const hermesPath = validateRemoteValue(target.hermesPath, 'launcher path')
-  const statusPath = windowsChildPath(home, `.update_exit_code.${correlation}`)
-  const readyPath = windowsChildPath(home, `.update_coordinator_ready.${correlation}`)
-  const intentPath = windowsChildPath(home, `.update_launch_intent.${correlation}`)
-  const outputPath = windowsChildPath(home, `logs\\desktop-update-${correlation}.log`)
-
-  const wrapper = [
-    '$ErrorActionPreference="Continue"',
-    `$env:HERMES_HOME=${psLiteral(home)}`,
-    `$env:HERMES_UPDATE_CORRELATION_ID=${psLiteral(correlation)}`,
-    '$env:HERMES_UPDATE_ORIGIN_PROFILE="default"',
-    `$env:HERMES_UPDATE_ORIGIN_HOME=${psLiteral(home)}`,
-    `$env:HERMES_UPDATE_OUTPUT_PATH=${psLiteral(outputPath)}`,
-    // The copied Windows coordinator verifies this correlation AND its actual
-    // breakaway state before accepting it; the string alone grants nothing.
-    `$env:HERMES_UPDATE_WINDOWS_DETACHED=${psLiteral(correlation)}`,
-    `$env:HERMES_UPDATE_TAURI_OUTCOME_PATH=${psLiteral(statusPath)}`,
-    `$env:HERMES_UPDATE_TAURI_READY_PATH=${psLiteral(readyPath)}`,
-    `$intentTmp=${psLiteral(intentPath)}+"."+$PID+".tmp"`,
-    '$intentCreation="windows:"+[string]([Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().ToFileTimeUtc())',
-    `$intentPayload=[ordered]@{correlation=${psLiteral(correlation)};pid=$PID;creation=$intentCreation}|ConvertTo-Json -Compress`,
-    '[IO.File]::WriteAllText($intentTmp,$intentPayload,[Text.UTF8Encoding]::new($false))',
-    `Move-Item -LiteralPath $intentTmp -Destination ${psLiteral(intentPath)} -Force`,
-    `& ${psLiteral(hermesPath)} update --yes *>> ${psLiteral(outputPath)}`,
-    '$rc=$LASTEXITCODE',
-    // A non-gateway Windows coordinator parent returns 0 once its copied
-    // child owns the marker. That is acceptance, not completion: suppress the
-    // wrapper status when the correlated readiness proof exists and let the
-    // durable child receipt + released marker provide terminal truth.
-    `$handoffAccepted=($rc -eq 0 -and (Test-Path -LiteralPath ${psLiteral(readyPath)}))`,
-    `if($rc -ne ${UPDATE_EXIT_INDEPENDENT_HANDOFF} -and -not $handoffAccepted -and -not (Test-Path -LiteralPath ${psLiteral(statusPath)})){`,
-    `  $tmp=${psLiteral(statusPath)}+"."+$PID+".tmp"`,
-    '  [IO.File]::WriteAllText($tmp,[string]$rc,[Text.UTF8Encoding]::new($false))',
-    `  Move-Item -LiteralPath $tmp -Destination ${psLiteral(statusPath)} -Force`,
-    '}',
-    'exit $rc'
-  ].join(';')
-
-  const outer = [
-    '$ErrorActionPreference="Stop"',
-    `$output=${psLiteral(outputPath)}`,
-    'New-Item -ItemType Directory -Force -Path (Split-Path -Parent $output)|Out-Null',
-    `Remove-Item -LiteralPath ${psLiteral(statusPath)},${psLiteral(readyPath)},${psLiteral(intentPath)} -Force -ErrorAction SilentlyContinue`,
-    `$args=@("-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass","-EncodedCommand",${psLiteral(encodedPowerShell(wrapper))})`,
-    '$child=Start-Process -FilePath "powershell.exe" -ArgumentList $args -WindowStyle Hidden -PassThru',
-    'if(-not $child){throw "managed update launcher did not start"}',
-    '$deadline=[DateTime]::UtcNow.AddSeconds(10)',
-    `while(-not [IO.File]::Exists(${psLiteral(intentPath)})){if($child.HasExited){throw "managed update launcher exited before intent proof"};if([DateTime]::UtcNow -ge $deadline){throw "managed update launcher intent timed out"};Start-Sleep -Milliseconds 50}`,
-    '[ordered]@{started=$true;pid=$child.Id}|ConvertTo-Json -Compress'
-  ].join(';')
-
-  return powerShellCommand(outer)
-}
-
 const OBSERVATION_SCRIPT = String.raw`
-import ctypes,json,os,re,sys
+import json,os,re,sys
 from pathlib import Path
 ${REMOTE_MARKER_JUDGE_PY}
 
@@ -341,7 +278,7 @@ correlation=sys.argv[2]
 # receipts under the root home. Correlated status/ready/intent stay under the
 # launch home, matching their writers.
 profile_parent=home.parent.name
-is_profile_home=(profile_parent.lower()=='profiles') if os.name=='nt' else (profile_parent=='profiles')
+is_profile_home=profile_parent=='profiles'
 install_root=home.parent.parent if is_profile_home else home
 marker_path=install_root/'.hermes-update-in-progress'
 status_path=home/('.update_exit_code.'+correlation)
@@ -349,61 +286,25 @@ ready_path=home/('.update_coordinator_ready.'+correlation)
 intent_path=home/('.update_launch_intent.'+correlation)
 
 def pid_alive(pid):
-    if os.name!='nt':
-        try:
-            os.kill(pid,0);return True
-        except ProcessLookupError:return False
-        except PermissionError:return True
-        except OSError:return None
     try:
-        from ctypes import wintypes
-        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
-        kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD]
-        kernel.OpenProcess.restype=wintypes.HANDLE
-        kernel.GetExitCodeProcess.argtypes=[wintypes.HANDLE,ctypes.POINTER(wintypes.DWORD)]
-        kernel.GetExitCodeProcess.restype=wintypes.BOOL
-        kernel.CloseHandle.argtypes=[wintypes.HANDLE]
-        handle=kernel.OpenProcess(0x1000,False,pid)
-        if not handle:
-            return False if ctypes.get_last_error()==87 else None
-        try:
-            code=wintypes.DWORD()
-            if not kernel.GetExitCodeProcess(handle,ctypes.byref(code)):return None
-            return code.value==259
-        finally:kernel.CloseHandle(handle)
-    except Exception:return None
+        os.kill(pid,0);return True
+    except ProcessLookupError:return False
+    except PermissionError:return True
+    except OSError:return None
 
 def process_creation(pid):
-    if os.name!='nt':
-        if sys.platform.startswith('linux'):
-            try:
-                raw=Path('/proc/'+str(pid)+'/stat').read_text(encoding='ascii')
-                return 'linux:'+raw[raw.rfind(')')+2:].split()[19]
-            except (OSError,UnicodeError,IndexError):return None
-        if sys.platform=='darwin':
-            try:
-                import subprocess
-                value=subprocess.check_output(['ps','-o','lstart=','-p',str(pid)],text=True).strip()
-                return 'darwin:'+value if value else None
-            except (OSError,subprocess.CalledProcessError):return None
-        return None
-    try:
-        from ctypes import wintypes
-        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
-        kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD]
-        kernel.OpenProcess.restype=wintypes.HANDLE
-        kernel.GetProcessTimes.argtypes=[wintypes.HANDLE,ctypes.POINTER(wintypes.FILETIME),ctypes.POINTER(wintypes.FILETIME),ctypes.POINTER(wintypes.FILETIME),ctypes.POINTER(wintypes.FILETIME)]
-        kernel.GetProcessTimes.restype=wintypes.BOOL
-        kernel.CloseHandle.argtypes=[wintypes.HANDLE]
-        handle=kernel.OpenProcess(0x1000,False,pid)
-        if not handle:return None
+    if sys.platform.startswith('linux'):
         try:
-            created=wintypes.FILETIME();exited=wintypes.FILETIME();kernel_time=wintypes.FILETIME();user_time=wintypes.FILETIME()
-            if not kernel.GetProcessTimes(handle,ctypes.byref(created),ctypes.byref(exited),ctypes.byref(kernel_time),ctypes.byref(user_time)):return None
-            value=(created.dwHighDateTime<<32)|created.dwLowDateTime
-            return 'windows:'+str(value)
-        finally:kernel.CloseHandle(handle)
-    except Exception:return None
+            raw=Path('/proc/'+str(pid)+'/stat').read_text(encoding='ascii')
+            return 'linux:'+raw[raw.rfind(')')+2:].split()[19]
+        except (OSError,UnicodeError,IndexError):return None
+    if sys.platform=='darwin':
+        try:
+            import subprocess
+            value=subprocess.check_output(['ps','-o','lstart=','-p',str(pid)],text=True).strip()
+            return 'darwin:'+value if value else None
+        except (OSError,subprocess.CalledProcessError):return None
+    return None
 
 def marker_state():
     try:raw=marker_path.read_bytes()
@@ -474,18 +375,6 @@ print(json.dumps({'marker':state['state'],'markerPid':state.get('pid'),'launchIn
 function buildRemoteUpdateObservationCommand(target: RemoteUpdateTarget, correlationId: string): string {
   const correlation = validateCorrelationId(correlationId)
   const home = validateRemoteValue(target.hermesHome, 'Hermes home')
-
-  if (target.platform === 'Windows') {
-    const python = validateRemoteValue(target.pythonPath || '', 'Python path')
-
-    const script = [
-      '$ErrorActionPreference="Stop"',
-      `& ${psLiteral(python)} -c ${psLiteral(OBSERVATION_SCRIPT)} ${psLiteral(home)} ${psLiteral(correlation)}`,
-      'if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}'
-    ].join(';')
-
-    return powerShellCommand(script)
-  }
 
   return `python3 -c ${shq(OBSERVATION_SCRIPT)} ${shq(home)} ${shq(correlation)}`
 }
@@ -648,32 +537,10 @@ async function assertManagedUpdatePreflightClear(target: RemoteUpdateTarget, cor
 }
 
 async function launchManagedRemoteUpdate(target: RemoteUpdateTarget, correlationId: string): Promise<void> {
-  const command =
-    target.platform === 'Windows'
-      ? buildWindowsManagedUpdateLaunch(target, correlationId)
-      : buildPosixManagedUpdateLaunch(target, correlationId)
-
+  const command = buildPosixManagedUpdateLaunch(target, correlationId)
   const output = await target.ssh.exec(command, { timeoutMs: 30_000 })
 
-  if (target.platform === 'Windows') {
-    let parsed: any
-
-    try {
-      const lines = String(output || '')
-        .replace(/^\uFEFF/, '')
-        .trim()
-        .split(/\r?\n/)
-        .filter(Boolean)
-
-      parsed = JSON.parse(lines.at(-1) || 'null')
-    } catch {
-      parsed = null
-    }
-
-    if (parsed?.started !== true || !Number.isInteger(parsed?.pid) || parsed.pid <= 0) {
-      throw new Error('Remote Windows update launcher did not acknowledge its detached child.')
-    }
-  } else if (!String(output || '').includes('MANAGED_UPDATE_STARTED')) {
+  if (!String(output || '').includes('MANAGED_UPDATE_STARTED')) {
     throw new Error('Remote update launcher did not acknowledge its detached child.')
   }
 }
@@ -1272,7 +1139,6 @@ export {
   assertManagedUpdatePreflightClear,
   buildPosixManagedUpdateLaunch,
   buildRemoteUpdateObservationCommand,
-  buildWindowsManagedUpdateLaunch,
   DEFAULT_REMOTE_CLEARANCE_TIMEOUT_MS,
   DEFAULT_REMOTE_UPDATE_POLL_MS,
   DEFAULT_REMOTE_UPDATE_TIMEOUT_MS,

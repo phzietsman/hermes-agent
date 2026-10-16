@@ -68,7 +68,7 @@ def _count(monkeypatch, *, api):
     monkeypatch.setattr(source_check, "_github_compare_behind", fake_compare)
     plan = update_cmd._prepare_checkout_for_update(
         ["git"], "main", "main", is_fork=False, assume_yes=True, gateway_mode=False,
-        gw_input_fn=input, switch_branch=False, _windows_gateway_resume=None)
+        gw_input_fn=input, switch_branch=False, _gateway_pause=None)
     return plan.commit_count, consulted
 
 

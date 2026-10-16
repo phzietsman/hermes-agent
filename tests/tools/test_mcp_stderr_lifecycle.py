@@ -60,8 +60,8 @@ def test_rename_profile_releases_cached_log_handle(tmp_path, monkeypatch):
         reset_hermes_home_override(token)
     try:
         new_dir = profiles.rename_profile("mcp-log-old", "mcp-log-new")
-        # The old home's handle must be released before the directory moves (Windows refuses
-        # to rename a directory holding an open file) and must not linger under the old key.
+        # The old home's handle must be released before the directory moves and must not
+        # linger under the old key.
         assert handle.closed
         assert hermes_home_key(old_dir) not in mcp_tool_config._mcp_stderr_log_fh
         assert new_dir.is_dir() and not old_dir.exists()

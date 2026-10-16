@@ -38,10 +38,8 @@ def test_steward_uninstall_messages_name_the_steward():
 
 
 def test_steward_desktop_message_is_per_platform():
-    win = steward_uninstall_message(STEWARD_DESKTOP, platform="win32")
     mac = steward_uninstall_message(STEWARD_DESKTOP, platform="darwin")
     linux = steward_uninstall_message(STEWARD_DESKTOP, platform="linux")
-    assert "Installed apps" in win
     assert "Trash" in mac
     assert "AppImage" in linux
 
@@ -52,7 +50,7 @@ def test_all_refusals_point_at_the_data_mode():
     # point at the app's own data path.
     for steward in (STEWARD_NIX, STEWARD_DOCKER, "somepkg"):
         assert "hermes uninstall --data" in steward_uninstall_message(steward)
-    for platform in ("win32", "darwin", "linux"):
+    for platform in ("darwin", "linux"):
         message = steward_uninstall_message(STEWARD_DESKTOP, platform=platform)
         assert "Settings -> About" in message
 

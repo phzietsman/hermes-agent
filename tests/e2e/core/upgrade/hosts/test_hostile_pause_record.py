@@ -65,7 +65,7 @@ def test_update_under_a_partner_claim_merges_an_orphaned_pause(tmp_path):
 
     owner = _py(_ORPHAN, env=env, cwd=checkout)
     assert owner.stdout.readline().strip() == "written", owner.stderr.read()
-    owner.send_signal(signal.SIGKILL)  # windows-footgun: ok — linux-only cell
+    owner.send_signal(signal.SIGKILL)
     owner.wait(timeout=10)
 
     run = _py(_ORCHESTRATOR, textwrap.dedent(_UPDATE_CHILD), str(checkout), env=env, cwd=checkout)

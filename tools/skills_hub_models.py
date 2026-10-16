@@ -216,8 +216,8 @@ def _normalize_bundle_path(path_value: str, *, field_name: str, allow_nested: bo
     normalized = raw.replace("\\", "/")
     path = PurePosixPath(normalized)
     parts = [part for part in path.parts if part not in {"", "."}]
-    # A colon in any component is rejected: on Windows it marks a drive (``C:foo``) or an NTFS Alternate Data
-    # Stream (``file.py:payload`` writes scanner-invisible bytes); ``/`` is the only legal separator once normalized.
+    # A colon in any component is rejected: it is the plugin-namespace separator in skill lookups, and ``/`` is
+    # the only legal separator once normalized.
     if (normalized.startswith("/") or path.is_absolute() or not parts or any(part == ".." for part in parts)
             or any(":" in part for part in parts) or (not allow_nested and len(parts) != 1)):
         raise ValueError(f"Unsafe {field_name}: {path_value}")
@@ -320,7 +320,7 @@ def _referenced_support_paths(skill_md: str) -> Optional[set[str]]:
             logger.warning("SKILL.md links outside the skill directory; installing without it: %s", raw)
             continue
         # Only unambiguous file links: an extension, no internal slash, never SKILL.md itself (casefolded —
-        # a ``skill.md`` entry would collide with the bundle root on macOS/Windows; skipped, not merged).
+        # a ``skill.md`` entry would collide with the bundle root on macOS; skipped, not merged).
         if ("/" in name or name.casefold() == "skill.md" or "." not in name.lstrip(".")
                 or not _SAMEDIR_NAME_RE.match(name)):
             continue

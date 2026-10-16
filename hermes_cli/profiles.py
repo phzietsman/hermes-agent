@@ -298,8 +298,8 @@ def _get_wrapper_dir() -> Path:
 
 
 def _wrapper_path(alias: str) -> Path:
-    """Wrapper script path for *alias*: ``<alias>.bat`` on Windows, bare name elsewhere."""
-    return _get_wrapper_dir() / (f"{alias}.bat" if sys.platform == "win32" else alias)
+    """Wrapper script path for *alias*."""
+    return _get_wrapper_dir() / alias
 
 
 def _is_our_wrapper(path: Path) -> bool:
@@ -508,7 +508,7 @@ def check_alias_collision(name: str) -> Optional[str]:
         return f"'{canon}' conflicts with a hermes subcommand"
     try:
         result = subprocess.run(
-            ["where" if sys.platform == "win32" else "which", canon],
+            ["which", canon],
             capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=5,
         )
         if result.returncode == 0:
@@ -540,12 +540,9 @@ def create_wrapper_script(name: str, target: Optional[str] = None) -> Optional[P
         return None
     wrapper_path = _wrapper_path(canon)
     try:
-        if sys.platform == "win32":
-            wrapper_path.write_text(f"@echo off\r\nhermes -p {profile} %*\r\n", encoding="utf-8")
-        else:
-            hermes_exe = shutil.which("hermes") or "hermes"
-            wrapper_path.write_text(f'#!/bin/sh\nexec {shlex.quote(hermes_exe)} -p {profile} "$@"\n', encoding="utf-8")
-            wrapper_path.chmod(wrapper_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+        hermes_exe = shutil.which("hermes") or "hermes"
+        wrapper_path.write_text(f'#!/bin/sh\nexec {shlex.quote(hermes_exe)} -p {profile} "$@"\n', encoding="utf-8")
+        wrapper_path.chmod(wrapper_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
         return wrapper_path
     except OSError as e:
         print(f"⚠ Could not create wrapper at {wrapper_path}: {e}")
@@ -561,15 +558,11 @@ def remove_wrapper_script(name: str) -> bool:
     except ValueError:
         return False
 
-    # Both the extensionless path (POSIX) and .bat (Windows)
-    candidates = [_get_wrapper_dir() / canon]
-    if sys.platform == "win32":
-        candidates.insert(0, _get_wrapper_dir() / f"{canon}.bat")
-    for wrapper_path in candidates:
-        if wrapper_path.exists() and _is_our_wrapper(wrapper_path):
-            with contextlib.suppress(Exception):
-                wrapper_path.unlink()
-                return True
+    wrapper_path = _get_wrapper_dir() / canon
+    if wrapper_path.exists() and _is_our_wrapper(wrapper_path):
+        with contextlib.suppress(Exception):
+            wrapper_path.unlink()
+            return True
     return False
 
 
@@ -616,15 +609,12 @@ def build_alias_map() -> dict[str, str]:
     result: dict[str, str] = {}
     if not wrapper_dir.is_dir():
         return result
-    is_windows = sys.platform == "win32"
     prefix = "hermes -p "
     for entry in sorted(wrapper_dir.iterdir()):
         if not entry.is_file():
             continue
-        # Our wrappers are named after the alias and (on Windows only) carry .bat.
-        if is_windows and entry.suffix != ".bat":
-            continue
-        if not is_windows and entry.suffix:
+        # Our wrappers are named after the alias, without an extension.
+        if entry.suffix:
             continue
         try:
             with open(entry, "r", encoding="utf-8-sig", errors="strict") as f:
@@ -640,7 +630,7 @@ def build_alias_map() -> dict[str, str]:
         if not canon:
             continue
         canon = normalize_profile_name(canon)
-        alias = entry.stem if is_windows else entry.name
+        alias = entry.name
         if alias == canon:
             result.setdefault(canon, alias)  # never overwrite a custom alias already found
         else:
@@ -1230,53 +1220,10 @@ def _materialize_symlinked_files(profile_dir: Path) -> List[str]:
     return done
 
 
-def _junction_target(path: str) -> Optional[str]:
-    """Target of an NTFS directory junction, else ``None``. A junction is a reparse point, not a
-    symlink: ``os.path.islink()`` is False and ``shutil.copytree(symlinks=True)`` descends into it."""
-    if os.name != "nt":
-        return None
-    try:
-        if os.lstat(path).st_reparse_tag != stat.IO_REPARSE_TAG_MOUNT_POINT:
-            return None
-        target = os.readlink(path)
-    except OSError:
-        return None
-    # readlink hands back the substitute name; CreateJunction rejects the ``\\?\`` spelling.
-    if target.startswith("\\\\?\\UNC\\"):
-        return "\\" + target[7:]
-    return target[4:] if target.startswith("\\\\?\\") else target
-
-
-def _copytree_keep_junctions(src: Path, dst: Path, ignore, dirs_exist_ok: bool = False) -> None:
-    """``shutil.copytree(symlinks=True)`` that re-creates NTFS junctions as junctions instead of
-    traversing them. A ``skills/foo`` junction into a ``skills.external_dirs`` root copied as a
-    physical tree is a second same-named candidate and ``_locate_skill`` refuses to guess (#113471).
-    A junction whose target is gone is skipped with a warning, never a crash."""
-    junctions: Dict[str, str] = {}
-
-    def _ignore(directory: str, names: List[str]) -> set:
-        ignored = set(ignore(directory, names))
-        for name in names:
-            target = _junction_target(os.path.join(directory, name))
-            if target is not None:
-                junctions[os.path.join(directory, name)] = target
-                ignored.add(name)
-        return ignored
-
-    shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=dirs_exist_ok, ignore=_ignore)
-    if junctions:
-        import _winapi  # Windows-only stdlib module; only reachable once a junction was seen
-    for link, target in junctions.items():
-        try:
-            _winapi.CreateJunction(target, os.path.join(dst, os.path.relpath(link, src)))
-        except OSError as exc:
-            logger.warning("clone: skipped junction %s -> %s (%s)", link, target, exc)
-
-
 def _clone_all_into(source_dir: Path, profile_dir: Path, canon: str) -> None:
     """--clone-all: full copytree minus infrastructure/history, then strip runtime files
     and cloned single-use OAuth grants."""
-    _copytree_keep_junctions(source_dir, profile_dir, _clone_all_copytree_ignore(source_dir))
+    shutil.copytree(source_dir, profile_dir, symlinks=True, ignore=_clone_all_copytree_ignore(source_dir))
     materialized = _materialize_symlinked_files(profile_dir)
     if materialized:
         logger.info("profile %s: materialized symlinked %s so the clone never writes through to %s",
@@ -1325,8 +1272,8 @@ def _clone_plugins(source_dir: Path, profile_dir: Path) -> None:
     selection of the same plugin already put them."""
     source_plugins = source_dir / "plugins"
     if source_plugins.is_dir():
-        _copytree_keep_junctions(source_plugins, profile_dir / "plugins",
-                                 _clone_plugins_ignore(source_plugins), dirs_exist_ok=True)
+        shutil.copytree(source_plugins, profile_dir / "plugins", symlinks=True,
+                        ignore=_clone_plugins_ignore(source_plugins), dirs_exist_ok=True)
 
 
 def cloned_plugin_names(profile_dir: Path) -> List[str]:
@@ -1358,7 +1305,8 @@ def _bootstrap_profile_dir(profile_dir: Path, source_dir: Optional[Path],
         _clone_file(source_dir, profile_dir, relpath)
     source_skills = source_dir / "skills"
     if source_skills.is_dir():
-        _copytree_keep_junctions(source_skills, profile_dir / "skills", _non_exportable_entries, dirs_exist_ok=True)
+        shutil.copytree(source_skills, profile_dir / "skills", symlinks=True, ignore=_non_exportable_entries,
+                        dirs_exist_ok=True)
     for relpath in _CLONE_SUBDIR_FILES:
         _clone_file(source_dir, profile_dir, relpath)
     _clone_plugins(source_dir, profile_dir)
@@ -1448,7 +1396,7 @@ def create_profile(
 
     # Inside a container under s6, register the gateway as a runtime s6 service so
     # `hermes -p <profile> gateway start` supervises via `s6-svc -u` instead of a bare
-    # process. No-op on host (systemd/launchd/windows unit generation handles lifecycle).
+    # process. No-op on host (systemd/launchd unit generation handles lifecycle).
     _maybe_register_gateway_service(canon)
     # A running multiplexer enumerates profiles/ at boot: ask it to serve this one now (it also
     # rescans periodically, so a missed signal only delays serving).
@@ -1590,11 +1538,11 @@ def backfill_profile_envs(quiet: bool = False) -> List[str]:
 
 _BACKEND_TOKENS = frozenset({"serve", "dashboard", "gateway"})
 _HERMES_ARGV_MARKERS = ("hermes_cli.main", "hermes-gateway", "tui_gateway")
-# python / python3 / python3.12 / pythonw(.exe): the interpreter basenames a
+# python / python3 / python3.12: the interpreter basenames a
 # `#!/…/python3` console-script shim is exec'd through when something (e.g. Electron's
 # `findOnPath('hermes')`) spawns the shim by handing the interpreter its path — then the
 # OS-reported argv[0] is the interpreter, not "hermes".
-_PYTHON_INTERPRETER_RE = re.compile(r"^python[\d.]*w?(\.exe)?$")
+_PYTHON_INTERPRETER_RE = re.compile(r"^python[\d.]*$")
 # Console-script entry points this project ships (pyproject.toml [project.scripts]).
 # argv[1] is matched against exact names, not ``startswith("hermes")``: with a bare
 # interpreter argv[0], argv[1] can be ANY user script ("hermes-notes.py").
@@ -1755,7 +1703,7 @@ def _rmtree_make_writable(func, path, exc):
 def _rmtree_with_retry(profile_dir: Path, onexc_handler) -> None:
     """``shutil.rmtree`` with a short retry loop: a just-terminated process can leave in-flight
     writes (SQLite -wal/-shm checkpoints, sandbox temp files) landing after rmtree walked
-    past a directory — ENOTEMPTY on POSIX, transient PermissionError on Windows."""
+    past a directory (ENOTEMPTY)."""
     attempts = 3
     last_exc: OSError | None = None
     for attempt in range(attempts):
@@ -1868,7 +1816,7 @@ def delete_profile(name: str, yes: bool = False) -> Path:
 
     # Release this process's holographic memory-store connections into the profile. The
     # Desktop's main serve process opens memory_store.db for every profile and is
-    # deliberately not stopped above; on Windows its handles fail rmtree with WinError 32.
+    # deliberately not stopped above; its connections would outlive the deleted files.
     # Inside serve (DELETE /api/profiles/<name>) the handles live here; from the CLI no-op.
     with contextlib.suppress(Exception):  # best-effort: never block the delete on the release path
         # 2c. See #88347.
@@ -1883,8 +1831,7 @@ def delete_profile(name: str, yes: bool = False) -> Path:
             print(f"✓ Released {_closed} session database connection(s) held by this process")
 
     # The Desktop serve process routes its agent/errors logs for every profile through one
-    # QueueListener. On Windows those ConcurrentRotatingFileHandler instances retain their
-    # ``.__*.lock`` files until explicitly closed, so rmtree otherwise fails with WinError 32.
+    # QueueListener; its handlers keep the deleted profile's log files open until closed.
     with contextlib.suppress(Exception):
         from hermes_logging import release_profile_log_handlers
         _released_logs = release_profile_log_handlers(profile_dir)
@@ -1981,7 +1928,7 @@ def _cleanup_gateway_service(name: str, profile_dir: Path) -> bool:
         def _run(*cmd: str) -> None:
             subprocess.run(list(cmd), capture_output=True, check=False, timeout=10)
 
-        from hermes_cli.profiles_service_cleanup import remove_system_systemd_unit, remove_windows_task
+        from hermes_cli.profiles_service_cleanup import remove_system_systemd_unit
 
         system = _platform.system()
         removed = False
@@ -2005,8 +1952,6 @@ def _cleanup_gateway_service(name: str, profile_dir: Path) -> bool:
                 plist_path.unlink(missing_ok=True)
                 print("✓ Launchd service removed")
                 removed = True
-        elif system == "Windows":
-            removed = remove_windows_task()
         return removed
     except Exception as e:
         print(f"⚠ Service cleanup: {e}")
@@ -2038,8 +1983,6 @@ def _stop_gateway_process(profile_dir: Path) -> None:
                 "(stale/poisoned PID record, #89315)."
             )
             return
-        # terminate_pid picks the Windows primitive (taskkill /T cascades to children; raw
-        # os.kill with SIGKILL fails at import on Windows).
         expected_start_time = data.get("start_time")
         if expected_start_time is None:
             expected_start_time = get_process_start_time(pid)
@@ -2472,8 +2415,7 @@ def rename_profile(old_name: str, new_name: str) -> Path:
         _notify_multiplexer(old_canon)
 
     # 1c. Release this process's cached MCP stderr handle into the old home (same as
-    # delete_profile): Windows refuses to rename a directory holding an open file, and the
-    # handle would otherwise stay cached under the old key after the move.
+    # delete_profile): the handle would otherwise stay cached under the old key after the move.
     from hermes_constants import hermes_home_key
     from tools.mcp_tool_lifecycle import shutdown_mcp_servers
     shutdown_mcp_servers(scope=hermes_home_key(old_dir))
@@ -2549,10 +2491,10 @@ def resolve_profile_env(profile_name: str) -> str:
     point, before hermes modules are imported, to set HERMES_HOME.
 
     When HERMES_HOME is already set, the configured spelling IS the launch root (it may be a
-    junction/symlink alias of the platform default). Keep that spelling so profile re-home does not destroy
+    symlink alias of the platform default). Keep that spelling so profile re-home does not destroy
     the launcher's lexical provenance -- the subprocess sanitizer needs it to match Hermes-owned PYTHONPATH
-    entries written in the same spelling (#82581 junction follow-up). Physically the paths are identical
-    (junction-transparent); only the spelling is preserved.
+    entries written in the same spelling (#82581 follow-up). Physically the paths are identical
+    (symlink-transparent); only the spelling is preserved.
     """
     canon = _canon_valid(profile_name)
     root = profile_root_for_env_home(os.environ.get("HERMES_HOME", ""), _get_default_hermes_home())

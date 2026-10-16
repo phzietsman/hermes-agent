@@ -19,7 +19,7 @@ import pytest
 
 import tools.file_tools as file_tools_mod  # noqa: F401 — registers the file tools
 import tools.terminal_tool as terminal_tool
-from tools.environments.local import LocalEnvironment, _bash_safe_path
+from tools.environments.local import LocalEnvironment
 from tools.registry import registry
 
 _KEEP = "KEEPME line"
@@ -59,11 +59,7 @@ class VercelSandboxEnvironment:
         self.failure_mode = None  # None | "raise" | "error"
         self._home_answer = str(target_dir)
         src, dst = str(view_dir), str(target_dir)
-        self._sub_pairs = [
-            (src, dst),
-            (src.replace("\\", "/"), dst.replace("\\", "/")),
-            (_bash_safe_path(src), _bash_safe_path(dst)),
-        ]
+        self._sub_pairs = [(src, dst)]
 
     def _sub(self, text: str) -> str:
         for src, dst in self._sub_pairs:

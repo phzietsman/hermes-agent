@@ -26,7 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import pty  # windows-footgun: ok — dev profiling script, POSIX pty by design
+import pty
 import select
 import signal
 import sqlite3
@@ -461,7 +461,7 @@ def run_once(args: argparse.Namespace) -> dict[str, Any]:
                     break
                 time.sleep(0.1)
             else:
-                os.kill(pid, signal.SIGKILL)  # windows-footgun: ok — POSIX-only script (imports pty at top)
+                os.kill(pid, signal.SIGKILL)
                 os.waitpid(pid, 0)
         except (ProcessLookupError, ChildProcessError):
             pass

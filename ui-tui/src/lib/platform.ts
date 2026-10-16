@@ -161,7 +161,7 @@ const _RESERVED_CTRL_CHARS = new Set(['c', 'd', 'l', 'r'])
  *  - super+d → exit
  *  - super+l → clear screen
  *  - super+v → paste (also claimed at the TextInput layer)
- * On Linux/Windows those globals key off Ctrl instead of Super, so
+ * On Linux those globals key off Ctrl instead of Super, so
  * super+<letter> bindings don't collide. Gate the rejection to darwin
  * at parse time so kitty/CSI-u ``super+<key>`` configs still work for
  * non-mac users (Copilot round-8 review on #19835). */
@@ -292,7 +292,7 @@ export const parseVoiceRecordKey = (raw: unknown): ParsedVoiceRecordKey => {
   // Same for ``super+c`` / ``super+d`` / ``super+l`` / ``super+v`` on
   // macOS only — those are copy / exit / clear / paste and get claimed
   // by ``isCopyShortcut`` / ``isAction`` / the TextInput paste layer
-  // before voice has a chance to toggle. On Linux/Windows the TUI
+  // before voice has a chance to toggle. On Linux the TUI
   // globals key off Ctrl (not Super), so kitty/CSI-u ``super+<letter>``
   // bindings stay usable for non-mac users.
   if (isMac && mod === 'super' && last.length === 1 && _RESERVED_SUPER_CHARS.has(last)) {
@@ -327,7 +327,7 @@ export const parseVoiceRecordKey = (raw: unknown): ParsedVoiceRecordKey => {
  *
  * Platform-aware for the ``super`` modifier: renders ``Cmd`` on macOS and
  * ``Super`` elsewhere. Previously rendered ``Cmd`` universally, which told
- * Linux/Windows users the wrong modifier to press (Copilot review, round
+ * Linux users the wrong modifier to press (Copilot review, round
  * 2 on #19835). */
 export const formatVoiceRecordKey = (parsed: ParsedVoiceRecordKey): string => {
   const modLabel =

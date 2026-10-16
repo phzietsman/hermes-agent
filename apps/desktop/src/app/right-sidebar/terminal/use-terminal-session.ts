@@ -199,7 +199,7 @@ const visibleText = (line: string) => stripEscapeSequences(line).replace(/[\s%]/
 // shapes exist:
 //   - Spaced/multi-line (starship add_newline, powerline): a blank line sits
 //     just above the prompt, so the short block after the last blank is dropped.
-//   - Single-line (default PowerShell `PS C:\..>`, bash `user@host:~$`): no blank
+//   - Single-line (default PowerShell `PS /home/me>`, bash `user@host:~$`): no blank
 //     separator, so the final line itself is the prompt and is dropped.
 // The fresh shell reprints the current prompt on boot either way, so only the
 // redundant idle prompt is removed — command output is preserved.
@@ -282,10 +282,7 @@ export function parseOscCwd(code: 7 | 9, payload: string): string | null {
     // Keep the undecoded path if it isn't valid percent-encoding.
   }
 
-  // Windows file URIs carry a leading slash before the drive (`/C:/Users`).
-  const windows = /^\/[A-Za-z]:[\\/]/.exec(raw)
-
-  return (windows ? raw.slice(1) : raw) || null
+  return raw || null
 }
 
 // Bind the palette to the live skin surface so the terminal blends with the app
@@ -375,10 +372,6 @@ function quotePathForShell(path: string, shellName: string): string {
 
   if (shell.includes('powershell') || shell.includes('pwsh')) {
     return `'${path.replace(/'/g, "''")}'`
-  }
-
-  if (shell.includes('cmd')) {
-    return `"${path.replace(/"/g, '""')}"`
   }
 
   return `'${path.replace(/'/g, "'\\''")}'`
@@ -624,7 +617,7 @@ export function useTerminalSession({
         .cwd(sessionId)
         .then(recordCwd)
         .catch(() => {
-          // Best-effort: no cwd probe on this platform (e.g. Windows).
+          // Best-effort: no cwd probe on this platform.
         })
     }
 

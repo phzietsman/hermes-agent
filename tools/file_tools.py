@@ -18,7 +18,7 @@ import time
 from contextlib import ExitStack
 from pathlib import Path
 
-from agent.file_safety import get_nt_namespace_error, get_read_block_error
+from agent.file_safety import get_read_block_error
 from agent.tool_result_classification import GUARDRAIL_REFUSAL_KEY
 from tools.binary_extensions import has_binary_extension
 from tools.skill_provenance import is_background_review
@@ -615,14 +615,6 @@ def read_file_tool(path: str, offset: int = 1, limit: int = DEFAULT_READ_LIMIT, 
     try:
         offset, limit = normalize_read_pagination(offset, limit)
 
-        # On the RAW model-supplied string, before any expanduser()/resolve():
-        # on Windows resolving \??\UNC\host\share already sends SMB auth (NTLM
-        # leak); on POSIX the task-base join would anchor the prefix as a
-        # relative segment and hide it from every resolved-path check below.
-        nt_err = get_nt_namespace_error(path, verb="Read")
-        if nt_err:
-            return tool_error(nt_err)
-
         device_base = None if Path(path).expanduser().is_absolute() else _resolve_base_dir(task_id)
         if _is_blocked_device(path, base_dir=device_base):
             return tool_error(
@@ -1076,11 +1068,6 @@ def search_tool(pattern: str, target: str = "content", path: str = ".",
                 already_searched=count,
                 **{GUARDRAIL_REFUSAL_KEY: True})
 
-        # Raw string before _resolve_path_for_task: resolving is the NTLM-leak
-        # trigger and the task-base join would hide the prefix (see read_file_tool).
-        nt_err = get_nt_namespace_error(path, verb="Search")
-        if nt_err:
-            return tool_error(nt_err)
         try:
             resolved_search_path = str(_resolve_path_for_task(path, task_id))
         except (OSError, ValueError, RuntimeError) as exc:

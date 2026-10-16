@@ -45,7 +45,7 @@ from tools.terminal_tool_lifecycle import (
 )
 from tools.terminal_tool_config import (
     _is_container_backend, _is_host_cwd, _is_mounted_host_cwd, _is_unusable_container_cwd,
-    _is_windows_drive_path, _parse_env_var, _plugin_env_flag, _quiet, _safe_getcwd, _tenv, _tenv_bool,
+    _parse_env_var, _plugin_env_flag, _quiet, _safe_getcwd, _tenv, _tenv_bool,
     coerce_ssh_remote_cwd, translate_mounted_host_path,
 )
 from tools.terminal_tool_backends import (
@@ -130,10 +130,7 @@ def _docker_volume_uses_host_path(volume_spec: str) -> bool:
     if not isinstance(volume_spec, str):
         return False
     vol = volume_spec.strip()
-    return bool(vol) and (
-        vol.startswith(("/", "~", "./", "../")) or
-        (len(vol) >= 3 and vol[1] == ":" and vol[2] in ("/", "\\"))
-    )
+    return vol.startswith(("/", "~", "./", "../"))
 
 
 def _docker_has_host_access(config: Dict[str, Any]) -> bool:
@@ -280,7 +277,7 @@ def _sanitize_cwd_for_live_env(env: Any, new_cwd: str) -> Optional[str]:
     """Cwd to write into a LIVE cached env, or None to leave it untouched.
 
     On container backends a raw host path (a desktop/TUI session registering its
-    workspace, e.g. ``C:\\Users\\me`` or ``/Users/me/workspace``) cannot be the
+    workspace, e.g. ``/Users/me/workspace``) cannot be the
     in-sandbox workdir: every file-tools ``_exec`` wrapper does
     ``builtin cd -- <env.cwd> || exit 126``, so a host cwd poisons all later
     file operations with an unrelated ``cd:`` error. Prefix-shaped host paths
@@ -591,10 +588,6 @@ def _resolve_task_host_cwd(config: Dict[str, Any], task_id: Optional[str]) -> Op
     fresh session's mount from it would leak the previous session's directory.
     Overrides tagged ``cwd_source: "process"`` are refused for the same reason;
     ``cwd_source: "session"`` or untagged (ACP/RL) overrides mount.
-    A Windows drive path is not a mount source while the cwd-to-/workspace flag
-    is off. A raw host override must stay out of ``docker run -w`` and fall
-    back to the sanitized config cwd. The Windows bind, including when
-    ``/workspace`` is already claimed, is the volume mount, not this override.
     """
     if config.get("env_type") != "docker" or not config.get("docker_mount_cwd_to_workspace"):
         return None
@@ -690,21 +683,6 @@ def _resolve_config_cwd(env_type: str, mount_docker_cwd: bool) -> tuple:
         ):
             host_cwd = candidate
             cwd = "/workspace"
-    elif env_type == "docker" and _is_windows_drive_path(cwd):
-        # A Windows workspace cannot exist inside the Linux container. Bind it
-        # even when docker_mount_cwd_to_workspace is off; the env retargets cwd
-        # to the mount (which may not be /workspace).
-        candidate = os.path.expanduser(cwd)
-        if os.name == "nt":
-            candidate = os.path.abspath(candidate)
-        if os.path.isdir(candidate):
-            host_cwd = candidate
-            cwd = candidate
-        else:
-            logger.info("Ignoring TERMINAL_CWD=%r for %s backend "
-                        "(host/relative path won't work in sandbox). Using %r instead.",
-                        cwd, env_type, default_cwd)
-            cwd = default_cwd
     elif _is_container_backend(env_type) and cwd and _is_unusable_container_cwd(cwd) and cwd != default_cwd:
         logger.info("Ignoring TERMINAL_CWD=%r for %s backend "
                     "(host/relative path won't work in sandbox). Using %r instead.",
@@ -855,7 +833,7 @@ def _command_requires_pipe_stdin(command: str) -> bool:
 
 from tools.terminal_tool_guards import (
     _foreground_background_guidance, _safe_command_preview, _validate_workdir,
-    gateway_lifecycle_block, self_repo_block,
+    gateway_lifecycle_block,
 )
 from tools.terminal_tool_background import _YIELDED_NOTE, spawn_background_process, yield_to_background_handler
 from tools.terminal_tool_result import finalize_foreground_result
@@ -934,7 +912,7 @@ def _resolve_command_cwd(
     exit 126 — so it is discarded in favor of ``default_cwd``.
 
     A recorded cwd that IS the host directory mounted at ``/workspace`` is
-    classified unusable before the ``/Users`` / ``/home`` / drive-letter
+    classified unusable before the ``/Users`` / ``/home``
     heuristic (``/mnt/...``, ``/srv/...`` are absolute and miss that heuristic)
     and remapped to ``/workspace`` so the session wrapper does not ``cd`` to it.
 
@@ -1331,10 +1309,6 @@ def _pre_exec_block(
             logger.warning("Blocked dangerous workdir: %s (command: %s)",
                            workdir[:200], _safe_command_preview(command))
             raise _Rejected(_error_json(workdir_error, status="blocked"))
-    if env_type == "local":
-        blocked = self_repo_block(command=command, cwd=cwd, workdir=workdir, session_key=session_key)
-        if blocked:
-            raise _Rejected(blocked)
 
 
 _PTY_DISABLED_REASON = (

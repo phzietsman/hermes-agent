@@ -975,7 +975,7 @@ class CLISessionMixin:
     def _clear_terminal_on_exit(self):
         """Clear screen + scrollback (``ESC[3J ESC[2J ESC[H``) so nothing is stranded above
         the exit summary. Only safe after ``app.run()`` returned and prompt_toolkit restored
-        terminal modes. Skips when stdout isn't a console; falls back to ``clear``/``cls``."""
+        terminal modes. Skips when stdout isn't a console; falls back to ``clear``."""
         try:
             stream = sys.stdout
             if stream is None or not stream.isatty():
@@ -987,25 +987,13 @@ class CLISessionMixin:
             stream.flush()
         except Exception:
             # Fallback for terminals that reject the escape sequence. Never os.system():
-            # it spawns a cmd.exe/shell window that flashes on Windows (#116904) and a
-            # minimal container without `clear` on PATH just no-ops through the shell.
+            # a minimal container without `clear` on PATH just no-ops through the shell.
             try:
                 import subprocess
 
-                from hermes_cli._subprocess_compat import windows_hide_flags
-
-                if os.name == "nt":
-                    argv = ["cmd", "/c", "cls"]  # `cls` is a cmd builtin, not an exe
-                else:
-                    clear_bin = shutil.which("clear")
-                    argv = [clear_bin] if clear_bin else []
-                if argv:
-                    subprocess.run(
-                        argv,
-                        stdin=subprocess.DEVNULL,
-                        creationflags=windows_hide_flags(),
-                        check=False,
-                    )
+                clear_bin = shutil.which("clear")
+                if clear_bin:
+                    subprocess.run([clear_bin], stdin=subprocess.DEVNULL, check=False, timeout=5)
             except Exception:
                 pass
 

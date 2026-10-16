@@ -10,8 +10,7 @@ from pathlib import Path
 
 import pytest
 
-# The remedy is rendered in the host shell's syntax; these pin the POSIX form.
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell remedy")
+
 
 _DIES_ON_ABI = """
 import pathlib, sys

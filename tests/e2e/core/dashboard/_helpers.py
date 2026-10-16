@@ -46,7 +46,7 @@ _READY_RE = re.compile(r"HERMES_DASHBOARD_READY port=(\d+)")
 
 def real_user_home() -> Path:
     import pwd
-    return Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()  # windows-footgun: ok — Linux-only suite, never reached on Windows
+    return Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
 
 
 def poll(pred: Callable[[], Any], timeout: float, what: str, interval: float = 0.05) -> Any:
@@ -232,7 +232,7 @@ def _assert_profiles_root_under(sb: Sandbox) -> None:
 
 def kill_group(proc: subprocess.Popen, sig: int | None = None) -> None:
     try:
-        os.killpg(proc.pid, signal.SIGKILL if sig is None else sig)  # windows-footgun: ok — Linux-only suite, never reached on Windows
+        os.killpg(proc.pid, signal.SIGKILL if sig is None else sig)
     except (ProcessLookupError, PermissionError):
         pass
 

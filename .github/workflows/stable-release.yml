@@ -121,13 +121,6 @@ jobs:
     with:
       release: true
 
-  windows-live:
-    needs: admit
-    if: needs.admit.outputs.skip-tests != 'true'
-    uses: ./.github/workflows/windows-venv-e2e.yml
-    with:
-      release: true
-
   install-e2e:
     name: Install and update E2E
     needs: admit
@@ -184,71 +177,6 @@ jobs:
       jobs: darwin-x64
       skip-tests: ${{ needs.admit.outputs.skip-tests == 'true' }}
 
-  candidates-win32-arm64:
-    name: Build signed release candidates (win32-arm64)
-    needs: admit
-    # Starts with the gates; the acceptance join is what requires CI.
-    if: >-
-      !cancelled() && needs.admit.result == 'success' && needs.admit.outputs.skip-bundles != 'true'
-    permissions:
-      contents: write
-      actions: read
-      packages: write
-      id-token: write
-    uses: ./.github/workflows/desktop-bundled-release.yml
-    secrets: inherit
-    with:
-      tag: ${{ needs.admit.outputs.tag }}
-      claim-tag: ${{ needs.admit.outputs.claim-tag }}
-      claim-object: ${{ needs.admit.outputs.claim-object }}
-      release-phase: candidate
-      jobs: win32-arm64
-      skip-tests: ${{ needs.admit.outputs.skip-tests == 'true' }}
-
-  candidates-win32-x64:
-    name: Build signed release candidates (win32-x64)
-    needs: admit
-    # Starts with the gates; the acceptance join is what requires CI.
-    if: >-
-      !cancelled() && needs.admit.result == 'success' && needs.admit.outputs.skip-bundles != 'true'
-    permissions:
-      contents: write
-      actions: read
-      packages: write
-      id-token: write
-    uses: ./.github/workflows/desktop-bundled-release.yml
-    secrets: inherit
-    with:
-      tag: ${{ needs.admit.outputs.tag }}
-      claim-tag: ${{ needs.admit.outputs.claim-tag }}
-      claim-object: ${{ needs.admit.outputs.claim-object }}
-      release-phase: candidate
-      jobs: win32-x64
-      skip-tests: ${{ needs.admit.outputs.skip-tests == 'true' }}
-
-  candidates-win32-bundle:
-    name: Build signed release candidates (win32-bundle)
-    needs: [admit, candidates-win32-arm64, candidates-win32-x64]
-    # Starts with the gates; the acceptance join is what requires CI.
-    if: >-
-      !cancelled() && needs.admit.result == 'success' && needs.admit.outputs.skip-bundles != 'true'
-      && needs.candidates-win32-arm64.result == 'success'
-      && needs.candidates-win32-x64.result == 'success'
-    permissions:
-      contents: write
-      actions: read
-      packages: write
-      id-token: write
-    uses: ./.github/workflows/desktop-bundled-release.yml
-    secrets: inherit
-    with:
-      tag: ${{ needs.admit.outputs.tag }}
-      claim-tag: ${{ needs.admit.outputs.claim-tag }}
-      claim-object: ${{ needs.admit.outputs.claim-object }}
-      release-phase: candidate
-      jobs: win32-bundle
-      skip-tests: ${{ needs.admit.outputs.skip-tests == 'true' }}
-
   candidates-termux:
     name: Build signed release candidates (termux)
     needs: admit
@@ -277,7 +205,6 @@ jobs:
     runs-on: ubuntu-24.04
     environment: release-signing
     outputs:
-      windows: ${{ steps.plan.outputs.windows }}
       macos: ${{ steps.plan.outputs.macos }}
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
@@ -311,7 +238,6 @@ jobs:
     runs-on: ubuntu-24.04
     environment: release-signing
     outputs:
-      windows: ${{ steps.plan.outputs.windows }}
       macos: ${{ steps.plan.outputs.macos }}
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
@@ -338,40 +264,6 @@ jobs:
           CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
           CLOUDFLARE_R2_PUBLIC_URL: ${{ vars.CLOUDFLARE_R2_PUBLIC_URL }}
 
-  transitions-win32:
-    name: Pin actual OLD and NEW signed packages (win32)
-    needs: [admit, candidates-win32-bundle]
-    if: needs.admit.outputs.skip-tests != 'true'
-    runs-on: ubuntu-24.04
-    environment: release-signing
-    outputs:
-      windows: ${{ steps.plan.outputs.windows }}
-      macos: ${{ steps.plan.outputs.macos }}
-    steps:
-      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-pm
-        with:
-          cache-python: false
-      - id: plan
-        run: python -m scripts.releases.stable transitions
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RECEIPT: win32-bundle
-          RECEIPT_URL: ${{ needs.candidates-win32-bundle.outputs.win32-bundle-receipt-url }}
-          RECEIPT_SHA256: ${{ needs.candidates-win32-bundle.outputs.win32-bundle-receipt-sha256 }}
-          RELEASE_TAG: ${{ needs.admit.outputs.tag }}
-          RELEASE_CLAIM_TAG: ${{ needs.admit.outputs.claim-tag }}
-          RELEASE_CLAIM_OBJECT: ${{ needs.admit.outputs.claim-object }}
-          BASELINE_MANIFEST_URL: ${{ inputs.baseline-manifest }}
-          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
-          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
-          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
-          CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
-          CLOUDFLARE_R2_PUBLIC_URL: ${{ vars.CLOUDFLARE_R2_PUBLIC_URL }}
-
   candidate-manifest:
     name: Stage verified stable candidate artifacts
     # Runs after every candidate call, so after every smoke (decision 23).
@@ -379,8 +271,7 @@ jobs:
     # call's stable-phase-result fails when its smokes fail, so a failed
     # smoke fails this job's RELEASE_NEEDS check and stages no manifest.
     if: always() && needs.admit.outputs.skip-bundles != 'true'
-    needs: [admit, candidates-darwin-arm64, candidates-darwin-x64, candidates-win32-arm64,
-            candidates-win32-x64, candidates-win32-bundle, candidates-termux]
+    needs: [admit, candidates-darwin-arm64, candidates-darwin-x64, candidates-termux]
     runs-on: ubuntu-24.04
     environment: release-signing
     timeout-minutes: 90
@@ -408,22 +299,6 @@ jobs:
           cache-python: false
       - id: manifest
         run: python -m scripts.releases.stable candidate-manifest
-
-  windows-packaged:
-    name: Windows signed-package acceptance
-    needs: transitions-win32
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.transitions-win32.outputs.windows) }}
-    uses: ./.github/workflows/install-e2e-windows-run.yml
-    with:
-      install-method: packaged-app
-      update-method: open-app-update
-      install-ref: ${{ matrix.old }}
-      leg-id: stable-${{ matrix.id }}
-      bundle-manifest-url: ${{ matrix.manifest }}
-      bundle-manifest-sha256: ${{ matrix.manifest_sha256 }}
-      bundle-arch: ${{ matrix.arch }}
 
   macos-packaged-arm64:
     name: macOS arm64 signed-package acceptance
@@ -457,49 +332,13 @@ jobs:
       bundle-manifest-sha256: ${{ matrix.manifest_sha256 }}
       bundle-arch: ${{ matrix.arch }}
 
-  bootstrap-version:
-    name: Bootstrap installer release identity
-    needs: admit
-    if: needs.admit.outputs.skip-tests != 'true'
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
-        with:
-          ref: ${{ needs.admit.outputs.commit }}
-      - name: Stamp and verify the Cargo and Tauri release identity
-        env:
-          RELEASE_COMMIT: ${{ needs.admit.outputs.commit }}
-          RELEASE_VERSION: ${{ needs.admit.outputs.version }}
-        run: |
-          set -euo pipefail
-          tree="$RUNNER_TEMP/bootstrap-release"
-          mkdir -p "$tree"
-          git archive "$RELEASE_COMMIT" | tar -x -C "$tree"
-          python3 -m scripts.releases.stamping --tree "$tree" \
-            --version "$RELEASE_VERSION"
-          actual="$(cargo metadata --no-deps --format-version 1 \
-            --manifest-path "$tree/apps/bootstrap-installer/src-tauri/Cargo.toml" \
-            | jq -r '.packages[] | select(.name == "hermes-bootstrap") | .version')"
-          test "$actual" = "$RELEASE_VERSION" || {
-            echo "::error::Bootstrap Cargo version $actual != $RELEASE_VERSION"
-            exit 1
-          }
-          actual_tauri="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' \
-            "$tree/apps/bootstrap-installer/src-tauri/tauri.conf.json")"
-          test "$actual_tauri" = "$RELEASE_VERSION" || {
-            echo "::error::Bootstrap Tauri version $actual_tauri != $RELEASE_VERSION"
-            exit 1
-          }
-
   acceptance:
     name: All release acceptance checks pass
     if: always()
-    needs: [admit, ci, docker, nix, pm-bundle, termux-checks, windows-live, install-e2e,
-            candidates-darwin-arm64, candidates-darwin-x64, candidates-win32-arm64,
-            candidates-win32-x64, candidates-win32-bundle, candidates-termux,
+    needs: [admit, ci, docker, nix, pm-bundle, termux-checks, install-e2e,
+            candidates-darwin-arm64, candidates-darwin-x64, candidates-termux,
             candidate-manifest, transitions-darwin-arm64, transitions-darwin-x64,
-            transitions-win32, windows-packaged, macos-packaged-arm64, macos-packaged-x64,
-            bootstrap-version]
+            macos-packaged-arm64, macos-packaged-x64]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
@@ -508,7 +347,7 @@ jobs:
       - uses: ./.github/actions/setup-pm
         with:
           cache-python: false
-      - run: python -m scripts.releases.stable gate admit ci docker nix pm-bundle termux-checks windows-live install-e2e candidates-darwin-arm64 candidates-darwin-x64 candidates-win32-arm64 candidates-win32-x64 candidates-win32-bundle candidates-termux candidate-manifest transitions-darwin-arm64 transitions-darwin-x64 transitions-win32 windows-packaged macos-packaged-arm64 macos-packaged-x64 bootstrap-version
+      - run: python -m scripts.releases.stable gate admit ci docker nix pm-bundle termux-checks install-e2e candidates-darwin-arm64 candidates-darwin-x64 candidates-termux candidate-manifest transitions-darwin-arm64 transitions-darwin-x64 macos-packaged-arm64 macos-packaged-x64
         env:
           RELEASE_NEEDS: ${{ toJSON(needs) }}
           SKIP_BUNDLES: ${{ needs.admit.outputs.skip-bundles }}
@@ -566,7 +405,7 @@ jobs:
     name: Stable release is green
     if: always()
     needs: [admit, ci, docker, acceptance, candidate-manifest, publication, publish-docker,
-            windows-packaged, macos-packaged-arm64, macos-packaged-x64]
+            macos-packaged-arm64, macos-packaged-x64]
     runs-on: ubuntu-24.04
     environment: release-signing
     permissions:

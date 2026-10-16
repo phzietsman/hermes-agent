@@ -1,12 +1,8 @@
 // updater/index.ts — the desktop update strategy surface.
 //
 // Every install shape updates through a different owner:
-//   app-installer   out-of-store MSIX on win32 — the OS App Installer owns
-//                   the apply (the .appinstaller feed registered at install).
-//   microsoft-store StoreContext checks and requests the package update.
+//   electron-updater packaged macOS builds — electron-updater owns the apply.
 //   external        Steward-owned deployments with no in-app updater.
-//   windows-handoff git checkout on win32 — detached updater binary or the
-//                   repo hand-off script owns the swap.
 //   posix-handoff   git checkout on macOS/Linux — the repo posix hand-off
 //                   script owns the swap.
 //   manual          checkout with no staged updater — the user runs
@@ -19,12 +15,10 @@ import type { InstallStamp } from '../install-stamp'
 
 import type { ChannelRetirementStatus } from './channel-strategy'
 
-export type UpdaterMechanism =
-  'app-installer' | 'electron-updater' | 'external' | 'microsoft-store' | 'windows-handoff' | 'posix-handoff' | 'manual'
+export type UpdaterMechanism = 'electron-updater' | 'external' | 'posix-handoff' | 'manual'
 
 /** The facts the mechanism dispatch keys on. Pure data — injectable for tests. */
 export interface MechanismFacts {
-  platform: NodeJS.Platform
   source?: InstallStamp['source']
   updateMechanism: InstallStamp['updateMechanism'] | undefined
 }
@@ -42,7 +36,7 @@ export function resolveUpdaterMechanism(facts: MechanismFacts): UpdaterMechanism
     return facts.updateMechanism
   }
 
-  return facts.platform === 'win32' ? 'windows-handoff' : 'posix-handoff'
+  return 'posix-handoff'
 }
 
 /** The status shape main.ts already sends over `hermes:updates:check`. */

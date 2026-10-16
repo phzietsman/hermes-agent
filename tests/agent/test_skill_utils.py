@@ -298,8 +298,7 @@ class TestParseFrontmatterBOM:
         # whether or not the file carries a BOM. Empty frontmatter (the bug)
         # reads as "no platform restriction" and leaks the skill everywhere,
         # i.e. it would answer True on every host. Compare against the real
-        # host's verdict instead of faking Windows — the fake only stood in
-        # for "some non-macOS host", which the CI host already is.
+        # host's verdict instead of faking another OS.
         import sys
 
         expected = sys.platform == "darwin"

@@ -56,15 +56,14 @@ def _relock_project(root: Path) -> int:
         print(f"✗ uv.lock refresh failed: {exc}")
         return 1
     print("✓ uv.lock updated from pyproject.toml")
-    windows = sys.platform == "win32"
-    activate = r". .\activate.ps1" if windows else "source ./activate"
+    activate = "source ./activate"
     print(f"Next: re-source activation to sync the environments: {activate}")
     opt_in = _new_opt_in_extras(root, before)
     if opt_in:
         # Activation syncs [all] plus extras already recorded, and --test-extras
         # REPLACES the default rather than adding to it, so [all] stays listed.
         names = ",".join(["all", *opt_in])
-        flag = f"-TestExtras '{names}'" if windows else f"--test-extras {names}"
+        flag = f"--test-extras {names}"
         print(f"New extras outside [all] ({', '.join(opt_in)}) need: {activate} {flag}")
     print("Then commit pyproject.toml and uv.lock together.")
     return 0
@@ -149,35 +148,12 @@ def _fmt_bytes(n: int) -> str:
     return f"{n / (1024 * 1024):.1f} MiB"
 
 
-def _enable_vt(stream) -> bool:
-    """A Windows console prints ESC as a glyph (`←[2K`) until its handle opts
-    in to VT processing, and PowerShell hands children a console with VT off.
-    NUL also reports isatty() but is no console, so it fails here too."""
-    if sys.platform != "win32":
-        return True
-    import ctypes
-    import msvcrt
-    from ctypes import wintypes
-
-    try:
-        handle = msvcrt.get_osfhandle(stream.fileno())
-    except (AttributeError, OSError, ValueError):
-        return False
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    mode = wintypes.DWORD()
-    if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
-        return False
-    vt = 0x0004  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-    return bool(mode.value & vt or kernel32.SetConsoleMode(handle, mode.value | vt))
-
-
 def _progress_stream():
     """Stream for in-place progress, or None off a terminal. Prefer stdout;
-    fall back to stderr because activate.ps1 pipes stdout through Out-Host
-    while stderr stays on the console."""
+    fall back to stderr when stdout is piped."""
     for stream in (sys.stdout, sys.stderr):
         try:
-            if stream.isatty() and _enable_vt(stream):
+            if stream.isatty():
                 return stream
         except (AttributeError, ValueError):
             continue
@@ -373,8 +349,8 @@ def cmd_install(args) -> int:
 
     input_mtimes = activation_input_mtimes(repo_root()) if full_closure else {}
     # Tools before the venv. A bare `pm install` used to install tools and
-    # sync the venv in one breath, so a native build (Windows ARM64 source
-    # wheels) resolved compilers and git from the host PATH. Publish every
+    # sync the venv in one breath, so a native build (source wheels)
+    # resolved compilers and git from the host PATH. Publish every
     # tool first and put it on PATH; sync only after that.
     tool_names = names if args.names else tool_roots(names)
     if _install_names(tool_names, target=cross_target, verify=not trust_recorded):
@@ -397,7 +373,7 @@ def cmd_install(args) -> int:
     failed = _install_python_environments(extras, sync=bool(extras or not args.names),
                                           test_environment=test_environment)
     # Defaults are optional and large (agent-browser + Chromium, cua-driver): fetch them
-    # only once the venv, and on Windows ARM64 its build tools, succeeded.
+    # only once the venv succeeded.
     if not failed:
         _install_defaults(defaults, verify=not trust_recorded)
     if full_closure and not failed:
@@ -798,8 +774,8 @@ def cmd_bundle(args) -> int:
 
 
 def main(argv=None) -> int:
-    # Windows consoles default to cp1252; pm prints ✓/✗. Never let the
-    # status glyphs crash the command reporting them. line_buffering:
+    # pm prints ✓/✗; never let the status glyphs crash the command
+    # reporting them under a non-UTF-8 locale. line_buffering:
     # pm output must stream live in a piped (CI) log, not sit in a block
     # buffer and flush only at exit.
     for stream in (sys.stdout, sys.stderr):
@@ -867,7 +843,7 @@ def main(argv=None) -> int:
     p.add_argument("names", nargs="*", help="packages to check/update (default: all with a latest source)")
     p.add_argument("--check", action="store_true",
                    help="dry-run: print what would change, write nothing (exit 1 if updates exist)")
-    p.add_argument("--target", help="resolve for a different target instead of this machine (e.g. win32-arm64)")
+    p.add_argument("--target", help="resolve for a different target instead of this machine (e.g. linux-arm64)")
     p.add_argument("--uv", action="store_true", help="also refresh uv.lock + venv (uv update + sync)")
     p.add_argument("--npm", action="store_true", help="also refresh package-lock.json (npm update)")
     p.add_argument("--termux", action="store_true",
