@@ -1,5 +1,4 @@
-// Native MSIX identity/version derivation and artifact content types.
-// App Installer XML and feed publication belong to scripts.bundles.release_artifacts.
+// Channel build request bridge, release package version derivation and artifact content types.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -36,18 +35,8 @@ export function channelBuildRequest(env = process.env) {
 }
 
 
-// The out-of-store MSIX publisher — the ATS signing cert subject, which is
-// what Windows compares against the package manifest publisher at install.
-// Mirrored from electron-builder.config.cjs so the .appinstaller and the
-// manifest can never drift.
-export const OUT_OF_STORE_PUBLISHER =
-  'CN=Nous Research Inc., O=Nous Research Inc., L=Austin, S=Texas, C=US'
-
-// Content-Type for MSIX / App Installer artifacts. Without the right MIME the
-// browser cannot hand a clicked .appinstaller / .msixbundle to the OS App
-// Installer (it would download as octet-stream instead). Everything else
-// stays octet-stream (R2's default) unchanged. Keys match by filename suffix,
-// case-insensitively.
+// Content-Type overrides for release artifacts; everything else stays
+// octet-stream (R2's default). Keys match by filename suffix, case-insensitively.
 const CONTENT_TYPES = require('./release-content-types.json')
 
 /**
@@ -186,46 +175,6 @@ export function storePackageVersion(tag, gitRoot) {
   return nativeQuad(tag, releaseEpoch(tag, gitRoot))
 }
 
-/** The custom template controls package identity, not executable VERSIONINFO.
- * @param {string} template @param {string} version
- */
-export function storeManifestTemplate(template, version) {
-  if (!/^[1-9]\d*\.\d+\.\d+\.0$/.test(version) || version.split('.').some(part => Number(part) > 65535)) {
-    throw new Error('Store package version must have a nonzero major, 16-bit fields and zero revision')
-  }
-  return nativeManifestTemplate(template, version)
-}
-
-/** @param {string} template @param {string} version */
-export function nativeManifestTemplate(template, version) {
-  if (!/^[1-9]\d*\.\d+\.\d+\.\d+$/.test(version) || version.split('.').some(part => Number(part) > 65535)) {
-    throw new Error('Native package version must contain four 16-bit numeric fields')
-  }
-  if (template.split('${version}').length !== 2) throw new Error('MSIX template must contain exactly one version macro')
-  return template.replace('${version}', version)
-}
-
-/** MsixTarget derives its quad from app semver even when shortVersion is set.
- * Bake the admitted quad into the already staged nonstable template instead.
- * @param {string} desktopDir
- * @param {import('../apps/desktop/electron/install-stamp.js').ChannelBuildRequest} request
- */
-export function stageChannelManifest(desktopDir, request) {
-  const file = path.join(desktopDir, 'build/msix-manifest.xml')
-  const template = fs.readFileSync(path.join(desktopDir, 'assets/msix-manifest.xml'), 'utf8')
-  const payload = JSON.parse(fs.readFileSync(path.join(desktopDir, 'build/agent-payload/manifest.json'), 'utf8'))
-  const { appExecutionAliasApplications } = require(path.join(desktopDir, 'scripts/before-build.mjs'))
-  const applications = appExecutionAliasApplications(payload.launchers, request.identity)
-  if (template.split('${version}').length !== 2) throw new Error('Channel MSIX template must have one version macro')
-  fs.writeFileSync(file, template.replace('${version}', request.windowsVersion)
-    .replace('</Applications>', `${applications}\n  </Applications>`), 'utf8')
-  // The legacy hook emits one multi-alias extension when artifact/app names agree.
-  // Channels always use separate applications for distinct CLI entrypoints.
-  const extensions = path.join(desktopDir, 'build/msix-extensions.xml')
-  const xml = fs.readFileSync(extensions, 'utf8')
-  fs.writeFileSync(extensions, xml.replace(/<uap5:Extension\b[^>]*Category="windows\.appExecutionAlias"[^>]*>[\s\S]*?<\/uap5:Extension>/g, ''), 'utf8')
-}
-
 /**
  * Resolve the app identity for a desktop build from the app dir: the product
  * identity + package version. Pure-ish (reads product-identity.cjs and
@@ -243,7 +192,7 @@ export function appIdentity(desktopDir, tag = process.env.HERMES_PAYLOAD_TAG || 
   const request = channelBuildRequest()
   if (request) {
     if (tag) throw new Error('Channel builds must not select a release tag')
-    return { identity, version: request.windowsVersion, fileVersion: request.version, name: identity.artifactNamePascal }
+    return { identity, version: `${request.version}.0`, fileVersion: request.version, name: identity.artifactNamePascal }
   }
   // Commit artifacts retain app semver but do not advance an update channel.
   if (process.env.HERMES_BUILD_COMMIT) {
@@ -255,12 +204,7 @@ export function appIdentity(desktopDir, tag = process.env.HERMES_PAYLOAD_TAG || 
         || version.split('.').some(part => Number(part) > 65535)) {
       throw new Error('Commit builds require HERMES_PAYLOAD_VERSION=X.Y.Z with 16-bit fields')
     }
-    if (identity.store) throw new Error('Store packaging requires a stable release tag')
     return { identity, version: `${version}.0`, fileVersion: version, name: identity.artifactNamePascal }
-  }
-  if (identity.store) {
-    return { identity, version: nativeQuad(String(tag), releaseEpoch(String(tag), repoRoot)),
-      fileVersion: String(tag).slice(1), name: identity.artifactNamePascal }
   }
   if (CANARY_TAG_RE.test(String(tag)) || (tag && STABLE_TAG_RE.test(tag))) {
     return {

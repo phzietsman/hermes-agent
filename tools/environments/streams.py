@@ -92,7 +92,7 @@ def open_stream(env: BaseEnvironment, argv: Sequence[str], *, child_env: Optiona
     command = remote_command(env, argv, child_env=child_env, user=user, interactive=True)
     if command is None:
         raise RuntimeError(f"{type(env).__name__} cannot host a long-lived stdio stream")
-    return subprocess.Popen(  # windows-footgun: ok — the prefix is a Linux sandbox's client (docker/ssh/apptainer)
+    return subprocess.Popen(
         command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr, close_fds=True)
 
 
@@ -102,7 +102,7 @@ def run_in(env: BaseEnvironment, argv: Sequence[str], *, child_env: Optional[dic
     command = remote_command(env, argv, child_env=child_env, user=user, interactive=stdin is not None)
     if command is None:
         raise RuntimeError(f"{type(env).__name__} cannot exec argv")
-    return subprocess.run(  # windows-footgun: ok — Linux sandbox client
+    return subprocess.run(
         command, input=stdin, capture_output=True, timeout=timeout, check=False)
 
 

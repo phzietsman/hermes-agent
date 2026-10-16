@@ -60,11 +60,7 @@ let window: BrowserWindow | undefined
 let descriptorCalls = 0
 let rendererParking: { parked: Record<string, string[]>; redials: number; open: number } | undefined
 
-const stopDeps = {
-  forceKillProcessTree: () => {
-    throw new Error('POSIX fixture only')
-  }
-}
+const stopDeps = {}
 
 const record = (event: string, key?: string, details: Record<string, unknown> = {}) => {
   receipts.push({ event, key, active: coordinator.activeCount, live: live.size, ...details })

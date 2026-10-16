@@ -10,9 +10,9 @@ import os
 
 def _flush_probe(monkeypatch, observe):
     """Replace the filesystem-wide flush with one that records what was on disk
-    when it ran; ``raising=False`` so the contract is exercised on Windows too."""
+    when it ran."""
     seen: list = []
-    monkeypatch.setattr(os, "sync", lambda: seen.append(observe()), raising=False)
+    monkeypatch.setattr(os, "sync", lambda: seen.append(observe()))
     return seen
 
 

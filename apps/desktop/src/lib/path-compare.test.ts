@@ -1,20 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { cleanPath, comparisonPath, isUnderPath, isWindowsAbsolutePath } from './path-compare'
-
-describe('isWindowsAbsolutePath', () => {
-  it.each(['C:\\Users\\me', 'd:/work', '\\\\server\\share'])('accepts %s', path => {
-    expect(isWindowsAbsolutePath(path)).toBe(true)
-  })
-
-  it.each(['/home/me', './out', 'out\\report.html', 'C:relative', 'https://x.com'])('rejects %s', path => {
-    expect(isWindowsAbsolutePath(path)).toBe(false)
-  })
-})
+import { cleanPath, isUnderPath } from './path-compare'
 
 describe('cleanPath', () => {
-  it('unifies separators and drops trailing slashes', () => {
-    expect(cleanPath('C:\\Repos\\App\\')).toBe('C:/Repos/App')
+  it('drops surrounding whitespace and trailing slashes', () => {
     expect(cleanPath('  /home/user/repo//  ')).toBe('/home/user/repo')
   })
 
@@ -23,22 +12,13 @@ describe('cleanPath', () => {
   })
 })
 
-describe('comparisonPath', () => {
-  it('folds case for Windows drive and UNC paths only', () => {
-    expect(comparisonPath('C:/Repos/App')).toBe('c:/repos/app')
-    expect(comparisonPath('//server/Share')).toBe('//server/share')
-    expect(comparisonPath('/home/User/Repo')).toBe('/home/User/Repo')
-  })
-})
-
 describe('isUnderPath', () => {
-  it('matches a nested path across separator and case differences', () => {
-    expect(isUnderPath('C:\\Repos\\App', 'c:/repos/app/src')).toBe(true)
-    expect(isUnderPath('C:/Repos/App/', 'C:\\Repos\\App')).toBe(true)
+  it('matches the path itself and nested paths', () => {
+    expect(isUnderPath('/home/user/repo/', '/home/user/repo')).toBe(true)
+    expect(isUnderPath('/home/user/repo', '/home/user/repo/src')).toBe(true)
   })
 
-  it('stays case-sensitive on POSIX', () => {
-    expect(isUnderPath('/home/user/repo', '/home/user/repo/src')).toBe(true)
+  it('stays case-sensitive', () => {
     expect(isUnderPath('/home/user/repo', '/home/user/Repo/src')).toBe(false)
   })
 

@@ -95,9 +95,9 @@ def _containing_skills_root(skill_path: Path) -> Path:
 
 
 def _is_path_redirect(path: Path) -> bool:
-    """Symlink or (Windows 3.12+) junction — either lets a poisoned tree redirect rmtree outside."""
+    """A symlink lets a poisoned tree redirect rmtree outside."""
     try:
-        return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
+        return path.is_symlink()
     except OSError:
         return False
 

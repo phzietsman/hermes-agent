@@ -36,7 +36,7 @@ def prepare(root, *, is_fork=False):
     return update_cmd._prepare_checkout_for_update(
         ["git"], "main", update_cmd._current_branch_name(["git"], check=True),
         is_fork=is_fork, assume_yes=True, gateway_mode=False, gw_input_fn=None,
-        switch_branch=False, _windows_gateway_resume=None,
+        switch_branch=False, _gateway_pause=None,
     )
 
 
@@ -55,7 +55,7 @@ def complete(plan, movement_baseline, monkeypatch):
     request = {}
     update_cmd._apply_pulled_update(
         ["git"], "main", movement_baseline, plan,
-        _windows_gateway_resume=None, completion_request=request,
+        _gateway_pause=None, completion_request=request,
     )
     assert completed == [request]
     return request

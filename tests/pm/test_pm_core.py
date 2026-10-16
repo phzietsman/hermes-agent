@@ -25,7 +25,7 @@ from tests.pm._fixtures import make_tar, served as served
 class FakeTool(BinaryPackage):
     name = "faketool"
     probe_version = False
-    binary_rel = {"win32": "bin/faketool", "posix": "bin/faketool"}
+    binary_rel = {"posix": "bin/faketool"}
 
     def fetch_url(self, version, target):
         return f"{FakeTool.base_url}/{self.name}-{version}.tar.gz"
@@ -50,7 +50,7 @@ class MultiTool(BinaryPackage):
     name = "multitool"
     probe_version = False
     flatten = False
-    binary_rel = {"win32": "bin/multitool", "posix": "bin/multitool"}
+    binary_rel = {"posix": "bin/multitool"}
 
     def fetch_urls(self, version, target):
         return [f"{MultiTool.base_url}/{self.name}-{version}-a.tar.gz",
@@ -472,8 +472,7 @@ def test_gc_keeps_used_removes_orphans(pm_env):
 
 
 def _hold(monkeypatch, *prefixes):
-    """Model a Windows hold (a running process mapping the old interpreter's
-    DLLs): removal under these names fails past every retry; rename still works."""
+    """Model a hold on the old entry: removal under these names fails; rename still works."""
     import pm.install as install
 
     real_remove = install._remove_entry
@@ -622,12 +621,12 @@ def test_python_package_url_carries_release_tag():
     from pm.registry import get_package
 
     python = get_package("python")
-    url = python.fetch_url("3.14.7+20260901", "win32-arm64")
+    url = python.fetch_url("3.14.7+20260901", "linux-arm64")
     assert "download/20260901/" in url
-    assert "cpython-3.14.7+20260901-aarch64-pc-windows-msvc-install_only" in url
+    assert "cpython-3.14.7+20260901-aarch64-unknown-linux-gnu-install_only" in url
 
     try:
-        python.fetch_url("3.14.7", "win32-arm64")
+        python.fetch_url("3.14.7", "linux-arm64")
         raise AssertionError("bare version must be rejected")
     except PmInstallError:
         pass
@@ -674,27 +673,6 @@ def test_python_package_does_not_sign_non_macos_runtime(monkeypatch, tmp_path):
     assert signing.sign_managed_python(tmp_path / "python") is False
 
 
-def test_machine_matches_binary_pe_headers(tmp_path):
-    from pm.package import machine_matches_binary
-
-    def pe(machine: int) -> bytes:
-        head = bytearray(b"MZ" + b"\0" * 62)
-        head[60:64] = (64).to_bytes(4, "little")
-        return bytes(head) + b"PE\0\0" + machine.to_bytes(2, "little")
-
-    amd = tmp_path / "amd.exe"
-    amd.write_bytes(pe(0x8664))
-    arm = tmp_path / "arm.exe"
-    arm.write_bytes(pe(0xAA64))
-    script = tmp_path / "tool"
-    script.write_text("#!/bin/sh\n", encoding="utf-8")
-
-    assert machine_matches_binary(amd, "win32-x64") is True
-    assert machine_matches_binary(amd, "win32-arm64") is False
-    assert machine_matches_binary(arm, "win32-arm64") is True
-    assert machine_matches_binary(script, "win32-x64") is None  # not a mismatch
-
-
 def test_machine_matches_binary_elf(tmp_path):
     from pm.package import machine_matches_binary
 
@@ -726,70 +704,6 @@ def test_bundle_closure_uv_stays_internal_node_npm_ship(monkeypatch, tmp_path):
     assert get_package("node").internal is False
     assert get_package("npm").internal is False
     assert "node" in names and "npm" in names
-
-
-def test_arch_guard_allows_emulated_x64_on_win32_arm64(monkeypatch, tmp_path):
-    """agent-browser on win32-arm64 ships the x64 PE (emulated). The guard
-    must not reject it when the package declares the target emulated."""
-    from scripts.bundles import native as cli
-    from pm.lock import Facts, Lockfile
-    from pm.registry import get_package
-
-    store = tmp_path / "store"
-    entry = store / "agent-browser-0.35.1"
-    bin_dir = entry / "bin"
-    bin_dir.mkdir(parents=True)
-    # A real x64 PE header (MZ + PE sig + machine 0x8664).
-    x64_pe = (
-        b"MZ" + b"\0" * 58 + (0x80).to_bytes(4, "little") + b"\0" * 64
-        + b"PE\0\0" + (0x8664).to_bytes(2, "little") + b"\0" * 54
-    )
-    binary = bin_dir / "agent-browser-win32-x64.exe"
-    binary.write_bytes(x64_pe)
-    from pm.package import machine_matches_binary
-
-    assert machine_matches_binary(binary, "win32-arm64") is False
-
-    lock = Lockfile(tmp_path / "lock.json")
-    lock.set_pin("agent-browser", "0.35.1", {"any": {"url": "x", "sha256": "0" * 64}})
-    lock.save()
-    monkeypatch.setattr("scripts.bundles.native._lockfile", lambda: lock)
-    monkeypatch.setattr("scripts.bundles.native.current_target", lambda: "win32-arm64")
-    monkeypatch.setattr("scripts.bundles.native.get_package", lambda name: get_package(name))
-
-    facts = Facts(store / "facts.json")
-    facts.record("agent-browser", "0.35.1", entry.name, {}, store)
-
-    problems = cli._arch_guard(store)
-    assert problems == []
-
-
-def test_python_stage_drops_unloadable_x64_vc_runtime_on_arm64(monkeypatch, tmp_path):
-    from pm.registry import get_package
-
-    staged = tmp_path / "staged"
-    staged.mkdir()
-    (staged / "vcruntime140_1.dll").write_bytes(b"x64")
-    (staged / "vcruntime140.dll").write_bytes(b"arm64")
-
-    monkeypatch.setattr("hermes_cli.macos_signing.sign_managed_python", lambda p: False)
-    get_package("python").stage(None, staged, "3.14.7", "win32-arm64")
-
-    assert not (staged / "vcruntime140_1.dll").exists()
-    assert (staged / "vcruntime140.dll").is_file()
-
-
-def test_python_stage_keeps_vc_runtimes_on_other_targets(monkeypatch, tmp_path):
-    from pm.registry import get_package
-
-    staged = tmp_path / "staged"
-    staged.mkdir()
-    (staged / "vcruntime140_1.dll").write_bytes(b"x64")
-
-    monkeypatch.setattr("hermes_cli.macos_signing.sign_managed_python", lambda p: False)
-    get_package("python").stage(None, staged, "3.14.7", "win32-x64")
-
-    assert (staged / "vcruntime140_1.dll").is_file()
 
 
 def test_verify_missing_binary_reports_path_and_listing(tmp_path):
@@ -835,7 +749,7 @@ def test_probe_args_override_used_by_verify(tmp_path):
 
 
 def test_ffmpeg_binary_rel_follows_the_build_source(tmp_path):
-    """BtbN (Windows `.zip`, Linux `.tar.xz`) ships bin/ffmpeg under one
+    """BtbN (Linux `.tar.xz`) ships bin/ffmpeg under one
     top-level dir; martin-riedl's macOS zip is a single `ffmpeg` at the root."""
     from pm.registry import get_package
 
@@ -856,12 +770,11 @@ def test_verify_arch_mismatch_reports_target(tmp_path):
     """A wrong-arch binary is diagnosed before any probe is attempted."""
     target = current_target()
     arch = target.rsplit("-", 1)[-1]
-    wrong = 0xAA64 if arch == "x64" else 0x8664
+    wrong = 0xB7 if arch == "x64" else 0x3E
     entry = tmp_path / "entry"
     (entry / "bin").mkdir(parents=True)
-    buf = bytearray(b"MZ" + b"\x00" * 0x3E)
-    buf[0x3C:0x40] = (0x40).to_bytes(4, "little")
-    buf += b"PE\x00\x00" + wrong.to_bytes(2, "little") + b"\x00" * 64
+    buf = bytearray(b"\x7fELF" + b"\x00" * 60)
+    buf[18:20] = wrong.to_bytes(2, "little")
     (entry / "bin" / "faketool").write_bytes(bytes(buf))
     reason = FakeTool().verify(entry, target)
     assert reason and "not a" in reason and target in reason

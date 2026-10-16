@@ -179,8 +179,6 @@ def deep_checkpoint(checkpoint):
 @pytest.mark.parametrize("spec", [
     "packages", "packages/", "packages/nested", "packages/nested/", "packages/nested/main.py",
     "packages/./nested", "notes/../packages/nested",
-    pytest.param("packages\\nested", marks=pytest.mark.platforms("windows")),
-    pytest.param("packages\\nested\\main.py", marks=pytest.mark.platforms("windows")),
 ])
 def test_deeper_gitlink_scope_refuses_in_any_spelling(deep_checkpoint, spec):
     mgr, work, commit = deep_checkpoint

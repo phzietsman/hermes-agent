@@ -36,9 +36,8 @@ const electronNative: TestProjectConfiguration = {
     // modules that should be provable without booting Electron. Playwright
     // ignores the same pattern so they run in exactly one runner.
     include: ['electron/**/*.test.ts', 'scripts/**.test.{ts,mjs}', 'e2e/**/*.unit.test.ts'],
-    // Tests here shell out to real interpreters (python3, pwsh) over a 40+
-    // case corpus; pwsh alone takes several seconds to start on a loaded CI
-    // runner, so vitest's 5s default timed the Windows marker judge out.
+    // Tests here shell out to real interpreters (python3, bash) over a 40+
+    // case corpus; on a loaded CI runner vitest's 5s default is too tight.
     testTimeout: 30_000
   }
 }

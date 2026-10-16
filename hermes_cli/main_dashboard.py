@@ -49,7 +49,7 @@ def _parse_dashboard_runtime(command: str) -> tuple[str, str, int] | None:
     The mode is the canonical holder subcommand, never an argv substring: this gates the launchd
     backend inventory (a kill + kickstart path) and ``--status`` (#121156).
     """
-    from hermes_cli.update_cmd_windows import _hermes_holder_subcommand
+    from hermes_cli.update_cmd_common import _hermes_holder_subcommand
     mode = _hermes_holder_subcommand(command)
     if mode not in ("dashboard", "serve"):
         return None
@@ -97,9 +97,6 @@ def _restart_managed_dashboard_service(reason: str, unit: str = _DASHBOARD_SYSTE
     deliberately stops the caller's ``os.kill`` fallback: systemd treats a direct
     SIGTERM as a clean stop, so ``Restart=on-failure`` won't bring it back.
     """
-    if sys.platform == "win32":
-        return False
-
     def _systemctl(*args: str, timeout: int = 10) -> subprocess.CompletedProcess:
         return _run_probe(["systemctl", *args], timeout=timeout)
 
@@ -275,7 +272,7 @@ def _loaded_launchd_backend_jobs(
     from xml.parsers.expat import ExpatError
 
     from hermes_cli.gateway import _launchd_print_service_pid
-    uid = os.getuid()  # windows-footgun: ok — darwin-only branch
+    uid = os.getuid()
     jobs: list[tuple[str, str, list[str], int | None]] = []
     for kind, plist_dir in (plist_dirs if plist_dirs is not None else _launchd_plist_dirs()):
         try:
@@ -352,9 +349,7 @@ def _restart_launchd_job(domain: str, label: str, old_pid: int | None, *, timeou
 
 def _dashboard_cmdline_for_pid(pid: int) -> list[str] | None:
     """Exact argv of a running process: ``/proc/<pid>/cmdline`` (Linux), ``ps -o command=`` + shlex
-    (macOS), None on Windows (no graceful taskkill window; Desktop manages its backend)."""
-    if sys.platform == "win32":
-        return None
+    (macOS)."""
     try:
         cmdline_path = f"/proc/{pid}/cmdline"
         if os.path.exists(cmdline_path):
@@ -722,10 +717,6 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
 
 def _read_ssh_session_token_file(path: str) -> str:
     """Read and unlink a Desktop SSH token from its private runtime directory."""
-    if sys.platform == "win32":
-        from hermes_cli.windows_ssh_runtime import read_token
-        return read_token(path)
-
     import stat as _stat
 
     if not os.path.isabs(path):
@@ -748,13 +739,13 @@ def _read_ssh_session_token_file(path: str) -> str:
 
     directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
     file_flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-    uid = os.getuid() if hasattr(os, "getuid") else None
+    uid = os.getuid()
 
     def _check_dir(fd: int, what: str) -> None:
         st = os.fstat(fd)
         if not _stat.S_ISDIR(st.st_mode):
             raise SystemExit(f"--ssh-session-token-file has an unsafe {what}")
-        if uid is not None and st.st_uid != uid:
+        if st.st_uid != uid:
             raise SystemExit(f"--ssh-session-token-file {what} has the wrong owner")
         if what == "parent directory" and (st.st_mode & 0o777) != 0o700:
             raise SystemExit("--ssh-session-token-file parent has unsafe permissions")
@@ -781,9 +772,9 @@ def _read_ssh_session_token_file(path: str) -> str:
             raise SystemExit("--ssh-session-token-file is not a regular file")
         if file_stat.st_size != 64:
             raise SystemExit("--ssh-session-token-file contains an invalid token")
-        if uid is not None and file_stat.st_uid != uid:
+        if file_stat.st_uid != uid:
             raise SystemExit("--ssh-session-token-file has the wrong owner")
-        if uid is not None and (file_stat.st_mode & 0o777) & ~0o600:
+        if (file_stat.st_mode & 0o777) & ~0o600:
             raise SystemExit("--ssh-session-token-file has unsafe permissions")
 
         with os.fdopen(file_fd, "r", encoding="utf-8-sig") as token_stream:
@@ -1001,13 +992,7 @@ def _route_named_profile_dashboard(
         env["HERMES_HOME"] = str(get_default_hermes_root())
     except Exception:
         env.pop("HERMES_HOME", None)  # prior behaviour rather than blocking the reroute
-    # On Windows os.execvpe() spawns via CreateProcess then exits, which under
-    # Python 3.14+ can crash with STATUS_ACCESS_VIOLATION; use Popen + exit.
-    if sys.platform == "win32":
-        proc = subprocess.Popen(reexec_argv, env=env)
-        sys.exit(proc.wait())
-    else:
-        os.execvpe(sys.executable, reexec_argv, env)
+    os.execvpe(sys.executable, reexec_argv, env)
 
 
 def _resolve_dashboard_web_dist(args, _headless_backend: bool) -> None:

@@ -57,8 +57,7 @@ export function withExecBits(mode: number): number {
 
 // Every place a `spawn-helper` can live under a node-pty package root: one per
 // bundled prebuild (`prebuilds/<platform>-<arch>/`) plus a locally compiled
-// `build/Release/` copy. Windows layouts have no spawn-helper, so the list is
-// naturally empty there.
+// `build/Release/` copy.
 export function spawnHelperCandidates(
   nodePtyRoot: string,
   fs: Pick<SpawnHelperFs, 'existsSync' | 'readdirSync'> = defaultFs

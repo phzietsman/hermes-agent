@@ -79,7 +79,7 @@ export function registerPetOverlayIpc({
   // the pointer's screen coords). Drag keeps the size constant; the wheel-to-scale
   // gesture grows/shrinks it so the sprite is never cropped by the window edge.
   // The window is created non-resizable (no stray edge-drag on the transparent
-  // frameless panel), which on Windows/Linux also blocks programmatic setBounds
+  // frameless panel), which on Linux also blocks programmatic setBounds
   // sizing — so briefly flip resizable on whenever the size actually changes.
   ipcMain.on('hermes:pet-overlay:set-bounds', (_event, bounds) => {
     const petOverlayWindow = getPetOverlayWindow()

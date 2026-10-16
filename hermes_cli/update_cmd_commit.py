@@ -1,6 +1,6 @@
 """The single commit point of a source ``hermes update``: everything the tree move needs armed first.
 
-Before git (or the ZIP swap) writes the first file of the new code, three things are durable:
+Before git writes the first file of the new code, three things are durable:
 
 * the interrupted-pull marker (``.git/hermes-update-pull``) naming the commit git moves to, for EVERY
   tree move (branch switch, upstream fork pull, the pull itself) so a launch after any exit that left
@@ -184,8 +184,7 @@ def arm_commit_point(git_cmd, root: Path, expected_sha: str, **move) -> str | No
     Linux/macOS gateways are paused first: this is every route's first checkout move.
     """
     from hermes_cli.update_cmd_posix_pause import pause_at_commit_point
-    if refused := pause_at_commit_point():
-        return refused
+    pause_at_commit_point()
     try:
         arm_commit_obligations(root, expected_sha)
         arm_tree_move(git_cmd, root, **move)
@@ -282,10 +281,7 @@ def publish_recovery_closure(git_cmd, root: Path, pre: str) -> Path:
 
 
 def _fsync_dir(directory: Path) -> None:
-    """POSIX: make a directory's entries durable. Windows opens no directory handle; NTFS journals
-    the rename itself."""
-    if os.name == "nt":
-        return
+    """Make a directory's entries durable."""
     fd = os.open(directory, os.O_RDONLY)
     try:
         os.fsync(fd)
@@ -296,9 +292,8 @@ def _fsync_dir(directory: Path) -> None:
 def _absolute_git(git_cmd) -> str:
     """The git this run moves the tree with, as an absolute path for the next launch's repair.
 
-    A Windows install's git is often PM's store copy, on PATH only inside the updater
-    (``expose_pm_git``); the repair cannot look it up through ``pm`` when the killed move tore a
-    module ``pm`` imports (``hermes_constants``)."""
+    PM's store git may be on PATH only inside the updater; the repair cannot look it up through
+    ``pm`` when the killed move tore a module ``pm`` imports (``hermes_constants``)."""
     import shutil
 
     head = (list(git_cmd) or ["git"])[0] if not isinstance(git_cmd, str) else git_cmd
@@ -421,11 +416,10 @@ _COMPILE_ALL = (
 
 def _run_python(argv: list[str], *, stdin: str = "", timeout: float = 60) -> str | None:
     """Stdout of a read-only interpreter child (it never writes the checkout), None when it failed."""
-    from hermes_cli._subprocess_compat import windows_hide_flags
 
     try:
         done = subprocess.run(argv, input=stdin, capture_output=True, text=True, encoding="utf-8",
-                              errors="replace", timeout=timeout, creationflags=windows_hide_flags())
+                              errors="replace", timeout=timeout)
     except (OSError, subprocess.SubprocessError):
         return None
     return done.stdout if done.returncode == 0 else None
@@ -547,18 +541,6 @@ def head_and_branch(git_cmd, root: Path) -> tuple[str, str]:
     return out("rev-parse", "HEAD"), out("rev-parse", "--abbrev-ref", "HEAD")
 
 
-def checkout_untouched(git_cmd, root: Path, start: tuple[str, str] | None) -> bool:
-    """True when the checkout is exactly where this run found it: same HEAD, same branch, no
-    autostash taken, no tree move armed. Only then may a failed git update fall back to ZIP."""
-    from hermes_cli.update_cmd_stash import _unrestored_autostash_notice
-
-    if start is None or not start[0]:
-        return False
-    if _unrestored_autostash_notice() is not None or interrupted_pull_marker(root).is_file():
-        return False
-    return head_and_branch(git_cmd, root) == start
-
-
 def begin_update_attempt() -> None:
     """A new ``hermes update`` attempt owns nothing yet: no snapshot, no stake, no run start.
 
@@ -578,13 +560,6 @@ def record_run_start(git_cmd, root: Path) -> None:
     global _run_start, _obligation_root
     _run_start = (list(git_cmd), head_and_branch(git_cmd, root))
     _obligation_root = Path(root)
-
-
-def run_checkout_untouched(root: Path) -> bool:
-    """``checkout_untouched`` for this run; True before the checkout phase (nothing can have moved)."""
-    if _run_start is None:
-        return True
-    return checkout_untouched(_run_start[0], Path(root), _run_start[1])
 
 
 def preflight_refusal(git_cmd, root: Path, target_ref: str, critical_files) -> str | None:

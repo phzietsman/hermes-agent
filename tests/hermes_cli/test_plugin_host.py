@@ -271,7 +271,7 @@ def test_hosted_memory_provider_stays_live_across_a_host_crash(tmp_path, monkeyp
         get_provider_config_schema("memprobe")
         assert int(marker.read_text(encoding="utf-8-sig")) == host.pid
 
-        os.kill(first_pid, signal.SIGKILL)  # windows-footgun: ok — posix-only test (platforms marker)
+        os.kill(first_pid, signal.SIGKILL)
         deadline = time.monotonic() + 10
         while host.alive and time.monotonic() < deadline:
             time.sleep(0.1)

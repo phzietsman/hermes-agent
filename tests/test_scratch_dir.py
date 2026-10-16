@@ -293,7 +293,7 @@ def test_prune_records_removals_and_kills_in_scratch_prune_log(tmp_path: Path) -
     assert f"could not fully remove {str(stuck)!r}" in log and f"removed {str(stuck)!r}" not in log
 
 
-@pytest.mark.platforms("linux")  # macOS and Windows filesystems reject non-UTF-8 names
+@pytest.mark.platforms("linux")  # macOS filesystems reject non-UTF-8 names
 def test_prune_log_keeps_record_of_non_utf8_name(tmp_path: Path) -> None:
     """A legal POSIX name that is not UTF-8 is written escaped, not dropped with its record."""
     scratch = get_scratch_dir(tmp_path, prune=False)
@@ -307,7 +307,6 @@ def test_prune_log_keeps_record_of_non_utf8_name(tmp_path: Path) -> None:
     assert "removed " in log and "old-\\udcff" in log
 
 
-@pytest.mark.platforms("linux")  # Windows rejects newlines in names
 def test_prune_log_escapes_newline_in_name(tmp_path: Path) -> None:
     """A newline in a legal POSIX name is written escaped, so the record stays one line and
     the rest of the name cannot pass for a record of its own."""

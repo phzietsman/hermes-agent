@@ -10,17 +10,13 @@ against path traversal, absolute paths, symlink escapes, and collisions
 
 Ported from the restack branch's runtime-archive-safety suite, rewritten
 against pm's real extraction surface (pm.store.extract / _extract_zip /
-flatten_single_dir). The traversal / absolute-path / never-clobber arms
-are host-independent and run on Windows; the arms that assert POSIX
-symlink or mode semantics are gated to POSIX, with a separate arm
-pinning pm's truthful win32 degradation.
+flatten_single_dir).
 """
 
 from __future__ import annotations
 
 import io
 import stat
-import sys
 import tarfile
 import zipfile
 from pathlib import Path
@@ -28,9 +24,6 @@ from pathlib import Path
 import pytest
 
 from pm.store import extract, flatten_single_dir
-
-posix_only = pytest.mark.platforms("posix")  # POSIX symlink/mode semantics
-win_only = pytest.mark.platforms("windows")  # pins win32 degradation specifically
 
 
 def _tar(path: Path, members: dict[str, bytes]) -> Path:
@@ -161,10 +154,8 @@ class TestZipModeHandling:
         extract(archive, tmp_path / "sub" / "dest")
 
         assert victim.read_text() == "untouched"
-        if sys.platform != "win32":
-            assert victim.stat().st_mode & 0o777 == 0o644
+        assert victim.stat().st_mode & 0o777 == 0o644
 
-    @posix_only
     def test_the_executable_bit_is_still_restored_for_real_entries(self, tmp_path):
         """zip drops the exec bit; an un-executable binary is a broken
         install, so the restore loop must keep working for honest entries."""
@@ -246,53 +237,6 @@ class TestCollisionsAndClobbering:
         flatten_single_dir(dest)
 
         assert (dest / "bin" / "gh").is_file()
-
-
-class TestTransientHolds:
-    """A Windows scanner holds a just-extracted tree, so the hoist's rename fails ``[WinError 5]``
-    (EACCES) for a moment; ffmpeg and agent-browser installs died on ``package/bin`` (#131884)."""
-
-    @pytest.fixture(autouse=True)
-    def instant_backoff(self, monkeypatch):
-        from pm import filesystem
-
-        monkeypatch.setattr(filesystem, "_HELD_RETRY_DELAYS", (0,) * len(filesystem._HELD_RETRY_DELAYS))
-
-    def _held_rename(self, monkeypatch, error: OSError, failures: float):
-        calls = []
-        real = Path.rename
-
-        def rename(self, target):
-            if self.name == "bin":
-                calls.append(self.name)
-                if len(calls) <= failures:
-                    raise error
-            return real(self, target)
-
-        monkeypatch.setattr(Path, "rename", rename)
-        return calls
-
-    def test_the_hoist_waits_out_a_scanner_hold(self, tmp_path, monkeypatch):
-        dest = tmp_path / "dest"
-        extract(_tar(tmp_path / "wrapped.tar.gz", {"pkg/bin/tool": b"x", "pkg/README.md": b"docs"}), dest)
-        calls = self._held_rename(monkeypatch, PermissionError(13, "Access is denied"), failures=2)
-
-        flatten_single_dir(dest)
-
-        assert len(calls) == 3
-        assert (dest / "bin" / "tool").is_file() and (dest / "README.md").is_file()
-
-    @pytest.mark.parametrize("error", [PermissionError(13, "Access is denied"), OSError(18, "cross-device")])
-    def test_a_refusal_waiting_cannot_fix_still_raises(self, tmp_path, monkeypatch, error):
-        dest = tmp_path / "dest"
-        extract(_tar(tmp_path / "wrapped.tar.gz", {"pkg/bin/tool": b"x"}), dest)
-        calls = self._held_rename(monkeypatch, error, failures=float("inf"))
-
-        with pytest.raises(type(error)):
-            flatten_single_dir(dest)
-        from pm import filesystem
-
-        assert len(calls) == (1 if error.errno == 18 else len(filesystem._HELD_RETRY_DELAYS) + 1)
 
 
 class TestStoreIsolation:

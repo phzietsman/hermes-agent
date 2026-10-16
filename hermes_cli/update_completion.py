@@ -35,43 +35,23 @@ def _write_bootstrap_result(request: dict, result_path: Path, code: int, receipt
     return code
 
 
-def _bind_and_resume(proc: subprocess.Popen, request: dict, request_path: Path) -> None:
-    """Windows: bind the suspended completion child to the update's job, then resume it.
-
-    Post-commit, refusing the child would fail a committed update, so a child the job refuses
-    still runs, fenced by its own checkout lease instead (R5b: it joins our lock holding a lease
-    byte, which keeps the checkout busy after a killed owner until the child exits). Never
-    silently: the refusal is printed and recorded as a failed ``update_custody`` step in this
-    run's receipt and, before the child runs (it has not read its request yet), in the receipt it
-    resumes, so the terminal receipt carries it."""
-    from hermes_cli import update_receipt
-    from hermes_cli.update_lock import bind_child_to_update_tree, resume_suspended_child
-
-    refusal = bind_child_to_update_tree(proc)
-    if refusal is not None:
-        detail = (f"the update's job would not take the completion child ({refusal}), so it runs "
-                  "outside the job, holding its own checkout lease")
-        print(f"  ⚠ Update completion: {detail}")
-        update_receipt.record_step("update_custody", False, detail)
-        current = update_receipt._current.get()
-        if current is not None and current.data.get("update_id") == request["receipt"]["update_id"]:
-            request["receipt"] = json.loads(json.dumps(current.data))
-            _write_json(request_path, request)
-    resume_suspended_child(proc)
+def _preinstall_libatomic(root: Path) -> None:
+    """The completion child runs in a new session without a controlling terminal, so this is
+    the last point where sudo can ask for a password. Run the new tree's pre-install as its own
+    process (this parent stays stdlib-only); a tree without it, or any failure, just leaves the
+    in-lock repair to report."""
+    if sys.platform.startswith("linux"):
+        # health: allow HX006 -- sudo may be waiting on the user's password; unbounded by design
+        subprocess.run([sys.executable, "-I", "-S", "-B", "-c",
+                        "import sys; sys.path.insert(0, sys.argv[1]); "
+                        "from pm.libatomic import install_before_lock; install_before_lock()", str(root)],
+                       cwd=root, stdout=None, stderr=subprocess.DEVNULL, check=False)
 
 
 def run_completion(request: dict) -> dict:
     """Wait for new code; zero exit without a correlated terminal result fails closed."""
     root = Path(request["source"])
-    # The child below runs in a new session without a controlling terminal, so
-    # this is the last point where sudo can ask for a password. Run the new
-    # tree's pre-install as its own process (this parent stays stdlib-only); a
-    # tree without it, or any failure, just leaves the in-lock repair to report.
-    if sys.platform.startswith("linux"):
-        subprocess.run([sys.executable, "-I", "-S", "-B", "-c",
-                        "import sys; sys.path.insert(0, sys.argv[1]); "
-                        "from pm.libatomic import install_before_lock; install_before_lock()", str(root)],
-                       cwd=root, stdout=None, stderr=subprocess.DEVNULL, check=False)
+    _preinstall_libatomic(root)
     env = dict(os.environ, HERMES_HOME=request["home"], PYTHONUNBUFFERED="1")
     for key in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV"):
         env.pop(key, None)
@@ -84,20 +64,14 @@ def run_completion(request: dict) -> dict:
         command = [sys.executable, "-I", "-S", "-u", "-X", "utf8", "-X", f"pycache_prefix={request['bytecode_cache']}",
                    str(root / "hermes_cli/update_completion.py"),
                    str(request_path), str(result_path)]
-        from hermes_cli.update_lock import CREATE_SUSPENDED, checkout_lock_fds
+        from hermes_cli.update_lock import checkout_lock_fds
 
-        # The child joins the update tree's checkout lock: it inherits the locked fd (POSIX)
-        # or dies with us (Windows job: created suspended, bound, then resumed, so nothing it
-        # starts runs outside the job), so the lock is never free while it runs.
+        # The child inherits the locked checkout fd, so the lock is never free while it runs.
         proc = subprocess.Popen(
             command, cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            **({"start_new_session": True, "pass_fds": checkout_lock_fds(root)} if os.name == "posix" else
-               {"creationflags": subprocess.CREATE_NO_WINDOW | CREATE_SUSPENDED}))
+            start_new_session=True, pass_fds=checkout_lock_fds(root))
         decoder = codecs.getincrementaldecoder("utf-8")("replace")
         try:
-            # A failure here unwinds through the cleanup below, never orphans the child.
-            if os.name != "posix":
-                _bind_and_resume(proc, request, request_path)
             while True:
                 chunk = proc.stdout.read1(8192)
                 sys.stdout.write(decoder.decode(chunk, final=not chunk))
@@ -110,16 +84,10 @@ def run_completion(request: dict) -> dict:
             # Try to stop descendants before releasing the command's update lock.
             try:
                 try:
-                    if os.name == "posix":
-                        try:
-                            os.killpg(proc.pid, signal.SIGKILL)  # windows-footgun: ok — os.name == "posix"; own isolated group
-                        except ProcessLookupError:
-                            pass
-                    else:
-                        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
-                                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                       stderr=subprocess.DEVNULL, timeout=10, check=True,
-                                       creationflags=subprocess.CREATE_NO_WINDOW)
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)  # own isolated group
+                    except ProcessLookupError:
+                        pass
                 finally:
                     # A failed tree kill must not bypass retained-handle cleanup.
                     try:
@@ -223,7 +191,7 @@ def _publish_gateway_success(request: dict) -> None:
 
 
 #: The one whole line the Desktop hand-off scripts match (scripts/desktop-update/posix.sh and
-#: windows.ps1); ``source_build.build_update_products`` prints the same prefix when the build fails.
+#: ``source_build.build_update_products`` prints the same prefix when the build fails.
 DESKTOP_BUILD_OWED = "Desktop app build owed:"
 
 
@@ -320,18 +288,6 @@ def _prepare(request: dict, request_path: Path, result_path: Path) -> int:
 
     root = Path(request["source"])
     update_id = request["receipt"]["update_id"]
-    if sys.platform == "win32":
-        # Windows (review L3): a bootstrap child the update's job refused runs outside the job
-        # and outlives a killed owner, so it joins the checkout lock before anything below
-        # writes the checkout (uv's sync children, the generation collector): the join takes a
-        # lease byte of its own (R5b, as the --prepared child does in complete_source_checkout).
-        # Held until this bootstrap exits, after the --prepared child; the kernel drops it.
-        from hermes_cli.update_lock import _acquire_checkout
-
-        refused = _acquire_checkout(root)
-        if refused is not None:
-            raise RuntimeError("could not join the update's checkout lock "
-                               f"({refused.reason or f'held by process {refused.pid}'})")
     from hermes_cli.venv_sync import arm_completion, collect_superseded_generations
 
     # The foreign-owned-venv refusal runs in the parent BEFORE the swap (update_cmd_commit
@@ -442,7 +398,8 @@ def _complete_selected(request: dict) -> bool:
         return complete
     restart = update_cmd._restart_gateway_fleet_after_update(plan, request["gateway_mode"])
     record_stage("restart", "failed" if getattr(restart, "incomplete", False) else "success")
-    update_cmd._resume_windows_gateways_and_merge_outcome(restart, request["windows_resume"], request["gateway_mode"])
+    from hermes_cli.update_cmd_posix_pause import resume_paused_gateways_and_merge_outcome
+    resume_paused_gateways_and_merge_outcome(restart, request["windows_resume"], request["gateway_mode"])
     update_cmd._verify_fleet_after_update(
         restart, _pre_update_plan=plan, _windows_gateway_resume=request["windows_resume"],
         update_complete=bool(runtime_safe) and complete)
@@ -454,14 +411,13 @@ def _resume_paused_before_build(request: dict) -> None:
     published, the product builds (minutes) have not started. A gateway needs nothing later to
     boot. A failure stays owed: the post-build resume retries it and records the outcome.
 
-    POSIX only: the fleet restart skips what this restarted (``already_restarted``). A Windows set
-    keeps resuming after the fleet restart, which would otherwise drain it a second time."""
+    The fleet restart skips what this restarted (``already_restarted``)."""
     token = request.get("windows_resume")
     if not token or not token.get("resume_needed") or token.get("platform") != "posix":
         return
-    from hermes_cli.update_cmd import _m
+    from hermes_cli.update_cmd_posix_pause import resume_paused_gateways_after_update
     try:
-        _m()._resume_windows_gateways_after_update(token)
+        resume_paused_gateways_after_update(token)
     except Exception as exc:  # health: allow BLE001 -- retried (and recorded) after the build
         print(f"  ⚠ Paused gateway restart incomplete ({exc}); retrying after the build")
 
@@ -512,18 +468,14 @@ def _finish(request: dict, result_path: Path) -> int:
         _report_unbuilt_desktop(request)
         update_receipt.record_followup("completion", f"{type(exc).__name__}: {exc}")
     finally:
-        custody = sys.modules.get("hermes_cli.update_custody")
-        refusal = custody.refusal_notice() if code and custody is not None else None
-        if refusal:  # m2: what stopped it, whatever error the refusal turned into downstream
-            print(refusal)
         # The new interpreter owns recovery too. The original parent's atexit
         # token is updated from the response; it acts only if this process dies.
         try:
-            from hermes_cli.update_cmd import _resume_windows_gateways_after_update
-            _resume_windows_gateways_after_update(request["windows_resume"])
+            from hermes_cli.update_cmd_posix_pause import resume_paused_gateways_after_update
+            resume_paused_gateways_after_update(request["windows_resume"])
         except Exception as exc:
-            update_receipt.owe_followup(request["receipt"]["update_id"], "windows_resume",
-                                        f"Windows gateway recovery failed: {exc}")
+            update_receipt.owe_followup(request["receipt"]["update_id"], "gateway_resume",
+                                        f"Paused gateway recovery failed: {exc}")
         update_receipt.finalize_pending_update_receipt(code, reason)
         terminal_receipt = _read_terminal_receipt(request)
         if terminal_receipt and terminal_receipt.get("outcome") == "success":
@@ -572,7 +524,7 @@ def _bootstrap(request: dict, request_path: Path, result_path: Path) -> int:
         return _write_bootstrap_result(request, result_path, 130, _read_terminal_receipt(request))
     except (Exception, SystemExit) as exc:  # health: allow BLE001 -- after the commit point nothing fails the update
         # The code is committed but its dependencies are not (A6): an owed follow-up, exit 0.
-        # Paused Windows gateways stay the parent's to resume (it has the dependencies).
+        # Paused gateways stay the parent's to resume (it has the dependencies).
         return _settle_after_commit(request, result_path, "dependencies", str(exc) or type(exc).__name__)
 
 

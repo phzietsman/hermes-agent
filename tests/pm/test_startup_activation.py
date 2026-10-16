@@ -30,7 +30,7 @@ def checked_store(tmp_path, monkeypatch, served):
         package = BinaryPackage()
         package.name = name
         package.probe_version = False
-        package.binary_rel = {"posix": f"bin/{name}", "win32": f"bin/{name}"}
+        package.binary_rel = {"posix": f"bin/{name}"}
         registry._packages[name] = package
         archive, digest = make_tar(docroot, f"{name}.tar.gz", {f"bin/{name}": "fixture tool"})
         lock.set_pin(name, "1.0", {"any": {"url": f"{url}/{archive}", "sha256": digest}})

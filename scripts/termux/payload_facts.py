@@ -30,7 +30,7 @@ def write_facts(payload: Path, lock_path: Path, build_set: Path, tui: Path) -> N
     assemble(AgentInputs(
         project=repo / "pyproject.toml", code=repo, repo="app", placement="fixed", target=target,
         python=python,
-        site_packages=dependency_site(payload / "venv", version, target),
+        site_packages=dependency_site(payload / "venv", version),
         environment=payload / "venv", tools=payload / "tools", pm_runtime=payload / "pm-runtime",
         resources={name: repo / name for name in RESOURCE_ENV}, frontends={"tui": tui.resolve()},
         stamp=repo / "install-stamp.json",

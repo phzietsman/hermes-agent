@@ -94,11 +94,10 @@ function log(msg) {
  * @param {Record<string, string>} env
  */
 function settleSourceRuntime(root, env) {
-  const invocation = sourceRuntimeSettleCommand(root, env);
+  const invocation = sourceRuntimeSettleCommand(root);
   log('settling source runtime under the captured launch environment');
   execFileSync(invocation.command, invocation.args, {
     cwd: root, env, stdio: 'inherit', timeout: 20 * 60_000,
-    windowsVerbatimArguments: invocation.windowsVerbatimArguments,
   });
 }
 

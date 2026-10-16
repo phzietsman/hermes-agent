@@ -5,7 +5,6 @@ import { promisify } from 'node:util'
 
 import { buildDesktopBackendEnv } from '../backend-env'
 import { resolveInstallationLauncher } from '../updater-process'
-import { hiddenWindowsChildOptions } from '../windows-child-options'
 
 import type { UpdaterStatusWire } from './index'
 
@@ -45,7 +44,7 @@ export async function readSourceUpdate(probe: SourceUpdateProbe): Promise<Source
   const managed = existsSync(path.join(probe.updateRoot, 'pm'))
 
   const launcher = managed
-    ? resolveInstallationLauncher(probe.updateRoot, process.platform === 'win32', probe.hermesHome)
+    ? resolveInstallationLauncher(probe.updateRoot, probe.hermesHome)
     : null
 
   if (managed && !launcher) {
@@ -79,28 +78,14 @@ export async function readSourceUpdate(probe: SourceUpdateProbe): Promise<Source
   ]
 
   const command: string = (managed ? launcher : probe.python)!
-  const viaCmd: boolean = process.platform === 'win32' && /\.cmd$/i.test(command)
 
-  // Node refuses direct .cmd execFile; shell:true interpolates untrusted branch
-  // and path arguments. Keep cmd.exe's one unavoidable parse fail-closed.
-  if (viaCmd && [command, ...args].some((value: string): boolean => /["%&|<>^\r\n]/.test(value))) {
-    throw new Error('The source check contains an unsafe Windows command argument.')
-  }
-
-  const result: { stdout: string; stderr: string } = await execute(
-    viaCmd ? (process.env.ComSpec ?? 'cmd.exe') : command,
-    viaCmd
-      ? ['/d', '/v:off', '/s', '/c', `""${command}" ${args.map((arg: string): string => `"${arg}"`).join(' ')}"`]
-      : args,
-    hiddenWindowsChildOptions({
-      cwd: probe.updateRoot,
-      env: sourceUpdateEnvironment(probe.updateRoot, probe.hermesHome),
-      encoding: 'utf8',
-      timeout: 360000,
-      maxBuffer: 1024 * 1024,
-      windowsVerbatimArguments: viaCmd
-    })
-  )
+  const result: { stdout: string; stderr: string } = await execute(command, args, {
+    cwd: probe.updateRoot,
+    env: sourceUpdateEnvironment(probe.updateRoot, probe.hermesHome),
+    encoding: 'utf8',
+    timeout: 360000,
+    maxBuffer: 1024 * 1024
+  })
 
   const selection: SourceUpdate | null = JSON.parse(result.stdout) as SourceUpdate | null
 

@@ -4,7 +4,6 @@ so a pytest-context process (env OR ancestry) can never open a production
 state.db; env-based so subprocess children are protected too."""
 
 import os
-import sys
 import threading
 import weakref
 from pathlib import Path
@@ -28,13 +27,7 @@ def _real_platform_state_root() -> Optional[Path]:
     ``hermes_constants`` (tests monkeypatch Path.home to a tempdir); ``expanduser``
     reads HOME/passwd, which the conftest never rewrites."""
     try:
-        home = Path(os.path.expanduser("~"))
-        if sys.platform == "win32":
-            base = os.environ.get("LOCALAPPDATA", "").strip()
-            root = Path(base) / "hermes" if base else home / "AppData" / "Local" / "hermes"
-        else:
-            root = home / ".hermes"
-        return root.resolve()
+        return (Path(os.path.expanduser("~")) / ".hermes").resolve()
     except Exception:
         return None
 
@@ -62,7 +55,7 @@ def _running_under_pytest() -> bool:
 
 #: pytest launcher names, matched against each argv token's *basename* so
 #: ``/tmp/pytest-of-dev/...`` paths cannot false-positive.
-_PYTEST_LAUNCHER_NAMES = frozenset({"pytest", "py.test", "pytest.exe", "py.test.exe"})
+_PYTEST_LAUNCHER_NAMES = frozenset({"pytest", "py.test"})
 
 #: Memoised ancestry answer: the tree above us doesn't change; keep the hot path free.
 _PYTEST_ANCESTOR: Optional[bool] = None

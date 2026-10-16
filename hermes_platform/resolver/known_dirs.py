@@ -9,38 +9,24 @@ from __future__ import annotations
 
 import sys
 
-_POSIX = sys.platform != "win32"
-_WIN = sys.platform == "win32"
-
-
 def homebrew_dirs() -> tuple[str, ...]:
     return ("/opt/homebrew/bin", "/usr/local/bin") if sys.platform == "darwin" else ()
 
 
 def user_local_bin() -> tuple[str, ...]:
-    return ("~/.local/bin",) if _POSIX else ("%USERPROFILE%/.local/bin",)
+    return ("~/.local/bin",)
 
 
 def rust_tool_dirs() -> tuple[str, ...]:
-    return ("~/.cargo/bin",) if _POSIX else ("%USERPROFILE%/.cargo/bin",)
+    return ("~/.cargo/bin",)
 
 
 def node_tool_dirs() -> tuple[str, ...]:
-    return ("~/.npm-global/bin", "~/.bun/bin", "~/.volta/bin") if _POSIX else ("%APPDATA%/npm", "%USERPROFILE%/.bun/bin", "%LOCALAPPDATA%/Volta/bin")
+    return ("~/.npm-global/bin", "~/.bun/bin", "~/.volta/bin")
 
 
 def hermes_vendored_dirs() -> tuple[str, ...]:
-    return ("~/.hermes/bin",) if _POSIX else ("%USERPROFILE%/.hermes/bin",)
-
-
-def windows_user_program_dirs() -> tuple[str, ...]:
-    if not _WIN:
-        return ()
-    return (
-        "%LOCALAPPDATA%/Programs",
-        "%USERPROFILE%/scoop/shims",
-        "%LOCALAPPDATA%/Microsoft/WinGet/Links",
-    )
+    return ("~/.hermes/bin",)
 
 
 def mac_application_dirs() -> tuple[str, ...]:

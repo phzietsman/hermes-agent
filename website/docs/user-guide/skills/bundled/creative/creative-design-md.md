@@ -188,10 +188,6 @@ alone exit 0). `export` exits 0 on a successful export regardless of lint
 findings in the source — run `lint` separately to gate on those. Output is
 JSON by default; parse it if you need to report findings structurally.
 
-On Windows, the `design.md` bin name can collide with the `.md` file
-association (silent no-op or the file opens in an editor). Use the dot-free
-alias: `npx -y -p @google/design.md designmd lint DESIGN.md`.
-
 ### Lint rule reference (the 9 rules, as of CLI 0.3.0)
 
 - `broken-ref` (error) — `{colors.missing}` points at a non-existent token

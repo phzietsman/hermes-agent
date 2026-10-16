@@ -1952,7 +1952,7 @@ class TestProfileArg:
         monkeypatch.setattr(gateway_cli, "is_macos", lambda: True)
         monkeypatch.setattr(gateway_cli, "_systemd_unit_installed", lambda: False)
 
-        assert gateway_cli._installed_service_kind_for(lambda: False) is None
+        assert gateway_cli._installed_service_kind() is None
 
 
 class TestRemapPathForUser:

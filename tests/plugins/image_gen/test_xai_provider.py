@@ -462,7 +462,6 @@ def test_xai_image_field_expands_user_home(tmp_path, monkeypatch):
     from plugins.image_gen.xai import _xai_image_field
 
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     img = tmp_path / "pic.png"
     img.write_bytes(b"\x89PNG\r\n\x1a\n")
 

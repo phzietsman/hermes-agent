@@ -7,6 +7,7 @@ out of auto transitions, orthogonal to state."""
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
 import os
@@ -21,16 +22,6 @@ from agent.skill_utils import is_excluded_skill_path, is_external_skill_path
 from utils import atomic_write_text
 
 logger = logging.getLogger(__name__)
-
-# fcntl is Unix-only; on Windows use msvcrt for file locking.
-msvcrt = None
-try:
-    import fcntl
-except ImportError:  # pragma: no cover - platform-specific fallback
-    fcntl = None
-    with suppress(ImportError):
-        import msvcrt
-
 
 STATE_ACTIVE, STATE_STALE, STATE_ARCHIVED = "active", "stale", "archived"
 _VALID_STATES = {STATE_ACTIVE, STATE_STALE, STATE_ARCHIVED}
@@ -56,40 +47,30 @@ def _archive_dir() -> Path:
     return _skills_dir() / ".archive"
 
 
-def _flock(fd, lock: bool) -> None:
-    if fcntl:
-        return fcntl.flock(fd, fcntl.LOCK_EX if lock else fcntl.LOCK_UN)
-    fd.seek(0)
-    msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK if lock else msvcrt.LK_UNLCK, 1)
-
-
 _held_locks = threading.local()  # per thread: flock is NOT re-entrant across separate fds
 
 
 @contextmanager
 def skill_file_lock(lock_path: Path):
     """Exclusive cross-process lock on ``lock_path`` held across a read-modify-write cycle.
-    Re-entrant within one thread (a nested acquire of the same path just runs); a no-op
-    where neither fcntl nor msvcrt exists."""
+    Re-entrant within one thread (a nested acquire of the same path just runs)."""
     lock_path = Path(lock_path)
     held = getattr(_held_locks, "paths", None)
     if held is None:
         held = _held_locks.paths = set()
-    if (fcntl is None and msvcrt is None) or lock_path in held:
+    if lock_path in held:
         yield
         return
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    if msvcrt and (not lock_path.exists() or lock_path.stat().st_size == 0):
-        lock_path.write_text(" ", encoding="utf-8")  # msvcrt needs a non-empty byte range to lock
-    with open(lock_path, "r+" if msvcrt else "a+", encoding="utf-8") as fd:
-        _flock(fd, True)
+    with open(lock_path, "a+", encoding="utf-8") as fd:
+        fcntl.flock(fd, fcntl.LOCK_EX)
         held.add(lock_path)
         try:
             yield
         finally:
             held.discard(lock_path)
             with suppress(OSError, IOError):
-                _flock(fd, False)
+                fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 def _usage_file_lock():

@@ -8,7 +8,6 @@ kill reported it. Real PTY, real processes: a fake PTY cannot hold the lock.
 """
 
 import shutil
-import sys
 import threading
 import time
 
@@ -18,7 +17,7 @@ import tools.process_registry as module
 from tools.process_registry import ProcessRegistry
 
 _POSIX_PTY = pytest.mark.skipif(
-    sys.platform == "win32" or shutil.which("setsid") is None, reason="POSIX PTY + setsid")
+    shutil.which("setsid") is None, reason="POSIX PTY + setsid")
 
 # The escapee exits on its own (it is reparented to init, outside what a test may signal).
 # Before the fix the kill could only return once it had, so the kill deadline is shorter.

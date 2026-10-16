@@ -185,25 +185,6 @@ TERMINAL_BACKEND=docker
 TERMINAL_DOCKER_IMAGE=hermes-sandbox:latest
 ```
 
-### 避免 Windows 编码陷阱
-
-在 Windows 上，某些默认编码（如 `cp125x`）无法表示所有 Unicode 字符，在测试或脚本中写入文件时可能导致 `UnicodeEncodeError`。
-
-- 建议在打开文件时显式指定 UTF-8 编码：
-
-```python
-with open("results.txt", "w", encoding="utf-8") as f:
-    f.write("✓ All good\n")
-```
-
-- 在 PowerShell 中，也可以将当前会话的控制台和原生命令输出切换为 UTF-8：
-
-```powershell
-$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-```
-
-这样可以让 PowerShell 和子进程统一使用 UTF-8，避免仅在 Windows 上出现的失败。
-
 ### 谨慎选择"始终允许"
 
 当 agent 触发危险命令审批（`rm -rf`、`DROP TABLE` 等）时，你有四个选项：**once（仅此一次）**、**session（本次会话）**、**always（始终允许）**、**deny（拒绝）**。选择"always"前请仔细考虑——它会永久将该模式加入白名单。在熟悉之前，先用"session"。

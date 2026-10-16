@@ -47,7 +47,7 @@ def test_same_minor_refresh_updates_real_bytes_and_preserves_unresolved_targets(
 
     monkeypatch.setattr(RangeHandler, "do_GET", record)
     target = current_target()
-    held_target = "linux-arm64-bionic" if target != "linux-arm64-bionic" else "win32-arm64"
+    held_target = "linux-arm64-bionic" if target != "linux-arm64-bionic" else "linux-x64"
     held = {"url": "https://upstream.invalid/held.deb", "sha256": "b" * 64}
     lock = Lockfile(tmp_path / "lock.json")
     lock.set_pin("rolling-tool", "1.2.3", {

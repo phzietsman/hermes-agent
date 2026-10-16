@@ -24,33 +24,26 @@ An unregistered MCP server keeps its connection-only check. A skill that explici
 
 ```yaml
 app:
-  win32:
-    presence: executable
-    location: "%ProgramFiles%/Vendor/Vendor App/McpServer/Server.exe"
-    version: { kind: uninstall_registry, display_name_prefix: "Vendor App" }
-    liveness:
-      kind: server_json
-      path: "%LOCALAPPDATA%/Vendor/Vendor App/McpServer/server.json"
-      pid_key: pid
-      url_key: http
-      token_key: token
-      endpoint_path: /mcp
   darwin:
     presence: bundle
     location: /Applications/Vendor.app
     version: { kind: plist }
+    liveness:
+      kind: server_json
+      path: "~/Library/Application Support/Vendor/McpServer/server.json"
+      pid_key: pid
+      url_key: http
+      token_key: token
+      endpoint_path: /mcp
+  linux:
+    presence: executable
+    location: /opt/vendor/server
 ```
 
 `location` is one path or an ordered list of places to look; the first present one wins, except that with `requires.min_version` every present copy's version is read and the first copy that qualifies wins. A list item is a path or a mapping that names a location kind:
 
 ```yaml
 app:
-  win32:
-    presence: executable
-    location:
-      - { kind: uninstall_registry, display_name_prefix: "Vendor App", file: vendor.exe }
-      - "%ProgramFiles%/Vendor/Vendor App */vendor.exe"
-    version: { kind: pe_resource }
   darwin:
     presence: bundle
     location: [{ kind: app_bundle, name: Vendor.app }]
@@ -61,13 +54,13 @@ app:
       - { kind: command, name: vendor }
       - { kind: flatpak, app_id: com.vendor.App }
       - { kind: snap, name: vendor }
+      - "/opt/Vendor App */vendor"
 ```
 
 | location kind | OS | key | where it looks |
 |---|---|---|---|
 | (a path string) | any | — | that path; a `*` stands for a versioned folder, highest version first |
 | `command` | any | `name` | `PATH` (`executable` only) |
-| `uninstall_registry` | `win32` | `display_name_prefix`, `file` | `InstallLocation` of each matching uninstall entry, joined with `file` |
 | `app_bundle` | `darwin` | `name` | `/Applications`, then `~/Applications` (`bundle` only) |
 | `flatpak` | `linux` | `app_id` | the system, then the per-user flatpak `exports/bin` |
 | `snap` | `linux` | `name` | `/snap/bin` |
@@ -76,11 +69,10 @@ Each kind's OS, key, presence and locator are one `LOCATION_KINDS` entry in `her
 
 | field | type | rule | maps to `AppDef` |
 |---|---|---|---|
-| `<os>` | `win32` \| `darwin` \| `linux` | at least one; unknown key is an error | `AppDef.os_family` |
+| `<os>` | `darwin` \| `linux` | at least one; unknown key (including `win32`) is an error | `AppDef.os_family` |
 | `presence` | `executable` \| `bundle` | required per OS | `.presence` |
-| `location` | str \| list | required; a path is drive-rooted (`C:\\...`) on Windows, or starts with `~` / `%VAR%` / `$VAR`; UNC paths are rejected so a presence check never touches the network; no `..` segment, `**` or URL scheme; expansion at lookup. A list holds paths and location-kind mappings (above) | `.locations` |
-| `version.kind` | `pe_resource` \| `plist` \| `uninstall_registry` \| `none` | default `none`; `pe_resource`/`uninstall_registry` only under `win32`, `plist` only under `darwin` | `.version_kind` |
-| `version.display_name_prefix` | str | required when `uninstall_registry` | `.version_arg` |
+| `location` | str \| list | required; a path is absolute or starts with `~` / `$VAR`; no `..` segment, `**` or URL scheme; expansion at lookup. A list holds paths and location-kind mappings (above) | `.locations` |
+| `version.kind` | `plist` \| `none` | default `none`; `plist` only under `darwin` | `.version_kind` |
 | `liveness.kind` | `server_json` \| `none` | default `none` | `.liveness_kind` |
 | `liveness.path` | str | required when `server_json` | `.liveness_path` |
 | `liveness.pid_key` / `url_key` / `token_key` | str | defaults `pid` / `http` / `token` | `.liveness_*_key` |
@@ -99,12 +91,12 @@ requires:
 | field | type | rule |
 |---|---|---|
 | `app` | bool | when true, `app:` must exist and the server is gated on presence |
-| `min_version` | str | requires `app: true`; dotted numeric; every `app.win32` and `app.darwin` must declare a real `version.kind`; `app.linux` may omit it (Linux has no version source) and is then gated on presence only, but a Linux-only declaration cannot set a minimum; compared numerically per segment, non-numeric characters in a segment are dropped (`2.3.0.12594` ≥ `2.3.0`; prerelease suffixes are not ordered) |
+| `min_version` | str | requires `app: true`; dotted numeric; every `app.darwin` must declare a real `version.kind`; `app.linux` may omit it (Linux has no version source) and is then gated on presence only, but a Linux-only declaration cannot set a minimum; compared numerically per segment, non-numeric characters in a segment are dropped (`2.3.0.12594` ≥ `2.3.0`; prerelease suffixes are not ordered) |
 | `gpu` | str | `nvidia`; the server is offered only on a host where `hermes_platform.host.facts.gpu_class()` reports that vendor. Independent of `app`: a server with no `app:` block can require a GPU. |
 
 `requires.app: true` with no `app:` block is a `DeclarationError`.
 
-`gpu` is for an application that has no install location to check, or that needs the hardware whatever is installed. `gpu_class()` reads the registry on Windows, sysfs on Linux and the CPU architecture on macOS, never a subprocess or a driver library. When it cannot read the GPU (`unknown`), the requirement passes: a failed read must not lock out a machine that has the GPU, and the connection check still applies. Only `nvidia` is accepted: `gpu_class()` reports the highest-priority vendor present, which answers "is an NVIDIA GPU here" exactly and would not answer the same question for AMD or Intel on a machine that also has an NVIDIA GPU.
+`gpu` is for an application that has no install location to check, or that needs the hardware whatever is installed. `gpu_class()` reads sysfs on Linux and the CPU architecture on macOS, never a subprocess or a driver library. When it cannot read the GPU (`unknown`), the requirement passes: a failed read must not lock out a machine that has the GPU, and the connection check still applies. Only `nvidia` is accepted: `gpu_class()` reports the highest-priority vendor present, which answers "is an NVIDIA GPU here" exactly and would not answer the same question for AMD or Intel on a machine that also has an NVIDIA GPU.
 
 ## Availability: the one evaluation every reader uses
 

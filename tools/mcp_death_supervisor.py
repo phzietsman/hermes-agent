@@ -102,20 +102,14 @@ def _is_safe_target(pgid: int, *, own_pgid: int, parent_pgid: int) -> bool:
 
 
 def _reap(pgids: set[int]) -> None:
-    """SIGTERM every group, then SIGKILL whatever is still alive.
-
-    Every process-group call below is POSIX-only by construction: this whole
-    module only ever runs as a child of ``_update_death_supervisor``, which
-    returns early unless ``os.name == "posix"``, so the supervisor is never
-    spawned on Windows in the first place.
-    """
+    """SIGTERM every group, then SIGKILL whatever is still alive."""
     if not pgids:
         return
 
     alive = set()
     for pgid in pgids:
         try:
-            os.killpg(pgid, signal.SIGTERM)  # windows-footgun: ok — POSIX-only process
+            os.killpg(pgid, signal.SIGTERM)
             alive.add(pgid)
         except (ProcessLookupError, PermissionError, OSError):
             # Already gone, or not ours to signal. Either way, nothing to reap.
@@ -127,13 +121,13 @@ def _reap(pgids: set[int]) -> None:
         for pgid in list(alive):
             try:
                 # Signal 0 probes liveness: succeeds iff some member survives.
-                os.killpg(pgid, 0)  # windows-footgun: ok — POSIX-only process
+                os.killpg(pgid, 0)
             except (ProcessLookupError, PermissionError, OSError):
                 alive.discard(pgid)
 
     for pgid in alive:
         try:
-            os.killpg(pgid, signal.SIGKILL)  # windows-footgun: ok — POSIX-only
+            os.killpg(pgid, signal.SIGKILL)
         except (ProcessLookupError, PermissionError, OSError):
             pass
 
@@ -199,9 +193,8 @@ def main(argv=None) -> int:
         return 2
 
     # A dying parent's SIGINT/SIGHUP must not preempt the reap; the pipe's EOF
-    # is our only shutdown signal. SIGHUP is POSIX-only, which is fine here --
-    # this process is never spawned on Windows (see _reap's docstring).
-    for sig in (signal.SIGINT, signal.SIGHUP):  # windows-footgun: ok — POSIX-only process
+    # is our only shutdown signal.
+    for sig in (signal.SIGINT, signal.SIGHUP):
         try:
             signal.signal(sig, signal.SIG_IGN)
         except (ValueError, OSError):

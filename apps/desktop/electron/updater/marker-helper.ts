@@ -4,10 +4,8 @@
  * kernel lock for the whole read-judge-mutate; Node has no portable kernel
  * lock, so Electron never deletes or rewrites the marker itself.
  *
- *   posix:   bash <root>/scripts/desktop-update/posix.sh --marker-op <op> --install-root <root>
- *              [--desktop-pid P] [--handoff-run R]
- *   Windows: powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File windows.ps1
- *              -MarkerOp <op> -InstallRoot <root> [-DesktopPid P] [-HandoffRun R]
+ *   bash <root>/scripts/desktop-update/posix.sh --marker-op <op> --install-root <root>
+ *     [--desktop-pid P] [--handoff-run R]
  *
  * One stdout line: reclaim `absent | reclaimed | held | busy | live <pid>`,
  * withdraw `absent | busy | withdrawn | taken <pid> | foreign`. Anything else
@@ -20,8 +18,6 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import * as path from 'node:path'
-
-import { resolveUpdateScriptHandoff } from '../updater-process'
 
 export type MarkerHelperOp = 'reclaim' | 'withdraw'
 
@@ -43,7 +39,7 @@ export interface HelperSpawnResult {
 export type HelperSpawn = (
   command: string,
   args: string[],
-  options: { env: NodeJS.ProcessEnv; timeout: number; windowsHide: boolean }
+  options: { env: NodeJS.ProcessEnv; timeout: number }
 ) => Promise<HelperSpawnResult>
 
 export interface MarkerHelperOptions {
@@ -51,17 +47,12 @@ export interface MarkerHelperOptions {
   hermesHome: string
   desktopPid?: number | null
   runId?: string | null
-  isWindows: boolean
   spawn?: HelperSpawn
   timeoutMs?: number
 }
 
 /** The checkout's hand-off script, or null when the checkout predates it. */
-export function handoffScriptPath(updateRoot: string, isWindows: boolean): string | null {
-  if (isWindows) {
-    return resolveUpdateScriptHandoff(updateRoot, { isWindows: true })?.scriptPath ?? null
-  }
-
+export function handoffScriptPath(updateRoot: string): string | null {
   const posix = path.join(updateRoot, 'scripts', 'desktop-update', 'posix.sh')
 
   return existsSync(posix) ? posix : null
@@ -93,9 +84,8 @@ export function readHandoffProtocol(scriptPath: string | null | undefined): numb
  * helper runs in its own process group and the whole group is killed on
  * timeout, so a stuck grandchild holding the pipe cannot extend the wait.
  */
-const defaultSpawn: HelperSpawn = (command, args, { env, timeout, windowsHide }) =>
+const defaultSpawn: HelperSpawn = (command, args, { env, timeout }) =>
   new Promise(resolve => {
-    const posix = process.platform !== 'win32'
     let stdout = ''
     let settled = false
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -111,7 +101,7 @@ const defaultSpawn: HelperSpawn = (command, args, { env, timeout, windowsHide })
     let child: ChildProcess
 
     try {
-      child = spawn(command, args, { env, windowsHide, detached: posix, stdio: ['ignore', 'pipe', 'ignore'] })
+      child = spawn(command, args, { env, detached: true, stdio: ['ignore', 'pipe', 'ignore'] })
     } catch {
       finish(null)
 
@@ -128,7 +118,7 @@ const defaultSpawn: HelperSpawn = (command, args, { env, timeout, windowsHide })
     child.on('close', code => finish(typeof code === 'number' ? code : null))
     timer = setTimeout(() => {
       try {
-        if (posix && child.pid) {
+        if (child.pid) {
           process.kill(-child.pid, 'SIGKILL')
         } else {
           child.kill()
@@ -143,7 +133,7 @@ const defaultSpawn: HelperSpawn = (command, args, { env, timeout, windowsHide })
 
 const BARE_VERDICTS = new Set(['absent', 'reclaimed', 'held', 'busy', 'withdrawn', 'foreign'])
 
-/** The words each op can answer (marker.sh marker_op, marker-claim.ps1 Invoke-MarkerOp). */
+/** The words each op can answer (marker.sh marker_op). */
 const OP_VERDICTS: Record<MarkerHelperOp, ReadonlySet<string>> = {
   reclaim: new Set(['absent', 'reclaimed', 'held', 'busy', 'live']),
   withdraw: new Set(['absent', 'busy', 'withdrawn', 'taken', 'foreign'])
@@ -183,34 +173,9 @@ export function parseMarkerHelperVerdict(stdout: string): MarkerHelperVerdict {
 export function markerHelperCommand(
   op: MarkerHelperOp,
   scriptPath: string,
-  {
-    updateRoot,
-    desktopPid,
-    runId,
-    isWindows
-  }: Pick<MarkerHelperOptions, 'updateRoot' | 'desktopPid' | 'runId' | 'isWindows'>
+  { updateRoot, desktopPid, runId }: Pick<MarkerHelperOptions, 'updateRoot' | 'desktopPid' | 'runId'>
 ): { command: string; args: string[] } {
   const hasPid = typeof desktopPid === 'number' && Number.isInteger(desktopPid) && desktopPid > 0
-
-  if (isWindows) {
-    return {
-      command: 'powershell.exe',
-      args: [
-        '-NoProfile',
-        '-NonInteractive',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
-        scriptPath,
-        '-MarkerOp',
-        op,
-        '-InstallRoot',
-        updateRoot,
-        ...(hasPid ? ['-DesktopPid', String(desktopPid)] : []),
-        ...(runId ? ['-HandoffRun', runId] : [])
-      ]
-    }
-  }
 
   return {
     command: 'bash',
@@ -226,39 +191,33 @@ export function markerHelperCommand(
   }
 }
 
-/** First line as the scripts clean it: marker.sh `marker_line` (one CR, spaces/tabs); marker.ps1 `.Trim()`. */
-function scriptLine(text: string, isWindows: boolean): string {
+/** First line as marker.sh `marker_line` cleans it (one CR, spaces/tabs). */
+function scriptLine(text: string): string {
   const line = text.replace(/^\uFEFF/, '').split('\n')[0]
 
-  return isWindows ? line.trim() : line.replace(/\r$/, '').replace(/^[ \t]+|[ \t]+$/g, '')
+  return line.replace(/\r$/, '').replace(/^[ \t]+|[ \t]+$/g, '')
 }
 
 /**
- * The checkout lock exactly as marker.sh `checkout_lock_path` / marker.ps1
- * `Get-CheckoutLockPath` resolve it (hermes_cli/update_lock.py::checkout_lock_path):
+ * The checkout lock exactly as marker.sh `checkout_lock_path` resolves it (hermes_cli/update_lock.py::checkout_lock_path):
  * `<git common dir>/hermes-update.lock`, else `<root>/.hermes-update.lock`.
  * Throws when `.git` or `commondir` exists but cannot be read.
  */
-export function checkoutLockPath(updateRoot: string, isWindows: boolean): string {
+export function checkoutLockPath(updateRoot: string): string {
   const dot = path.join(updateRoot, '.git')
   const plain = path.join(updateRoot, '.hermes-update.lock')
   const kind = statSync(dot, { throwIfNoEntry: false })
   let gitdir = dot
 
   if (kind?.isFile()) {
-    const line = scriptLine(readFileSync(dot, 'utf8'), isWindows)
+    const line = scriptLine(readFileSync(dot, 'utf8'))
 
-    // bash `case gitdir:*` is case-sensitive; PowerShell `-like` is not.
-    if (!(isWindows ? /^gitdir:/i : /^gitdir:/).test(line)) {
+    // bash `case gitdir:*` is case-sensitive.
+    if (!/^gitdir:/.test(line)) {
       return plain
     }
 
-    const named = scriptLine(line.slice(7), isWindows)
-
-    // marker.ps1 treats an empty `gitdir:` as no git dir; bash resolves it to the root.
-    if (isWindows && !named) {
-      return plain
-    }
+    const named = scriptLine(line.slice(7))
 
     gitdir = path.resolve(updateRoot, named)
   } else if (!kind?.isDirectory()) {
@@ -268,7 +227,7 @@ export function checkoutLockPath(updateRoot: string, isWindows: boolean): string
   const commondir = path.join(gitdir, 'commondir')
 
   if (statSync(commondir, { throwIfNoEntry: false })?.isFile()) {
-    const common = scriptLine(readFileSync(commondir, 'utf8'), isWindows)
+    const common = scriptLine(readFileSync(commondir, 'utf8'))
     gitdir = common ? path.resolve(gitdir, common) : gitdir
   }
 
@@ -281,9 +240,9 @@ export function checkoutLockPath(updateRoot: string, isWindows: boolean): string
  * (`[ -f ]` / `[IO.File]::Exists`). Anything it cannot settle (an unreadable
  * `.git`, a stat error other than "missing") asks the script.
  */
-export function checkoutLockMayBeHeld(updateRoot: string, isWindows: boolean): boolean {
+export function checkoutLockMayBeHeld(updateRoot: string): boolean {
   try {
-    return statSync(checkoutLockPath(updateRoot, isWindows), { throwIfNoEntry: false })?.isFile() ?? false
+    return statSync(checkoutLockPath(updateRoot), { throwIfNoEntry: false })?.isFile() ?? false
   } catch (error) {
     return (error as NodeJS.ErrnoException)?.code !== 'ENOTDIR'
   }
@@ -291,7 +250,7 @@ export function checkoutLockMayBeHeld(updateRoot: string, isWindows: boolean): b
 
 /** Run one marker op through the checkout's script under its sidecar lock. */
 export async function runMarkerHelper(op: MarkerHelperOp, options: MarkerHelperOptions): Promise<MarkerHelperVerdict> {
-  const scriptPath = handoffScriptPath(options.updateRoot, options.isWindows)
+  const scriptPath = handoffScriptPath(options.updateRoot)
   const protocol = readHandoffProtocol(scriptPath)
 
   if (protocol === null) {
@@ -307,8 +266,7 @@ export async function runMarkerHelper(op: MarkerHelperOp, options: MarkerHelperO
   try {
     const result = await (options.spawn ?? defaultSpawn)(command, args, {
       env: { ...process.env, HERMES_HOME: options.hermesHome },
-      timeout: options.timeoutMs ?? MARKER_HELPER_TIMEOUT_MS,
-      windowsHide: true
+      timeout: options.timeoutMs ?? MARKER_HELPER_TIMEOUT_MS
     })
 
     const verdict: MarkerHelperVerdict = result.code === 0 ? parseMarkerHelperVerdict(result.stdout) : { kind: 'error' }

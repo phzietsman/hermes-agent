@@ -1,15 +1,10 @@
 """Stable updates consume one remote commit across Git and archive transports."""
 from copy import deepcopy
-import json
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
 import subprocess
 import sys
-import threading
 from types import SimpleNamespace
-from urllib.parse import urlsplit
-import urllib.request
 
 import pytest
 
@@ -58,9 +53,9 @@ def update_tree(tmp_path, monkeypatch):
     monkeypatch.setattr(cli_main, 'PROJECT_ROOT', clone)
     monkeypatch.setattr(update_receipt, '_code_identity', lambda **_: {'commit': base})
     monkeypatch.setattr(cli_main, '_run_pre_update_backup', lambda *_: 'release-snapshot')
-    monkeypatch.setattr(cli_main, '_pause_windows_gateways_for_update', lambda: None)
+    monkeypatch.setattr("hermes_cli.update_cmd_posix_pause.arm_pause", lambda **kw: None)
     resumed = []
-    monkeypatch.setattr(cli_main, '_resume_windows_gateways_after_update', lambda state: resumed.append(state))
+    monkeypatch.setattr('hermes_cli.update_cmd_posix_pause.resume_paused_gateways_after_update', lambda state: resumed.append(state))
     monkeypatch.setattr(cli_main, '_install_hangup_protection', lambda **_: {'installed': False})
     monkeypatch.setattr(cli_main, '_finalize_update_output', lambda *_: None)
     plans = []
@@ -274,139 +269,6 @@ def test_stable_git_uses_remote_identity_without_moving_local_tags(update_tree, 
         assert git(t.clone, 'branch', '--show-current') == branch
     assert git(t.clone, 'rev-parse', 'v1.1.0') == t.base
     assert not git(t.clone, 'status', '--porcelain')
-
-
-@pytest.mark.platforms('windows')
-@pytest.mark.parametrize('transport', ['gitless', 'no-git', 'git-error', 'dirty'])
-def test_stable_zip_consumes_the_same_commit_through_the_real_swap(update_tree, monkeypatch, tmp_path, transport):
-    from hermes_cli import source_releases
-    from hermes_cli.release_channels import ChannelResolution
-
-    t = update_tree
-    monkeypatch.setattr(cli_main, '_pause_windows_gateways_for_update',
-                        lambda: {"resume_needed": True})
-    archive = tmp_path / 'source.zip'
-    git(t.origin, 'archive', '--format=zip', '--prefix=hermes-agent-source/', f'--output={archive}', t.wanted)
-    archive_bytes = archive.read_bytes()
-    record = {"schema": 1, "name": "stable", "repository": "NousResearch/hermes-agent",
-              "policy": "stable-release", "state": "active", "identity": {}, "nextSequence": 2,
-              "head": {"buildId": "build-fixture", "sequence": 1}}
-    manifest = {"schema": 1, "request": {"buildId": "build-fixture", "channel": "stable", "sequence": 1,
-                "repository": "NousResearch/hermes-agent", "commit": t.wanted, "sourceVersion": "1.1.0",
-                "version": "0.0.1", "identity": {}, "bundleEnv": {}}, "packages": []}
-    monkeypatch.setattr(source_releases, '_resolve_channel',
-                        lambda name, repository: ChannelResolution(record, record, manifest))
-    routes = {
-        f'/NousResearch/hermes-agent/archive/{t.wanted}.zip': archive_bytes,
-    }
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            value = routes.get(self.path)
-            if value is None:
-                self.send_error(404)
-                return
-            body = value if isinstance(value, bytes) else json.dumps(value).encode()
-            self.send_response(200)
-            self.send_header('Content-Length', str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def log_message(self, *_args):
-            pass
-
-    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    urls, git_calls = [], []
-    real_open, real_run = urllib.request.urlopen, subprocess.run
-    fetched, failed = False, False
-
-    def local_open(request, *args, **kwargs):
-        url = request.full_url if isinstance(request, urllib.request.Request) else request
-        parsed = urlsplit(url)
-        assert parsed.scheme == 'https' and parsed.netloc in {'api.github.com', 'github.com', 'hermes-assets.nousresearch.com'}, url
-        urls.append(url)
-        local = f'http://127.0.0.1:{server.server_port}{parsed.path}'
-        if parsed.query:
-            local += '?' + parsed.query
-        return real_open(local, *args, **kwargs)
-
-    from hermes_cli import update_custody
-
-    real_custody_run, seam = update_custody.run, threading.local()
-
-    def guard(command, args, kwargs, call):
-        nonlocal fetched, failed
-        command = list(map(str, command))
-        assert Path(command[0]).name.lower() in {'git', 'git.exe'}, command
-        cwd = Path(kwargs.get('cwd', os.getcwd())).resolve()
-        assert cwd in {t.clone, t.origin}, (command, cwd)
-        assert 'push' not in command and 'pull' not in command, command
-        git_calls.append(command)
-        if transport == 'no-git':
-            raise FileNotFoundError('fixture: no Git executable')
-        if fetched and not failed and '--abbrev-ref' in command and kwargs.get('check'):
-            failed = True
-            raise subprocess.CalledProcessError(128, command, '', 'fixture: Git file I/O failed')
-        result = call(command, *args, **kwargs)
-        if 'fetch' in command:
-            fetched = True
-        return result
-
-    def guarded_run(command, *args, **kwargs):
-        if getattr(seam, 'custody', False):  # already guarded at the custody seam below
-            return real_run(command, *args, **kwargs)
-        return guard(command, args, kwargs, real_run)
-
-    def custody_call(command, *args, **kwargs):
-        seam.custody = True
-        try:
-            return real_custody_run(command, *args, **kwargs)
-        finally:
-            seam.custody = False
-
-    def guarded_custody_run(command, *args, **kwargs):
-        # The updater's git goes through update_custody.run: on Windows inside an update that is a
-        # suspended Popen bound to the update's job, not subprocess.run, so faults go in here too.
-        return guard(command, args, kwargs, custody_call)
-
-    if transport in {'gitless', 'no-git'}:
-        (t.clone / '.git').rename(tmp_path / 'git-state')
-    if transport == 'dirty':
-        (t.clone / 'content.txt').write_text('local work\n', encoding='utf-8')
-    before = (t.clone / 'content.txt').read_bytes()
-    monkeypatch.setattr(urllib.request, 'urlopen', local_open)
-    monkeypatch.setattr(subprocess, 'run', guarded_run)
-    monkeypatch.setattr(update_custody, 'run', guarded_custody_run)
-    try:
-        if transport == 'dirty':
-            with pytest.raises(SystemExit) as error:
-                cli_main.cmd_update(t.args)
-            assert error.value.code == 1
-            assert (t.clone / 'content.txt').read_bytes() == before
-            assert not any('/archive/' in url for url in urls)
-            assert t.requests == []
-        else:
-            cli_main.cmd_update(t.args)
-            request, = t.requests
-            plan, = t.plans
-            assert request['source'] == str(t.clone.resolve())
-            assert request['expected_sha'] == t.wanted
-            assert request['plan'] == plan.to_dict()
-            assert request['receipt']['plan'] == plan.to_dict()
-            assert request['snapshot_id'] == 'release-snapshot'
-            assert (t.clone / 'content.txt').read_text(encoding='utf-8-sig') == 'release\n'
-            assert [url for url in urls if '/archive/' in url] == [
-                f'https://github.com/NousResearch/hermes-agent/archive/{t.wanted}.zip']
-        assert t.resumed
-        if transport in {'git-error', 'dirty'}:
-            assert failed and fetched
-            assert not any('ls-remote' in cmd for cmd in git_calls)
-    finally:
-        server.shutdown()
-        thread.join(timeout=5)
-        server.server_close()
 
 
 @pytest.mark.parametrize('sync_phase', ['origin', 'early', 'late', 'late-other-branch'])

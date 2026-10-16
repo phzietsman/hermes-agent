@@ -4,7 +4,7 @@ import path from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
-import { OUT_OF_STORE_PUBLISHER, channelBuildRequest } from '../../../scripts/msix-shared.mjs'
+import { channelBuildRequest } from '../../../scripts/msix-shared.mjs'
 import { codesignTeam, channelStampAssertions } from './mac-bundled-manifest.cjs'
 
 const identityModule = fileURLToPath(new URL('../../../apps/desktop/product-identity.cjs', import.meta.url))
@@ -21,9 +21,7 @@ export function bundleIdentity(commit, tag = '', channelRequest = null) {
   if (tag && !/^v\d+\.\d+\.\d+(?:\+canary\.20\d{6}T\d{6}Z)?$/.test(tag)) throw new Error('Invalid release tag')
   if (channelRequest !== null) {
     const request = admitChannelRequest(channelRequest, commit, tag)
-    return { appId: request.identity.appId, msixIdentity: request.identity.msixAppIdWithOrg,
-      applicationId: request.identity.appNamePascal, publisher: OUT_OF_STORE_PUBLISHER,
-      windowsVersion: request.windowsVersion }
+    return { appId: request.identity.appId, applicationId: request.identity.appNamePascal }
   }
   // The production module reads build flags at require-time. A child avoids
   // mutating the driver's environment or returning a cached variant identity.
@@ -32,18 +30,17 @@ export function bundleIdentity(commit, tag = '', channelRequest = null) {
     encoding: 'utf8', env: { ...process.env, HERMES_DESKTOP_VARIANT: 'bundled',
       HERMES_PAYLOAD_TAG: tag, HERMES_BUILD_COMMIT: tag ? '' : commit, _HERMES_CHANNEL_REQUEST_JSON: '' },
   }))
-  return { appId: identity.appId, msixIdentity: identity.msixAppIdWithOrg,
-    applicationId: identity.appNamePascal, publisher: OUT_OF_STORE_PUBLISHER }
+  return { appId: identity.appId, applicationId: identity.appNamePascal }
 }
 
 /** @param {object} stamp
  * @param {{commit: string, tag?: string, platform: string,
  * channelRequest?: import('../../../apps/desktop/electron/install-stamp.js').ChannelBuildRequest | null}} options */
 export function verifyBundleStamp(stamp, { commit, tag = '', platform, channelRequest = null }) {
-  if (!['darwin', 'win32'].includes(platform)) throw new Error('Unsupported native platform')
+  if (platform !== 'darwin') throw new Error('Unsupported native platform')
   const request = channelRequest === null ? null : admitChannelRequest(channelRequest, commit, tag)
   const expected = { commit, tag: request?.receiverCandidate ? request.releaseTag : tag || null, payload: 'bundled', distribution: 'desktop-app', dirty: false,
-    updateMechanism: tag || request ? { darwin: 'electron-updater', win32: 'app-installer' }[platform] : 'external' }
+    updateMechanism: tag || request ? 'electron-updater' : 'external' }
   if (!tag && !request) Object.assign(expected, { source: 'commit-build', branch: null })
   for (const [key, value] of Object.entries(expected)) {
     if (stamp?.[key] !== value) throw new Error(`stamp.${key}: ${JSON.stringify(stamp?.[key])} != ${JSON.stringify(value)}`)
@@ -51,7 +48,7 @@ export function verifyBundleStamp(stamp, { commit, tag = '', platform, channelRe
   if (request) {
     const problems = channelStampAssertions(stamp, request)
     if (problems.length) throw new Error(problems.join('; '))
-    return platform === 'darwin' ? request.version : request.windowsVersion
+    return request.version
   }
   return legacyBundleVersion(stamp, tag)
 }

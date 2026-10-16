@@ -13,7 +13,7 @@ from pm.store import current_target
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.platforms("windows", "posix")
+@pytest.mark.platforms("posix")
 @pytest.mark.parametrize("missing_target", [False, True])
 def test_cold_setup_uses_exact_lock_values(tmp_path, missing_target, real_bash):
     checkout = tmp_path / "checkout"

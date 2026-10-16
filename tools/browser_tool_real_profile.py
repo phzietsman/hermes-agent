@@ -53,9 +53,8 @@ def _capture_agent_browser_cli(argv: list, timeout: float, tag: str) -> subproce
     """Run an agent-browser CLI argv once, capturing output through temp files (not pipes).
 
     The CLI forks a resident daemon that inherits its stdio and outlives the CLI, so with
-    pipe capture the CLI can exit while its output never reaches EOF: POSIX burns the whole
-    timeout draining pipes on every call, and Windows' ``TimeoutExpired`` cleanup re-drains
-    with no timeout, blocking past the outer tool deadline (#96731). Same pattern as
+    pipe capture the CLI can exit while its output never reaches EOF and every call burns the
+    whole timeout draining pipes (#96731). Same pattern as
     ``_popen_agent_browser``: wait for the CLI alone — a grandchild holding the inherited
     file handles is harmless. Raises ``TimeoutExpired`` after killing the CLI."""
     env, socket_dir = _real_profile_daemon_env()
@@ -168,12 +167,7 @@ def _real_profile_unsupported_reason(browser) -> Optional[str]:
 
 
 def _real_profile_snapshot_error(err: str) -> str:
-    """User-facing message for a failed profile snapshot; a locked profile adds the approved-close
-    command, which the agent must ASK the user about first (it quits their browser)."""
-    from hermes_cli.browser_connect import _PROFILE_LOCKED_PREFIX
-    if err and err.startswith(_PROFILE_LOCKED_PREFIX):
-        return (err[len(_PROFILE_LOCKED_PREFIX):] + " To close it (only after the user approves — it "
-                "quits their browser and loses unsaved tabs), run: `hermes browser close-profile`, then retry.")
+    """User-facing message for a failed profile snapshot."""
     return f"{_RP}{err}"
 
 

@@ -3,7 +3,7 @@
 //
 // Usage:
 //   node scripts/stage-native-deps.mjs                # host platform/arch
-//   node scripts/stage-native-deps.mjs --platform win32 --arch arm64
+//   node scripts/stage-native-deps.mjs --platform linux --arch arm64
 //   node scripts/stage-native-deps.mjs --source REPO --out NATIVE_NODE_MODULES
 //
 // Preparation owns acquisition and helper compilation. beforePack only copies
@@ -43,17 +43,9 @@ function makeExecutable(filePath) {
 
 // ─── libuv-safe fs primitives ────────────────────────────────────────
 //
-// Node's native (non-libuv) rewrite of fs.cpSync/fs.rmSync mishandles
-// non-ASCII Windows paths (observed on v24.11.1 with an accented Windows
-// user name, i.e. a default %LOCALAPPDATA%\hermes home): a recursive
-// cpSync fails with EIO "Access is denied" or hard-crashes the process,
-// an overwriting cpSync fails with a bogus errno-0 unlink error, and
-// rmSync silently deletes nothing — leaving a half-staged tree that
-// breaks every retry. Fixed upstream (nodejs/node#61878 → v24.15.0;
-// nodejs/node#56049 → v24.13.1), but the installer builds on whatever
-// Node the user already has, so staging sticks to libuv-backed
-// primitives (copyFileSync/unlinkSync/rmdirSync/readdirSync), which
-// handle those paths correctly on every affected version.
+// Staging sticks to libuv-backed primitives (copyFileSync/unlinkSync/
+// rmdirSync/readdirSync) instead of fs.cpSync/fs.rmSync: a silent rmSync
+// no-op would leave a half-staged tree that breaks every retry.
 
 /** Recursively copy a directory without fs.cpSync. */
 function copyDirSync(srcDir, destDir) {
@@ -159,7 +151,7 @@ function copyGlobByExt(srcDir, destDir, extensions) {
  * directory by ['.node'] silently drops it — the package then looks
  * fine, ships fine, and crashes the first time a terminal is spawned.
  * Directories are copied wholesale to also cover any nested native
- * payload (e.g. a conpty/ subfolder some build layouts produce).
+ * payload some build layouts produce.
  */
 function copyBuildRelease(srcDir, destDir) {
   if (!existsSync(srcDir)) return
@@ -169,7 +161,7 @@ function copyBuildRelease(srcDir, destDir) {
       copyDirSync(join(srcDir, entry.name), join(destDir, entry.name))
       continue
     }
-    if (entry.name === 'spawn-helper' || /\.(node|dll|exe)$/.test(entry.name)) {
+    if (entry.name === 'spawn-helper' || entry.name.endsWith('.node')) {
       const destFile = join(destDir, entry.name)
       copyFileSync(join(srcDir, entry.name), destFile)
       if (entry.name === 'spawn-helper') {
@@ -192,7 +184,6 @@ function copyBuildRelease(srcDir, destDir) {
 //   Mach-O 64-bit LE  (cffaedfe — CIGAM_64) → darwin
 //   Fat/Universal BE (cafebabe)             → darwin
 //   Fat/Universal LE (bebafeca — FAT_CIGAM) → darwin
-//   PE (MZ DOS header)                      → win32
 //
 // Mach-O and Fat binaries are stored on disk in the host's native byte
 // order. On x64/arm64 Darwin (every Apple Silicon + every Intel Mac that
@@ -204,7 +195,7 @@ function copyBuildRelease(srcDir, destDir) {
 
 /**
  * Classify a native binary's target platform from its magic bytes.
- * Returns `'linux'`, `'darwin'`, `'win32'`, or `null` if unrecognized
+ * Returns `'linux'`, `'darwin'`, or `null` if unrecognized
  * or the file cannot be read.
  */
 export function classifyNativeBinary(filePath) {
@@ -243,10 +234,6 @@ export function classifyNativeBinary(filePath) {
   // Fat/Universal binary (little-endian / FAT_CIGAM): bebafeca
   if (buf[0] === 0xbe && buf[1] === 0xba && buf[2] === 0xfe && buf[3] === 0xca) {
     return 'darwin'
-  }
-  // PE: MZ DOS header
-  if (buf[0] === 0x4d && buf[1] === 0x5a) {
-    return 'win32'
   }
   return null
 }
@@ -323,18 +310,13 @@ export function stageNodePtyInto(srcRoot, destRoot, { platform = process.platfor
 
   // prebuilds/<platform>-<arch>/* — the prebuild-install payload for the
   // *target* we're packaging, not necessarily the host running this script.
-  // Explicit extensions only, to skip the ~25MB of Windows .pdb symbols
-  // prebuild-install bundles alongside the .node/.dll.
+  // Explicit names only, to skip any symbol files bundled alongside.
   const prebuildDir = join(srcRoot, 'prebuilds', `${platform}-${arch}`)
   if (existsSync(prebuildDir)) {
     const destPrebuild = join(destRoot, 'prebuilds', `${platform}-${arch}`)
     mkdirSync(destPrebuild, { recursive: true })
     for (const entry of readdirSync(prebuildDir, { withFileTypes: true })) {
-      if (entry.name === 'conpty' && entry.isDirectory()) {
-        copyDirSync(join(prebuildDir, 'conpty'), join(destPrebuild, 'conpty'))
-        continue
-      }
-      if (entry.isFile() && /\.(node|dll|exe)$/.test(entry.name)) {
+      if (entry.isFile() && entry.name.endsWith('.node')) {
         copyFileSync(join(prebuildDir, entry.name), join(destPrebuild, entry.name))
         continue
       }
@@ -479,7 +461,7 @@ export function openWindowsSync() {
 
 function resolveGetWindowsRoot(appRoot = projectRoot) {
   // get-windows is an optionalDependency (its node-pre-gyp install script has
-  // no Linux or Windows ARM64 prebuilt and its node-gyp fallback may fail, so
+  // no Linux prebuilt and its node-gyp fallback may fail, so
   // `npm ci` can skip it entirely on those targets). Return null when it is
   // absent; the caller decides whether that is fatal per platform and arch.
   try {
@@ -498,17 +480,15 @@ function resolveGetWindowsRoot(appRoot = projectRoot) {
  * Stage get-windows into `destRoot` for `platform`.
  *
  * Per-platform native payload: macOS ships the `main` Swift helper binary
- * (universal, present in every published tarball), Windows the node-pre-gyp
- * prebuilt under lib/binding (downloaded by the package's install script on
- * a Windows host — cross-platform packs already can't happen, see
- * stageNodePtyInto), Linux nothing (it shells out to xprop at runtime).
+ * (universal, present in every published tarball), Linux nothing (it shells out
+ * to xprop at runtime).
  */
 const GET_WINDOWS_VERSION = '9.3.0'
 
 export function stageGetWindowsInto(
   srcRoot,
   destRoot,
-  { platform = process.platform, arch = process.arch, install } = {}
+  { platform = process.platform } = {}
 ) {
   // The STAGED_WINDOWS_JS rewrite mirrors this exact version's export surface.
   // A version bump must fail the build here until the rewrite is re-verified —
@@ -557,113 +537,14 @@ export function stageGetWindowsInto(
     makeExecutable(join(destRoot, 'main'))
   }
 
-  if (platform === 'win32') {
-    // The published tarball bundles a darwin binding dir on EVERY platform
-    // (its `files` includes lib/), so a Windows host's lib/binding holds both
-    // that and the win32 dir node-pre-gyp downloaded. Stage only dirs naming
-    // the target platform; the classify gate below still catches a dir that
-    // claims win32 but holds a foreign binary.
-    const bindingRoot = join(srcRoot, 'lib', 'binding')
-    const scanBindingDirs = () =>
-      existsSync(bindingRoot)
-        ? readdirSync(bindingRoot).filter(
-            (dir) =>
-              dir.includes(`-${platform}-`) &&
-              dir.endsWith(`-${arch}`) &&
-              existsSync(join(bindingRoot, dir, 'node-get-windows.node'))
-          )
-        : []
-    let bindingDirs = scanBindingDirs()
-    let installAttempted = false
-    if (bindingDirs.length === 0 && arch !== 'arm64' && typeof install === 'function') {
-      // A plain `npm install` won't re-run an install script for a package
-      // that is already on disk, so every checkout that installed while
-      // get-windows was missing from allowScripts stays bricked even after
-      // the allowlist is fixed. Invoke node-pre-gyp directly: npm treats this
-      // optional dependency's failed lifecycle as non-fatal and can report a
-      // successful rebuild without producing the Windows binding.
-      console.log(
-        '[stage-native-deps] get-windows has no win32 binding; running its native installer...'
-      )
-      installAttempted = true
-      try {
-        install()
-      } catch (error) {
-        console.warn(
-          `[stage-native-deps] get-windows native installer failed: ${error instanceof Error ? error.message : String(error)}`
-        )
-      }
-      bindingDirs = scanBindingDirs()
-    }
-    if (bindingDirs.length === 0) {
-      // get-windows 9.3.0 publishes win32 prebuilds for ia32/x64 only, and a
-      // half-extracted install (#90829) can leave even those without one. The
-      // staged windows.js deliberately fails soft when binding/ is absent, so
-      // preserve the desktop build and disable only window enumeration.
-      const reason = installAttempted
-        ? `native installer produced no win32-${arch} binding`
-        : `has no win32-${arch} prebuilt binding`
-      console.warn(
-        `[stage-native-deps] get-windows ${reason}; ` +
-          'staging the fail-soft JS surface without native window enumeration.'
-      )
-    }
-    for (const dir of bindingDirs) {
-      const dest = join(destRoot, 'lib', 'binding', dir)
-      mkdirSync(dest, { recursive: true })
-      const destFile = join(dest, 'node-get-windows.node')
-      copyFileSync(join(bindingRoot, dir, 'node-get-windows.node'), destFile)
-      const classified = classifyNativeBinary(destFile)
-      if (classified !== platform) {
-        throw new Error(
-          `[stage-native-deps] get-windows binding ${dir}/node-get-windows.node: ` +
-            `expected ${platform}, got ${classified ?? 'unknown'}. ` +
-            'Refusing to stage a binary compiled for the wrong platform.'
-        )
-      }
-    }
-  }
-
   console.log(`[stage-native-deps] staged get-windows (${platform}) -> ${destRoot}`)
   return destRoot
-}
-
-export function installGetWindowsNativeBinding(
-  srcRoot,
-  { resolveInstaller, spawn = spawnSync } = {}
-) {
-  let installerPath
-  try {
-    const resolveNodePreGyp =
-      resolveInstaller ??
-      (() =>
-        require.resolve('@mapbox/node-pre-gyp/bin/node-pre-gyp', {
-          paths: [srcRoot]
-        }))
-    installerPath = resolveNodePreGyp()
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(`[stage-native-deps] cannot resolve get-windows native installer: ${detail}`)
-  }
-
-  const result = spawn(process.execPath, [installerPath, 'install', '--fallback-to-build'], {
-    cwd: srcRoot,
-    stdio: 'inherit'
-  })
-  if (result.error) {
-    throw new Error(
-      `[stage-native-deps] get-windows native installer could not start: ${result.error.message}`
-    )
-  }
-  if (result.status !== 0) {
-    throw new Error(`[stage-native-deps] get-windows native installer exited with ${result.status}`)
-  }
 }
 
 /**
  * A get-windows directory that exists but does not resolve as a package: an
  * `npm install` interrupted by a running Desktop/gateway holding files open
- * (TAR_ENTRY_ERROR on Windows) leaves the binding on disk without
+ * (TAR_ENTRY_ERROR) leaves the binding on disk without
  * package.json, and npm never revisits a directory that already exists, so the
  * tree stays broken across every later update. Walks the same
  * `node_modules` ancestors `require.resolve` does (the workspace root hoist or
@@ -718,13 +599,7 @@ export function stageGetWindows(
     return undefined
   }
 
-  // Only a win32 host can produce the win32 binding, so a cross-platform pack
-  // has nothing to gain from the native installer.
-  const install =
-    platform === 'win32' && process.platform === 'win32'
-      ? () => installGetWindowsNativeBinding(srcRoot)
-      : undefined
-  return stageGetWindowsInto(srcRoot, destRoot, { platform, arch, install })
+  return stageGetWindowsInto(srcRoot, destRoot, { platform })
 }
 
 /**

@@ -85,11 +85,11 @@ def is_inside_workspace(path: str, workspace_root: str) -> bool:
     root = normalize_path(workspace_root)
     if p == root:
         return True
-    # commonpath handles case-insensitive filesystems on macOS/Windows.
+    # commonpath handles case-insensitive filesystems on macOS.
     try:
         return os.path.commonpath([p, root]) == root
     except ValueError:
-        return False  # different drives on Windows
+        return False
 
 
 def nearest_root(

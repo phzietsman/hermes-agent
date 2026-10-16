@@ -10,6 +10,8 @@ runner) — same-session argv identity is the load-bearing assertion.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from tools import bot_failure_reasons as bfr
@@ -72,8 +74,7 @@ def _deliver(params):
 def _is_hermes_cli(argv) -> bool:
     """Match the delivery CLI by basename — local_delivery_command may
     resolve the venv-relative hermes next to the interpreter (#93590)."""
-    name = str(argv[0]).rsplit("\\", 1)[-1].rsplit("/", 1)[-1]
-    return name in ("hermes", "hermes.exe")
+    return Path(str(argv[0])).name == "hermes"
 
 
 def _transport_calls(calls):

@@ -1265,8 +1265,8 @@ if [ "$CODE" -eq 0 ]; then FINAL_CODE=0 FINAL_MSG="Update complete." UPDATE_COMM
     DONE_NOTE="Hermes was updated, but the Desktop app could not be rebuilt, so it still runs its old build. Run hermes desktop --force-build in a terminal to rebuild it; the update log has the build error."
     add_warning "build" "the Desktop app build is owed by the committed update"
   fi
-  # Every other owed follow-up (a gateway still on the old code, a Windows
-  # resume, a lost completion, channel adoption, maintenance...) prints one
+  # Every other owed follow-up (a gateway still on the old code, a lost
+  # completion, channel adoption, maintenance...) prints one
   # whole "Update follow-up '<step>' did not finish:" line. None of them may
   # end as a plain "Update complete." (review regression 1).
   OWED_STEPS="$(owed_followup_steps)"

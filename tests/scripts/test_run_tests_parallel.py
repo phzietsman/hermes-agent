@@ -13,9 +13,6 @@ The leaker test always passes — its only job is to spawn a grandchild
 and walk away. The verifier runs the runner over the leaker file in a
 subprocess, then waits for the grandchild PID to disappear from the
 kernel's process table.
-
-POSIX-only: Windows has its own grandchild lifecycle (no shared session,
-``taskkill /F /T`` semantics). Marked accordingly.
 """
 
 from __future__ import annotations
@@ -51,17 +48,13 @@ def _probe_root(tmp_path):
 
 
 def _pid_alive(pid: int) -> bool:
-    """POSIX: send signal 0 to probe whether ``pid`` is still alive.
+    """Send signal 0 to probe whether ``pid`` is still alive.
 
     ``os.kill(pid, 0)`` raises ``ProcessLookupError`` if the process is
     gone, ``PermissionError`` if it exists but we can't signal it
     (someone else's pid). We treat PermissionError as "alive" because
     the process exists and that's all we need to know.
     """
-    if sys.platform == "win32":  # pragma: no cover — POSIX-only test
-        # On Windows we'd use OpenProcess + GetExitCodeProcess; this
-        # test is skipped on Windows so the path is unreachable.
-        raise RuntimeError("_pid_alive POSIX-only")
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -69,43 +62,6 @@ def _pid_alive(pid: int) -> bool:
     except PermissionError:
         return True
     return True
-
-
-def test_progress_output_tolerates_legacy_stdout_encoding(tmp_path: Path) -> None:
-    """Progress glyphs must not crash the runner on non-UTF-8 consoles."""
-    repo_root = _probe_root(tmp_path)
-    runner = repo_root / "scripts" / "run_tests_parallel.py"
-
-    probe_dir = tmp_path / "probe"
-    probe_dir.mkdir()
-    probe = probe_dir / "test_probe_smoke.py"
-    probe.write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
-
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "cp1252:strict"
-
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(runner),
-            "--paths",
-            str(probe_dir),
-            "-j",
-            "1",
-            "--file-timeout",
-            "30",
-        ],
-        cwd=probe_dir,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        timeout=60,
-    )
-
-    assert proc.returncode == 0, proc.stdout
-    assert "UnicodeEncodeError" not in proc.stdout
-    assert "1 tests passed" in proc.stdout
 
 
 @pytest.mark.platforms("posix")
@@ -189,9 +145,6 @@ def test_grandchild_leak_is_killed_by_runner(tmp_path: Path) -> None:
         cwd=probe_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        # The runner declares its stdio UTF-8 (see _make_stdio_glyph_safe);
-        # decode the same way so ✓-glyph assertions hold on Windows, where
-        # text=True alone would decode with the locale codec (cp1252).
         encoding="utf-8",
         errors="replace",
         timeout=60,
@@ -268,9 +221,6 @@ def _run_runner(probe_dir: Path, *extra: str) -> subprocess.CompletedProcess:
         cwd=probe_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        # The runner declares its stdio UTF-8 (see _make_stdio_glyph_safe);
-        # decode the same way so ✓-glyph assertions hold on Windows, where
-        # text=True alone would decode with the locale codec (cp1252).
         encoding="utf-8",
         errors="replace",
         timeout=60,
@@ -443,9 +393,8 @@ def test_passthrough_ignore_drops_files_the_runner_hands_pytest_explicitly(
     tmp_path, selector, ignore,
 ):
     """Each file reaches its own pytest as an explicit argument, which pytest's
-    --ignore/--ignore-glob never filter; the runner must apply them itself. The
-    Windows lane's ``--ignore-glob='*test_desktop_update_windows_*.py'`` gate was a
-    no-op, so those files ran (and hit the per-file cap) on PRs it meant to spare."""
+    --ignore/--ignore-glob never filter; the runner must apply them itself. Forwarded
+    as-is, an ``--ignore-glob`` gate was a no-op, so those files ran on PRs it meant to spare."""
     root = _probe_root(tmp_path)   # relative globs anchor at the repo root (per-file pytest's cwd)
     probe = root / "tests" / "probe"
     probe.mkdir(parents=True)
@@ -470,7 +419,6 @@ def test_passthrough_ignore_drops_files_the_runner_hands_pytest_explicitly(
 
 
 
-@pytest.mark.platforms("posix")  # POSIX signal death; Windows has no SIGSEGV exit
 def test_interpreter_crash_is_reported_as_a_crash_not_as_no_tests_ran(tmp_path: Path) -> None:
     """A file whose interpreter dies by signal is classified as CRASHED (#113186).
 
@@ -592,17 +540,16 @@ def test_off_host_note_names_platforms_specs_that_exclude_this_host(tmp_path: Pa
         "import pytest\n\n"
         "@pytest.mark.platforms('not linux')\ndef test_elsewhere():\n    assert True\n\n"
         "@pytest.mark.platforms('posix')\ndef test_posix():\n    assert True\n\n"
-        "@pytest.mark.platforms('windows')\ndef test_windows():\n    assert True\n",
+        "@pytest.mark.platforms('linux')\ndef test_linux():\n    assert True\n\n"
+        "@pytest.mark.platforms('macos')\ndef test_macos():\n    assert True\n",
         encoding="utf-8",
     )
     proc = _run_runner(probe_dir)
     notes = [line for line in proc.stdout.splitlines() if "SKIPPED on this host" in line]
-    host = {"linux": "linux", "darwin": "macos", "win32": "windows"}[sys.platform]
-    off_host = {"windows"} - {host}
+    host = {"linux": "linux", "darwin": "macos"}[sys.platform]
+    off_host = {"linux", "macos"} - {host}
     if host == "linux":
         off_host.add("not linux")
-    if host == "windows":
-        off_host.add("posix")
     assert {n.split("platforms(")[1].split(")")[0].strip("'") for n in notes} == off_host, proc.stdout
     assert all("they run on the" in n for n in notes), proc.stdout
 

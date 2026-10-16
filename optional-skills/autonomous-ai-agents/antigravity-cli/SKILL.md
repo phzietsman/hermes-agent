@@ -4,7 +4,7 @@ description: "Operate the Antigravity CLI (agy): plugins, auth, sandbox."
 version: 0.2.0
 author: Tony Simons (asimons81), Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Coding-Agent, Antigravity, CLI, Auth, Plugins, Sandbox]

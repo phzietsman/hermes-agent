@@ -28,7 +28,6 @@ Scenarios (one boot):
 from __future__ import annotations
 
 import json
-import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -41,8 +40,6 @@ from tests.e2e.core.tenancy import _helpers as T
 
 from . import _scope as S
 from ._helpers import BoundaryBreach, poll
-
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX process groups (serve teardown)")
 
 PROFILES = ("default", "beta")
 

@@ -43,28 +43,9 @@ curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 
 </div>
 
-### ونڈوز (نیٹو، پاور شیل)
-
-> **توجہ فرمائیں:** مقامی ونڈوز (Native Windows) پر ہرمیس بغیر WSL کے چلتا ہے — CLI، گیٹ وے، TUI، اور ٹولز سب مقامی طور پر کام کرتے ہیں۔ اگر آپ WSL2 استعمال کرنا پسند کرتے ہیں، تو اوپر دی گئی لینکس/میک او ایس کی کمانڈ وہاں بھی کام کرے گی۔ کوئی مسئلہ نظر آیا؟ براہ کرم [مسائل (issues) درج کریں](https://github.com/NousResearch/hermes-agent/issues)۔
-
-اسے پاور شیل (PowerShell) میں چلائیں:
-
-<div dir="ltr">
-
-```powershell
-iex (irm https://hermes-agent.nousresearch.com/install.ps1)
-```
-
-</div>
-
-سورس انسٹالر Python 3.14، Node.js، npm، ripgrep، FFmpeg اور Python کی
-ڈیپینڈینسیز کے لیے PM استعمال کرتا ہے۔ اگر Git موجود نہ ہو تو Git for Windows
-کا تصدیق شدہ آرکائیو ہرمیس کے ٹول اسٹور میں نصب کرتا ہے۔ سسٹم کا Git تبدیل نہیں
-ہوتا۔ MSIX/App Installer ایک الگ پیکیج ہے۔
+معاون پلیٹ فارمز: لینکس، میک او ایس، اور WSL2 کے ذریعے ونڈوز (جو لینکس کی طرح کام کرتا ہے)۔ مقامی ونڈوز معاون نہیں ہے۔
 
 > **اینڈرائیڈ / ٹرمکس (Android / Termux):** aarch64 آلات کے لیے آزمائشی APT پیکیج دستیاب ہے۔ اس میں Python، Node.js اور TUI شامل ہیں۔ ڈیسک ٹاپ اور سرور کے انسٹالیشن اسکرپٹ کے بجائے [Termux گائیڈ](https://hermes-agent.nousresearch.com/docs/getting-started/termux) استعمال کریں۔
->
-> **ونڈوز (Windows):** مقامی سورس انسٹال کے لیے اوپر دیا گیا PowerShell کمانڈ استعمال کریں۔ WSL2 میں لینکس کمانڈ استعمال ہوتا ہے۔ مقامی ڈیٹا `%LOCALAPPDATA%\hermes` میں اور WSL2 کا ڈیٹا `~/.hermes` میں ہوتا ہے۔ ڈیش بورڈ چیٹ مقامی Windows پر pywinpty/ConPTY استعمال کرتا ہے؛ پلیٹ فارم کی حدود [Windows گائیڈ](https://hermes-agent.nousresearch.com/docs/user-guide/windows-native) میں درج ہیں۔
 
 انسٹالیشن کے بعد:
 

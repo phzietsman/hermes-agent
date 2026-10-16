@@ -49,9 +49,8 @@ _REPO_ROOT = Path(__file__).parent.parent.resolve()
 # stamp readers hard-fail a stamp without it.
 #   self             — `hermes update` owns the tree (installer-created
 #                      source checkouts).
-#   electron-updater — the in-app updater replaces the artifact (NSIS,
-#                      mac .app, AppImage).
-#   app-installer    — the app hands the update to Windows App Installer.
+#   electron-updater — the in-app updater replaces the artifact (mac .app,
+#                      AppImage).
 #   external         — a package manager or app store owns updates.
 
 # Hermes's historical tags use a four-digit calendar year as their major
@@ -134,8 +133,8 @@ def build_stamp(
     root), so the value is ``..``. The Python boot path reads this instead
     of deriving ``<install_root>/.hermes-runtime``, which is wrong for that
     layout: the runtime dir is the payload dir, not a child of the install
-    root. ``..`` keeps it relocatable — an absolute path would break under
-    MSIX translocation.
+    root. ``..`` keeps it relocatable — an absolute path would break when
+    the app moves.
     """
     if update_mechanism not in UPDATE_MECHANISMS:
         raise SystemExit(
@@ -149,7 +148,7 @@ def build_stamp(
         channel_request = validate_channel_request(channel_request)
         if os.environ.get("HERMES_BUILD_COMMIT") or os.environ.get("HERMES_PAYLOAD_TAG"):
             raise ValueError("channel request conflicts with commit-build or tag identity")
-        if os.environ.get("HERMES_DESKTOP_VARIANT") != "bundled" or update_mechanism not in {"electron-updater", "app-installer"}:
+        if os.environ.get("HERMES_DESKTOP_VARIANT") != "bundled" or update_mechanism != "electron-updater":
             raise ValueError("channel builds require a bundled native update owner")
         if _run_git("rev-parse", "HEAD", cwd=_REPO_ROOT) != channel_request["commit"] or commit not in (None, channel_request["commit"]):
             raise ValueError("channel build identity does not match checkout HEAD")
@@ -222,10 +221,6 @@ def build_stamp(
     #   light     — NO runtime at all, remote connections only. A Python
     #               process must never read a light stamp: the artifact
     #               contains no Python (the stamp readers raise on it).
-    #   store     — a Store-submission build: the SAME bundled payload, but a
-    #               different MSIX packaging identity. Stamps as 'bundled'
-    #               so the bundled shape logic (shared userData, steward-
-    #               owned updates, no in-app updater) holds for it too.
     #   runtime   — a self-contained CLI runtime with NO Electron app around
     #               it (the Termux .deb). It is sealed like 'bundled' but
     #               must not stamp as one: 'bundled' readers locate an
@@ -233,12 +228,12 @@ def build_stamp(
     #               and a tree without one is damage to them.
     # Release artifacts pin a tag. Commit builds never enter an update channel.
     variant = os.environ.get("HERMES_DESKTOP_VARIANT", "").strip()
-    if variant not in ("", "bootstrap", "bundled", "light", "store", "runtime"):
+    if variant not in ("", "bootstrap", "bundled", "light", "runtime"):
         raise SystemExit(
             f"write_install_stamp: unknown HERMES_DESKTOP_VARIANT {variant!r} "
-            "(expected unset, 'bootstrap', 'bundled', 'light', 'store', or 'runtime')"
+            "(expected unset, 'bootstrap', 'bundled', 'light', or 'runtime')"
         )
-    payload = "bundled" if variant == "store" else (variant or "bootstrap")
+    payload = variant or "bootstrap"
     tag = os.environ.get("HERMES_PAYLOAD_TAG") or None
 
     _stable_tag = re.compile(r"^v(0|[1-9]\d{0,2})\.\d+\.\d+$")
@@ -305,7 +300,7 @@ def main() -> int:
         required=True,
         choices=UPDATE_MECHANISMS,
         help="Who applies the next update: 'self' (hermes update), "
-        "'app-installer' (Windows App Installer), 'electron-updater' (in-app updater), "
+        "'electron-updater' (in-app updater), "
         "'external' (nix/docker/store)",
     )
     parser.add_argument(

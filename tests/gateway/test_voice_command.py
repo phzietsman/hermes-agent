@@ -410,31 +410,6 @@ class TestVoiceReceiver:
         assert len(completed) == 0
 
 
-    def test_ffmpeg_resolver_finds_winget_install_when_not_on_path(self, monkeypatch, tmp_path):
-        """Windows winget installs ffmpeg outside PATH; Discord voice should still find it."""
-        from plugins.platforms.discord import ffmpeg_utils
-
-        ffmpeg = (
-            tmp_path
-            / "Microsoft"
-            / "WinGet"
-            / "Packages"
-            / "Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe"
-            / "ffmpeg-7.1-full_build"
-            / "bin"
-            / "ffmpeg.exe"
-        )
-        ffmpeg.parent.mkdir(parents=True)
-        ffmpeg.write_text("", encoding="utf-8")
-
-        monkeypatch.delenv("FFMPEG_PATH", raising=False)
-        monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
-        # Discovery delegates to tools.transcription_tools; simulate "not found".
-        monkeypatch.setattr(ffmpeg_utils, "_shared_find_ffmpeg", lambda: None)
-
-        assert ffmpeg_utils.resolve_ffmpeg_executable() == str(ffmpeg)
-
-
     def test_on_packet_skips_non_rtp(self):
         receiver = self._make_receiver()
         receiver.start()
@@ -1545,9 +1520,8 @@ class TestStreamTtsTempfileFallback:
     back to writing each sentence to a temp WAV and playing it via the system
     player.  ``wave.open()`` given a *file object* flushes but does NOT close
     it (it only closes files it opened itself, by name), so the OS handle to
-    the temp file stays open.  On Windows that open write handle blocks the
-    player from reading the file and blocks ``os.unlink()`` (WinError 32,
-    silently swallowed), leaving orphaned temp .wav files behind.  The fix
+    the temp file stays open, leaking the handle while the player reads the
+    file.  The fix
     closes the handle before playback/cleanup; this test asserts the close
     happens before the play call.
     """
@@ -1624,7 +1598,7 @@ class TestStreamTtsTempfileFallback:
         ]
         assert closes_before_play, (
             "temp WAV handle must be closed BEFORE play_audio_file — an open "
-            "write handle blocks playback and os.unlink() on Windows"
+            "write handle leaks across playback"
         )
         # And the temp file is cleaned up afterwards.
         assert not os.path.exists(played[0]), "temp WAV was not unlinked"

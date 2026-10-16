@@ -23,8 +23,7 @@ def main() -> None:
     # Python put this file's directory first; it is PM's package dir, not the caller's.
     sys.path[:] = [entry for entry in sys.path
                    if not entry or os.path.abspath(entry) != here]
-    # A venv's site-packages follows the stdlib; addsitedir also runs its .pth files
-    # (pywin32's puts win32\lib on sys.path).
+    # A venv's site-packages follows the stdlib; addsitedir also runs its .pth files.
     site.addsitedir(site_dir)
     safe_path = sys.flags.safe_path if hasattr(sys.flags, "safe_path") else sys.flags.isolated
     if args[0] == "-c":

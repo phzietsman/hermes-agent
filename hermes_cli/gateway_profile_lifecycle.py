@@ -19,7 +19,7 @@ def host_scope_for_all_verb(owner):
     """Home a ``--all`` verb acts as: the live host owner's, else the default root.
 
     ``--all`` names the ONE host gateway, whichever profile invoked the CLI — but the active home
-    decides the service name, the Windows task/launcher and the detached child's ``--profile``, so
+    decides the service name and the detached child's ``--profile``, so
     with the host DOWN ``-p X gateway start|restart --all`` re-launched X's own gateway, which the
     named-profile guard then refused (exit 78): the host stayed down after a Desktop update.
     """

@@ -81,7 +81,7 @@ export function stepCreditsNoticeDemo(): void {
 }
 
 // The hotkey: Ctrl+Shift+C on every platform (Ctrl, not Cmd, so it can't clash
-// with a system Cmd chord and works the same on Windows/Linux). Matched on
+// with a system Cmd chord and works the same on Linux). Matched on
 // `code` so it's keyboard-layout independent, and captured before the composer
 // so a focused input can't swallow it.
 function isTriggerChord(e: KeyboardEvent): boolean {

@@ -4,7 +4,7 @@ description: Zero-install localhost tunnels over SSH via Pinggy.
 version: 0.1.0
 author: Teknium (teknium1), Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Pinggy, Tunnel, Networking, SSH, Webhook, Localhost]

@@ -61,13 +61,10 @@ function makeSender(id: number) {
 
 async function startSession() {
   registerTerminalIpc({
-    isWindows: false,
     findOnPath: () => null,
     rememberLog: () => {},
     activeSshTerminalTarget: () => null,
-    sshBinary: () => '/usr/bin/ssh',
-    ensureBackend: async () => undefined,
-    getSshConnectionState: () => undefined
+    ensureBackend: async () => undefined
   })
 
   const sender = makeSender(7)

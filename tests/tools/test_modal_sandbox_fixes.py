@@ -226,15 +226,6 @@ class TestHostPrefixList:
         for sandbox_path in ("/workspace", "/root/proj", "/srv/app"):
             assert _tt_mod._is_unusable_container_cwd(sandbox_path) is False
 
-    def test_any_windows_drive_letter_is_a_host_cwd(self):
-        """The host-shape predicate is platform-independent data: every drive letter, either slash,
-        is a host path (#60962). On POSIX ``D:\\proj`` is also non-absolute so the container guard
-        already rejected it; on a Windows host it IS absolute and only this predicate catches it."""
-        from tools.terminal_tool_config import _is_host_cwd
-        for host_path in ("C:\\Users\\me", "D:\\proj", "e:/work", "Z:\\"):
-            assert _is_host_cwd(host_path) is True, host_path
-        for not_host in ("/workspace", "/srv/app", "relative/dir", "C", "C:"):
-            assert _is_host_cwd(not_host) is False, not_host
 
 
 # =========================================================================
@@ -264,9 +255,6 @@ class TestDockerHostBindApproval:
         assert _tt_mod._docker_has_host_access(
             {"env_type": "docker", "host_cwd": "/home/u/p",
              "docker_mount_cwd_to_workspace": True}) is True
-        # Windows host path -> host access.
-        assert _tt_mod._docker_has_host_access(
-            {"env_type": "docker", "docker_volumes": ["C:\\Users:/data"]}) is True
         # Other container backends never report host access.
         assert _tt_mod._docker_has_host_access(
             {"env_type": "modal", "docker_volumes": ["/tmp:/x"]}) is False

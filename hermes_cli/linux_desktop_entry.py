@@ -560,7 +560,7 @@ def _shebang_escapes_running_env(shebang: str) -> bool:
     if not tokens:
         return True  # bare "#!python": resolves via PATH
     interp = Path(tokens[0])
-    if interp.name in ("env", "env.exe"):
+    if interp.name == "env":
         rest = [t for t in tokens[1:] if not t.startswith("-")]
         if not (rest and Path(rest[0]).is_absolute()):
             return True

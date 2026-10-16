@@ -12,11 +12,6 @@ describe('displayPath', () => {
     expect(displayPath('/home/alice/src/app')).toBe('~/src/app')
   })
 
-  it('collapses a Windows user profile to ~', () => {
-    expect(displayPath('C:\\Users\\brooklyn\\src')).toBe('~/src')
-    expect(displayPath('C:/Users/brooklyn')).toBe('~')
-  })
-
   it('honours an explicit home override', () => {
     expect(displayPath('/opt/work/repo', { home: '/opt/work' })).toBe('~/repo')
     expect(displayPath('/elsewhere/repo', { home: '/opt/work' })).toBe('/elsewhere/repo')
@@ -27,8 +22,8 @@ describe('displayPath', () => {
     expect(displayPath('/Users')).toBe('/Users')
   })
 
-  it('normalizes separators and trailing slashes', () => {
-    expect(normalizeDisplayPath('C:\\Users\\me\\src\\')).toBe('C:/Users/me/src')
+  it('normalizes repeated and trailing slashes', () => {
+    expect(normalizeDisplayPath('/Users//me/src/')).toBe('/Users/me/src')
     expect(displayPath('/Users/me/src/')).toBe('~/src')
   })
 

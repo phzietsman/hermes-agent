@@ -1,5 +1,5 @@
 import { connectionScopedAtom } from '@/lib/connection-scoped'
-import { cleanPath, comparisonPath } from '@/lib/path-compare'
+import { cleanPath } from '@/lib/path-compare'
 import { Codecs } from '@/lib/persisted'
 
 // "Show gitignored files" is a per-project preference: a repo that keeps a
@@ -17,9 +17,9 @@ const SHOW_IGNORED_KEY = 'hermes.desktop.files.showIgnored'
 export const $showIgnoredRoots = connectionScopedAtom<string[]>(SHOW_IGNORED_KEY, [], Codecs.stringArray)
 
 /** Storage/comparison spelling for a project root — backends, pickers and
- *  session rows disagree on separator and drive-letter case. */
+ *  session rows disagree on trailing slashes. */
 function rootKey(root: string): string {
-  return comparisonPath(cleanPath(root))
+  return cleanPath(root)
 }
 
 /** The single resolver every reader goes through, so the tree, its lazy child

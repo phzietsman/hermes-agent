@@ -15,10 +15,10 @@ from .method_ctx import bind_module
 
 def _normalize_completion_path(path_part: str) -> str:
     expanded = os.path.expanduser(path_part)
-    if os.name != "nt":
-        normalized = expanded.replace("\\", "/")
-        if len(normalized) >= 3 and normalized[1] == ":" and normalized[2] == "/" and normalized[0].isalpha():
-            return f"/mnt/{normalized[0].lower()}/{normalized[3:]}"
+    # A pasted Windows drive path maps to its WSL mount.
+    normalized = expanded.replace("\\", "/")
+    if len(normalized) >= 3 and normalized[1] == ":" and normalized[2] == "/" and normalized[0].isalpha():
+        return f"/mnt/{normalized[0].lower()}/{normalized[3:]}"
     return expanded
 
 

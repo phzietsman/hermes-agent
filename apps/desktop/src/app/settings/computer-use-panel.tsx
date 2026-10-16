@@ -16,11 +16,10 @@ interface ComputerUsePanelProps {
   onConfiguredChange?: () => void
 }
 
-// Per-OS one-liner shown when there's no TCC grant flow (Windows/Linux). macOS
+// Per-OS one-liner shown when there's no TCC grant flow (Linux). macOS
 // drives the permission rows instead, so it has no entry here.
 const PLATFORM_NOTE: Record<string, string> = {
-  linux: 'Drives your desktop via the X11/XWayland accessibility stack — no permission prompt.',
-  win32: 'First run may trigger a Windows SmartScreen prompt for the cua-driver UIAccess worker — allow it.'
+  linux: 'Drives your desktop via the X11/XWayland accessibility stack — no permission prompt.'
 }
 
 function tone(granted: boolean | null) {
@@ -51,11 +50,11 @@ function PermissionRow({ granted, label, hint }: { granted: boolean | null; labe
 /**
  * Cross-platform Computer Use preflight card.
  *
- * cua-driver runs on macOS, Windows, and Linux, but readiness differs: macOS
+ * cua-driver runs on macOS and Linux, but readiness differs: macOS
  * needs two TCC grants (Accessibility + Screen Recording) that attach to
  * cua-driver's own `com.trycua.driver` identity — not Hermes — and are
  * requested via `cua-driver permissions grant` (dialog attributed to
- * CuaDriver). Windows/Linux have no TCC toggles, so readiness is driver health
+ * CuaDriver). Linux has no TCC toggles, so readiness is driver health
  * from `cua-driver doctor`. The backend folds both into one `ready` signal.
  *
  * Binary install/upgrade stays in the cua-driver provider's post-setup runner

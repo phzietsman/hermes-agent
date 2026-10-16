@@ -8,8 +8,6 @@
 from __future__ import annotations
 
 import logging
-import os
-import re
 import shlex
 import threading
 import time
@@ -39,15 +37,9 @@ def _extract_paths_from_terminal(args: Dict[str, Any]) -> Set[str]:
     cmd = args.get("command") or ""
     if isinstance(cmd, str) and cmd:
         # Tokenise the command — catches `touch /tmp/hermes-x/test_foo.py`.
-        # ``posix`` follows the host so Windows backslash paths survive
-        # (``shlex.split(posix=True)`` would eat them as escapes).
-        # Non-posix mode keeps quote characters in tokens, so strip a fully
-        # wrapping pair (`"C:\file"` → `C:\file`) before matching.
         try:
-            for tok in shlex.split(cmd, posix=os.name == "posix"):
-                if len(tok) >= 2 and tok[0] == tok[-1] and tok[0] in ("'", '"'):
-                    tok = tok[1:-1]
-                if tok.startswith(("/", "~")) or re.match(r"^[A-Za-z]:[\\/]", tok):
+            for tok in shlex.split(cmd):
+                if tok.startswith(("/", "~")):
                     paths.add(tok)
         except ValueError:
             pass

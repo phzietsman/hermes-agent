@@ -1,7 +1,7 @@
 ---
 name: one-three-one-rule
 description: "1-3-1 decision briefs: problem, three options, one pick."
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 version: 1.0.0
 author: Willard Moore
 license: MIT

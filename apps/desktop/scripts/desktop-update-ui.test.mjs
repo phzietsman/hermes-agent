@@ -31,25 +31,17 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-test.each(['done', 'manual', 'error'])('renders %s before acknowledging terminal delivery', async status => {
-  let document
+test.each(['done', 'manual', 'error'])('renders %s once the orchestrator reports it', async status => {
   const requests = []
-  const receipt = '550e8400-e29b-41d4-a716-446655440000'
-  const fetch = vi.fn(async (url, options) => {
+  const fetch = vi.fn(async url => {
     requests.push(url)
-    if (url.startsWith('/ack/')) {
-      assert.equal(options.method, 'POST')
-      assert.equal(document.body.className, status === 'error' ? 'error' : 'done')
-      assert.notEqual(document.getElementById('title').textContent, 'Updating Hermes')
-      return { ok: true }
-    }
-    return { ok: true, json: async () => ({ status, receipt, message: 'The updater result' }) }
+    return { ok: true, json: async () => ({ status, message: 'The updater result' }) }
   })
-  document = openPage(fetch)
+  const document = openPage(fetch)
   await vi.advanceTimersByTimeAsync(1000)
   assert.equal(document.body.className, status === 'error' ? 'error' : 'done')
   assert.notEqual(document.getElementById('title').textContent, 'Updating Hermes')
-  assert.deepEqual(requests, ['/progress', `/ack/${receipt}`])
+  assert.deepEqual(requests, ['/progress'])
 })
 
 test.each(['disconnect', 'hung', 'hung-body', 'http', 'invalid'])('bounds %s progress failures without inventing an update outcome', async failure => {
@@ -75,12 +67,11 @@ test.each(['disconnect', 'hung', 'hung-body', 'http', 'invalid'])('bounds %s pro
   assert.ok(attempts <= 4, `unbounded retry loop: ${attempts}`)
 })
 
-test.each(['legacy', 'transient', 'ack-failure'])('preserves terminal truth with %s servers', async mode => {
+test.each(['steady', 'transient'])('preserves terminal truth with %s servers', async mode => {
   let attempts = 0
-  const fetch = vi.fn(async url => {
-    if (url.startsWith('/ack/')) throw new Error('server already stopped')
+  const fetch = vi.fn(async () => {
     if (++attempts === 1 && mode === 'transient') throw new Error('temporary disconnect')
-    return { ok: true, json: async () => ({ status: 'done', ...(mode === 'ack-failure' ? { receipt: 'test-receipt' } : {}) }) }
+    return { ok: true, json: async () => ({ status: 'done' }) }
   })
   const document = openPage(fetch)
   await vi.advanceTimersByTimeAsync(20_000)

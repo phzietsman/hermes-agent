@@ -44,8 +44,7 @@ LOG_FILES = {
     # `hermes logs list` (a directory scan) showing them without readable
     # keys was an inconsistency of its own.
     "update": "update.log",
-    # Desktop-driven update hand-off (scripts/desktop-update/windows.ps1 +
-    # posix.sh): stage log including the `desktop --force-build --build-only`
+    # Desktop-driven update hand-off (scripts/desktop-update/posix.sh): stage log including the `desktop --force-build --build-only`
     # retry stderr.
     "handoff": "desktop-update-handoff.log",
     # Every stdio MCP subprocess's stderr (tools/mcp_tool.py redirects it

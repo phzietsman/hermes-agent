@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail when production code, skills, docs or prompts hard-code a literal ``/tmp`` path.
 
-``/tmp`` is not portable: Termux has no ``/tmp`` at all, native Windows has no such directory,
+``/tmp`` is not portable: Termux has no ``/tmp`` at all,
 macOS aliases it to ``/private/tmp`` (breaking naive path comparisons), and on most Linux
 distributions it is a RAM-backed tmpfs that fills under Hermes load. Hermes resolves scratch
 space through one helper (``hermes_constants.get_scratch_dir()`` → ``HERMES_HOME/cache/scratch``,

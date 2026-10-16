@@ -60,7 +60,7 @@ def main():
                 "slash_list_reason": f"error: {error}" in console.getvalue(),
                 "concise_return": not success and not response and error == "RuntimeError: Connection error.",
                 "separate_failure_fields": formatted["last_delivery_error"] is None and formatted["last_fire_error"] is None,
-                "private_output": os.name == "nt" or path.stat().st_mode & 0o077 == 0,
+                "private_output": path.stat().st_mode & 0o077 == 0,
             }
             script = Path(home) / "scripts" / "healthy.py"
             script.parent.mkdir(parents=True, exist_ok=True)

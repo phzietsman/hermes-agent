@@ -180,9 +180,7 @@ def _env_flag_value(arg: str) -> tuple[str, str | None] | None:
 
 def _extra_args_egress_collisions(extra_args: list[str], critical_names: set[str]) -> list[str]:
     """Return docker_extra_args entries that can override egress controls."""
-    # Folded membership: ``-e NAME`` resolves NAME in the host env, which is
-    # case-insensitive on Windows — ``-eopenai_api_key`` would inject the real
-    # credential past the token swap.
+    # Folded membership: a variant casing (``-eopenai_api_key``) is treated as the credential too.
     critical_folded = {n.upper() for n in critical_names}
     collisions: list[str] = []
     i = 0
@@ -221,9 +219,7 @@ def _collision_guard(msg: str, *, enforce: bool, remedy: str, consequence: str) 
 
 
 def check_forward_env_collisions(forward_env: list[str], critical: set[str], enforce: bool) -> None:
-    # Folded membership: forward_env names are resolved via os.getenv() on the
-    # host, which is case-insensitive on Windows — ``openai_api_key`` would
-    # inject the real credential into the container under a variant name.
+    # Folded membership: a variant casing (``openai_api_key``) is treated as the credential too.
     critical_folded = {k.upper() for k in critical}
     collisions = sorted(k for k in forward_env if k.upper() in critical_folded)
     if collisions:

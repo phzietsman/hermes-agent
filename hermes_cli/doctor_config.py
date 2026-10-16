@@ -174,7 +174,7 @@ def _check_env_file(should_fix: bool, f: Finding) -> None:
     env_path = HERMES_HOME / '.env'
     if env_path.exists():
         check_ok(f"{_DHH}/.env file exists")
-        # UTF-8 first; latin-1 fallback for Windows Notepad/cp1252 files (matches env_loader._load_dotenv_with_fallback).
+        # UTF-8 first; latin-1 fallback for cp1252-encoded files (matches env_loader._load_dotenv_with_fallback).
         try:
             content = env_path.read_text(encoding="utf-8-sig")
         except UnicodeDecodeError:

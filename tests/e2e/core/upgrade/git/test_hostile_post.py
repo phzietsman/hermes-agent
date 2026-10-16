@@ -329,7 +329,7 @@ def _kill_born_after(host: NamespaceHost, before: set[int]) -> list[int]:
         for pid in live:
             host.kill(pid, signal.SIGSTOP)
         for pid in live:
-            host.kill(pid, signal.SIGKILL)  # windows-footgun: ok - linux-only (bwrap) module
+            host.kill(pid, signal.SIGKILL)
             if pid not in killed:
                 killed.append(pid)
         time.sleep(0.5)
@@ -452,7 +452,7 @@ def test_gateway_that_cannot_reboot_is_an_owed_restart_not_a_failed_update(w):
             _toggle(w, BREAK_GATEWAY, False)
             for p in host.procs():
                 if p["pid"] > 2 and "gateway" in p["cmdline"]:
-                    host.kill(p["pid"], signal.SIGKILL)  # windows-footgun: ok - linux-only (bwrap) module
+                    host.kill(p["pid"], signal.SIGKILL)
     # The namespace (and its gateways) is gone; its PID file names a PID of a dead namespace.
     (w.sb.hermes_home / "gateway.pid").unlink(missing_ok=True)
 

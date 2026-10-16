@@ -51,7 +51,7 @@ Pick the row that matches your goal:
 ---
 
 ## 1. Install Hermes Agent
-### With the Hermes Desktop installer on macOS or Windows (recommended)
+### With the Hermes Desktop installer on macOS (recommended)
 To easily install the command-line and desktop applications, [download the Hermes Desktop installer](https://hermes-agent.nousresearch.com/) from our website and run it.
 
 ### Without Hermes Desktop:
@@ -62,13 +62,6 @@ For aarch64 Android devices, use the separate [Termux APT guide](./termux.md).
 #### Linux / macOS / WSL2
 ```bash
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-```
-
-#### Windows (native)
-
-Run in powershell:
-```powershell
-iex (irm https://hermes-agent.nousresearch.com/install.ps1) 
 ```
 
 After it finishes, reload your shell:

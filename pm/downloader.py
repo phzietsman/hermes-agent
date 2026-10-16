@@ -30,7 +30,6 @@ import shutil
 import logging
 import ssl
 import threading
-import time
 import urllib.error
 import urllib.request
 from contextlib import suppress
@@ -67,9 +66,8 @@ class _HttpsRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 def _https_context() -> ssl.SSLContext:
-    # Trust a CA the store holds even when its own issuer is absent: Windows can
-    # cache Let's Encrypt "Root YR" without ISRG Root X1. Python 3.13+ does this
-    # by default; the older interpreter that starts a cold update does not.
+    # Trust a CA the store holds even when its own issuer is absent. Python 3.13+
+    # does this by default; the older interpreter that starts a cold update does not.
     context = ssl.create_default_context()
     context.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
     return context
@@ -185,36 +183,6 @@ def _sha256_file(path: Path) -> str:
         for block in iter(lambda: f.read(_CHUNK), b""):
             digest.update(block)
     return digest.hexdigest()
-
-
-# How long a finished download may wait for another process to let go of it before the
-# publication is reported as failed.
-_RELEASE_WAIT_SECONDS = 60.0
-
-
-def replace_when_released(tmp: Path, dest: Path, *, timeout: float = _RELEASE_WAIT_SECONDS) -> None:
-    """Rename a finished download into place, waiting out a transient hold on the file.
-
-    On Windows a multi-gigabyte file whose last write handle just closed is often still open
-    to an antivirus or indexing scan, and renaming it fails with a permission error until the
-    scan lets go — which for a 22 GB model can take many seconds. ``os.replace`` is retried
-    through that window; it never falls back to copying (``shutil.move`` does, which duplicates
-    the whole file and then reports the leftover's failed delete as the download's failure).
-    A hold that outlasts the window raises a plain-language error.
-    """
-    deadline = time.monotonic() + timeout
-    delay = 0.1
-    while True:
-        try:
-            os.replace(tmp, dest)
-            return
-        except PermissionError as exc:
-            if time.monotonic() >= deadline:
-                raise RuntimeError(
-                    f"The download finished, but another program (usually an antivirus scan) kept "
-                    f"{tmp.name} open and it could not be renamed into place. Please try again.") from exc
-            time.sleep(delay)
-            delay = min(delay * 2, 2.0)
 
 
 def _existing_dest_ok(source: "Source") -> bool:
@@ -652,7 +620,7 @@ class Download:
             if staged.stat().st_size != part.stat().st_size:
                 raise DownloadError("destination copy did not preserve the complete download")
             self._check_pause()
-            replace_when_released(staged, source.dest)
+            os.replace(staged, source.dest)
         finally:
             # Best effort: a leftover that cannot be removed must not hide the error that left it.
             with suppress(OSError):

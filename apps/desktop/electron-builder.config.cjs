@@ -17,41 +17,15 @@ const { createMacSigner } = require('./scripts/mac-sign.mjs')
 
 const {
   light,
-  store,
-  storeMsix,
   displayName,
   appId,
   appNamePascal,
   artifactNamePascal,
-  windowsExecutableName,
   channel,
-  msixAppIdWithOrg,
   token
 } = require('./product-identity.cjs')
 
-// `storeMsix` is optional on the identity type but guaranteed present when
-// `store` is true (product-identity.cjs spreads it only in that branch).
-// The `store` flag is typed `boolean` in the identity, so checkJs cannot
-// correlate the two; `mustStoreMsix` is the single assertion point and the
-// invariant lives in product-identity.cjs:33-34/58-68.
-/** @type {NonNullable<typeof storeMsix> | undefined} */
-const storeMsixWhenStore = storeMsix
-const releaseBuild = Boolean(process.env.HERMES_PAYLOAD_TAG)
-
-/**
- * The store MSIX packaging identity. Callers must only invoke this when
- * `store` is true (see the invariant note above).
- * @param {NonNullable<typeof storeMsix> | undefined} value
- * @returns {NonNullable<typeof storeMsix>}
- */
-function mustStoreMsix(value) {
-  return /** @type {NonNullable<typeof storeMsix>} */ (value)
-}
-
-// The out-of-store MSIX publisher (ATS cert subject) — single source, shared
-// with the .appinstaller generator so the manifest and the App Installer can
-// never drift (see scripts/msix-shared.mjs).
-const { OUT_OF_STORE_PUBLISHER, channelBuildRequest, stageChannelManifest } = require('../../scripts/msix-shared.mjs')
+const { channelBuildRequest } = require('../../scripts/msix-shared.mjs')
 const { macIconResource } = require('./scripts/mac-icon.cjs')
 const channelRequest = channelBuildRequest()
 
@@ -81,18 +55,14 @@ module.exports = {
       schemes: ['hermes']
     }
   ],
-  // A store build is archived, never served to a feed — prefix its artifact
-  // so it can't collide with the out-of-store MSIX of the same tag/arch, and
-  // the release pipeline can keep the two apart.
-  artifactName: `${store ? 'Store-' : ''}${artifactNamePascal}-\${version}-\${os}-\${arch}.\${ext}`,
+  artifactName: `${artifactNamePascal}-\${version}-\${os}-\${arch}.\${ext}`,
   icon: 'assets/icon',
   // The electron-updater feed. CI builds set CLOUDFLARE_R2_PUBLIC_URL (the R2
   // public bucket / custom domain) and publish there — the feed yml, blockmaps
   // and installers all live in the same flat R2 bucket, and electron-updater
   // resolves the yml's relative artifact paths against it. Builds without the
   // var (local, or a fork without the R2 vars) keep the github provider, which
-  // is exactly today's behavior. The store build has no feed at all (the Store
-  // owns its distribution and updates).
+  // is exactly today's behavior.
   publish: channelRequest ? null : !channel
     ? null
     : [
@@ -114,14 +84,9 @@ module.exports = {
   files: ['dist/**', 'assets/**', 'public/**', 'package.json'],
   beforeBuild: channelRequest ? async () => {
     await require(path.join(__dirname, 'scripts/before-build.mjs')).default()
-    stageChannelManifest(__dirname, channelRequest)
     return false
   } : 'scripts/before-build.mjs',
   beforePack: 'scripts/before-pack.mjs',
-  // The exe identity stamp runs here, on the pristine electron.exe, because
-  // ASAR integrity rewrites the PE later and rcedit cannot commit to that
-  // rewritten file (#105629). afterPack keeps the signing/payload work.
-  afterExtract: 'scripts/after-extract.mjs',
   afterPack: 'scripts/after-pack.mjs',
   ...(process.platform === 'darwin' ? { afterSign: 'scripts/notarize.mjs' } : {}),
   extraResources: [
@@ -129,13 +94,9 @@ module.exports = {
       from: 'build/install-stamp.json',
       to: 'install-stamp.json'
     },
-    ...(['bundled', 'store'].includes(process.env.HERMES_DESKTOP_VARIANT || '')
+    ...(process.env.HERMES_DESKTOP_VARIANT === 'bundled'
       ? [{ from: 'build/agent-payload', to: 'agent-payload' }]
-      : []),
-    {
-      from: 'assets/icon.ico',
-      to: 'icon.ico'
-    }
+      : [])
   ],
   asar: {
     unpack: ['**/*.node', '**/prebuilds/**', 'dist/**']
@@ -230,52 +191,6 @@ module.exports = {
       }
     ]
   },
-  win: {
-    executableName: windowsExecutableName,
-    legalTrademarks: displayName,
-    target: ['msix'],
-    // The updaters' relaunch waiter is PowerShell run outside the package. The
-    // sealed payload's snapshot omits scripts/, so it ships as a resource
-    // (RELAUNCH_WAITER_SCRIPT in electron/updater/relaunch-waiter.ts).
-    extraResources: [{ from: 'scripts/update-relaunch-waiter.ps1', to: 'update-relaunch-waiter.ps1' }],
-    ...windowsSigning()
-  },
-  msix: {
-    // A store build uses the Partner Center packaging identity (the Store
-    // re-signs + rewrites the publisher on submission); everything else uses
-    // the out-of-store ATS-cert identity.
-    identityName: store ? mustStoreMsix(storeMsixWhenStore).identityName : msixAppIdWithOrg,
-    applicationId: appNamePascal,
-    displayName,
-    publisher: store ? mustStoreMsix(storeMsixWhenStore).publisher : OUT_OF_STORE_PUBLISHER,
-    publisherDisplayName: store ? mustStoreMsix(storeMsixWhenStore).publisherDisplayName : 'Nous Research',
-    // The native quad is the build time (scripts/msix-shared.mjs::nativeQuad),
-    // baked into the manifest template, so the builder's own build-number
-    // override would stamp a second, conflicting version.
-    setBuildNumber: false,
-    // Store versions are baked into a build-time template. App semver and
-    // artifact filenames stay unchanged; the Store reserves revision zero.
-    // Floor Windows 11 22H2. Below build 18307 the manifest schema caps
-    // AppExtension Name at 39 chars and Microsoft's own
-    // "com.microsoft.windows.copilotkeyprovider" is 40 (makeappx
-    // 0x80080204 — A/B-verified against the 26100 kit; 18307 exactly
-    // still failed on it, 22621 passes), and 22621 is the documented
-    // Copilot hardware key floor anyway.
-    minVersion: '10.0.22621.0',
-    maxVersionTested: '10.0.26100.0',
-    // Static path: the file itself is written by scripts/before-build.mjs at
-    // build time (see the comment on the hook) — never at config require
-    // time, so typecheck/test imports don't touch the filesystem.
-    customExtensionsPath: 'build/msix-extensions.xml',
-    customManifestPath: store ? 'build/store-msix-manifest.xml'
-      : releaseBuild || channelRequest || appNamePascal !== artifactNamePascal
-        ? 'build/msix-manifest.xml' : 'assets/msix-manifest.xml',
-    // Hermes state is deliberately shared with unpackaged CLI/gateway
-    // processes. Pair the manifest's disabled virtualization properties with
-    // the restricted capability that permits unvirtualized AppData/HKCU writes.
-    capabilities: ['unvirtualizedResources'],
-    showNameOnTiles: true
-  },
   linux: {
     category: 'Development',
     maintainer: 'Nous Research <support@nousresearch.com>',
@@ -289,9 +204,7 @@ module.exports = {
 if (channelRequest) {
   Object.assign(module.exports, { buildVersion: channelRequest.version })
   Object.assign(module.exports.extraMetadata, {
-    version: channelRequest.version,
-    shortVersion: channelRequest.windowsVersion,
-    shortVersionWindows: channelRequest.windowsVersion
+    version: channelRequest.version
   })
   Object.assign(module.exports.mac, {
     bundleVersion: channelRequest.version,
@@ -299,19 +212,6 @@ if (channelRequest) {
   })
 }
 
-// MSIX build-time staging (build/appx icons + build/msix-extensions.xml)
-// lives in scripts/before-build.mjs — an electron-builder lifecycle hook —
-// NOT here at require time, so importing this config for typecheck/tests
-// never writes to the filesystem.
-
-// Azure Trusted Signing. The hook signs the .msix package itself and the
-// product exe (after electron-builder's rcedit — the batch in afterPack runs
-// too early for the exe); every other payload binary is batch-signed in
-// afterPack via scripts/batch-sign-binaries.mjs, which this hook acknowledges
-// with `true` so electron-builder never re-signs one-by-one. The package
-// signature is all Windows install validation checks; inner Authenticode
-// covers SmartScreen/WDAC tree scans. See batch-sign-binaries.mjs for the
-// ordering contract.
 const MACHO_MAGICS = new Set([
   0xfeedface,
   0xcefaedfe,
@@ -333,18 +233,4 @@ function isMachO(file) {
     fs.closeSync(fd)
   }
   return MACHO_MAGICS.has(buf.readUInt32BE(0))
-}
-
-function windowsSigning() {
-  if (!process.env.AZURE_SIGN_ENDPOINT || !process.env.AZURE_CLIENT_ID) {
-    return {}
-  }
-  return {
-    sign: {
-      type: 'signtool',
-      sign: './scripts/batch-sign-binaries.mjs',
-      signingHashAlgorithms: ['sha256'],
-      publisherName: process.env.AZURE_SIGN_PUBLISHER
-    }
-  }
 }

@@ -40,7 +40,7 @@ SAMPLE_RATE = 16000  # 16 kHz mono int16 — Whisper-native and what every engin
 _FIRE_COOLDOWN_SECONDS = 2.0
 _START_TIMEOUT_SECONDS = 5.0
 _READ_POLL_SECONDS = 0.05  # slice between read_available polls; bounds halt latency
-# Some hostapis (Windows DirectSound) never advance ``read_available`` even while
+# Some PortAudio host APIs never advance ``read_available`` even while
 # audio flows; after this much starvation the poll guard is abandoned for the
 # blocking read (see ``_Capture.read``).
 _READ_STALL_FALLBACK_SECONDS = 2.0
@@ -280,8 +280,7 @@ def silent_audio_hint(details: Dict[str, Any]) -> str:
         return ("Microphone delivers only silence. Grant the Hermes backend "
                 "microphone access in System Settings > Privacy & Security > "
                 "Microphone, then toggle the wake word.")
-    fix = ("Set wake_word.input_device to a different PortAudio input device"
-           if sys.platform == "win32" else "Check the selected input device")
+    fix = "Check the selected input device"
     selector = details.get("selector")
     label = str(details.get("name") or "").strip() or ("system default" if selector is None else str(selector))
     hostapi = str(details.get("hostapi") or "").strip()
@@ -452,7 +451,7 @@ class _Capture:
         ``close()`` raced the still-pending read. Poll ``read_available`` in short slices
         against ``stop`` and only call ``read`` once the block is guaranteed to be there.
 
-        A device that never advances ``read_available`` (Windows DirectSound) would spin
+        A device that never advances ``read_available`` would spin
         here forever, so after ``_READ_STALL_FALLBACK_SECONDS`` of starvation the guard is
         abandoned (with a warning) and the blocking read takes over; a truly wedged
         blocking read is released by ``_halt_thread`` aborting the stream.
@@ -768,19 +767,9 @@ def _lock_path() -> Path:
 
 
 def _flock(handle, acquire: bool) -> None:
-    """Non-blocking exclusive lock (or unlock) of one byte / whole file, per OS."""
-    if os.name == "nt":
-        import msvcrt
-        if acquire:  # msvcrt needs at least one byte to lock
-            handle.seek(0, os.SEEK_END)
-            if handle.tell() == 0:
-                handle.write(b"\0")
-                handle.flush()
-        handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK if acquire else msvcrt.LK_UNLCK, 1)
-    else:
-        import fcntl
-        fcntl.flock(handle.fileno(), (fcntl.LOCK_EX | fcntl.LOCK_NB) if acquire else fcntl.LOCK_UN)
+    """Non-blocking exclusive lock (or unlock) of the whole file."""
+    import fcntl
+    fcntl.flock(handle.fileno(), (fcntl.LOCK_EX | fcntl.LOCK_NB) if acquire else fcntl.LOCK_UN)
 
 
 def _acquire_machine_lock(path: Optional[Path] = None):

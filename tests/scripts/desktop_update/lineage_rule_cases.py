@@ -1,5 +1,4 @@
-"""The launcher-lineage rule shared by marker.sh (marker_launcher_rule) and
-marker-claim.ps1 (Test-MarkerLauncherRule): one table, every consumer runs it.
+"""The launcher-lineage rule of marker.sh (marker_launcher_rule): one table, every consumer runs it.
 
 An OLD packaged Desktop overwrites the marker with a v1 bridge naming the launcher it
 spawned. Adopted iff the bridge is v1, does not name the Desktop, and
@@ -22,11 +21,10 @@ RULE_CASES = [
           named_is_our_parent=True, named_parent_is_desktop=True, env_started_matches=False),
     _case("gone_launcher_env_matches", True, v1=True, names_desktop=False, named_alive=False,
           named_is_our_parent=False, named_parent_is_desktop=False, env_started_matches=True),
-    # D11 (round 5): bash adopted, PowerShell refused -- the Desktop already quit, so its live
-    # launcher was re-parented, but it carries the hand-off's own startedAt.
+    # D11 (round 5): the Desktop already quit, so its live launcher was re-parented, but it
+    # carries the hand-off's own startedAt.
     _case("alive_launcher_reparented_env_matches", True, v1=True, names_desktop=False, named_alive=True,
           named_is_our_parent=True, named_parent_is_desktop=False, env_started_matches=True),
-    # PowerShell also required the gone launcher to be our recorded parent; POSIX cannot know it.
     _case("gone_named_pid_not_our_recorded_parent_env_matches", True, v1=True, names_desktop=False,
           named_alive=False, named_is_our_parent=False, named_parent_is_desktop=False, env_started_matches=True),
     _case("alive_launcher_reparented_env_differs", False, v1=True, names_desktop=False, named_alive=True,
@@ -39,7 +37,6 @@ RULE_CASES = [
     _case("alive_not_our_parent_child_of_desktop", False, v1=True, names_desktop=False, named_alive=True,
           named_is_our_parent=False, named_parent_is_desktop=True, env_started_matches=False),
     # only a v1 bridge: a v2 claim (ct line) or one with a delegate is somebody's real claim.
-    # (PowerShell used to accept these when they named its parent.)
     _case("v2_claim_naming_our_parent", False, v1=False, names_desktop=False, named_alive=True,
           named_is_our_parent=True, named_parent_is_desktop=True, env_started_matches=True),
     _case("v2_claim_gone_env_matches", False, v1=False, names_desktop=False, named_alive=False,
@@ -50,7 +47,6 @@ RULE_CASES = [
 ]
 
 # HERMES_UPDATE_STARTED_AT vs line 2 (its digits as parsed): plain ASCII digits of the same value.
-# (PowerShell used to Trim() and Int64.TryParse the env value: spaces and a sign matched.)
 ENV_CASES = [
     {"id": "equal", "env": "1791079348", "line2": "1791079348", "expect": True},
     {"id": "leading_zeros_env", "env": "01791079348", "line2": "1791079348", "expect": True},

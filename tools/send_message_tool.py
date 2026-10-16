@@ -324,7 +324,7 @@ def _resolve_platform_config(platform_name, config):
 
 def _not_configured_error(platform_name, platform, entry):
     """Name the resolved home and what each credential source held, so the user edits the file this
-    process actually read (a hardcoded ``~/.hermes`` does not exist on a Windows or profile home)."""
+    process actually read (a hardcoded ``~/.hermes`` is wrong under a profile home)."""
     from agent.secret_scope import load_env_file
     from gateway.config import _getenv
     from gateway.config_env import _ENV_ENABLE_CREDENTIALS

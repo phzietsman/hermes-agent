@@ -12,7 +12,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
-# Always 127.0.0.1 — resolving localhost costs ~2s/request on Windows.
+# Always 127.0.0.1 — resolving localhost can cost seconds per request.
 DEFAULT_PROBE_PORTS = (8080,)  # llama-server default; managed port comes from config
 
 

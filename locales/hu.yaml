@@ -1992,7 +1992,6 @@ cli:
     force_exiting: "⚡ Kényszerített kilépés..."
     interrupting_again_hint: "⚡ Ügynök megszakítása... (Ctrl+C újra a kényszerített kilépéshez)"
     interrupting: "⚡ Ügynök megszakítása..."
-    suspend_unsupported: "A felfüggesztés (Ctrl+Z) Windowson nem támogatott."
     suspended: "{agent_name} felfüggesztve. Az `fg` paranccsal hozhatod vissza: {agent_name}."
     steer_failed_queued: "Az irányítás nem sikerült ({error}) — sorba állítva a következő körre."
     steered: "⏩ Irányítva: '{preview}'"

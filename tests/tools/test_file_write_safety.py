@@ -588,7 +588,6 @@ class TestBomHandling:
             signal.signal(signal.SIGALRM, previous)
         assert data is None and failed is not None and "handed to the shell" in failed.stdout
 
-    @pytest.mark.skipif(os.name == "nt", reason="POSIX bash xtrace via BASH_ENV")
     def test_byte_exact_read_survives_a_real_xtrace_shell(self, tmp_path: Path, monkeypatch):
         # A user rc / BASH_ENV with `set -x` must not break byte-exact reads, or every edit fails
         # its read. (The post-write sha256 check under noisy stdout is a separate issue.)

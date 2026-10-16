@@ -8,12 +8,11 @@ A headless cloud browser (Browserbase) is the wrong tool there (it has no webmai
 itself anti-bot-gated on those exact flows). This module launches the operator's real Chrome with
 remote debugging on a DEDICATED profile so Hermes's browser tools can attach at 127.0.0.1:<port>.
 
-Stdlib only; cross-platform (macOS / Linux / Windows). Nothing here touches a password or PII.
+Stdlib only; macOS / Linux. Nothing here touches a password or PII.
 """
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -52,27 +51,6 @@ def _mac_candidates() -> list[str]:
     ]
 
 
-def _windows_candidates() -> list[str]:
-    bases = [
-        os.environ.get("ProgramFiles", r"C:\Program Files"),
-        os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
-        os.environ.get("LOCALAPPDATA", ""),
-    ]
-    rels = [
-        r"Google\Chrome\Application\chrome.exe",
-        r"Chromium\Application\chrome.exe",
-        r"BraveSoftware\Brave-Browser\Application\brave.exe",
-        r"Microsoft\Edge\Application\msedge.exe",
-    ]
-    out: list[str] = []
-    for base in bases:
-        if not base:
-            continue
-        for rel in rels:
-            out.append(str(Path(base) / rel))
-    return out
-
-
 def find_browser(override: str | None = None) -> str | None:
     """Return the first usable Chromium-family browser path/command, or None.
 
@@ -86,12 +64,7 @@ def find_browser(override: str | None = None) -> str | None:
         found = shutil.which(name)
         if found:
             return found
-    if sys.platform == "darwin":
-        candidates = _mac_candidates()
-    elif sys.platform == "win32":
-        candidates = _windows_candidates()
-    else:
-        candidates = []
+    candidates = _mac_candidates() if sys.platform == "darwin" else []
     for cand in candidates:
         if Path(cand).exists():
             return cand
@@ -137,23 +110,11 @@ def endpoint_status(port: int = DEFAULT_PORT, host: str = "127.0.0.1",
 def launch(browser: str, port: int = DEFAULT_PORT, profile: Path | None = None) -> int:
     """Start the browser detached with remote debugging; return the child PID.
 
-    Detach so the browser outlives this short-lived CLI call. POSIX uses start_new_session (which
-    avoids referencing os.setsid, so there is no Windows import-time footgun); Windows uses
-    DETACHED_PROCESS + a new process group.
+    Detach (new session) so the browser outlives this short-lived CLI call.
     """
     profile = profile or default_profile()
     profile.mkdir(parents=True, exist_ok=True)
     cmd = launch_command(browser, port, profile)
-    kwargs: dict = {
-        "stdin": subprocess.DEVNULL,
-        "stdout": subprocess.DEVNULL,
-        "stderr": subprocess.DEVNULL,
-    }
-    if sys.platform == "win32":
-        kwargs["creationflags"] = (
-            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP  # windows-footgun: ok
-        )
-    else:
-        kwargs["start_new_session"] = True
-    proc = subprocess.Popen(cmd, **kwargs)
+    proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, start_new_session=True)
     return proc.pid

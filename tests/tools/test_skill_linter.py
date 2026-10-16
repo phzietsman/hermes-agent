@@ -128,20 +128,20 @@ def test_present_reference_link_not_flagged(tmp_path):
     assert "dangling-reference" not in _rules(findings)
 
 
-def test_posix_primitive_without_platforms_warns(tmp_path):
+def test_platform_primitive_without_platforms_warns(tmp_path):
     skill_dir = tmp_path / "my-skill"
     (skill_dir / "scripts").mkdir(parents=True)
-    (skill_dir / "scripts" / "run.py").write_text("import fcntl\nfcntl.flock(1, 2)\n")
+    (skill_dir / "scripts" / "run.sh").write_text("osascript -e 'beep'\n")
     findings = lint_content(CLEAN, skill_dir=skill_dir)
     assert "platforms-gating" in _rules(findings)
 
 
-def test_posix_primitive_with_platforms_ok(tmp_path):
+def test_platform_primitive_with_platforms_ok(tmp_path):
     skill_dir = tmp_path / "my-skill"
     (skill_dir / "scripts").mkdir(parents=True)
-    (skill_dir / "scripts" / "run.py").write_text("import fcntl\n")
+    (skill_dir / "scripts" / "run.sh").write_text("osascript -e 'beep'\n")
     content = CLEAN.replace(
-        "version: 1.0.0", "version: 1.0.0\nplatforms: [linux, macos]"
+        "version: 1.0.0", "version: 1.0.0\nplatforms: [macos]"
     )
     findings = lint_content(content, skill_dir=skill_dir)
     assert "platforms-gating" not in _rules(findings)

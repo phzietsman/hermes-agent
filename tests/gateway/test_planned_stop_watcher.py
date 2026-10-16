@@ -1,14 +1,10 @@
 """Tests for the planned-stop marker watcher thread (gateway/run.py).
 
-The watcher is the Windows-fallback path for the v0.13.0 session-resume
-feature — on Windows ``asyncio.add_signal_handler`` raises
-NotImplementedError, so the SIGTERM signal handler never runs and the
+Where the SIGTERM handler never runs (masked signals, no main thread) the
 shutdown drain (which writes ``resume_pending=True``) is skipped. The
 watcher closes this gap by polling for the planned-stop marker file
 and translating its existence into the same shutdown-handler call a
-real SIGTERM would have produced.
-
-See issue #33778 for the original Windows session-loss bug report.
+real SIGTERM would have produced. See issue #33778.
 """
 
 import asyncio

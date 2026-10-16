@@ -1030,7 +1030,7 @@ _HOME_PREFIXES = ("$HOME/", "${HOME}/")
 def _command_segments(command: str) -> list[str]:
     """Pipeline/sequence segments, split only on unquoted ``| ; &`` so an
     ``awk '{print $1; print $2}'`` program or ``grep 'foo|bar'`` pattern stays one
-    segment. Backslash is not an escape (Windows ``C:\\Users\\...``)."""
+    segment. Backslash is not treated as an escape."""
     segments: list[str] = []
     buf: list[str] = []
     quote: str | None = None
@@ -1060,9 +1060,8 @@ def _command_segments(command: str) -> list[str]:
 def _is_under_hermes_home(path: str) -> bool:
     """True when an absolute ``config.yaml`` path sits under the active Hermes home or root.
 
-    The default home's basename is an installation detail — ``.hermes`` on POSIX, ``hermes``
-    under ``AppData/Local`` on Windows — and a resolved path never spells ``$HERMES_HOME``,
-    so the literal-segment test in ``_is_secret_file_arg`` cannot see a native Windows path.
+    A custom ``HERMES_HOME`` need not end in ``.hermes`` and a resolved path never spells
+    ``$HERMES_HOME``, so the literal-segment test in ``_is_secret_file_arg`` cannot see it.
     Compare against the resolved homes instead. Only reached for a ``config.yaml`` basename,
     so the resolve cost stays off the per-token command scan.
     """
@@ -1085,8 +1084,7 @@ def _is_under_hermes_home(path: str) -> bool:
 def _is_secret_file_arg(arg: str) -> bool:
     """``.env``-style or shell rc basename anywhere; ``config.yaml`` only under a
     ``.hermes`` directory, ``$HERMES_HOME``, or the resolved Hermes home (never arbitrary
-    YAML). The resolved-home arm is what covers native Windows, where the home directory
-    is ``%LOCALAPPDATA%\\hermes`` and carries no ``.hermes`` segment."""
+    YAML). The resolved-home arm covers a custom home with no ``.hermes`` segment."""
     path = arg.strip("\"'").replace("\\", "/")
     hermes_home = False
     for prefix in _HERMES_HOME_PREFIXES:
@@ -1119,7 +1117,7 @@ def _command_reads_secret_file(command: str | None) -> bool:
     if not command or not isinstance(command, str):
         return False
     for seg in _command_segments(command):
-        tokens = seg.split()  # not shlex: it mangles Windows paths (``C:\Users\...\.env``)
+        tokens = seg.split()  # not shlex: an unbalanced quote must not hide the read
         if not tokens:
             continue
         reader = tokens[0].rsplit("/", 1)[-1].lower()

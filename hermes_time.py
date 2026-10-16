@@ -35,10 +35,10 @@ _ESCAPED_BYTES_RE = re.compile(r"[\x00-\x7f\udc80-\udcff]*")
 def _repair_surrogates(text: str, encoding: Optional[str] = None) -> str:
     """Make locale text JSON/UTF-8 safe; a no-op (same object) on valid text.
 
-    Windows hands back zone names in the ANSI code page (``heure d'\\xe9t\\xe9``) but a UTF-8
-    ``LC_CTYPE`` (UTF-8 mode, or a library flipping the process locale mid-run) decodes those
-    bytes with ``surrogateescape`` into lone surrogates. Recover the bytes and decode them with
-    the ANSI code page; when that is not possible, replace each surrogate with U+FFFD."""
+    Locale text in a legacy code page (``heure d'\\xe9t\\xe9``) decoded under a UTF-8 ``LC_CTYPE``
+    (UTF-8 mode, or a library flipping the process locale mid-run) comes back with
+    ``surrogateescape`` lone surrogates. Recover the bytes and decode them with the locale
+    encoding; when that is not possible, replace each surrogate with U+FFFD."""
     if text.isascii() or not _SURROGATE_RE.search(text):
         return text
     if _ESCAPED_BYTES_RE.fullmatch(text):

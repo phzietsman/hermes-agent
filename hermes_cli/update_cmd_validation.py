@@ -14,7 +14,7 @@ def _critical_module_import_failures(
     root, *, report_runtime_errors: bool = False) -> dict[str, tuple[str, str]]:
     """Import each ``_UPDATE_CRITICAL_MODULES`` entry in a subprocess; return failures in probe order.
 
-    Syntax validation only *parses*: a partially-updated tree (Windows ZIP copy loop) parses yet
+    Syntax validation only *parses*: a partially-updated tree parses yet
     dies with ``ImportError: cannot import name``. The boot-selected subprocess
     keeps import side effects out of the updater's ``sys.modules``.
     Generic import-time exceptions are tolerated unless ``report_runtime_errors=True``.

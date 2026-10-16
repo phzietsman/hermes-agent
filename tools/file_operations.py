@@ -277,7 +277,7 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
 
     def _run_python_snippet(self, snippet: str) -> ExecuteResult:
         """Run ``snippet`` via the backend's ``python3``, retrying with ``python``
-        when only that name exists (Windows / older systems)."""
+        when only that name exists (older systems)."""
         result = self._exec(f"python3 -c {self._escape_shell_arg(snippet)}")
         if result.exit_code != 0 and "python3" in (result.stdout or ""):
             result = self._exec(f"python -c {self._escape_shell_arg(snippet)}")
@@ -503,7 +503,7 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
     def _expand_path(self, path: str) -> str:
         """Expand ``~`` / ``~user`` via the backend's shell (its HOME, not the
         host's). A host path under the configured workspace mount is rewritten
-        to that container path first, so a Windows drive path is readable
+        to that container path first, so a host path is readable
         inside Docker. Must run BEFORE shell escaping — ~ doesn't expand in quotes."""
         from tools.terminal_tool_config import translate_mounted_host_path
         host_root = getattr(self.env, "host_cwd", None)
@@ -531,38 +531,8 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
                     return expand_result.stdout.strip() + path[1 + len(username):]
         return path
 
-    def _escape_shell_arg(self, arg: str, translate_path: bool = True) -> str:
-        """Escape a string for safe use in shell commands.
-
-        On Windows native drive paths (``C:\\Users\\x`` / ``C:/Users/x``)
-        and mixed MSYS leftovers (``/c/Users\\x``) are rewritten to the
-        Git Bash ``/c/Users/x`` form via ``_bash_safe_path``: bash eats
-        backslashes and MSYS otherwise mangles drive paths into the
-        ``Directory \\drivers\\etc does not exist`` failure class. Reuses
-        the env-layer translator so shell file ops and the terminal ``cd``
-        agree on the path form. No-op off Windows and for plain POSIX paths.
-
-        ``translate_path=False`` skips that translation for non-path values
-        such as regex patterns. Backslash compensation applies only to the
-        local Windows argv transport. Serialized shell text stays literal.
-        """
-        from tools.environments.local import _IS_WINDOWS, _bash_safe_path
-
-        if translate_path:
-            arg = _bash_safe_path(arg)
-        elif _IS_WINDOWS and getattr(self.env, "is_local", False):
-            arg = arg.replace("\\", "\\\\")
-        # Use single quotes and escape any single quotes in the string
-        return "'" + arg.replace("'", "'\"'\"'") + "'"
-
-    def _escape_native_tool_arg(self, arg: str) -> str:
-        """Quote a path for a NATIVE Windows binary (rg, node, git ...): those don't
-        understand the MSYS ``/c/...`` form and Hermes disables MSYS argument
-        conversion, so nothing translates it back (→ ``os error 3``). ``C:/Users/x``
-        is accepted by every layer. Identical to ``_escape_shell_arg`` off Windows."""
-        from tools.environments.local import _IS_WINDOWS, _msys_to_windows_path
-        if _IS_WINDOWS and arg:
-            arg = _msys_to_windows_path(arg).replace("\\", "/")
+    def _escape_shell_arg(self, arg: str) -> str:
+        """Single-quote a string for safe use in shell commands."""
         return "'" + arg.replace("'", "'\"'\"'") + "'"
 
     def _atomic_write(self, path: str, content: str) -> "ExecuteResult":
@@ -703,9 +673,7 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
         """Return a shell-safe Python interpreter for the terminal backend.
 
         On the local backend ``sys.executable`` is always a working
-        interpreter — and on Windows it dodges the Microsoft Store
-        ``python``/``python3`` alias stub (exit 49, "Python was not
-        found") that otherwise breaks inline ``-c`` snippets. Remote
+        interpreter. Remote
         backends (docker/ssh/...) don't have the agent's interpreter, so
         they fall back to ``python3`` on their own PATH (the ``python``
         fallback is handled at the call site).
@@ -718,10 +686,9 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
         """Run a Python ``snippet`` in the terminal backend's interpreter.
 
         Base64-encodes the snippet so it survives every shell/quoting layer
-        as pure ASCII: Windows ``subprocess`` list-arg quoting and ``bash``
-        double-quote processing both eat backslashes, which otherwise
-        corrupts Windows paths (``C:\\Users\\x``) and byte literals
-        (``b'\\xfe\\xff'``) embedded in a ``-c`` program. ``exec`` decodes
+        as pure ASCII: ``bash`` double-quote processing eats backslashes,
+        which otherwise corrupts byte literals (``b'\\xfe\\xff'``)
+        embedded in a ``-c`` program. ``exec`` decodes
         and runs it unchanged.
         """
         encoded = base64.b64encode(snippet.encode("utf-8")).decode("ascii")
@@ -905,16 +872,14 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
             file_size=file_size, file_ends_with_newline=file_ends_with_newline)
 
     def _native_read_enabled(self) -> bool:
-        """Whether ``read_file`` and ``search_files`` may bypass the shell: only POSIX + ``LocalEnvironment``
-        (file is on this host, path already native; Windows keeps the shell path since
-        file_operations holds Git-Bash-style paths there). ``HERMES_NATIVE_FILE_READ=0``
-        turns the fast path off."""
+        """Whether ``read_file`` and ``search_files`` may bypass the shell: only ``LocalEnvironment``
+        (file is on this host). ``HERMES_NATIVE_FILE_READ=0`` turns the fast path off."""
         flag = os.environ.get("HERMES_NATIVE_FILE_READ", "1").strip().lower()
         if flag in ("0", "false", "no", "off"):
             return False
         # Same "is this env the local host" test the LSP path uses; isinstance is
         # microseconds and self.env is never rebound, so nothing to memoize.
-        return sys.platform != "win32" and self._lsp_local_only()
+        return self._lsp_local_only()
 
     def _read_file_native(self, path: str, offset: int, limit: int) -> ReadResult:
         """``read_file`` without a shell — same contract as the shell path, byte for
@@ -1294,7 +1259,7 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
 
     def delete_file(self, path: str) -> WriteResult:
         """Delete a single file (directories rejected) via the backend's ``python -c``
-        so one code path works on local/docker/ssh AND Windows shells (no ``rm``)."""
+        so one code path works on local/docker/ssh."""
         path = self._expand_path(path)
         # Delete removes the directory entry (a symlink itself, not its target), so
         # the guards vet the entry as well as the target it resolves to.
@@ -1583,8 +1548,8 @@ class ShellFileOperations(LintMixin, SearchMixin, FileOperations):
     def _verify_patch_persisted(self, path: str, new_content: str) -> Optional[PatchResult]:
         """Re-read ``path`` and confirm the intended bytes landed; error result or None.
         Catches silent persistence failures (FS oddities, races, truncated pipe).
-        Line endings are normalized first (Windows text-mode ``open()`` writes LF as
-        CRLF) and the re-read's BOM stripped (``new_content`` is the BOM-less
+        Line endings are normalized first (a CRLF file keeps its own endings on
+        write) and the re-read's BOM stripped (``new_content`` is the BOM-less
         string we matched against)."""
         data, _failed = self._read_exact_bytes(path)
         if data is None:

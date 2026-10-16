@@ -91,10 +91,8 @@ def test_non_expired_lock_is_held(db: SessionDB) -> None:
 def test_non_expired_lock_from_dead_pid_is_reclaimed(
     db: SessionDB, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # No ``os.name`` pin: the probe below injects a fake ``psutil``, and
-    # ``_process_is_gone`` consults psutil *before* its POSIX/nt split — the
-    # nt early-return is unreachable here on any host, so faking the platform
-    # bought nothing.  The holder is stamped with this process's own PID
+    # The probe below injects a fake ``psutil``, which ``_process_is_gone``
+    # consults first.  The holder is stamped with this process's own PID
     # namespace (same-namespace kernel proof is still proof; foreign and
     # unstamped holders defer to TTL — see test_lease_pid_namespace.py).
     from hermes_state_pidns import holder_namespace_token

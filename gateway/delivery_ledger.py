@@ -237,16 +237,13 @@ def _owner_alive(pid: Any, started_at: Any) -> bool:
         return False
     current_start = _start_time(pid)
     if current_start is None:
-        # Start time unreadable: alive iff the pid exists. Route through the cross-platform probe — on Windows
-        # ``os.kill(pid, 0)`` is NOT a no-op (bpo-14484: it maps to ``GenerateConsoleCtrlEvent(0, pid)`` and could
-        # Ctrl+C the gateway's own console group). ``_pid_exists`` keeps EPERM-means-alive (pid owned by another user).
+        # Start time unreadable: alive iff the pid exists. ``_pid_exists`` keeps EPERM-means-alive (pid owned
+        # by another user).
         try:
             from gateway.status import _pid_exists
         except Exception:
-            if os.name == "nt":
-                return False  # never fall back to a raw sig-0 probe on Windows
             try:
-                os.kill(pid, 0)  # windows-footgun: ok — POSIX-only fallback branch
+                os.kill(pid, 0)
                 return True
             except OSError as exc:  # incl. ProcessLookupError; EPERM means the pid exists
                 return isinstance(exc, PermissionError)

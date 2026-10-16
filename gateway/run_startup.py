@@ -851,28 +851,26 @@ class GatewayStartupMixin:
         from gateway.run import get_hermes_home
         log_dir = getattr(self.config, "log_dir", None) or os.path.join(str(get_hermes_home()), "logs")
         os.makedirs(log_dir, exist_ok=True)
-        return open(os.path.join(log_dir, "gateway_faulthandler.log"), "a", encoding="utf-8")  # windows-footgun: ok (append log writer, not a read)
+        return open(os.path.join(log_dir, "gateway_faulthandler.log"), "a", encoding="utf-8")
 
     def _start_install_faulthandler(self) -> None:
         """Enable faulthandler (stderr or a log file) plus the SIGUSR2 stack-dump hook."""
-        # sys.stderr may be None (Windows VBS / pythonw / detached service): fall back to a log file.
+        # sys.stderr may be None (detached service): fall back to a log file.
         try:
             # Enable faulthandler for stack dumps on freezes/crashes (#70344). Falls back to a log file when
-            # sys.stderr is None (Windows VBS / pythonw / detached service) — otherwise the gateway would
+            # sys.stderr is None (detached service) — otherwise the gateway would
             # die here and take every adapter offline. See #71671.
             faulthandler.enable()
         except (RuntimeError, ValueError, OSError):
             with _log_suppressed(logging.DEBUG, "faulthandler.enable() unavailable", exc_info=True):
                 faulthandler.enable(file=self._open_faulthandler_log(), all_threads=True)
-        # SIGUSR2 stack dump to file for service managers that drop stderr; POSIX-only.
+        # SIGUSR2 stack dump to file for service managers that drop stderr.
         # chain=False: SIGUSR2's default disposition is "terminate", so chaining to it
         # dumps the stacks and then kills the gateway the operator was trying to inspect.
-        _sigusr2 = getattr(signal, "SIGUSR2", None)
-        if _sigusr2 is not None and hasattr(faulthandler, "register"):
-            with _log_suppressed(logging.DEBUG, "Could not set up faulthandler file logging", exc_info=True):
-                faulthandler.register(
-                    _sigusr2, file=self._open_faulthandler_log(), all_threads=True, chain=False,
-                )
+        with _log_suppressed(logging.DEBUG, "Could not set up faulthandler file logging", exc_info=True):
+            faulthandler.register(
+                signal.SIGUSR2, file=self._open_faulthandler_log(), all_threads=True, chain=False,
+            )
 
     async def _start_log_startup_environment(self) -> None:
         """Bind the gateway loop, disarm the startup watchdog, and log the startup environment."""
@@ -1036,8 +1034,6 @@ class GatewayStartupMixin:
         # lazily imports run_agent, so model_tools' discover_plugins() side-effect may not have run.
         with _log_suppressed(logging.WARNING, "plugin discovery failed at gateway startup", exc_info=True):
             from hermes_cli.plugins import discover_plugins
-            from hermes_cli.plugins_cmd_remove import sweep_pending_plugin_deletes
-            sweep_pending_plugin_deletes()  # trees a previous life still held when they were uninstalled
             discover_plugins()
         # Relay entrypoints share the effective profile opt-out, including when a
         # deployment injects a URL. No URL or explicitly disabled -> no side effects.

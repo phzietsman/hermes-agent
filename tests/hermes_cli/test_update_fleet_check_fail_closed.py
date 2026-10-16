@@ -7,14 +7,14 @@
 verifiably live before the update.
 
 The first guard (PR #93410) keyed on ``(restarted_services or killed_pids)``,
-which never fires on Windows: ``_pause_windows_gateways_for_update`` /
-``_resume_windows_gateways_after_update`` populate neither list.  The fix
+which never fires for paused gateways: the update pause and its resume populate
+neither list.  The fix
 hoists the "should the probe have produced rows?" decision into
 ``_fleet_probe_expected_runtimes`` and keys it on the ROW-CAPABLE pre-update
 liveness signals: restart-phase bookkeeping, the pre-restart PID snapshot,
 and the gateway-kind records in the pre-update plan inventory (the plan's
 serve/dashboard records are row-incapable for this probe, #97332).  The
-Windows pause/resume token is deliberately NOT a signal — it is bookkeeping,
+pause/resume token is deliberately NOT a signal — it is bookkeeping,
 not a runtime inventory, and its entries have no corresponding
 ``collect_fleet_versions()`` rows (see
 ``test_update_fleet_probe_resume_token.py``).  The same condition gates the

@@ -214,9 +214,8 @@ class TestStuckProbeNeverBlocksCallers:
 
 class TestRunTimeoutIsBounded:
     """_run() itself must return within a bounded time even when the child
-    spawns a descendant that inherits the capture pipes and outlives it —
-    the exact Windows pip.exe launcher shape from #67964, reproduced
-    cross-platform with a shell child."""
+    spawns a descendant that inherits the capture pipes and outlives it
+    (#67964)."""
 
     def test_run_returns_promptly_despite_pipe_holding_descendant(self):
         import time
@@ -234,8 +233,7 @@ class TestRunTimeoutIsBounded:
 
         assert rc == -1
         assert err == "timeout"
-        # stdlib subprocess.run on Windows would hang here for the full 20s
-        # (unbounded post-kill communicate).  Our bound: timeout + reap slack.
+        # Bound: timeout + reap slack, not the grandchild's 20s.
         assert elapsed < 6
 
 
@@ -243,13 +241,13 @@ class TestRunBoundedByTimeout:
     """``_run`` must return as soon as the *direct* child exits, even when a
     descendant inherited the captured stdout/stderr handles and outlives it.
 
-    This is the deadlock from #67964: on native Windows a ``pip.exe`` launcher
-    can leave a grandchild holding the captured pipe open, and ``capture_output``
+    This is the deadlock from #67964: a launcher can leave a grandchild
+    holding the captured pipe open, and ``capture_output``
     reader threads then block far past the timeout while ``_CACHE_LOCK`` is held,
     wedging every new session. Capturing through temp files removes the reader
     threads, so a lingering grandchild can't block the parent's ``wait()``.
 
-    Cross-platform repro: the direct child prints ``ok`` and exits immediately
+    Repro: the direct child prints ``ok`` and exits immediately
     after spawning a long-sleeping grandchild that inherits its stdout. With the
     old pipe-based capture, ``_run`` blocks until the grandchild exits (or hits
     the 3s timeout and returns ``-1``); with temp-file capture it returns the

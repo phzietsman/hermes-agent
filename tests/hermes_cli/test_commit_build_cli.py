@@ -29,7 +29,7 @@ def payload(tmp_path_factory):
 @pytest.mark.live_system_guard_bypass
 @pytest.mark.parametrize("args", [
     ["--version"], ["update"], ["update", "--check"],
-    ["update", "--force", "--yes"], ["update", "--check", "--branch", "main"],
+    ["update", "--yes"], ["update", "--check", "--branch", "main"],
     ["update", "--channel", "canary"], ["update", "--set-channel", "stable"],
 ])
 def test_sealed_cli_never_checks_or_spawns_updater(payload, tmp_path, args):

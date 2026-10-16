@@ -8,8 +8,7 @@
  * about which combinations CI can drive. Every combination is dispatched to
  * its OS's run workflow, and THAT workflow natively skips the method pairs
  * its driver cannot run yet -- capability knowledge lives next to each
- * driver (install-e2e-run.yml for linux, install-e2e-macos-run.yml,
- * and install-e2e-windows-run.yml). Correctness here is enforced by the type
+ * driver (install-e2e-run.yml for linux, install-e2e-macos-run.yml). Correctness here is enforced by the type
  * unions below (checked via `tsc --checkJs`), not by runtime validation --
  * anything the types can't catch is self-evident on the next CI run.
  *
@@ -19,8 +18,7 @@
  *   node scripts/sandbox/generate-e2e-matrix.mjs \
  *     --tags '[{"ref":"v2026.8.3","desktop":true}]'
  *
- * Prints JSON: { linux: {include:[...]}, windows: {include:[...]},
- * macos: {include:[...]} } -- every entry is {name, install_method,
+ * Prints JSON: { linux: {include:[...]}, macos: {include:[...]} } -- every entry is {name, install_method,
  * update_method, install_ref, update_ref, tag_has_desktop} (the tag
  * annotation lets a run workflow natively skip desktop-surface legs from
  * releases that predate the desktop app).
@@ -36,15 +34,13 @@ import { fileURLToPath } from 'node:url';
  * strings, so they are types, not conventions.
  *
  * @typedef {'latest'} InstallerVersion
- *   The artifact published on the website right now -- Hermes-Setup.exe has
+ *   The artifact published on the website right now -- Hermes-Setup.dmg has
  *   no versioned archive yet. Widen this union when one exists.
  * @typedef {'installer-script' | 'installer-script+desktop' | 'desktop-installer' | 'packaged-app'} InstallMethod
- *   installer-script is the platform's one-liner (curl | bash on
- *   linux/macos, irm | iex on windows); installer-script+desktop is the
- *   same one-liner with its desktop stage opted in (--include-desktop /
- *   -IncludeDesktop), which also builds the desktop app -- on windows it
- *   registers Start Menu / Desktop shortcuts too, on linux/macos it
- *   builds into the checkout without registering an OS entry point;
+ *   installer-script is the platform's one-liner (curl | bash);
+ *   installer-script+desktop is the same one-liner with its desktop stage
+ *   opted in (--include-desktop), which also builds the desktop app into
+ *   the checkout without registering an OS entry point;
  *   packaged-app installs a signed bundle. Its native in-app update pair
  *   is declared separately, not crossed with source-checkout update methods.
  * @typedef {InstallMethod | 'hermes-update' | 'open-app-update' | 'hermes-desktop-app-update'} UpdateMethod
@@ -52,14 +48,12 @@ import { fileURLToPath } from 'node:url';
  *   existing install), plus the updater CLI and the two app-update
  *   variants. The variants differ by launch surface: open-app-update
  *   starts the app from the OS entry point the install registered
- *   (Start Menu / Desktop shortcuts) -- today only the windows desktop
- *   installer's stage registers one (install.sh --include-desktop
- *   builds the app but registers nothing), so these legs pair with a
- *   desktop-installer install; hermes-desktop-app-update starts the app
+ *   (install.sh --include-desktop builds the app but registers nothing),
+ *   so these legs pair with a desktop-installer install; hermes-desktop-app-update starts the app
  *   via `hermes desktop`, which every install method provides on every
  *   OS that ships the desktop app. Both then update through the app's
  *   own Update button.
- * @typedef {'linux' | 'windows' | 'macos'} Os
+ * @typedef {'linux' | 'macos'} Os
  *
  * @typedef {{method: InstallMethod, versions?: InstallerVersion[]}} InstallEntry
  * @typedef {{method: UpdateMethod, versions?: InstallerVersion[]}} UpdateEntry
@@ -101,7 +95,7 @@ export function legId(name) {
 }
 
 /** One pinned package transition; source-release sampling does not apply.
- * @param {'windows' | 'macos'} os
+ * @param {'macos'} os
  * @param {string} oldTag
  * @returns {{include: MatrixEntry[]}}
  */
@@ -139,30 +133,6 @@ function startLabel(from, to) {
 
 /** @type {Record<Os, OsSpec>} */
 export const SPEC = {
-  windows: {
-    install: [
-      // irm https://hermes.nousresearch.com/install.ps1 | iex
-      { method: 'installer-script' },
-      // The same one-liner with -IncludeDesktop: builds Hermes.exe AND
-      // registers Start Menu / Desktop shortcuts, so it is a second real
-      // path to a hand-launchable app.
-      { method: 'installer-script+desktop' },
-      // Website Hermes-Setup.exe, clicked through the GUI.
-      { method: 'desktop-installer', versions: ['latest'] },
-    ],
-    update: [
-      { method: 'installer-script' },
-      { method: 'installer-script+desktop' },
-      // Run the bootstrap exe again over an existing install (--update flow).
-      { method: 'desktop-installer', versions: ['latest'] },
-      { method: 'hermes-update' },
-      // Settings -> About -> "Update now", app launched from the installed
-      // exe (the entry point the desktop installer created).
-      { method: 'open-app-update' },
-      // Same button, app launched via `hermes desktop`.
-      { method: 'hermes-desktop-app-update' },
-    ],
-  },
   macos: {
     install: [
       { method: 'installer-script' },
@@ -244,7 +214,7 @@ export function generateEnvironments(spec) {
  */
 export function buildMatrices(envs, tags) {
   /** @type {Record<Os, {include: MatrixEntry[]}>} */
-  const byOs = { linux: { include: [] }, windows: { include: [] }, macos: { include: [] } };
+  const byOs = { linux: { include: [] }, macos: { include: [] } };
   for (const env of envs) {
     for (const start of startsFor(tags)) {
       const name = `${env.os}: ${env.install} -> ${env.update} (${start.from} -> ${start.to})`;
@@ -269,15 +239,13 @@ export function buildMatrices(envs, tags) {
 
 /** Source-leg presets: the OS matrices each named route runs. */
 const ROUTE_OSES = /** @type {Record<string, Os[]>} */ ({
-  all: ['linux', 'windows', 'macos'],
+  all: ['linux', 'macos'],
   both: ['linux'],
   update: ['linux'],
   installer: ['linux'],
-  'windows-desktop': ['windows'],
   'macos-desktop': ['macos'],
   // Bundled legs come from bundle-plan.mjs, not this matrix.
   bundled: [],
-  'windows-bundled': [],
   'macos-bundled': [],
 });
 
@@ -286,13 +254,12 @@ const ROUTE_OSES = /** @type {Record<string, Os[]>} */ ({
  * from the two starts that catch a regression before it ships -- the newest release
  * updating to the PR (the jump every user makes next) and the PR updating to a synthetic
  * NEXT (the updater the PR itself ships). One leg per {os, start} worth its runner:
- * linux both starts, windows the PR's own updater, macos the release jump.
+ * linux both starts, macos the release jump.
  * @type {{os: Os, to: UpdateTarget}[]}
  */
 const PR_SUBSET = [
   { os: 'linux', to: 'HEAD' },
   { os: 'linux', to: 'NEXT' },
-  { os: 'windows', to: 'NEXT' },
   { os: 'macos', to: 'HEAD' },
 ];
 
@@ -321,7 +288,7 @@ export function selectRoute(matrices, route) {
       ? (os) => oses.includes(os)
       : (_os, entry) => entry.name.includes(route) || route.startsWith(`${entry.name} /`);
   /** @type {Record<Os, {include: MatrixEntry[]}>} */
-  const picked = { linux: { include: [] }, windows: { include: [] }, macos: { include: [] } };
+  const picked = { linux: { include: [] }, macos: { include: [] } };
   for (const os of /** @type {Os[]} */ (Object.keys(picked))) {
     picked[os].include = matrices[os].include.filter((entry) => keep(os, entry));
   }
@@ -400,8 +367,7 @@ export function renderMarkdownPlan(envs, tags) {
  *   archive:false names artifacts after the FILE) with the leg's logs zip
  *   as a #zip= HASH param — the artifact URL 307s server-side and strips
  *   the query, the hash survives — and ⬇️ to the raw logs zip. Logs
- *   artifacts are `install-e2e-logs-<leg_id>` (windows) or
- *   `install-e2e-logs-<leg_id>-<sha>` (posix arms append the sha at
+ *   artifacts are `install-e2e-logs-<leg_id>-<sha>` (arms append the sha at
  *   upload) — matched by prefix. leg_id is rebuilt from the parsed job
  *   name with the same formula the generator mints (legId).
  * @returns {string}
@@ -410,7 +376,7 @@ export function renderMarkdownResults(jobs, tagAnnotations = [], artifactById = 
   const knownRules = JSON.parse(fs.readFileSync(new URL('../../tests/install/e2e-assets/known-failures.json', import.meta.url), 'utf8'));
   /** @type {Map<string, {number: number, rule: any}>} */
   const footnotes = new Map();
-  const LEG = /^(linux|windows|macos): (\S+) -> (\S+) \(([^)]+) -> (HEAD|NEXT)\) \//;
+  const LEG = /^(linux|macos): (\S+) -> (\S+) \(([^)]+) -> (HEAD|NEXT)\) \//;
   /** @type {Map<string, boolean>} */
   const desktopByTag = new Map(tagAnnotations.map((t) => [t.ref, t.desktop]));
   /**
@@ -451,8 +417,8 @@ export function renderMarkdownResults(jobs, tagAnnotations = [], artifactById = 
     if (!rows.has(combo)) rows.set(combo, new Map());
     const cell = (() => {
     const legId2 = legId(`${m[1]}: ${m[2]} -> ${m[3]} (${m[4]} -> ${m[5]})`);
-    // Logs artifacts: `install-e2e-logs-<leg_id>` (windows) or with a
-    // trailing `-<sha>` (posix arms append it at upload). Match by prefix.
+    // Logs artifacts: `install-e2e-logs-<leg_id>-<sha>` (arms append the sha
+    // at upload). Match by prefix.
     const logsName = [...artifactById.keys()].find((n) => n.startsWith(`install-e2e-logs-${legId2}`));
     // Player artifacts: the single per-run leg-player upload; archive:
     // false names it after the FILE (playback.html), ignoring `name:`.

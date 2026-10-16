@@ -114,12 +114,10 @@ def test_bootstrap_repairs_before_dependency_activation(tmp_path, monkeypatch, m
     uv_entry = tools / "uv"
     uv_entry.mkdir(parents=True)
     shutil.copy2(uv, uv_entry / Path(uv).name)
-    python_entry = Path(sys.base_prefix)
-    if os.name != "nt":
-        # A system Python's prefix can be /usr: never hash that entire tree.
-        python_entry = tools / "python"
-        (python_entry / "bin").mkdir(parents=True)
-        (python_entry / "bin/python3").symlink_to(Path(sys._base_executable).resolve())
+    # A system Python's prefix can be /usr: never hash that entire tree.
+    python_entry = tools / "python"
+    (python_entry / "bin").mkdir(parents=True)
+    (python_entry / "bin/python3").symlink_to(Path(sys._base_executable).resolve())
     from pm.registry import get_package
 
     target = current_target()

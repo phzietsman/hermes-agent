@@ -8,7 +8,7 @@ import { packagingTargetArch } from './prepare-packaging-tools.mjs'
 
 test('packager selects either same-OS payload architecture but refuses foreign OS', () => {
   for (const arch of ['x64', 'arm64']) assert.equal(packagingTargetArch(`${process.platform}-${arch}`), arch)
-  const foreign = process.platform === 'darwin' ? 'win32' : 'darwin'
+  const foreign = process.platform === 'darwin' ? 'linux' : 'darwin'
   assert.throws(() => packagingTargetArch(`${foreign}-arm64`), /same-OS/)
   assert.throws(() => packagingTargetArch(`${process.platform}-ia32`), /same-OS/)
 })

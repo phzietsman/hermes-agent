@@ -4,7 +4,7 @@ description: "Run the first-run setup chat in the Hermes desktop app."
 version: 0.3.0
 author: "Siddharth Balyan (alt-glitch) + Hermes Agent"
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [onboarding, setup, first-run, desktop, handoff]

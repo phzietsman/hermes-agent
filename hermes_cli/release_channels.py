@@ -102,9 +102,9 @@ def artifact_key(value: object) -> str:
     return key
 
 
-def package_versions(sequence: int) -> tuple[str, str]:
+def package_version(sequence: int) -> str:
     _integer(sequence, "sequence", 1, MAX_SEQUENCE)
-    return f"0.0.{sequence}", f"0.{sequence // 65536}.{sequence % 65536}.0"
+    return f"0.0.{sequence}"
 
 
 def _integer(value: object, label: str, minimum: int = 1, maximum: int = MAX_SEQUENCE + 1) -> int:
@@ -127,9 +127,7 @@ def validate_identity(value: object) -> dict:
     for field in ("appNamePascal", "artifactNamePascal"):
         _match(r"[A-Za-z][A-Za-z0-9]{0,63}", value.get(field), field)
     _match(r"[a-z][a-z0-9.-]{2,127}", value.get("appId"), "app ID")
-    _match(r"[A-Za-z][A-Za-z0-9.-]{2,49}", value.get("msixAppIdWithOrg"), "MSIX identity")
     _match(r"[a-z][a-z0-9-]{0,63}", value.get("cliName"), "CLI name")
-    _match(r"[A-Za-z][A-Za-z0-9 ._-]{0,79}", value.get("windowsExecutableName"), "Windows executable")
     return value
 
 
@@ -145,9 +143,9 @@ def validate_request(value: object, *, repository: str | None = None,
     if "controllerCommit" in request:
         require_commit(request["controllerCommit"])
     _match(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", request.get("sourceVersion"), "source version")
-    versions = package_versions(request.get("sequence"))
+    version = package_version(request.get("sequence"))
     if policy == "preview":
-        if (request.get("version"), request.get("windowsVersion")) != versions:
+        if request.get("version") != version:
             raise ChannelError("Channel package version does not match sequence")
     else:
         _match(
@@ -166,12 +164,6 @@ def validate_request(value: object, *, repository: str | None = None,
                     raise ChannelError("Invalid archive ref")
             elif parsed[0] != request["version"]:
                 raise ChannelError("Archive ref does not name the release version")
-        # Stable uses the Store quad with revision zero; canary uses its UTC
-        # yy.mmdd.hh.mmss package version.
-        pattern = r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" if policy == "canary-release" else r"[0-9]+\.[0-9]+\.[0-9]+\.0"
-        quad = _match(pattern, request.get("windowsVersion"), "Windows version")
-        if any(int(part) > 65535 for part in quad.split(".")):
-            raise ChannelError("Invalid Windows version")
     validate_identity(request.get("identity"))
     values = request.get("bundleEnv")
     if not isinstance(values, dict):
@@ -368,7 +360,7 @@ def validate_manifest(value: object, record: dict, base_url: str) -> dict:
         if not isinstance(package, dict):
             raise ChannelError("Invalid native package")
         target = tuple(package.get(field) for field in ("platform", "arch", "variant"))
-        if target[0] not in ("darwin", "win32") or target[1] not in ("arm64", "x64") or target[2] != "bundled":
+        if target[0] != "darwin" or target[1] not in ("arm64", "x64") or target[2] != "bundled":
             raise ChannelError("Unsupported channel package target")
         if target in seen:
             raise ChannelError("Duplicate package target")
@@ -381,16 +373,12 @@ def validate_manifest(value: object, record: dict, base_url: str) -> dict:
             raise ChannelError("Artifact outside admitted build namespace")
         require_sha256(artifact.get("sha256"))
         _integer(artifact.get("size"), "artifact size", maximum=2**53 - 1)
-        identity_field, version_field, signing_field = (
-            ("appId", "version", "teamId") if target[0] == "darwin"
-            else ("msixAppIdWithOrg", "windowsVersion", "publisher"))
-        if package.get("identity") != request["identity"][identity_field] or package.get("version") != request[version_field]:
+        if package.get("identity") != request["identity"]["appId"] or package.get("version") != request["version"]:
             raise ChannelError("Native package identity or version mismatch")
-        signing = package.get(signing_field)
+        signing = package.get("teamId")
         if not isinstance(signing, str) or not signing or any(ord(c) < 32 for c in signing):
             raise ChannelError("Missing native signing identity")
-        if target[0] == "darwin":
-            _match(r"[A-Z0-9]{10}", signing, "Apple team ID")
+        _match(r"[A-Z0-9]{10}", signing, "Apple team ID")
         feed = package.get("feed")
         if not isinstance(feed, dict) or feed.get("channel") != "stable":
             raise ChannelError("Channel native metadata requires a neutral stable feed")

@@ -44,7 +44,7 @@ export function parkedRunReport() {
 }
 
 /**
- * The detached hand-off script (scripts/desktop-update/windows.ps1) runs hidden;
+ * The detached hand-off script (scripts/desktop-update/posix.sh) runs hidden;
  * its result file is the ONLY way the user learns a detached update
  * failed. Consume it exactly once, here, right where boot passes the
  * update gate — success gets a log line, failure gets a real dialog

@@ -4,7 +4,7 @@ import os
 import signal
 import subprocess
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -74,13 +74,6 @@ def test_permission_denied_does_not_attempt_sigkill(monkeypatch):
     _legacy_kill_process_tree(MagicMock(pid=999))
     assert calls == [(999, signal.SIGTERM)]
 
-
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize("error", [None, OSError("taskkill missing")])
-def test_windows_taskkill_targets_tree_and_is_best_effort(error):
-    with patch("subprocess.run", side_effect=error) as run:
-        _legacy_kill_process_tree(MagicMock(pid=4321))
-    assert run.call_args.args[0] == ["taskkill", "/PID", "4321", "/T", "/F"]
 
 # ---------------------------------------------------------------------------
 # Group-leadership guard (#119149): a child that does not lead its own group

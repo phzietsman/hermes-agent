@@ -1419,8 +1419,8 @@ class TestSecretFileAssignmentRedaction:
 
 
 class TestHermesHomePathClassification:
-    """``_is_secret_file_arg`` must see the RESOLVED Hermes home: a managed Windows home
-    (``%LOCALAPPDATA%\\hermes``) has no ``.hermes`` segment and a resolved path never spells
+    """``_is_secret_file_arg`` must see the RESOLVED Hermes home: a custom home
+    has no ``.hermes`` segment and a resolved path never spells
     ``$HERMES_HOME``, so the literal test alone classified its ``config.yaml`` as ordinary YAML."""
 
     def test_resolved_home_config_is_secret_bearing_but_project_config_is_not(self, tmp_path, monkeypatch):

@@ -32,8 +32,8 @@ Hermes Agent works with any OpenAI-compatible API. Supported providers include:
 
 Set your provider with `hermes model` or by editing `~/.hermes/.env`. See the [Environment Variables](./environment-variables.md) reference for all provider keys.
 
-### Does it work on Windows/Android/my platform??
-See **[Platform Support](../getting-started/platform-support.md)** for the full platform availability matrix.
+### Does it work on Android or my platform?
+See **[Platform Support](../getting-started/platform-support.md)** for the full platform availability matrix. Native Windows is not supported; use WSL2.
 
 ### I run Hermes in WSL2. What's the best way to control my normal Windows Chrome?
 

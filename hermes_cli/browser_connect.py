@@ -10,7 +10,6 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
-import ntpath
 import os
 import platform
 import posixpath
@@ -41,9 +40,7 @@ class _Browser:
     key: str
     mac_app: str
     mac_support: tuple[str, ...]          # under ~/Library/Application Support
-    win_bins: tuple[str, ...]             # shutil.which names on Windows
-    win_install: tuple[tuple[str, ...], ...]  # under Program Files / LOCALAPPDATA
-    win_profile: tuple[str, ...]          # under LOCALAPPDATA
+    wsl_install: tuple[tuple[str, ...], ...]  # under the Windows host's Program Files, seen from WSL
     linux_bins: tuple[str, ...]           # shutil.which names on Linux
     linux_paths: tuple[str, ...]          # known absolute install paths
     linux_config: str                     # under $XDG_CONFIG_HOME
@@ -54,34 +51,31 @@ class _Browser:
 
 # Launch-candidate order (chrome, chromium, brave, brave-origin, edge) is the tuple
 # order. ``brave-origin`` is Brave's standalone paid build: same Chromium core but a
-# fully distinct install identity (Brave-Origin product path, ``BraveOHTML`` ProgId,
+# fully distinct install identity (Brave-Origin product path,
 # ``com.brave.Browser.origin`` bundle id) that installs side-by-side with Brave. Its
 # profile is NOT under Brave-Browser and must never be conflated with the ``brave``
 # key — a "brave" lookup resolving to the Origin binary drives the wrong profile.
-# Positional layout per entry: key, mac_app / mac_support, win_bins / win_install /
-# win_profile / linux_bins / linux_paths / linux_config [, linux_exec].
+# Positional layout per entry: key, mac_app / mac_support, wsl_install / linux_bins /
+# linux_paths / linux_config [, linux_exec].
 _BROWSERS = (
     _Browser(
         "chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        ("Google", "Chrome"), ("chrome.exe", "chrome"),
+        ("Google", "Chrome"),
         (("Google", "Chrome", "Application", "chrome.exe"),),
-        ("Google", "Chrome", "User Data"),
         ("google-chrome", "google-chrome-stable"),
         ("/opt/google/chrome/chrome", "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable"),
         "google-chrome"),
     _Browser(
         "chromium", "/Applications/Chromium.app/Contents/MacOS/Chromium",
-        ("Chromium",), ("chromium.exe", "chromium"),
+        ("Chromium",),
         (("Chromium", "Application", "chrome.exe"), ("Chromium", "Application", "chromium.exe")),
-        ("Chromium", "User Data"),
         ("chromium-browser", "chromium"),
         ("/usr/bin/chromium-browser", "/usr/bin/chromium"),
         "chromium"),
     _Browser(
         "brave", "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-        ("BraveSoftware", "Brave-Browser"), ("brave.exe", "brave"),
+        ("BraveSoftware", "Brave-Browser"),
         (("BraveSoftware", "Brave-Browser", "Application", "brave.exe"),),
-        ("BraveSoftware", "Brave-Browser", "User Data"),
         ("brave-browser", "brave-browser-stable", "brave"),
         ("/usr/bin/brave-browser", "/usr/bin/brave-browser-stable", "/usr/bin/brave",
          "/snap/bin/brave", "/opt/brave.com/brave/brave-browser", "/opt/brave.com/brave/brave",
@@ -89,19 +83,17 @@ _BROWSERS = (
         "BraveSoftware/Brave-Browser"),
     _Browser(
         "brave-origin", "/Applications/Brave Origin.app/Contents/MacOS/Brave Origin",
-        ("BraveSoftware", "Brave-Origin"), ("brave-origin.exe", "brave-origin"),
+        ("BraveSoftware", "Brave-Origin"),
         (("BraveSoftware", "Brave-Origin", "Application", "brave.exe"),
          ("BraveSoftware", "Brave-Origin", "Application", "brave-origin.exe")),
-        ("BraveSoftware", "Brave-Origin", "User Data"),
         ("brave-origin", "brave-origin-nightly"),
         ("/usr/bin/brave-origin", "/opt/brave.com/brave-origin/brave-origin",
          "/opt/brave.com/brave-origin-nightly/brave-origin"),
         "BraveSoftware/Brave-Origin", linux_exec=("brave-origin",)),
     _Browser(
         "edge", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-        ("Microsoft Edge",), ("msedge.exe", "msedge"),
+        ("Microsoft Edge",),
         (("Microsoft", "Edge", "Application", "msedge.exe"),),
-        ("Microsoft", "Edge", "User Data"),
         ("microsoft-edge", "microsoft-edge-stable", "msedge"),
         ("/usr/bin/microsoft-edge", "/usr/bin/microsoft-edge-stable",
          "/opt/microsoft/msedge/microsoft-edge", "/opt/microsoft/msedge/msedge"),
@@ -117,22 +109,6 @@ _BROWSER_BY_KEY = {b.key: b for b in _BROWSERS}
 # the tables don't carry) and are matched FIRST so they fail closed instead of being
 # swallowed into the stable family — driving the wrong profile is a wrong-principal bug
 # (#95549 invariant).
-
-# Windows UserChoice ProgId prefixes → key. Case-insensitive PREFIX match so
-# version suffixes (``ChromeHTML.X``) still resolve.
-_WINDOWS_PROGID_MAP = (
-    ("chromehtml", "chrome"), ("msedgehtm", "edge"),
-    ("braveohtml", "brave-origin"),  # Brave Origin stable (brave-core install_static)
-    ("bravehtml", "brave"), ("chromiumhtm", "chromium"))
-
-# ``ChromeBHTML`` = Beta, ``ChromeDHTML`` = Dev, ``ChromeSSHTML`` = Canary (SxS);
-# ``MSEdge[BDC]HTML`` = Edge channels; Brave Origin Beta=BraveOBHTML, Dev=BraveODHTML,
-# Nightly/SxS=BraveOSHTM (no trailing L — 10-char cap).
-_WINDOWS_CHANNEL_PROGIDS = (
-    "chromebhtml", "chromedhtml", "chromesshtml", "chromecanaryhtml",
-    "msedgebhtml", "msedgedhtml", "msedgechtml",
-    "bravebetahtml", "bravenightlyhtml",
-    "braveobhtml", "braveodhtml", "braveoshtm")
 
 # Linux xdg default-web-browser .desktop name fragments → key (SUBSTRING match),
 # including Flatpak application ids (``com.google.Chrome.desktop``).
@@ -180,7 +156,7 @@ UNSUPPORTED_CHANNEL = "__unsupported_channel__"
 def real_profile_data_dir(browser: str, system: str | None = None) -> str | None:
     """Default user-data-dir for ``browser`` on ``system`` (None if unknown). Linux tries native
     ($XDG_CONFIG_HOME), snap and Flatpak — first existing wins, else native so the caller's
-    error names it. Darwin/Windows paths are not stat'ed."""
+    error names it. Darwin paths are not stat'ed."""
     b = _BROWSER_BY_KEY.get(browser)
     if b is None:
         return None
@@ -188,9 +164,6 @@ def real_profile_data_dir(browser: str, system: str | None = None) -> str | None
     home = os.path.expanduser("~")
     if system == "Darwin":
         return posixpath.join(home, "Library", "Application Support", *b.mac_support)
-    if system == "Windows":
-        local = os.environ.get("LOCALAPPDATA") or ntpath.join(home, "AppData", "Local")
-        return ntpath.join(local, *b.win_profile)
     config = os.environ.get("XDG_CONFIG_HOME") or posixpath.join(home, ".config")
     linux_parts = b.linux_config.split("/")
     candidates = [posixpath.join(config, *linux_parts)]
@@ -214,12 +187,6 @@ def chromium_executable(browser: str, system: str | None = None) -> str | None:
     system = system or platform.system()
     if system == "Darwin":
         return _first_present((b.mac_app,))
-    if system == "Windows":
-        bases = [
-            os.environ.get("PROGRAMFILES", r"C:\Program Files"),
-            os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"),
-            os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))]
-        return _first_present(os.path.join(base, *parts) for base in bases for parts in b.win_install)
     # Linux: PATH lookup first, then the known absolute install paths.
     found = next(filter(None, map(shutil.which, b.linux_exec or b.linux_bins)), None)
     return found or _first_present(b.linux_paths)
@@ -231,55 +198,6 @@ def _classify_default(value: str, channels, table, match) -> str | None:
     if any(match(value, chan) for chan in channels):
         return UNSUPPORTED_CHANNEL
     return next((browser for frag, browser in table if match(value, frag)), None)
-
-
-_WINDOWS_HTTPS_ASSOC = r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https"
-
-
-def _windows_shell_progid(scheme: str) -> str | None:
-    """Effective ProgId for a URL scheme as the Windows Shell resolves it."""
-    try:
-        import ctypes
-        from ctypes import wintypes
-
-        query = ctypes.WinDLL("shlwapi", use_last_error=True).AssocQueryStringW
-        query.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR,
-                          wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
-        query.restype = ctypes.c_long
-        buf = ctypes.create_unicode_buffer(256)
-        size = wintypes.DWORD(len(buf))
-        # 20 = ASSOCSTR_PROGID. ASSOCSTR_EXECUTABLE can fail (0x80070483) on 25H2.
-        if query(0, 20, scheme, None, buf, ctypes.byref(size)) != 0:
-            return None
-        return buf.value or None
-    except (AttributeError, OSError):  # non-Windows host
-        return None
-
-
-def _windows_registry_progid() -> str | None:
-    """Registry fallback. Windows 11 25H2 Settings writes only ``UserChoiceLatest\\ProgId``;
-    the legacy ``UserChoice`` key can be stale, missing, or present without a value."""
-    try:
-        import winreg  # type: ignore
-    except ImportError:
-        return None
-    for sub in (r"UserChoiceLatest\ProgId", "UserChoice"):
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, rf"{_WINDOWS_HTTPS_ASSOC}\{sub}") as key:
-                prog_id, _ = winreg.QueryValueEx(key, "ProgId")
-        except OSError:
-            continue
-        if prog_id:
-            return str(prog_id)
-    return None
-
-
-def _detect_default_windows() -> str | None:
-    prog_id = _windows_shell_progid("https") or _windows_registry_progid()
-    if not prog_id:
-        return None
-    return _classify_default(prog_id.lower(), _WINDOWS_CHANNEL_PROGIDS,
-                             _WINDOWS_PROGID_MAP, str.startswith)
 
 
 def _run_stdout(argv: list[str]) -> str | None:
@@ -341,7 +259,7 @@ def _detect_default_linux() -> str | None:
 
 def detect_default_chromium(system: str | None = None) -> str | None:
     """Return the canonical key of the default Chromium browser, or None."""
-    detect = {"Windows": _detect_default_windows, "Darwin": _detect_default_darwin}
+    detect = {"Darwin": _detect_default_darwin}
     return detect.get(system or platform.system(), _detect_default_linux)()
 
 
@@ -421,9 +339,8 @@ def _secure_snapshot(path: str, *, contents: bool = False) -> None:
                      "contents" if contents else "dir", path, e)
 
 
-# Auth files that are SQLite databases: on Windows a running Chrome holds these with an
-# exclusive lock, so a raw copy raises WinError 32 and a best-effort skip leaves the copy
-# signed-out. They are copied via SQLite's online-backup API instead. Matched by basename.
+# Auth files that are SQLite databases: a raw copy of a live DB can lose committed WAL, so
+# they are copied via SQLite's online-backup API instead. Matched by basename.
 _SQLITE_AUTH_DBS = frozenset({"Cookies", "Login Data", "Login Data For Account", "Web Data"})
 # Budget for one auth DB's online backup. A running browser holds Login Data / Login Data For
 # Account / Web Data with a hot write lock, so backup makes no progress and this deadline is
@@ -502,27 +419,6 @@ def _unavailable_auth_dbs_error(browser: str, failed: dict[str, str]) -> str:
 
 
 _SNAPSHOT_DONE_MARKER = ".hermes-snapshot-complete"
-# Prefix stamped on the "profile is locked" error so the calling layer can recognize the
-# needs-the-browser-closed condition and surface the close-with-approval flow.
-_PROFILE_LOCKED_PREFIX = "[profile-locked] "
-
-
-def _profile_is_locked(src: str, source_profile: str) -> bool:
-    """True when the active profile's cookie DB can't be opened (browser running). On Windows a
-    running browser holds Cookies deny-all (PermissionError); this FAST probe fails closed BEFORE
-    the heavy snapshot so a locked profile never hangs the launch. Always False on POSIX."""
-    db = _first_present(  # modern Network/ location first
-        os.path.join(src, source_profile, rel)
-        for rel in (os.path.join("Network", "Cookies"), "Cookies"))
-    if not db:
-        return False  # nothing to lock; let the copy path handle "no cookies"
-    try:
-        with open(db, "rb"):
-            return False
-    except OSError as e:  # other OSErrors are transient — don't declare locked; let the copy try
-        return isinstance(e, PermissionError)
-
-
 def _browser_setting(key: str):
     """Read ``browser.<key>`` from raw config; None when unset/unreadable."""
     try:
@@ -557,76 +453,6 @@ def _resolve_source_profile(src: str) -> tuple[str | None, str | None]:
     return _last_used_profile(src), None
 
 
-def _real_profile_autoclose() -> bool:
-    """Whether browser.real_profile_autoclose consent is on (config read)."""
-    return bool(_browser_setting("real_profile_autoclose") or False)
-
-
-def _processes_holding_profile(src: str):
-    """Yield psutil.Process instances holding ``src`` open: Chromium-family binaries whose
-    cmdline references THIS user-data-dir — never an unrelated same-PID process. An unreadable
-    cmdline is skipped."""
-    try:
-        import psutil
-    except ImportError:  # hard dep; defensive
-        return
-    norm = os.path.normcase(os.path.normpath(src))
-    browser_bins = (
-        "chrome", "chrome.exe", "chromium", "chromium.exe", "chrome_crashpad",
-        "brave", "brave.exe", "msedge", "msedge.exe", "google chrome")
-    for proc in psutil.process_iter(["name", "cmdline"]):
-        try:
-            name = (proc.info.get("name") or "").lower()
-            cmd = proc.info.get("cmdline") or []
-            joined = " ".join(cmd)
-        except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
-            continue
-        argv0 = cmd[0].lower() if cmd else ""  # some platforms report a generic name
-        if not any(b in name or b in argv0 for b in browser_bins):
-            continue
-        # Binding: the exact user-data-dir must appear in the cmdline, normalized.
-        if (norm in os.path.normcase(os.path.normpath(joined))
-                or f"--user-data-dir={src}".lower() in joined.lower()):
-            yield proc
-
-
-def close_browser_holding_profile(src: str, timeout: float = 15.0) -> tuple[bool, str]:
-    """Terminate the browser process tree holding ``src`` and wait for release. CONSENTED,
-    DESTRUCTIVE (unsaved tab/form state is lost): only call after the user agreed."""
-    try:
-        import psutil
-    except ImportError:
-        return False, "psutil unavailable — cannot close the browser automatically."
-    procs = list(_processes_holding_profile(src))
-    if not procs:
-        # Already closed, or the holder is a different user / unreadable — caller re-probes.
-        return False, "no matching browser process found holding the profile."
-    # Include child processes (renderers, GPU, crashpad) for a full tree kill.
-    gone_errs = (psutil.NoSuchProcess, psutil.AccessDenied)
-    targets = list(procs)
-    for p in procs:
-        with contextlib.suppress(*gone_errs):
-            targets.extend(p.children(recursive=True))
-    for p in targets:
-        with contextlib.suppress(*gone_errs):
-            p.terminate()
-    alive = psutil.wait_procs(targets, timeout=min(timeout, 8.0))[1]
-    for p in alive:
-        with contextlib.suppress(*gone_errs):
-            p.kill()
-    psutil.wait_procs(alive, timeout=3.0)
-    # The lock releases slightly after the process exits on Windows; poll.
-    source_profile = _resolve_source_profile(src)[0] or _last_used_profile(src)
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if not _profile_is_locked(src, source_profile):
-            return True, "closed the browser and the profile lock released."
-        time.sleep(0.5)
-    return False, (
-        "closed the browser processes but the profile is still locked — "
-        "another instance may have relaunched (background/tray mode).")
-
-
 def _sync_local_state(src: str, dst: str, source_profile: str) -> None:
     """Copy ``Local State`` into the snapshot and rewrite it for the single ``Default`` profile.
     Verbatim it names the SOURCE profile (last_used="Profile 2", info_cache of 2/4/7) the copy
@@ -657,29 +483,10 @@ def _sync_local_state(src: str, dst: str, source_profile: str) -> None:
         logger.debug("real-profile snapshot: could not normalize Local State: %s", e)
 
 
-def _locked_profile_error(browser: str) -> str:
-    """Fail-closed message for a locked profile; offers auto-close only when consent arms it.
-    NEVER kill from here: closing the browser is destructive and must be an explicit per-attempt,
-    user-approved step. A still-locked retry blocks again — no auto-retry, no loop."""
-    if _real_profile_autoclose():
-        msg = (
-            f"{browser} is running and has its profile locked, so its login data can't be copied "
-            "yet. Hermes can close it for you (this quits the browser — you'll lose unsaved "
-            "tabs). Ask the user to confirm, then close it and retry; if it's still locked after "
-            "that, they must fully quit it (including any background/tray instance).")
-    else:
-        msg = (
-            f"{browser} is running and has its profile locked, so its login data can't be copied. "
-            "Fully quit the browser (including any background/tray instance) and retry, or turn "
-            "browser.use_real_profile off. (Enable browser.real_profile_autoclose to let Hermes "
-            "offer to close it for you.)")
-    return _PROFILE_LOCKED_PREFIX + msg
-
-
 def _copy_profile_tree(src: str, dst: str, source_profile: str) -> None:
     """Fresh (or torn-and-rebuilding) copy of the ACTIVE profile dir into the copy's Default,
-    minus caches AND the SQLite auth DBs (raw copytree of a Chrome-held file raises on Windows);
-    ``_mirror_profile_auth`` copies the DBs lock-aware instead."""
+    minus caches AND the SQLite auth DBs; ``_mirror_profile_auth`` copies the DBs lock-aware
+    instead."""
     dst_default = os.path.join(dst, "Default")
     try:
         shutil.rmtree(dst_default, ignore_errors=True)
@@ -711,11 +518,8 @@ def snapshot_real_profile(browser: str, src: str | None = None) -> tuple[str | N
     if resolve_err or not source_profile:
         return None, resolve_err
     dst = real_profile_copy_dir(browser)
-    # Fast lock probe BEFORE any copy: a blocking file op on a Windows-locked cookie DB can
-    # hang the launch for minutes. Never trips on POSIX; there a running browser surfaces later as
-    # auth DB backups that miss their deadline (``_unavailable_auth_dbs_error``).
-    if _profile_is_locked(src, source_profile):
-        return None, _locked_profile_error(browser)
+    # A running browser surfaces as auth DB backups that miss their deadline
+    # (``_unavailable_auth_dbs_error``).
     marker = os.path.join(dst, _SNAPSHOT_DONE_MARKER)
     # Only a copy that previously COMPLETED counts as populated; a half-written tree is
     # rebuilt — otherwise a torn first copy poisons freshness forever.
@@ -760,25 +564,17 @@ def cleanup_real_profile_snapshots() -> None:
 
 def _debug_candidate_paths(system: str):
     """Yield possible debug-browser binaries in launch order (may include None/missing)."""
-    install_bases = (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)"),
-                     os.environ.get("LOCALAPPDATA"))
     for b in _BROWSERS:
         if system == "Darwin":
             yield b.mac_app
-        elif system == "Windows":
-            yield from map(shutil.which, b.win_bins)
-            for base in filter(None, install_bases):
-                for parts in b.win_install:
-                    yield os.path.join(base, *parts)
         else:
             yield from map(shutil.which, b.linux_bins)
             yield from b.linux_paths
-    if system not in ("Darwin", "Windows"):
-        # WSL: Windows installs under ``/mnt/c/...`` are POSIX paths regardless of the host
-        # OS, so join with posixpath (os.path.join would emit backslashes on nt).
+    if system != "Darwin":
+        # WSL: the Windows host's browser installs under ``/mnt/c/...``.
         for b in _BROWSERS:
             for base in ("/mnt/c/Program Files", "/mnt/c/Program Files (x86)"):
-                for parts in b.win_install:
+                for parts in b.wsl_install:
                     yield posixpath.join(base, *parts)
 
 
@@ -847,8 +643,7 @@ def _ensure_chrome_debug_data_dir(data_dir: str) -> None:
     safe against a *running* browser: only group/other bits are dropped, the
     owner keeps ``rwx``, and POSIX checks the mode at ``open()`` rather than
     on already-open descriptors, so an attached Chromium keeps reading and
-    writing its profile. On Windows POSIX mode bits are advisory (``chmod``
-    only toggles the read-only flag), so this is best-effort there.
+    writing its profile.
     """
     if _managed_install():
         # Managed mode: the NixOS-configured umask/setgid owns the mode, and
@@ -886,7 +681,7 @@ def _open_launch_stderr_log(path: str):
       reconciles it, for the same reason ``_ensure_chrome_debug_data_dir``
       delegates to ``_secure_dir``: that helper is the single owner of the
       owner-only file policy — it skips managed/NixOS installs and containers
-      and is where Windows ACL enforcement lands (#77527). Ordering: the
+      (#77527). Ordering: the
       reconcile runs *after* the truncating open and *before* any bytes are
       written, so the tighten lands while the file is empty.
 
@@ -963,7 +758,7 @@ def is_browser_debug_ready(url: str, timeout: float = 1.0) -> bool:
     return False
 
 
-# Both loopback literals, IPv4 FIRST: Windows (and some Linux setups) can hand each loopback
+# Both loopback literals, IPv4 FIRST: some setups can hand each loopback
 # to a different process — Chrome asked to bind :9222 while VS Code's js-debug holds
 # 127.0.0.1:9222 comes up on [::1]:9222 only, invisible to an IPv4-only probe.
 _LOOPBACK_PROBE_HOSTS = ("127.0.0.1", "[::1]")
@@ -1003,20 +798,12 @@ def manual_chrome_debug_command(port: int = DEFAULT_BROWSER_CDP_PORT, system: st
     candidates = get_chrome_debug_candidates(system)
     if candidates:
         argv = [candidates[0], *_chrome_debug_args(port)]
-        return subprocess.list2cmdline(argv) if system == "Windows" else shlex.join(argv)
+        return shlex.join(argv)
     if system == "Darwin":
         return (f'open -a "Google Chrome" --args --remote-debugging-port={port} '
                 f'--user-data-dir="{chrome_debug_data_dir()}" --no-first-run '
                 "--no-default-browser-check")
     return None
-
-
-def _detach_kwargs(system: str) -> dict:
-    if system != "Windows":
-        return {"start_new_session": True}
-    flags = (getattr(subprocess, "DETACHED_PROCESS", 0)
-             | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
-    return {"creationflags": flags} if flags else {}
 
 
 def _wait_for_browser_debug_ready_or_exit(
@@ -1101,7 +888,7 @@ def launch_chrome_debug(
             with _open_launch_stderr_log(stderr_path) as stderr_file:
                 proc = subprocess.Popen(
                     [candidate, *_chrome_debug_args(port)],
-                    stdout=subprocess.DEVNULL, stderr=stderr_file, **_detach_kwargs(system))
+                    stdout=subprocess.DEVNULL, stderr=stderr_file, start_new_session=True)
         except Exception as exc:
             result.attempts.append(LaunchAttempt(binary=candidate, state="spawn-failed"))
             logger.info("browser debug launch: failed to spawn %s: %s", candidate, exc)

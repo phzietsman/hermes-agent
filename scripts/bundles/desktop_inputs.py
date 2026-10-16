@@ -78,7 +78,7 @@ def identity_environment(request: BuildRequest, variant: str, inherited: Mapping
 
 def validate_builder_identity(request: BuildRequest, args: list[str]) -> None:
     if request.channel_request is not None and any(
-        re.match(r"(?:-c|--config)\.extraMetadata\.(?:version|shortVersion|shortVersionWindows)=", arg)
+        re.match(r"(?:-c|--config)\.extraMetadata\.(?:version|shortVersion)=", arg)
         for arg in args
     ):
         raise ValueError("channel package versions come only from the admitted request")

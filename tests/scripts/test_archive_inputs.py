@@ -39,7 +39,7 @@ def test_target_selection_preserves_multi_archive_and_any_fallback(tmp_path):
         return {"url": f"https://upstream.test/{name}.zip", "sha256": hashlib.sha256(name.encode()).hexdigest()}
     packages = {
         "engine": {"version": "1", "artifacts": {
-            "win32-x64": [row("engine"), row("cudart")], "linux-x64": row("linux"),
+            "darwin-arm64": [row("engine"), row("cudart")], "linux-x64": row("linux"),
         }},
         "portable": {"version": "1", "artifacts": {"any": row("portable")}},
         "container": {"version": "1", "artifacts": {"linux-arm64-bionic": {
@@ -48,8 +48,8 @@ def test_target_selection_preserves_multi_archive_and_any_fallback(tmp_path):
     }
     lib = row("lib")
     write_pins(tmp_path, packages, {"libs": {"lib": lib}, "licenses": row("license")})
-    win = inputs.pinned_inputs(tmp_path, target="win32-x64")
-    assert {p.sha256 for p in win} == {row(n)["sha256"] for n in ("engine", "cudart", "portable")}
+    mac = inputs.pinned_inputs(tmp_path, target="darwin-arm64")
+    assert {p.sha256 for p in mac} == {row(n)["sha256"] for n in ("engine", "cudart", "portable")}
     bionic = inputs.pinned_inputs(tmp_path, target="linux-arm64-bionic")
     assert {p.sha256 for p in bionic} == {row(n)["sha256"] for n in ("portable", "lib", "license")}
     all_pins = inputs.pinned_inputs(tmp_path)

@@ -4,7 +4,7 @@ description: "Read the live Hermes desktop DOM/CSS over CDP."
 version: 1.0.0
 author: Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [desktop, electron, cdp, dom, ui-verification, self-inspection]

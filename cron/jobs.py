@@ -16,16 +16,7 @@ import os
 import re
 import uuid
 
-# Cross-process advisory locking for jobs.json: fcntl (Unix) or msvcrt (Windows). If both are
-# absent, _jobs_lock() degrades to in-process locking rather than failing.
-try:
-    import fcntl
-except ImportError:  # pragma: no cover - non-Unix
-    fcntl = None
-try:
-    import msvcrt
-except ImportError:  # pragma: no cover - non-Windows
-    msvcrt = None
+import fcntl
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from hermes_constants import get_hermes_home
@@ -251,34 +242,25 @@ def _jobs_lock_file() -> Path:
     return _current_cron_store().cron_dir / ".jobs.lock"
 
 
-def _acquire_flock(lock_fd, timeout: float) -> Optional[bool]:
-    """Bounded exclusive lock: True when acquired, False on timeout, None when no backend exists. A
-    blocking flock(LOCK_EX) taken under the in-process lock would let a wedged sibling freeze
-    EVERY cron function forever, so poll LOCK_NB against a deadline; the caller picks the
-    degraded mode."""
-    if fcntl is not None:
-        deadline = time.monotonic() + timeout
-        while True:
-            try:
-                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                return True
-            except (OSError, IOError):
-                if time.monotonic() >= deadline:
-                    return False
-                time.sleep(0.1)
-    if msvcrt is not None:
-        getattr(msvcrt, "locking")(lock_fd.fileno(), getattr(msvcrt, "LK_LOCK"), 1)
-        return True
-    return None
+def _acquire_flock(lock_fd, timeout: float) -> bool:
+    """Bounded exclusive lock: True when acquired, False on timeout. A blocking flock(LOCK_EX)
+    taken under the in-process lock would let a wedged sibling freeze EVERY cron function
+    forever, so poll LOCK_NB against a deadline; the caller picks the degraded mode."""
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (OSError, IOError):
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.1)
 
 
 def _release_flock(lock_fd) -> None:
     """Unlock (best effort) and close a lock file opened for ``_acquire_flock``."""
     try:
-        if fcntl is not None:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        elif msvcrt is not None:
-            getattr(msvcrt, "locking")(lock_fd.fileno(), getattr(msvcrt, "LK_UNLCK"), 1)
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
     except (OSError, IOError):
         pass
     finally:
@@ -290,8 +272,7 @@ def _jobs_lock():
     """Serialize a load_jobs→modify→save_jobs critical section: in-process RLock (parallel tick
     threads) plus a cross-process flock on ``<cron dir>/.jobs.lock`` (gateway vs. CLI writes —
     otherwise a `cron pause` could be clobbered and keep firing). Nested calls in one thread
-    reuse the held lock. Without a flock backend, or on flock timeout (logged loudly), it
-    degrades to in-process-only locking: a briefly torn cross-process write beats a dead
+    reuse the held lock. On flock timeout (logged loudly) it degrades to in-process-only locking: a briefly torn cross-process write beats a dead
     scheduler."""
     depth = getattr(_jobs_lock_state, "depth", 0)
     if depth:
@@ -315,7 +296,7 @@ def _jobs_lock():
                 ensure_dirs()
                 lock_fd = open(_jobs_lock_file(), "a+", encoding="utf-8-sig")
                 lock_fd.seek(0)
-                if _acquire_flock(lock_fd, _JOBS_LOCK_TIMEOUT_SECONDS) is False:
+                if not _acquire_flock(lock_fd, _JOBS_LOCK_TIMEOUT_SECONDS):
                     logger.error(
                         "Timed out after %.0fs waiting for the cron "
                         "jobs lock (%s) — another process is holding "
@@ -370,12 +351,9 @@ def _fire_job_lock(job_id: str):
         try:
             lock_fd = open(lock_path, "a+", encoding="utf-8")
             lock_fd.seek(0)
-            result = _acquire_flock(lock_fd, _JOBS_LOCK_TIMEOUT_SECONDS)
-            if result is None:  # pragma: no cover - supported platforms provide one backend
-                logger.error("No cross-process lock backend for cron fire fence")
-            elif not result:
+            acquired = _acquire_flock(lock_fd, _JOBS_LOCK_TIMEOUT_SECONDS)
+            if not acquired:
                 logger.error("Timed out waiting for fire fence %s; failing closed", lock_path)
-            acquired = bool(result)
         except (OSError, IOError) as exc:
             logger.error("Cron fire fence unavailable for %s: %s", job_id, exc)
 
@@ -590,18 +568,14 @@ def _secure_file(path: Path):
 
 
 def _preserve_file_ownership(path: Path, before: Optional[os.stat_result]) -> None:
-    """Restore a rewritten file's previous owner (POSIX, root writer only): atomic replace makes the
+    """Restore a rewritten file's previous owner (root writer only): atomic replace makes the
     file owned by the writer's euid, so a root CLI write (e.g. ``docker exec``) against the
     unprivileged gateway's store would flip jobs.json to root:root 0600 and lock the ticker out."""
-    if before is None or os.name != "posix":
-        return
-    geteuid = getattr(os, "geteuid", None)
-    getegid = getattr(os, "getegid", None)
-    if geteuid is None or getegid is None:
+    if before is None:
         return
     try:
-        euid = geteuid()
-        if euid != 0 or (before.st_uid, before.st_gid) == (euid, getegid()):
+        euid = os.geteuid()
+        if euid != 0 or (before.st_uid, before.st_gid) == (euid, os.getegid()):
             return  # unprivileged writer, or already ours before the rewrite
         os.chown(path, before.st_uid, before.st_gid)
     except OSError as e:

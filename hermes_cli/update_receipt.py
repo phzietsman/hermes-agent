@@ -418,7 +418,7 @@ def record_followup(step: str, reason: str, *, retry: str = "the next launch or 
     The code already committed, so the update does not fail; the step's own obligation (the
     source tail, the fleet restart, the launch-time bytecode sweep) stays armed and the next
     launch or ``hermes update`` retries it. Never raises. The printed line is a protocol: the
-    Desktop hand-offs (scripts/desktop-update/posix.sh, windows.ps1) parse ``Update follow-up
+    Desktop hand-off (scripts/desktop-update/posix.sh) parses ``Update follow-up
     '<step>' did not finish:`` to report every owed step, so keep it one whole line.
     """
     reason = " ".join(str(reason).split())[:500] or "failed"
@@ -569,8 +569,8 @@ def _started_by_handoff_partner() -> bool:
     For an exit before the receipt opens, where this process may NOT hold the lock: at the
     update-lock refusal the marker belongs to whichever update holds it, so "a pid other than
     ours" (update_cmd._record_update_initiator, which runs under the lock) would call every
-    refusal Desktop-started. The claim is ours only when it names us as its delegate (the posix and
-    Windows hand-offs write that line before the update runs) or names our hand-off partner on
+    refusal Desktop-started. The claim is ours only when it names us as its delegate (the posix
+    hand-off writes that line before the update runs) or names our hand-off partner on
     line 1 or the delegate line (``HERMES_UPDATE_HANDOFF_PID``, the Tauri updater; our parent, a
     launcher between the hand-off and us). The marker is read raw: no liveness probe and no
     cleanup (those are lock policy, not a metrics side effect).

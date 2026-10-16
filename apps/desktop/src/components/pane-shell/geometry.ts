@@ -81,7 +81,7 @@ export function windowControlsRect(connection: ConnectionLike | null, viewportWi
   }
 
   // macOS: traffic lights on the top-left. windowButtonPosition === null means
-  // the platform has no left-side controls at all (Windows/Linux w/o overlay).
+  // the platform has no left-side controls at all (Linux w/o overlay).
   const pos = connection?.windowButtonPosition
 
   if (pos === null) {

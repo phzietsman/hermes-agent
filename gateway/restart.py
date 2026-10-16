@@ -139,10 +139,7 @@ def read_launchd_exit_timeout_s(
     if not label:
         return None
     if uid is None:
-        getuid = getattr(os, "getuid", None)  # absent on Windows; label is None there anyway
-        if getuid is None:
-            return None
-        uid = getuid()
+        uid = os.getuid()
     domain = "system" if uid == 0 else f"gui/{uid}"
     try:
         proc = run(
@@ -246,8 +243,8 @@ def is_gateway_supervisor_process(environ: Mapping[str, str] | None = None) -> b
     systemd ``INVOCATION_ID``, launchd ``XPC_SERVICE_NAME`` (or the wrapper-forwarded
     ``HERMES_LAUNCHD_LABEL`` the grandchild sees), the s6 sentinel, or the explicit
     ``--external-supervisor`` opt-in. The generalized ``HERMES_SUPERVISED_CHILD`` launcher marker is
-    deliberately NOT read here: the Windows Scheduled-Task launcher sets it without a restart policy
-    (#113670), and routing its ``/restart`` through exit 75 would leave the gateway dead.
+    deliberately NOT read here: it promises no restart policy (#113670), and routing ``/restart``
+    through exit 75 without one would leave the gateway dead.
     """
     env = os.environ if environ is None else environ
     xpc_service = env.get("XPC_SERVICE_NAME", "")
@@ -260,8 +257,7 @@ def is_supervised_gateway_launch(environ: Mapping[str, str] | None = None) -> bo
     """Return whether this gateway was launched by a generated service/launcher rather than a shell.
 
     Superset of :func:`is_gateway_supervisor_process` that also honours ``HERMES_SUPERVISED_CHILD``,
-    the marker every generated launcher exports (systemd unit, launchd plist, s6 run script, Windows
-    Scheduled Task — see ``hermes_cli.main._apply_profile_override``). This is the identity the
+    the marker every generated launcher exports (systemd unit, launchd plist, s6 run script — see ``hermes_cli.main._apply_profile_override``). This is the identity the
     self-targeting guards key on: a kill or lifecycle command issued from inside such a gateway takes
     down the process hosting the caller with nobody at a terminal to bring it back (#113667).
     """

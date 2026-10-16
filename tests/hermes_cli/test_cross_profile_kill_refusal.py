@@ -28,21 +28,15 @@ def _spawn_gateway_lookalike(bin_dir: Path, lock_path: Path) -> subprocess.Popen
     bin_dir.mkdir(parents=True, exist_ok=True)
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     script = bin_dir / "hermes"
-    if sys.platform == "win32":
-        body = "import time\ntime.sleep(120)\n"
-    else:
-        body = (
-            "import fcntl, time\n"
-            f"fh = open({str(lock_path)!r}, 'a+')\n"
-            "fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)\n"
-            "time.sleep(120)\n"
-        )
+    body = (
+        "import fcntl, time\n"
+        f"fh = open({str(lock_path)!r}, 'a+')\n"
+        "fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)\n"
+        "time.sleep(120)\n"
+    )
     script.write_text(f"#!{sys.executable}\n{body}", encoding="utf-8")
-    if sys.platform != "win32":
-        script.chmod(0o755)
-        cmd = [str(script), "gateway", "run"]
-    else:
-        cmd = [sys.executable, str(script), "gateway", "run"]
+    script.chmod(0o755)
+    cmd = [str(script), "gateway", "run"]
     proc = subprocess.Popen(
         cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )

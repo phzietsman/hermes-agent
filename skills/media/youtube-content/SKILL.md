@@ -4,7 +4,7 @@ description: "YouTube transcripts to summaries, threads, blogs."
 version: 1.0.0
 author: Teknium (teknium1), Hermes Agent
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [YouTube, Video, Transcripts, Media]
@@ -36,7 +36,7 @@ source ./activate
 python -c "import youtube_transcript_api; print(youtube_transcript_api.__file__)"
 ```
 
-On Windows, use `. .\activate.ps1` instead of `source ./activate`. If the terminal
+If the terminal
 runs on a different host or in a sandbox, use an explicitly isolated helper
 environment there, not the agent's production environment. Run every command
 below with the interpreter whose import check succeeded.

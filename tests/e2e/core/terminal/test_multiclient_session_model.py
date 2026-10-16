@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import random
 import re
-import sys
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -39,8 +38,6 @@ from tests.fakes.fake_llm_provider import Text
 
 # Not marked ``integration`` (that marker means external services and is deselected by addopts): the backend is
 # loopback-only. ``tests/e2e`` is outside default discovery; run with ``scripts/run_tests.sh --include-integration``.
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX process-group lifecycle for the spawned backend")
-
 CANARY_RE = re.compile(r"cnry-s\d+-\d{3}")
 FILLER = " ".join(["stream"] * 45)
 ABSENCE_S = 3.0  # far below the 30 s WS send deadline and the reaper's activity-stale threshold

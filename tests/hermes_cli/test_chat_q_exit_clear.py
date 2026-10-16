@@ -142,11 +142,9 @@ def _fallback_cli():
     return SimpleNamespace(), ExplodingStdout()
 
 
-@pytest.mark.platforms("posix")  # POSIX `clear` path; the nt path has its own test
 def test_clear_fallback_spawns_no_shell(monkeypatch):
-    """#116904: fallback used os.system() — a shell spawn (console flash on Windows,
-    silent no-op without `clear`). It must now be an argv subprocess.run of the
-    resolved `clear` binary, with the real (0 off-Windows) hide flags."""
+    """#116904: fallback used os.system() — a shell spawn (silent no-op without
+    `clear`). It must now be an argv subprocess.run of the resolved `clear` binary."""
     import subprocess as sp
 
     import hermes_cli.cli_session_mixin as mixin_mod
@@ -161,33 +159,11 @@ def test_clear_fallback_spawns_no_shell(monkeypatch):
 
     mixin_mod.CLISessionMixin._clear_terminal_on_exit(SimpleNamespace())
 
-    assert calls == [(["/usr/bin/clear"], {"stdin": sp.DEVNULL, "creationflags": 0, "check": False})]
+    assert calls == [(["/usr/bin/clear"], {"stdin": sp.DEVNULL, "check": False, "timeout": 5})]
 
 
-@pytest.mark.platforms("windows")
-def test_clear_fallback_windows_runs_cls_with_hidden_console(monkeypatch):
-    """Native Windows: `cls` is a cmd builtin, so the argv is cmd /c cls, run with the
-    real windows_hide_flags() (CREATE_NO_WINDOW) so no console flashes (#116904)."""
-    import subprocess as sp
-
-    import hermes_cli.cli_session_mixin as mixin_mod
-    from hermes_cli._subprocess_compat import windows_hide_flags
-
-    calls = []
-    monkeypatch.setattr(sp, "run", lambda argv, **kwargs: calls.append((argv, kwargs)))
-
-    _, stdout = _fallback_cli()
-    monkeypatch.setattr(mixin_mod.sys, "stdout", stdout)
-
-    mixin_mod.CLISessionMixin._clear_terminal_on_exit(SimpleNamespace())
-
-    assert windows_hide_flags() == sp.CREATE_NO_WINDOW
-    assert calls == [(["cmd", "/c", "cls"], {"stdin": sp.DEVNULL, "creationflags": sp.CREATE_NO_WINDOW, "check": False})]
-
-
-@pytest.mark.platforms("posix")  # POSIX `clear` lookup
 def test_clear_fallback_skips_spawn_when_no_clear(monkeypatch):
-    """POSIX without `clear` on PATH: skip the spawn entirely instead of letting a
+    """Without `clear` on PATH: skip the spawn entirely instead of letting a
     shell swallow the failure (#116904's silent no-op)."""
     import hermes_cli.cli_session_mixin as mixin_mod
 

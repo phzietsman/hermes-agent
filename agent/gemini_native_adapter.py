@@ -53,7 +53,7 @@ _STANDARD_KEY_GUIDANCE = (
     "September 2026. Open https://aistudio.google.com/api-keys, check the key's type and status, and create a "
     "replacement Gemini API key (or, as a temporary bridge, restrict the Standard key to "
     "generativelanguage.googleapis.com). Then update GEMINI_API_KEY / GOOGLE_API_KEY in ~/.hermes/.env, "
-    "delete any leftover Windows/system copy of those variables, and restart. A stale shell key can hide "
+    "delete any leftover system copy of those variables, and restart. A stale shell key can hide "
     "the .env value. Details: https://ai.google.dev/gemini-api/docs/api-key"
 )
 # Google issues ``AQ.…`` keys for both AI Studio and Vertex express mode; each surface only accepts

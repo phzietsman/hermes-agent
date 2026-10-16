@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import subprocess
-import sys
-import textwrap
 from types import SimpleNamespace
 
 import pytest
@@ -92,42 +89,6 @@ def test_explicit_values_disable(monkeypatch, disabled):
         {"runtime": {"nofile_soft_limit": disabled}}
     ) is False
     assert fake_resource.set_calls == []
-
-
-def test_unsupported_platform_is_a_safe_noop(monkeypatch):
-    monkeypatch.setattr(resource_limits, "_resource", None)
-
-    assert resource_limits.apply_nofile_soft_limit({}) is False
-
-
-def test_fresh_process_import_without_posix_resource_is_a_safe_noop():
-    code = textwrap.dedent(
-        """
-        import importlib.util
-        import pathlib
-        import sys
-
-        sys.modules["resource"] = None
-        module_path = pathlib.Path(sys.argv[1])
-        spec = importlib.util.spec_from_file_location(
-            "hermes_cli._resource_limits_without_posix_resource",
-            module_path,
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        assert module._resource is None
-        assert module.apply_nofile_soft_limit({}) is False
-        """
-    )
-
-    subprocess.run(
-        [sys.executable, "-c", code, resource_limits.__file__],
-        check=True,
-        cwd=Path(resource_limits.__file__).resolve().parents[1],
-        capture_output=True,
-        text=True,
-    )
 
 
 @pytest.mark.parametrize("invalid", [True, -1, 4096.0, "4096", object()])

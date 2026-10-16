@@ -16,7 +16,6 @@ import {
   reviewList,
   SIMPLE_GIT_UNSAFE_BINARY_WARN
 } from './git-review-ops'
-import type * as NoConsoleGit from './no-console-git'
 
 // `runGh` shells to the `gh` CLI via execFile. Mock it so reviewCreatePr's gh
 // invocation is controllable (real `gh` may be absent or slow in CI) while the
@@ -54,17 +53,17 @@ test('resolveRenamePath: plain path is unchanged', () => {
 })
 
 test('gitFor accepts an internally resolved git binary path containing spaces', () => {
-  assert.doesNotThrow(() => gitFor(process.cwd(), 'C:\\Program Files\\Git\\cmd\\git.exe'))
+  assert.doesNotThrow(() => gitFor(process.cwd(), '/opt/Program Files/Git/bin/git'))
 })
 
 test('gitFor accepts internally resolved git paths with restricted non-space characters', () => {
   // simple-git's whitelist is `/^([a-z]:)?([a-z0-9/.\_~-]+)$/i`, so parentheses
-  // (`Program Files (x86)`), `+`, and accented profile dirs (`C:\Users\João\...`)
+  // (`Git (x86)`), `+`, and accented profile dirs (`/Users/João/...`)
   // are rejected exactly like a space — a `/\s/` guess still throws on them.
   const restrictedBinaries = [
-    String.raw`C:\Git(x86)\cmd\git.exe`,
-    String.raw`C:\tools\git+portable\cmd\git.exe`,
-    String.raw`C:\Users\João\AppData\Local\hermes\git\cmd\git.exe`
+    '/opt/Git(x86)/bin/git',
+    '/opt/tools/git+portable/bin/git',
+    '/Users/João/.hermes/git/bin/git'
   ]
 
   for (const binary of restrictedBinaries) {
@@ -72,36 +71,10 @@ test('gitFor accepts internally resolved git paths with restricted non-space cha
   }
 })
 
-test('gitFor accepts a Windows no-console host tuple with restricted characters', async () => {
-  vi.resetModules()
-  vi.doMock('./no-console-git', async importOriginal => {
-    const actual = await importOriginal<typeof NoConsoleGit>()
-
-    return {
-      ...actual,
-      windowsGitHost: () => ({
-        isWindows: true,
-        pythonBin: String.raw`C:\Tools\python-3.14+build\python.exe`,
-        scriptPath: String.raw`C:\Hermes\hermes-no-console-git.py`
-      })
-    }
-  })
-
-  try {
-    const { gitFor: gitForWithHostTuple } = await import('./git-review-ops')
-
-    assert.doesNotThrow(() => gitForWithHostTuple(process.cwd(), 'git'))
-  } finally {
-    vi.doUnmock('./no-console-git')
-    vi.resetModules()
-  }
-})
-
 test('gitFor suppresses only the known custom-binary warning and restores console.warn', () => {
-  const spacedBin = String.raw`C:\Program Files\Git\cmd\git.exe`
-  // `windowsGitHost()` resolves nothing in this process (no configured roots, no
-  // HERMES_DESKTOP_PYTHON), so `gitBin` itself is what simple-git validates — the
-  // spaced `Program Files` path, which warns once per factory call.
+  const spacedBin = '/opt/Program Files/Git/bin/git'
+  // `gitBin` itself is what simple-git validates — the spaced path, which warns
+  // once per factory call.
   const warnings: unknown[][] = []
   const originalWarn = console.warn
 

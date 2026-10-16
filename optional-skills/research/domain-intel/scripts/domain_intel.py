@@ -11,7 +11,7 @@ Usage:
     python domain_intel.py bulk example.com github.com google.com --checks ssl,dns
 
 All output is structured JSON. No dependencies beyond Python stdlib.
-Works on Linux, macOS, and Windows.
+Works on Linux and macOS.
 """
 
 import json

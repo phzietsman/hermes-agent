@@ -6,9 +6,7 @@ when ``~/.bash_profile`` contained ``exec /bin/zsh -l``.
 """
 
 import os
-import shutil
 import subprocess
-import time
 from unittest.mock import patch
 
 import pytest
@@ -25,7 +23,7 @@ def _pid_alive(pid: int) -> bool:
             return False
     except ImportError:
         try:
-            os.kill(pid, 0)  # windows-footgun: ok — psutil fallback only on POSIX hosts without it
+            os.kill(pid, 0)
         except OSError:
             return False
         return True
@@ -80,37 +78,9 @@ class TestFindShellPrefersUserShell:
             assert _find_shell() == _find_bash()
 
 
-class TestFindShellWindowsBehavior:
-    """On Windows, _find_shell always delegates to _find_bash."""
-
-    @pytest.mark.platforms("windows")
-    def test_windows_ignores_shell_env(self):
-        """On Windows, $SHELL is ignored — _find_shell delegates to _find_bash.
-
-        Windows-only: faking ``_IS_WINDOWS`` selected the branch but left
-        ``_find_bash`` resolving a POSIX bash, so the equality proved nothing
-        about Git-Bash resolution on the real host.
-        """
-        # Even if SHELL is set, it should be ignored on Windows
-        with patch.dict(os.environ, {"SHELL": "/usr/bin/zsh"}):
-            result = _find_shell()
-            assert result == _find_bash()
-
-
 class TestFindBashCollapsedToPmShell:
-    """_find_bash is now a thin wrapper over pm.shell(); the Windows
-    candidate ladder (HERMES_GIT_BASH_PATH → %LOCALAPPDATA%\\hermes\\git →
-    Program Files) and the ASLR diagnostic were deleted — the store is the
+    """_find_bash is a thin wrapper over pm.shell(); the store is the
     authority on bundled bash."""
-
-    @pytest.mark.platforms("windows")
-    def test_delegates_to_pm_shell(self, monkeypatch):
-        """_find_bash returns whatever pm.shell() resolves (store bash or
-        provisioned PATH)."""
-        monkeypatch.setattr(
-            "pm.shell.bash", lambda: r"C:\store\tools\git-x\usr\bin\bash.exe"
-        )
-        assert _find_bash() == r"C:\store\tools\git-x\usr\bin\bash.exe"
 
     def test_raises_when_pm_shell_finds_nothing(self, monkeypatch):
         """A store with no bash (and no PATH bash) surfaces a clear error

@@ -13,7 +13,6 @@ differences) Windows.
 """
 
 import json
-import os
 import shlex
 import subprocess
 import sys
@@ -61,8 +60,6 @@ def _python_copy_command(output_placeholder: str = "{output_path}") -> str:
 
 def _shell_command(*args: str) -> str:
     """Return a shell command string for subprocess.Popen(shell=True)."""
-    if os.name == "nt":
-        return subprocess.list2cmdline(list(args))
     return " ".join(shlex.quote(str(arg)) for arg in args)
 
 
@@ -300,12 +297,11 @@ class TestRenderCommandTtsTemplate:
             placeholders,
         )
         # The injection payload must not appear unquoted in the rendered
-        # command. On POSIX shlex.quote wraps the value in single quotes.
-        if os.name != "nt":
-            assert "'$(whoami)'" in rendered or "'\\''" in rendered
-            assert "; rm -rf /" not in rendered.replace(
-                "'/tmp/out; rm -rf /'", "",
-            )
+        # command: shlex.quote wraps the value in single quotes.
+        assert "'$(whoami)'" in rendered or "'\\''" in rendered
+        assert "; rm -rf /" not in rendered.replace(
+            "'/tmp/out; rm -rf /'", "",
+        )
 
     def test_preserves_shell_quoting_style(self):
         placeholders = {
@@ -519,74 +515,7 @@ class TestCommandTtsEnvPassthrough:
 
 
 class TestCommandProviderSpawnGroupKwargs:
-    """The command-provider shell's process-group/no-console spawn kwargs.
-
-    On Windows the spawn routes through ``cmd.exe`` (``shell=True``); without
-    ``CREATE_NO_WINDOW`` that child allocates a visible console window flash on
-    every provider run from a windowless host (pythonw gateway, TUI, Desktop).
-    The platform branch is keyed on ``os.name``, so the pure helper takes the
-    platform as data (assertable on every host) and the spawn-site tests run
-    only where the branch is real (``platforms`` gating).
-    """
-
-    def test_nt_branch_hides_the_console_window(self, monkeypatch):
-        from hermes_cli import _subprocess_compat
-        from tools.tts_command_provider import provider_popen_group_kwargs
-
-        # Pin the compat module's host probe so the nt data branch is assertable
-        # on every host (the helper caches IS_WINDOWS from the real platform).
-        monkeypatch.setattr(_subprocess_compat, "IS_WINDOWS", True)
-        kwargs = provider_popen_group_kwargs("nt")
-        # CREATE_NEW_PROCESS_GROUP (0x200) | CREATE_NO_WINDOW (0x08000000):
-        # group so the idle-timeout kill can signal the tree, no window so
-        # the cmd.exe shim doesn't flash a console.
-        assert kwargs["creationflags"] == 0x08000000 | 0x00000200
-        assert "start_new_session" not in kwargs
-
-    def test_nt_branch_matches_the_shared_detach_bundle(self, monkeypatch):
-        from hermes_cli import _subprocess_compat
-        from tools.tts_command_provider import provider_popen_group_kwargs
-
-        monkeypatch.setattr(_subprocess_compat, "IS_WINDOWS", True)
-        assert provider_popen_group_kwargs("nt")["creationflags"] == (
-            _subprocess_compat.windows_detach_flags_without_breakaway()
-        )
-
-    def test_posix_branch_uses_start_new_session(self):
-        from tools.tts_command_provider import provider_popen_group_kwargs
-
-        kwargs = provider_popen_group_kwargs("posix")
-        assert kwargs == {"start_new_session": True}
-
-    @pytest.mark.platforms("windows")
-    def test_popen_kwargs_hide_console_window_windows(self, monkeypatch):
-        captured = {}
-
-        class _Stream:
-            def read(self, size):
-                return ""
-
-        class Proc:
-            returncode = 0
-            stdout = _Stream()
-            stderr = _Stream()
-
-            def wait(self, timeout=None):
-                return 0
-
-        def fake_popen(command, **kwargs):
-            captured.update(kwargs)
-            return Proc()
-
-        monkeypatch.setattr("tools.tts_command_provider.subprocess.Popen", fake_popen)
-
-        result = _run_command_tts("echo hi", timeout=1)
-
-        assert result.returncode == 0
-        # Own process group (tree-kill on idle timeout) AND a hidden console.
-        assert captured["creationflags"] & 0x08000000, "CREATE_NO_WINDOW missing"
-        assert captured["creationflags"] & 0x00000200, "CREATE_NEW_PROCESS_GROUP missing"
-        assert "start_new_session" not in captured
+    """The command-provider shell runs in its own session so the idle-timeout kill can signal the tree."""
 
     @pytest.mark.platforms("posix")
     def test_popen_kwargs_start_new_session_posix(self, monkeypatch):
@@ -614,39 +543,3 @@ class TestCommandProviderSpawnGroupKwargs:
 
         assert result.returncode == 0
         assert captured["start_new_session"] is True
-        assert "creationflags" not in captured
-
-
-class TestIdleKillConsoleHidden:
-    """The idle-timeout process-tree kill must not flash a console either.
-
-    On Windows ``terminate_command_process_tree`` shells out to ``taskkill``
-    (a console-subprocess) without ``CREATE_NO_WINDOW`` — the same bug class
-    as the provider spawn itself, one code path later.
-    """
-
-    @pytest.mark.platforms("windows")
-    def test_idle_kill_taskkill_hides_console_windows(self, monkeypatch):
-        import tools.tts_command_provider as mod
-
-        runs = []
-        real_run = subprocess.run
-
-        def fake_run(cmd, **kwargs):
-            if "taskkill" in cmd:
-                runs.append(kwargs)
-            return real_run(["cmd", "/c", "exit", "0"], **{k: v for k, v in kwargs.items() if k != "capture_output"})
-
-        class Proc:
-            pid = 4242
-            returncode = 0
-
-            def poll(self):
-                return None
-
-        monkeypatch.setattr(mod.subprocess, "run", fake_run)
-
-        mod.terminate_command_process_tree(Proc())
-
-        assert runs, "taskkill was not invoked"
-        assert runs[0].get("creationflags", 0) & 0x08000000, "CREATE_NO_WINDOW missing on taskkill"

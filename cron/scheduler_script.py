@@ -1,4 +1,4 @@
-"""Cron pre-run script execution: timeouts, Windows venv bootstrap, process-tree termination,
+"""Cron pre-run script execution: timeouts, managed-venv bootstrap, process-tree termination,
 and the claim-heartbeat thread that keeps a long script's run claim alive.
 
 Split out of ``cron.scheduler``. Import names from this module directly (``cron.scheduler`` only
@@ -23,8 +23,6 @@ from cron.env_settings import cron_env_setting
 from cron.jobs import _ensure_cron_dir
 from pathlib import Path
 from typing import Any, Callable, Optional, TYPE_CHECKING
-
-from hermes_cli._subprocess_compat import windows_hide_flags
 
 if TYPE_CHECKING:
     from cron.scheduler import _CancelEventLike
@@ -104,17 +102,6 @@ def _get_session_db_timeout() -> float:
     return 10.0 if resolved is None else resolved
 
 
-def _read_windows_pyvenv_cfg(venv_dir: Path) -> dict[str, str]:
-    try:
-        lines = (venv_dir / "pyvenv.cfg").read_text(encoding="utf-8-sig").splitlines()
-    except OSError:
-        return {}
-    return {
-        key.strip().lower(): value.strip()
-        for key, value in (raw.split("=", 1) for raw in lines if "=" in raw)
-    }
-
-
 # Mirrors ``python script.py``: sys.path[0] is the script's directory (none under -P), a real
 # ``__main__`` module that outlives the body (atexit/threads can still pickle its classes; a
 # runpy temp module is swapped out when the body returns), plus the live checkout next.
@@ -153,7 +140,7 @@ def _posix_cron_script_argv(script: Path) -> tuple[list[str], dict[str, str]]:
     repo = Path(__file__).resolve().parents[1]
     if resolve_store_python(repo) is None:
         return [sys.executable, str(script)], {}
-    # project_python, not committed_venv as on Windows: a pre-PM venv selected before the first
+    # project_python, not committed_venv: a pre-PM venv selected before the first
     # commit runs on its OWN interpreter here, so there is no ABI mix (#122183).
     python = project_python(repo)
     if not python.is_file():
@@ -163,68 +150,11 @@ def _posix_cron_script_argv(script: Path) -> tuple[list[str], dict[str, str]]:
             {"HERMES_DISABLE_LAZY_INSTALLS": "1"})
 
 
-def _windows_cron_python_invocation(python_exe: str) -> tuple[str, dict[str, str]]:
-    """Hidden, output-capable Python invocation for Windows cron scripts. ``pythonw.exe`` loses
-    captured output; uv venv launchers can re-exec the base console python and flash a window
-    even with CREATE_NO_WINDOW, so run the base python directly with venv paths overlaid in env."""
-    if sys.platform != "win32":
-        return python_exe, {}
-
-    interpreter = _sched.Path(python_exe)
-    venv_dir = interpreter.parent.parent
-    env_overlay: dict[str, str] = {}
-
-    if interpreter.name.lower() == "pythonw.exe":
-        sibling = interpreter.with_name("python.exe")
-        if sibling.exists():
-            interpreter = sibling
-
-    from hermes_cli._launchers import resolve_store_python
-    from pm.environments import committed_venv, site_packages as dependency_site
-
-    repo = Path(__file__).resolve().parents[1]
-    managed_python = resolve_store_python(repo)
-    if managed_python is not None:
-        # Only the committed generation may overlay the store Python: ``selected_venv``
-        # falls back to the leftover pre-PM <root>/venv, a foreign ABI (#122183). With
-        # nothing committed, fall through so the handed venv keeps its own interpreter
-        # and site-packages (a bare store Python would die on its first import).
-        environment = committed_venv(repo)
-        if environment is not None:
-            return str(managed_python), {"PYTHONPATH": os.pathsep.join(
-                [str(repo), str(dependency_site(environment))])}
-
-    cfg = _read_windows_pyvenv_cfg(venv_dir)
-    home = cfg.get("home", "")
-    site_packages = venv_dir / "Lib" / "site-packages"
-    if "uv" in cfg and home:
-        base_python = _sched.Path(home) / "python.exe"
-        if base_python.exists() and site_packages.exists():
-            interpreter = base_python
-            env_overlay["VIRTUAL_ENV"] = str(venv_dir)
-            pythonpath_entries = [
-                str(_sched.Path(__file__).resolve().parents[1]), str(site_packages)]
-            existing_pythonpath = os.environ.get("PYTHONPATH", "")
-            if existing_pythonpath:
-                pythonpath_entries.append(existing_pythonpath)
-            env_overlay["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
-
-    return str(interpreter), env_overlay
-
-
 def _terminate_cron_script_process(proc: subprocess.Popen) -> None:
     """Best-effort hard stop of a cron script and every child it spawned."""
     if proc.poll() is not None:
         return
-    if sys.platform != "win32":
-        _terminate_process_group(proc)
-    else:
-        try:
-            subprocess.run(
-                ["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=10,
-                creationflags=windows_hide_flags(), check=False)
-        except (OSError, subprocess.TimeoutExpired):
-            proc.kill()
+    _terminate_process_group(proc)
     try:
         proc.wait(timeout=1.0)
     except subprocess.TimeoutExpired:
@@ -233,17 +163,17 @@ def _terminate_cron_script_process(proc: subprocess.Popen) -> None:
 
 
 def _terminate_process_group(proc: subprocess.Popen) -> None:
-    """POSIX: TERM the script's process group, then KILL if ANY member survived (a survivor holds
+    """TERM the script's process group, then KILL if ANY member survived (a survivor holds
     the pipe write ends open and the caller's communicate() would block on EOF forever)."""
     try:
         process_group = os.getpgid(proc.pid)
-        os.killpg(process_group, signal.SIGTERM)  # windows-footgun: ok — POSIX-only branch
+        os.killpg(process_group, signal.SIGTERM)
     except (ProcessLookupError, PermissionError, OSError):
         return
     with contextlib.suppress(subprocess.TimeoutExpired):
         proc.wait(timeout=1.0)
     try:
-        os.killpg(process_group, 0)  # windows-footgun: ok — POSIX-only branch
+        os.killpg(process_group, 0)
     except (ProcessLookupError, OSError):
         return
     with contextlib.suppress((ProcessLookupError, PermissionError, OSError)):
@@ -293,33 +223,6 @@ def _drain_script_pipes(proc: subprocess.Popen) -> None:
         proc.wait(timeout=5.0)
 
 
-def _windows_cron_bootstrap_argv(
-    python_exe: str, env_overlay: dict[str, str], script_path: str) -> list[str]:
-    """Bootstrap a cron script under the base interpreter with ``.pth`` support. Overlay mode puts
-    the venv on ``PYTHONPATH``, but ``.pth`` files are only processed by ``site.addsitedir()``, so
-    editable installs would be invisible; bootstrap via addsitedir + ``runpy.run_path`` (keeps
-    ``__file__``/``sys.path[0]`` semantics). Plain invocation if the venv is unresolvable."""
-    site_packages = next((Path(item) for item in env_overlay.get("PYTHONPATH", "").split(os.pathsep)
-                          if Path(item).name == "site-packages"),
-                         _sched.Path(env_overlay.get("VIRTUAL_ENV", "")) / "Lib" / "site-packages")
-    if not site_packages.is_dir():
-        # Warn: silent fallback would make "editable installs invisible" undiagnosable.
-        logger.warning(
-            "Windows cron script: venv site-packages %s not found; running "
-            "without .pth processing (editable installs may be unimportable)",
-            site_packages)
-        return [python_exe, script_path]
-    bootstrap = (
-        "import os, runpy, site, sys;"
-        f"site.addsitedir({str(site_packages)!r});"
-        "script = sys.argv[1];"
-        "sys.argv = [script] + sys.argv[2:];"
-        "sys.path.insert(0, os.path.dirname(os.path.abspath(script)));"
-        "runpy.run_path(script, run_name='__main__')"
-    )
-    return [python_exe, "-c", bootstrap, script_path]
-
-
 def _resolve_script_path(script_path: str) -> tuple[Optional[Path], Optional[str]]:
     """Validate a job script path; ``(path, None)`` or ``(None, error)``. Scripts MUST resolve
     inside HERMES_HOME/scripts/ (relative, absolute and ``~`` paths are all validated — path
@@ -328,14 +231,10 @@ def _resolve_script_path(script_path: str) -> tuple[Optional[Path], Optional[str
     _ensure_cron_dir(scripts_dir)
     scripts_dir_resolved = scripts_dir.resolve()
 
-    # Reject NUL eagerly: on Windows Path ops raise ValueError *after* expanduser so the try below
-    # would not catch it. str() first so the guard itself cannot raise on a non-str script_path.
-    # Same ingestion contract as cron.lifecycle_guard._expand_candidate_path: a NUL-bearing value can never
-    # name a real script, and on Windows the Path operations raise ValueError *after* expanduser (expanduser
-    # never expands "~user" there, so the try below never fires) — reject eagerly so both platforms fail
-    # cleanly instead of crashing the scheduler. str() first so the guard itself can never raise TypeError
-    # on a non-str script_path (e.g. a Path passed by a future caller) — the guard must be crash-proof even
-    # though every current call site passes a plain str (#86832 review).
+    # Same ingestion contract as cron.lifecycle_guard._expand_candidate_path: a NUL-bearing value can
+    # never name a real script, so reject it eagerly instead of letting a later Path op raise and
+    # crash the scheduler. str() first so the guard itself can never raise TypeError on a non-str
+    # script_path (#86832 review).
     if "\x00" in str(script_path):
         return None, f"Blocked: script path contains a NUL byte: {script_path!r}"
     try:
@@ -389,7 +288,7 @@ def _resolve_cron_interpreter(interpreter: str) -> tuple[Optional[str], Optional
         return None, f"Unable to resolve interpreter path {raw!r}: {exc}"
     if not stat.S_ISREG(mode):
         return None, f"Interpreter path is not a file: {resolved}"
-    if sys.platform != "win32" and not mode & 0o111:
+    if not mode & 0o111:
         return None, f"Interpreter is not executable: {resolved}"
     if not all(_INTERPRETER_IMAGE_RE.match(name) and not name.startswith("pythonw")
                for name in names):
@@ -402,17 +301,14 @@ def _script_argv(
 ) -> tuple[Optional[list[str]], dict[str, str], Optional[str]]:
     """``(argv, env_overlay, error)`` for a validated script. Interpreter by extension — the
     shebang is deliberately NOT honoured (small, auditable surface): ``.sh``/``.bash`` → bash,
-    else the job's ``interpreter`` when set, else a Python chosen by ``_posix_cron_script_argv``
-    / ``_windows_cron_python_invocation``. Interpreter selection reads PM's install records and
+    else the job's ``interpreter`` when set, else a Python chosen by ``_posix_cron_script_argv``. Interpreter selection reads PM's install records and
     may raise; callers run this inside their ``try``."""
     if path.suffix.lower() in {".sh", ".bash"}:
-        # which() finds Git Bash on Windows; None there → clear error instead of a "[WinError 2]".
         _bash = shutil.which("bash") or ("/bin/bash" if os.path.isfile("/bin/bash") else None)
         if _bash is None:
             return None, {}, (
                 f"Cannot run .sh/.bash script {path.name!r}: bash not found on PATH. "
-                "On Windows, install Git for Windows (which ships Git Bash) "
-                "or rewrite the script as Python (.py)."
+                "Install bash or rewrite the script as Python (.py)."
             )
         return [_bash, str(path)], {}, None
     if isinstance(interpreter, str) and interpreter.strip():
@@ -420,13 +316,8 @@ def _script_argv(
         # exist to run Hermes' own dependency venv and would shadow the user's packages.
         python_exe, err = _resolve_cron_interpreter(interpreter)
         return ([python_exe, str(path)] if python_exe else None), {}, err
-    if sys.platform != "win32":
-        argv, env_overlay = _posix_cron_script_argv(path)
-        return argv, env_overlay, None
-    python_exe, env_overlay = _windows_cron_python_invocation(sys.executable)
-    if env_overlay:
-        return _windows_cron_bootstrap_argv(python_exe, env_overlay, str(path)), env_overlay, None
-    return [python_exe, str(path)], env_overlay, None
+    argv, env_overlay = _posix_cron_script_argv(path)
+    return argv, env_overlay, None
 
 
 def _run_job_script(
@@ -453,25 +344,10 @@ def _run_job_script(
         if argv is None:
             return False, err
         from tools.environments.local import build_subprocess_env
-        # Lossy decode only: keep the platform-default (locale) encoding — gating ``encoding=``
-        # to win32 was deliberate (#66566: unconditional UTF-8 leaked into POSIX) — but
+        # Lossy decode only: keep the locale encoding (unconditional UTF-8 regressed #66566), but
         # ``errors=`` must not stay 'strict': one stray non-UTF-8 byte in the script's stdout
         # or stderr raises UnicodeDecodeError in communicate() and fails the whole run,
-        # discarding the output (#105582; the Windows branch decodes lossily per #45099).
-        popen_kwargs: dict[str, Any] = {
-            "start_new_session": True,
-            "errors": "replace",
-        }
-        if sys.platform == "win32":
-            popen_kwargs = {
-                "creationflags": windows_hide_flags()
-                | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
-                # Lossy UTF-8 decode — locale-mismatched bytes from the STT command must not raise in the
-                # reader threads on non-UTF-8 Windows (#45099).
-                # Lossy UTF-8 decode — locale-mismatched bytes from the TTS command must not raise in the
-                # reader threads on non-UTF-8 Windows (#45099).
-                "encoding": "utf-8",
-                "errors": "replace"}
+        # discarding the output (#105582).
         # The process env is the LAUNCH profile's. For a job owned by a routed profile, drop that
         # profile's .env residue from the base first (no-op for the launch profile's own jobs), then
         # overlay the routed profile's own scope (which never enters os.environ under multiplex
@@ -486,7 +362,8 @@ def _run_job_script(
         # gateway sessions (#69396).
         proc = subprocess.Popen(
             argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            cwd=workdir or str(path.parent), env=env, **popen_kwargs)
+            cwd=workdir or str(path.parent), env=env, start_new_session=True,
+            errors="replace")
         deadline = time.monotonic() + script_timeout
         while True:
             # Tree-kill on cancel AND timeout: killpg misses setsid grandchildren (watchdogs,

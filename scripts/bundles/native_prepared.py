@@ -21,14 +21,13 @@ def prepared_path(out: Path) -> Path:
 @contextmanager
 def preparation_lock(out: Path):
     from hermes_cli.runtime_state import _lock
-    from pm.filesystem import is_junction
 
     if out != out.resolve():
         raise ValueError("symlinked native output")
     for name in ("hermes-agent", "tools", "venv", "pm-runtime", "uv-cache", "bin",
                  "enabled-features.json", "manifest.json"):
         path = out / name
-        if path.is_symlink() or (path.exists() and is_junction(path)):
+        if path.is_symlink():
             raise ValueError(f"symlinked native output: {path}")
     with out.with_name(out.name + ".prepare.lock").open("a+b") as lock:
         if not _lock(lock.fileno(), wait=False):
@@ -68,12 +67,10 @@ def _owned(path: Path, out: Path) -> None:
 
 
 def _check_links(path: Path, out: Path) -> None:
-    from pm.filesystem import is_junction
-
     for directory, dirs, files in os.walk(path):
         for name in dirs + files:
             entry = Path(directory) / name
-            if entry.is_symlink() or is_junction(entry):
+            if entry.is_symlink():
                 _owned(entry, out)
 
 

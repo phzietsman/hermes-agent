@@ -27,15 +27,12 @@ def _exercise_relocated_pm_runtime(tmp_path, monkeypatch):
     shutil.copy2(source / "hermes_constants.py", repo / "hermes_constants.py")
     # Copy the base executable, not a venv's launcher. The test host provides
     # its stdlib; production's package stage provides the complete distribution.
-    python = root / "tools" / "python" / ("python.exe" if os.name == "nt" else "bin/python")
+    python = root / "tools" / "python" / "bin/python"
     python.parent.mkdir(parents=True)
-    if os.name == "nt":
-        shutil.copytree(Path(sys.base_prefix), python.parent, dirs_exist_ok=True)
-    else:
-        shutil.copy2(Path(sys._base_executable).resolve(), python)
-        # Relocatable PBS does not retain the host's stdlib prefix. Supply the
-        # fixture's promised host library tree, including libpython on macOS.
-        (python.parent.parent / "lib").symlink_to(Path(sys.base_prefix) / "lib", target_is_directory=True)
+    shutil.copy2(Path(sys._base_executable).resolve(), python)
+    # Relocatable PBS does not retain the host's stdlib prefix. Supply the
+    # fixture's promised host library tree, including libpython on macOS.
+    (python.parent.parent / "lib").symlink_to(Path(sys.base_prefix) / "lib", target_is_directory=True)
     stage = getattr(native, "stage_pm_runtime", None)
     assert callable(stage), "native payload has no isolated PM runtime stage"
     cache = tmp_path / "build-cache"
@@ -82,13 +79,7 @@ print(json.dumps(YAML(typ='safe').load('isolated: true')))
             assert link.exists()
 
 
-@pytest.mark.platforms("posix")
 def test_native_pm_runtime_survives_payload_move(tmp_path, monkeypatch):
-    _exercise_relocated_pm_runtime(tmp_path, monkeypatch)
-
-
-@pytest.mark.platforms("windows")
-def test_resident_pm_bypasses_windows_redirector_after_move(tmp_path, monkeypatch):
     _exercise_relocated_pm_runtime(tmp_path, monkeypatch)
 
 
@@ -100,7 +91,6 @@ def test_pm_builder_ignores_ambient_uv_configuration(tmp_path, monkeypatch, pois
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
     monkeypatch.setenv("HERMES_RUNTIME_DIR", str(tmp_path / "tools"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("APPDATA", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
     config = tmp_path / "uv.toml" if poison == "cwd" else tmp_path / "config/uv/uv.toml"
     config.parent.mkdir(parents=True, exist_ok=True)

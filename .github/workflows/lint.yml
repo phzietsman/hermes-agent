@@ -124,7 +124,7 @@ jobs:
     # Enforce the rules in pyproject.toml [tool.ruff.lint.select]. Currently
     # PLW1514 (unspecified-encoding) — catches bare ``open()`` /
     # ``read_text()`` / ``write_text()`` calls that default to locale
-    # encoding on Windows. Failure here blocks merge; the advisory
+    # encoding. Failure here blocks merge; the advisory
     # ``lint-diff`` job above runs independently so reviewers still get
     # the diff comment even when enforcement fails.
     name: ruff enforcement (blocking)
@@ -179,12 +179,9 @@ jobs:
       - name: Ratchet the PR against the base branch tip
         run: python scripts/check --only health --base HEAD^1
 
-  windows-footguns:
-    # Static guardrails on Windows-unsafe Python primitives — os.kill(pid, 0),
-    # os.killpg, os.setsid, signal.SIGKILL without getattr fallback,
-    # shebang scripts via subprocess, bare open() without encoding=, etc.
-    # See scripts/check-windows-footguns.py for the full rule list.
-    name: Windows footguns (blocking)
+  portability-guards:
+    # Static repo-hygiene guards: portable shebangs, no literal /tmp, config writer seam, etc.
+    name: Portability guards (blocking)
     if: inputs.python
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -197,13 +194,10 @@ jobs:
           cache-python: true
           prune-python-cache: true
 
-      - name: Run footgun checker
-        run: python scripts/check-windows-footguns.py --all
-
       - name: Require portable Bash shebangs
         run: python scripts/check_bash_shebangs.py
 
-      # /tmp is not portable (Termux has none, native Windows has none, macOS aliases it to
+      # /tmp is not portable (Termux has none, macOS aliases it to
       # /private/tmp, Linux mounts it as a small tmpfs). Production code resolves scratch space
       # through the scratch-dir helper; skills, docs and prompts must not teach the model a
       # literal /tmp either. `no-tmp: ok — <why>` marks a deliberate line; _BASELINE in the

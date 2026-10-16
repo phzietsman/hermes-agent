@@ -57,9 +57,8 @@ def _payload_file(root: Path, relative: str) -> Path:
 
 def _share_metadata(path: Path) -> None:
     # Atomic PM publication stays private; only packaged, non-secret records
-    # cross this boundary. Windows installers own their ACL policy.
-    if os.name != "nt":
-        path.chmod(0o644)
+    # cross this boundary.
+    path.chmod(0o644)
 
 
 def _discard_build_locks(root: Path) -> None:
@@ -97,7 +96,7 @@ def rehash_tools(root: Path) -> int:
 
 
 def seal_pm_runtime(root: Path, python: Path) -> dict:
-    """Record a resident PM runtime without Windows' CWD-bound redirector.
+    """Record a resident PM runtime that survives the payload moving.
 
     Sealed workers execute the base interpreter with -I -S and add only the
     recorded site directory. Its paths remain valid after the payload moves.
@@ -106,7 +105,7 @@ def seal_pm_runtime(root: Path, python: Path) -> dict:
     if not python.is_relative_to(root) or not python.is_file():
         raise ValueError(f"PM interpreter must belong to the payload: {python}")
     runtime = root / "pm-runtime"
-    sites = list(runtime.glob("lib/python*/site-packages")) + list(runtime.glob("Lib/site-packages"))
+    sites = list(runtime.glob("lib/python*/site-packages"))
     if len(sites) != 1:
         raise ValueError(f"PM dependency directory missing or ambiguous: {runtime}")
     marker = {
@@ -120,13 +119,10 @@ def seal_pm_runtime(root: Path, python: Path) -> dict:
              {"home", "executable", "base-executable", "base-prefix", "base-exec-prefix", "command"}]
     lines.insert(0, f"home = {os.path.relpath(python.parent, runtime)}")
     cfg.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    # A sealed runtime is not activated, and copied Windows redirectors cannot
-    # follow its relative home from arbitrary working directories.
-    bindir = runtime / ("Scripts" if os.name == "nt" else "bin")
-    for entry in bindir.iterdir():
-        if os.name == "nt" or not entry.is_symlink():
-            if entry.is_file():
-                entry.unlink()
+    # A sealed runtime is never activated: only its interpreter links stay.
+    for entry in (runtime / "bin").iterdir():
+        if not entry.is_symlink() and entry.is_file():
+            entry.unlink()
     _relativize_bin_links(root, runtime / "bin")
     marker_path.write_text(json.dumps(marker, indent=2) + "\n", encoding="utf-8")
     _share_metadata(marker_path)

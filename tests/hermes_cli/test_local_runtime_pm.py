@@ -11,10 +11,6 @@ from pm.lock import Lockfile
 @pytest.mark.parametrize("target,vendor,expected", [
     ("linux-x64", "nvidia", "cuda"),
     ("linux-arm64", "nvidia", "cuda"),
-    ("win32-arm64", "nvidia", "cuda"),
-    ("win32-arm64", "AMD Radeon", "cpu"),
-    ("win32-x64", "AMD Radeon", "vulkan"),
-    ("win32-x64", None, "cpu"),
     ("darwin-arm64", None, "metal"),
 ])
 def test_auto_backend_uses_only_compatible_pins(target, vendor, expected):

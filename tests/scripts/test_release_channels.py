@@ -128,8 +128,7 @@ def test_stable_branded_channel_reuses_the_published_stable_identity(monkeypatch
     from scripts.releases import channel_releases
     product = {"token": "f204dc6857361e33", "displayName": "Hermes Agent",
                "appId": "com.nousresearch.hermes-bundled", "appNamePascal": "HermesBundled",
-               "artifactNamePascal": "HermesBundled", "cliName": "hermes",
-               "windowsExecutableName": "Hermes Agent", "msixAppIdWithOrg": "NousResearch.HermesBundled"}
+               "artifactNamePascal": "HermesBundled", "cliName": "hermes"}
     monkeypatch.setattr(channel_releases, "product_identity", lambda tag: dict(product))
     with object_server() as (url, objects, headers, requests, faults):
         pub = publisher(url)
@@ -191,7 +190,7 @@ def test_concurrent_allocations_reverse_completion_retirement_and_readback():
         pub.create("destination")
         target = pub._read("destination")[0]
         target["policy"] = "stable-release"
-        stable = dict(two, channel="destination", identity=target["identity"], releaseTag="v2.0.0", version="2.0.0", windowsVersion="2.0.0.0", sourceVersion="2.0.0", buildId="e" * 32)
+        stable = dict(two, channel="destination", identity=target["identity"], releaseTag="v2.0.0", version="2.0.0", sourceVersion="2.0.0", buildId="e" * 32)
         stable_manifest = put_build(objects, stable)
         raw = canonical_json(stable_manifest)
         target.update(nextSequence=stable["sequence"] + 1, head={"buildId": stable["buildId"], "sequence": stable["sequence"], "manifestKey": "releases/channel-builds/" + stable["buildId"] + "/build.json", "sha256": hashlib.sha256(raw).hexdigest()})
@@ -262,7 +261,7 @@ def test_retirement_race_requires_a_new_explicit_attempt():
         pub.create("stable")
         target = pub._read("stable")[0]
         target["policy"] = "stable-release"
-        stable = dict(first, channel="stable", identity=target["identity"], releaseTag="v2.0.0", version="2.0.0", windowsVersion="2.0.0.0", sourceVersion="2.0.0", buildId="f" * 32)
+        stable = dict(first, channel="stable", identity=target["identity"], releaseTag="v2.0.0", version="2.0.0", sourceVersion="2.0.0", buildId="f" * 32)
         manifest = put_build(objects, stable)
         target.update(nextSequence=2, head={"buildId": stable["buildId"], "sequence": 1, "manifestKey": "releases/channel-builds/" + stable["buildId"] + "/build.json", "sha256": hashlib.sha256(canonical_json(manifest)).hexdigest()})
         objects["releases/channels/stable.json"] = canonical_json(target)
@@ -296,7 +295,7 @@ def test_retire_derives_receiver_kind_from_channel_identity_match():
         target = pub._read("stable")[0]
         target["policy"] = "stable-release"
         target["identity"] = preview["identity"]
-        stable = dict(first, channel="stable", identity=target["identity"], releaseTag="v2.0.0", version="2.0.0", windowsVersion="2.0.0.0", sourceVersion="2.0.0", buildId="e" * 32)
+        stable = dict(first, channel="stable", identity=target["identity"], releaseTag="v2.0.0", version="2.0.0", sourceVersion="2.0.0", buildId="e" * 32)
         manifest = put_build(objects, stable)
         target.update(nextSequence=stable["sequence"] + 1, head={"buildId": stable["buildId"], "sequence": stable["sequence"], "manifestKey": "releases/channel-builds/" + stable["buildId"] + "/build.json", "sha256": hashlib.sha256(canonical_json(manifest)).hexdigest()})
         objects["releases/channels/stable.json"] = canonical_json(target)
@@ -344,7 +343,7 @@ def test_protected_releases_bootstrap_retry_and_refuse_late_or_ungated_promotion
         def allocate(version, commit):
             return pub.allocate_protected(
                 "official", commit, version, release_tag="v" + version,
-                version=version, windows_version=version + ".0", identity=identity,
+                version=version, identity=identity,
                 policy="stable-release", release_gate=gate)
 
         # A failed request PUT is not recovered by sequence: retrying the same
@@ -401,52 +400,35 @@ def test_accepted_release_receipts_feed_the_protected_head_without_rebuilding(tm
     from scripts.releases.channels import preview_identity
     from scripts.releases.handoff import receipt_name
     from copy import deepcopy
-    import zipfile
     identity = preview_identity("released", "2" * 16)
     tag, commit = "v2.0.0", "d" * 40
     with object_server() as (url, objects, headers, requests, faults):
         pub = publisher(url)
         base = pub.public_base
         prefix = f"releases/tag/{tag}/"
-        for platform in ("darwin", "win32"):
-            for arch in ("arm64", "x64"):
-                native = "macos" if platform == "darwin" else "windows"
-                version = "2.0.0" if platform == "darwin" else "2.0.0.0"
-                metadata = {"platform": native, "arch": arch, "tag": tag, "commit": commit,
-                            "version": version, "identity": identity["appId" if platform == "darwin" else "msixAppIdWithOrg"]}
-                files = {}
-                if platform == "darwin":
-                    metadata["teamId"] = "ABCDEFGHIJ"
-                    for suffix in ("zip", "dmg", "zip.blockmap", "dmg.blockmap"):
-                        name = f"{identity['artifactNamePascal']}-2.0.0-mac-{arch}.{suffix}"
-                        files[name] = (name + " fixture bytes").encode()
-                    metadata["filename"] = f"{identity['artifactNamePascal']}-2.0.0-mac-{arch}.zip"
-                else:
-                    metadata.update(publisher="CN=Fixture", applicationId=identity["appNamePascal"])
-                    files[f"{identity['artifactNamePascal']}-2.0.0-win-{arch}.msix"] = b"fixture msix"
-                files[f"metadata-{native}-{arch}.json"] = canonical_json(metadata)
-                rows = []
-                for name, body in files.items():
-                    objects[prefix + name] = body
-                    (tmp_path / name).write_bytes(body)
-                    rows.append({"path": name, "size": len(body), "sha256": hashlib.sha256(body).hexdigest()})
-                receipt = {"schema": 1, "tag": tag, "commit": commit, "name": f"{platform}-{arch}", "files": rows}
-                (tmp_path / receipt_name(receipt["name"])).write_bytes(canonical_json(receipt))
-                objects[prefix + receipt_name(receipt["name"])] = canonical_json(receipt)
-        bundle_name = f"{identity['artifactNamePascal']}-2.0.0.0-win.msixbundle"
-        with zipfile.ZipFile(tmp_path / bundle_name, "w") as archive:
-            archive.writestr("AppxMetadata/AppxBundleManifest.xml", f'<Bundle><Identity Name="{identity["msixAppIdWithOrg"]}" Publisher="CN=Fixture" Version="2.0.0.0"/><Packages><Package Type="application" Architecture="arm64"/><Package Type="application" Architecture="x64"/></Packages></Bundle>')
-        body = (tmp_path / bundle_name).read_bytes()
-        objects[prefix + bundle_name] = body
-        receipt = {"schema": 1, "tag": tag, "commit": commit, "name": "windows-universal", "files": [{"path": bundle_name, "size": len(body), "sha256": hashlib.sha256(body).hexdigest()}]}
-        (tmp_path / receipt_name(receipt["name"])).write_bytes(canonical_json(receipt))
-        objects[prefix + receipt_name(receipt["name"])] = canonical_json(receipt)
+        for arch in ("arm64", "x64"):
+            metadata = {"platform": "macos", "arch": arch, "tag": tag, "commit": commit,
+                        "version": "2.0.0", "identity": identity["appId"], "teamId": "ABCDEFGHIJ",
+                        "filename": f"{identity['artifactNamePascal']}-2.0.0-mac-{arch}.zip"}
+            files = {}
+            for suffix in ("zip", "dmg", "zip.blockmap", "dmg.blockmap"):
+                name = f"{identity['artifactNamePascal']}-2.0.0-mac-{arch}.{suffix}"
+                files[name] = (name + " fixture bytes").encode()
+            files[f"metadata-macos-{arch}.json"] = canonical_json(metadata)
+            rows = []
+            for name, body in files.items():
+                objects[prefix + name] = body
+                (tmp_path / name).write_bytes(body)
+                rows.append({"path": name, "size": len(body), "sha256": hashlib.sha256(body).hexdigest()})
+            receipt = {"schema": 1, "tag": tag, "commit": commit, "name": f"darwin-{arch}", "files": rows}
+            (tmp_path / receipt_name(receipt["name"])).write_bytes(canonical_json(receipt))
+            objects[prefix + receipt_name(receipt["name"])] = canonical_json(receipt)
         # An R2 policy record chooses this name, not the legacy default selector.
         record = {"schema": 1, "name": "released", "repository": pub.repository, "policy": "stable-release", "state": "active", "revision": 1, "nextSequence": 1, "head": None, "identity": identity}
         objects["releases/channels/released.json"] = canonical_json(record)
         assert channel_releases.select_channel(pub, "stable-release") == "released"
         native = channel_releases.read_native_receipts(tmp_path, tag, commit)
-        request = pub.allocate_protected("released", commit, "2.0.0", release_tag=tag, version="2.0.0", windows_version="2.0.0.0", identity=identity, policy="stable-release", release_gate=lambda request: True)
+        request = pub.allocate_protected("released", commit, "2.0.0", release_tag=tag, version="2.0.0", identity=identity, policy="stable-release", release_gate=lambda request: True)
         from scripts.bundles.channel_artifacts import assemble
         manifest, feeds = assemble(request, native, tmp_path, artifact_prefix=prefix)
         assert {p["arch"] for p in manifest["packages"]} == {"arm64", "x64"}
@@ -454,9 +436,7 @@ def test_accepted_release_receipts_feed_the_protected_head_without_rebuilding(tm
         assert all(f.is_file() for f in feeds)
         accepted = {"packages": []}
         for row in manifest["packages"]:
-            accepted["packages"].append({"platform": "macos" if row["platform"] == "darwin" else "windows", "arch": row["arch"], "identity": row["identity"], "version": row["version"], "artifact": {"url": base + "/" + row["artifact"]["key"], "sha256": row["artifact"]["sha256"]}, **{k: row[k] for k in ("teamId", "publisher") if k in row}})
-            if row["platform"] == "win32":
-                accepted["packages"][-1]["applicationId"] = identity["appNamePascal"]
+            accepted["packages"].append({"platform": "macos", "arch": row["arch"], "identity": row["identity"], "version": row["version"], "artifact": {"url": base + "/" + row["artifact"]["key"], "sha256": row["artifact"]["sha256"]}, "teamId": row["teamId"]})
         channel_releases.match_accepted_packages(manifest, accepted)
         wrong = deepcopy(accepted)
         wrong["packages"][0]["artifact"]["sha256"] = "0" * 64
@@ -496,7 +476,7 @@ def test_accepted_release_receipts_feed_the_protected_head_without_rebuilding(tm
         before = dict(objects)
         assert channel_releases.publish_release("stable-release", {"GITHUB_REPOSITORY": pub.repository}, tmp_path / "retry") == result
         assert objects == before
-        (tmp_path / bundle_name).write_bytes(b"corrupt")
+        (tmp_path / f"{identity['artifactNamePascal']}-2.0.0-mac-x64.zip").write_bytes(b"corrupt")
         with pytest.raises(ChannelError, match="receipt"):
             channel_releases.read_native_receipts(tmp_path, tag, commit)
 
@@ -581,13 +561,10 @@ def test_accepted_stable_reads_the_release_archive_by_tag(monkeypatch):
                      "archive": attempt,
                      "smoke_results": {job: {"result": "success"} for job in channel_releases.stable.SMOKE_JOBS},
                      "packages": []}
-        for platform in ("macos", "windows"):
-            for arch in ("arm64", "x64"):
-                candidate["packages"].append({"platform": platform, "arch": arch, "tag": tag, "commit": commit,
-                    "version": "2.0.0" if platform == "macos" else "2026.5761.123.0", "identity": "fixture.identity",
-                    **({"executableVersion": "2026.5761.123.0"} if platform == "windows" else {}),
-                    "teamId": "ABCDEFGHIJ", "publisher": "CN=Fixture", "applicationId": "Fixture",
-                    "artifact": {"url": f"{pub.public_base}/releases/tag/{attempt}/fixture-{arch}." + ("zip" if platform == "macos" else "msixbundle"), "sha256": "d" * 64}})
+        for arch in ("arm64", "x64"):
+            candidate["packages"].append({"platform": "macos", "arch": arch, "tag": tag, "commit": commit,
+                "version": "2.0.0", "identity": "fixture.identity", "teamId": "ABCDEFGHIJ",
+                "artifact": {"url": f"{pub.public_base}/releases/tag/{attempt}/fixture-{arch}.zip", "sha256": "d" * 64}})
         raw = canonical_json(candidate)
         key = f"releases/tag/{attempt}/release-candidates.json"
         objects[key] = raw
@@ -618,12 +595,6 @@ def test_request_inputs_are_rejected_before_allocating():
         assert objects == before
 
 
-def test_canary_native_version_is_derived_from_the_current_tag():
-    from scripts.releases.channel_releases import canary_windows_version
-
-    assert canary_windows_version("v0.27.1+canary.20260829T010203Z") == "26.829.1.203"
-
-
 def test_stable_requests_name_the_attempt_archive_only_when_given():
     from hermes_cli.release_channels import ChannelError
     from scripts.releases.channels import preview_identity
@@ -634,8 +605,7 @@ def test_stable_requests_name_the_attempt_archive_only_when_given():
 
         def allocate(commit, version, archive_ref):
             return pub.allocate_protected(
-                "archived", commit, version, release_tag="v" + version, version=version,
-                windows_version=version + ".0", identity=identity, policy="stable-release",
+                "archived", commit, version, release_tag="v" + version, version=version, identity=identity, policy="stable-release",
                 release_gate=gate, archive_ref=archive_ref)
 
         request = allocate("a" * 40, "2.0.0", "rc.2-v2.0.0")

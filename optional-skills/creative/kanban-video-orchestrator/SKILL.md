@@ -4,7 +4,7 @@ description: Plan and run multi-agent video production pipelines.
 version: 1.0.0
 author: [SHL0MS, alt-glitch]
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [video, kanban, multi-agent, orchestration, production-pipeline]

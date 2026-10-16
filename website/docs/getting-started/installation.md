@@ -14,14 +14,11 @@ platform-gated features are supported), see **[Platform Support](./platform-supp
 :::
 
 ## Quick Install
-### Desktop packages on macOS or Windows
+### Desktop package on macOS
 
 Download the package for your platform from the
 [Hermes website](https://hermes-agent.nousresearch.com/).
 
-- **Windows:** open the `.appinstaller` download with Windows App Installer.
-  It installs the signed MSIX bundle and records its update source.
-  Microsoft Store packages have separate Store ownership.
 - **macOS:** open the DMG, then copy `Hermes.app` to Applications. The ZIP
   artifact carries the signed app used by the automatic updater.
 
@@ -29,11 +26,8 @@ Bundled packages contain the agent, Python, supported dependencies, and prebuilt
 interfaces. First launch does not build that base runtime. Provider access and
 optional integrations can still require network access.
 
-A `Hermes-Setup` bootstrap installer is different: it downloads a source
-installation and builds the desktop app. See [Hermes Desktop](../user-guide/desktop.md).
-
 There is no separate remote-only Desktop download. To use Desktop with a Hermes
-backend on another machine, install one of the packages above and connect it
+backend on another machine, install the package above and connect it
 from **Settings → Gateways**; see
 [Connecting to a remote backend](../user-guide/desktop.md#connecting-to-a-remote-backend).
 
@@ -47,13 +41,6 @@ For a command-line only install without Hermes Desktop, run:
 #### Linux / macOS / WSL2
 ```bash
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-```
-
-#### Windows (native)
-
-Run in powershell:
-```powershell
-iex (irm https://hermes-agent.nousresearch.com/install.ps1) 
 ```
 
 If you want to install & run Hermes Desktop after a command-line only install, simply run
@@ -73,28 +60,25 @@ The scripts clone the source, bootstrap uv, and delegate dependency preparation
 to PM. PM provides pinned Python, Node.js, npm, ripgrep, and FFmpeg. The source
 installation selects the `all` Python extra, not every optional extra.
 PM also installs the browser and computer-use tools by default: `agent-browser`
-and its pinned Chromium, and `cua-driver` (the computer-use driver, on macOS,
-Windows and glibc Linux). If a download fails, the install still completes and
+and its pinned Chromium, and `cua-driver` (the computer-use driver, on macOS
+and glibc Linux). If a download fails, the install still completes and
 prints the command to retry. The default browser driver (browser-harness, the
 engine of the Browser Use CLI) is a regular Python dependency, so every install,
 the Desktop app included, already has it.
 Other optional tools use their feature-specific installation paths.
 
-To leave the browser tools out, pass `--skip-browser` on POSIX or `-SkipBrowser`
-on Windows; for the computer-use driver, `--skip-computer-use` /
-`-SkipComputerUse`. Hermes remembers these choices: later installs and
+To leave the browser tools out, pass `--skip-browser`; for the computer-use driver, `--skip-computer-use`. Hermes remembers these choices: later installs and
 `hermes update` do not add them back. Run `hermes pm install agent-browser` or
 `hermes pm install cua-driver` to install them and undo the choice.
 
 The scripts create a launcher and prepare the data directory. Interactive runs
-also invoke setup and gateway configuration. `--non-interactive` on POSIX, or
-`-NonInteractive` on Windows, skips stages that need input. The optional
-`--include-desktop` / `-IncludeDesktop` stage builds the desktop from source.
+also invoke setup and gateway configuration. `--non-interactive` skips stages that need input. The optional
+`--include-desktop` stage builds the desktop from source.
 
 On a terminal the scripts show one status line per step and write the output
 of git, uv and the builds to `logs/install.log` under the Hermes data
 directory; a failed step prints its last lines and the log path. CI (`CI` or
-`GITHUB_ACTIONS` set), redirected output, `--verbose` / `-Verbose` or
+`GITHUB_ACTIONS` set), redirected output, `--verbose` or
 `HERMES_INSTALL_VERBOSE=1` stream everything instead.
 
 #### Install layout
@@ -102,13 +86,12 @@ directory; a failed step prints its last lines and the log path. CI (`CI` or
 | Method | Code | CLI entry point | Default user data |
 |---|---|---|---|
 | POSIX source script | `~/.hermes/hermes-agent/` | `~/.local/bin/hermes` wrapper | `~/.hermes/` |
-| Windows source script | `%LOCALAPPDATA%\hermes\hermes-agent\` | `%LOCALAPPDATA%\hermes\bin\` | `%LOCALAPPDATA%\hermes\` |
-| Desktop bundle | Inside the installed app package | Packaged launchers; Windows execution aliases | Platform default Hermes data directory |
+| Desktop bundle | Inside the installed app package | Packaged launchers | Platform default Hermes data directory |
 | Docker | `/opt/hermes/` | Image entrypoint and `hermes` shim | Mounted `/opt/data/` |
 | Termux APT | `$PREFIX/lib/hermes-agent/` | Symlinks in `$PREFIX/bin/` | `~/.hermes/` |
 
 `HERMES_HOME` selects user data. The POSIX script's `--dir` selects its source
-checkout independently. Windows provides `-HermesHome` and `-InstallDir`.
+checkout independently.
 Running the POSIX script as root does not select an automatic FHS layout:
 it uses root's home unless you provide an explicit source path.
 
@@ -155,7 +138,6 @@ You don't need to rebuild your setup from scratch. Restore a full backup with `h
 ## Prerequisites
 
 For the POSIX source script, provide Git, curl, tar, and SHA-256 utilities.
-Windows can bootstrap its pinned Git for Windows archive when Git is absent.
 The script always downloads its verified uv pin; a uv already on your PATH is never used.
 
 Current first-party installations run on **Python 3.14**. The broader

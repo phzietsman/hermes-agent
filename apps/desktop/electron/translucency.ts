@@ -11,16 +11,9 @@
  * then fail to bundle.
  */
 
-import {
-  backgroundMaterialFor,
-  glassActive,
-  type TranslucencyState,
-  windowOpacityFor,
-  type WindowsBackgroundMaterial
-} from '../../shared/src/translucency'
+import { glassActive, type TranslucencyState, windowOpacityFor } from '../../shared/src/translucency'
 
 export {
-  backgroundMaterialFor,
   clampIntensity,
   DEFAULT_GLASS_MATERIAL,
   DEFAULT_GLASS_SCOPE,
@@ -30,8 +23,6 @@ export {
   GLASS_SCOPES,
   glassActive,
   type GlassMaterial,
-  glassMaterialForPicker,
-  glassMaterialsFor,
   glassSupportedOn,
   glassSurfaceKeep,
   hudFrostFor,
@@ -49,10 +40,7 @@ export {
   type TranslucencyState,
   translucencySupportedOn,
   vibrancyFor,
-  windowOpacityFor,
-  WINDOWS_BACKGROUND_MATERIALS,
-  WINDOWS_GLASS_MIN_BUILD,
-  type WindowsBackgroundMaterial
+  windowOpacityFor
 } from '../../shared/src/translucency'
 
 /**
@@ -80,40 +68,10 @@ export function windowBackingOptions(state: TranslucencyState, themedColor: stri
 }
 
 /**
- * Return the native Windows backdrop only when glass is actually active.
- * Electron treats even the `none` backdrop as a translucent-window opt-in,
- * which disables native maximize and resize commands on Windows.
- */
-export function windowBackgroundMaterialOptions(
-  state: TranslucencyState,
-  isWindows: boolean,
-  glassSupported: boolean
-): { backgroundMaterial?: WindowsBackgroundMaterial } {
-  return isWindows && glassSupported && glassActive(state) ? { backgroundMaterial: backgroundMaterialFor(state) } : {}
-}
-
-/**
- * Whether a window's native opacity is worth setting at all.
- *
- * Fully opaque is what a window already is, so asking for it looks free. On
- * Windows it is the opposite of free: `setOpacity` puts `WS_EX_LAYERED` on the
- * window and calls `SetLayeredWindowAttributes(..., LWA_ALPHA)` before it even
- * looks at the value, and nothing ever takes the style back off
- * (`NativeWindowViews::SetOpacity` → `SetLayered`). A layered window
- * composites through the legacy redirection surface — which Windows documents
- * as mutually exclusive with `UpdateLayeredWindow`, and which DWM will not
- * draw a system backdrop behind. So `opacity: 1` on a glass window buys
- * nothing and costs it its acrylic.
- *
- * `current` is the way back: a window that is already faded has already paid
- * for the layering, and it has to be able to return to opaque — so it keeps
- * getting the call even when the value it is going to is 1.
- *
- * What this cannot do is un-layer. Electron offers no way back off
- * `WS_EX_LAYERED`, so a Windows window that has been faded once keeps the
- * layered compositing path until it is recreated. Not opening the door on the
- * default path is the whole of the fix; someone who deliberately fades and
- * then returns to glass still wants a restart.
+ * Whether a window's native opacity is worth setting at all: fully opaque is
+ * what a window already is. `current` is the way back: a window that is already
+ * faded has to be able to return to opaque, so it keeps getting the call even
+ * when the value it is going to is 1.
  */
 export function opacityNeedsSetting(next: number, current = 1): boolean {
   return next < 1 || current < 1

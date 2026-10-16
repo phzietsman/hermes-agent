@@ -32,8 +32,6 @@ ENTRY_POINTS_GROUP = "hermes_agent.memory_providers"
 # Per Hermes home (plugin managers are per home too): pruning under one multiplexed profile must
 # only retract that profile's provider skills, never a sibling profile's.
 _REGISTERED_MEMORY_PROVIDER_SKILLS: dict[str, dict[str, Path]] = {}
-# Native extensions whose first import must not race another thread (#58083 warm-up).
-_NATIVE_WARM_IMPORTS: Tuple[str, ...] = ("numpy",)
 
 
 def _registered_skills_for_active_home() -> dict[str, Path]:
@@ -242,41 +240,6 @@ def load_memory_provider(name: str, *, register_skills: Optional[bool] = None) -
         return _load_provider_from_entry_point(entry_point, register_skills=register_skills)
 
     return _loader.load_named(name, provider_dir, _load, kind="Memory provider", noun="provider", logger=logger)
-
-
-def import_memory_provider_module(name: Optional[str] = None) -> bool:
-    """Import the provider's module (default: the configured ``memory.provider``) WITHOUT
-    constructing a provider — the later ``load_memory_provider`` then hits ``sys.modules``
-    instead of a fresh native extension load. Exists so ``hermes acp`` can pay the heavy
-    import (numpy / ML stack) on the main thread before any other thread starts: on Windows
-    a first-time native import racing another thread's import chain deadlocked
-    ``session/new`` (#58083). False when no provider is configured, the provider is
-    unknown or its import fails (agent init reports that)."""
-    name = name or _get_active_memory_provider()
-    if not name:
-        return False
-    from hermes_cli.plugin_isolation import ISOLATION_HOST, isolation_mode
-    if isolation_mode() == ISOLATION_HOST and not _is_bundled(find_provider_dir(name) or Path("/")):
-        return False  # third-party code runs in the plugin host; nothing to warm in this process
-    imported = False
-    try:
-        if provider_dir := find_provider_dir(name):
-            imported = _load_package(provider_dir, name) is not None
-        elif (entry_point := find_provider_entry_point(name)) is not None:
-            entry_point.load()
-            imported = True
-    except Exception:
-        logger.debug("memory provider '%s' warm-up import failed", name, exc_info=True)
-    if imported:
-        # The deadlock is numpy's lazy ``_core`` init; embedding-backed providers (e.g. the
-        # hindsight plugin) defer that import to ``is_available()`` (sentence_transformers), so
-        # the provider module alone leaves it unwarmed. Every reporter's workaround was a plain ``import numpy`` up front.
-        for module in _NATIVE_WARM_IMPORTS:
-            try:
-                importlib.import_module(module)
-            except Exception:
-                logger.debug("warm-up import of %s skipped", module, exc_info=True)
-    return imported
 
 
 def _load_package(provider_dir: Path, name: str):

@@ -290,7 +290,7 @@ display:
 Hermes Agent has been suspended. Run `fg` to bring Hermes Agent back.
 ```
 
-在 shell 中输入 `fg` 即可从中断处恢复会话。Windows 不支持此功能。
+在 shell 中输入 `fg` 即可从中断处恢复会话。
 
 ## 工具进度显示
 

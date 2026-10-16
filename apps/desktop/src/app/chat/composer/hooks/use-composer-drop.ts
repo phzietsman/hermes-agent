@@ -50,7 +50,6 @@ export function useComposerDrop({
   // original-path inline refs; remote / container / cross-filesystem
   // backends still stage. Mirrors uploadComposerAttachment's byte decision.
   const osDropStaging = (): OsDropStagingContext => ({
-    backendCwd: cwd,
     remote: isSessionRemote(sessionId),
     terminalBackend: $terminalBackend.get()
   })

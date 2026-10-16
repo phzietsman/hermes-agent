@@ -13,6 +13,7 @@ import asyncio
 import contextlib
 import contextvars
 import errno
+import fcntl
 import html
 import importlib.util as _importlib_util
 import json
@@ -27,16 +28,6 @@ import time
 import webbrowser
 from functools import partialmethod
 
-# Cross-process advisory file locking for the refresh fence. Mirrors
-# cron/jobs.py: fcntl is Unix-only, msvcrt is the Windows fallback.
-try:
-    import fcntl
-except ImportError:  # pragma: no cover - non-Unix
-    fcntl = None
-try:
-    import msvcrt
-except ImportError:  # pragma: no cover - non-Windows
-    msvcrt = None
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -69,7 +60,7 @@ class RefreshFenceTimeout(RuntimeError):
     """
 
 
-# POSIX flock: EWOULDBLOCK/EAGAIN, EACCES on some NFS; msvcrt.locking: EACCES/EDEADLK.
+# flock contention: EWOULDBLOCK/EAGAIN, EACCES on some NFS, EDEADLK on some kernels.
 # Same set as cron.scheduler._is_lock_contention_errno (not imported: that module is heavy).
 _FENCE_CONTENTION_ERRNOS = frozenset({errno.EWOULDBLOCK, errno.EAGAIN, errno.EACCES, errno.EDEADLK})
 
@@ -125,14 +116,7 @@ async def acquire_refresh_fence(path: "Path", *, timeout: float = _REFRESH_FENCE
     try:
         while True:
             try:
-                if fcntl is not None:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                elif msvcrt is not None:
-                    getattr(msvcrt, "locking")(fd, getattr(msvcrt, "LK_NBLCK"), 1)
-                else:  # pragma: no cover - no advisory locking primitive
-                    raise RefreshFenceTimeout(
-                        "refresh fence unsupported: no flock/msvcrt on this platform"
-                    )
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 return fd
             except OSError as exc:
                 if exc.errno not in _FENCE_CONTENTION_ERRNOS:
@@ -155,10 +139,7 @@ async def acquire_refresh_fence(path: "Path", *, timeout: float = _REFRESH_FENCE
 def release_refresh_fence(fd: int) -> None:
     """Unlock and close a descriptor returned by ``acquire_refresh_fence``. Never raises."""
     try:
-        if fcntl is not None:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-        elif msvcrt is not None:
-            getattr(msvcrt, "locking")(fd, getattr(msvcrt, "LK_UNLCK"), 1)
+        fcntl.flock(fd, fcntl.LOCK_UN)
     except OSError:
         pass
     finally:
@@ -310,24 +291,10 @@ def _cached_redirect(storage: "HermesTokenStorage | None") -> "tuple[str | None,
 
 
 def _stdin_is_console() -> bool:
-    """A human can type on stdin. ``isatty()`` alone is wrong on Windows: the CRT reports True for
-    a DEVNULL / detached / CREATE_NO_WINDOW stdin (the gateway's), so a background process looked
-    interactive and launched browser OAuth flows nobody could finish. Confirm with the console API
-    there: ``GetConsoleMode`` fails on anything that is not a real console handle."""
+    """A human can type on stdin (a closed or replaced stdin has no ``isatty``/fileno)."""
     try:
-        if not sys.stdin.isatty():
-            return False
+        return sys.stdin.isatty()
     except (AttributeError, ValueError):
-        return False
-    if os.name != "nt":
-        return True
-    try:
-        import ctypes
-        import msvcrt
-        handle = msvcrt.get_osfhandle(sys.stdin.fileno())
-        mode = ctypes.c_ulong()
-        return bool(ctypes.windll.kernel32.GetConsoleMode(ctypes.c_void_p(handle), ctypes.byref(mode)))
-    except Exception:
         return False
 
 
@@ -378,7 +345,7 @@ def _can_open_browser() -> bool:
     """True if opening a browser is likely to work."""
     if os.environ.get("SSH_CLIENT") or os.environ.get("SSH_TTY"):
         return False  # explicit SSH session → no local display
-    if os.name == "nt" or (hasattr(os, "uname") and os.uname().sysname == "Darwin"):
+    if os.uname().sysname == "Darwin":
         return True
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 

@@ -30,7 +30,7 @@ from pathlib import Path
 import pytest
 
 from pm.environments import ACTIVATION_INPUTS, activation_input_mtimes, record_activation_inputs
-from tests.pm.activation_support import bash, posix
+from tests.pm.activation_support import bash
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNNER = REPO_ROOT / "scripts" / "run-in-hermes-env"
@@ -47,10 +47,9 @@ def _set_mtime(path: Path, stamp: str) -> None:
 
 
 def _shim(path: Path) -> None:
-    """Quote in posix form: a /bin/sh script treats backslashes in an unquoted
-    word as escapes (same pattern as tests/pm/activation_support.py)."""
+    """A /bin/sh shim that execs this interpreter."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("#!/bin/sh\nexec '%s' \"$@\"\n" % posix(Path(sys.executable)), encoding="utf-8")
+    path.write_text("#!/bin/sh\nexec '%s' \"$@\"\n" % sys.executable, encoding="utf-8")
     path.chmod(0o755)
 
 
@@ -76,14 +75,14 @@ def checkout(tmp_path: Path) -> Path:
 
     (root / "setup-hermes.sh").write_text(
         "echo SYNCED >&2\n"
-        f'test ! -e "{posix(root)}/fail"\n', encoding="utf-8",
+        f'test ! -e "{root}/fail"\n', encoding="utf-8",
     )
     (root / "pm" / "__init__.py").touch()
     (root / "pm" / "environments.py").write_text(
         "import sys\n"
         "assert sys.argv[1:] == ['--format', 'sh'], sys.argv\n"
-        f"print(\"export __HERMES_ACTIVATED='{posix(root)}/state/facts.json'\")\n"
-        f"print('export PATH=\"{posix(root)}/shim:$PATH\"')\n",
+        f"print(\"export __HERMES_ACTIVATED='{root}/state/facts.json'\")\n"
+        f"print('export PATH=\"{root}/shim:$PATH\"')\n",
         encoding="utf-8",
     )
     return root
@@ -97,13 +96,13 @@ def _record(root: Path, *, test_environment: bool = True) -> None:
 
 def _run_in(root: Path, *command: str, sentinel: str | None = "{root}/state/facts.json"):
     """Drive the runner as a caller would; the shim dir is on PATH like any tool dir."""
-    env = {**os.environ, "PATH": f"{posix(root / 'shim')}{os.pathsep}{os.environ.get('PATH', '')}"}
+    env = {**os.environ, "PATH": f"{root / 'shim'}{os.pathsep}{os.environ.get('PATH', '')}"}
     env.pop("__HERMES_ACTIVATED", None)
     if sentinel is not None:
-        env["__HERMES_ACTIVATED"] = sentinel.replace("{root}", posix(root))
+        env["__HERMES_ACTIVATED"] = sentinel.replace("{root}", str(root))
     return subprocess.run(
-        [bash(), posix(root / "scripts" / RUNNER.name), *command],
-        capture_output=True, text=True, cwd=posix(root), env=env, timeout=60,
+        [bash(), str(root / "scripts" / RUNNER.name), *command],
+        capture_output=True, text=True, cwd=str(root), env=env, timeout=60,
     )
 
 
@@ -162,13 +161,13 @@ def test_command_runs_in_the_environment_with_its_arguments_and_exit_status(chec
     run = _run_in(checkout, "bash", "-c", 'echo "$__HERMES_ACTIVATED|$0|$1|$2"; exit 7', "zero", "b c", "d",
                   sentinel=None)
     assert run.returncode == 7, run.stderr
-    assert run.stdout.strip() == f"{posix(checkout)}/state/facts.json|zero|b c|d"
+    assert run.stdout.strip() == f"{checkout}/state/facts.json|zero|b c|d"
 
 
 def test_failed_sync_runs_nothing(checkout: Path):
     (checkout / "fail").touch()
     ran = checkout / "ran"
-    run = _run_in(checkout, "touch", posix(ran), sentinel=None)
+    run = _run_in(checkout, "touch", str(ran), sentinel=None)
     assert run.returncode != 0
     assert not ran.exists()
 

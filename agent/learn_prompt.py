@@ -32,7 +32,7 @@ Frontmatter:
   environment hints), git config, or any identity you can probe must not be
   written. Skills get shared and published, so an environment-derived name is
   a privacy leak the user never opted into; the skill names itself as Hermes.
-- platforms: declare `[macos]`, `[linux]`, and/or `[windows]` IF the skill
+- platforms: declare `[macos]` and/or `[linux]` IF the skill
   uses OS-bound primitives (osascript/apt/systemctl => the matching OS; /proc,
   os.setsid, signal.SIGKILL => linux; fcntl/termios => POSIX). Prefer fixing it
   cross-platform first (tempfile.gettempdir(), pathlib.Path, psutil); gate only

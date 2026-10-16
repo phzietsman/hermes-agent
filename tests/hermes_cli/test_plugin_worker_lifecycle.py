@@ -50,9 +50,8 @@ def test_declaration_consent_admission_and_resync(plugin_world, monkeypatch, cap
     client.sync_venv(explicit=True)
     assert world.selected() != selected, "changed declaration was not stamped"
     # Code has not changed: inspect the new dependency independently.
-    import os
     import subprocess
-    python = world.selected() / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = world.selected() / "bin/python"
     result = subprocess.run([str(python), "-I", "-c", "import plugin_proof_dep; assert plugin_proof_dep.__version__ == '2.0'"],
                             capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr

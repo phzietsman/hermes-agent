@@ -14,15 +14,14 @@ from tools import code_execution_env as ce
 from tools.code_execution_tool import build_execute_code_schema
 
 
-@pytest.mark.platforms("linux", "macos", "windows")
+@pytest.mark.platforms("linux", "macos")
 @pytest.mark.parametrize("mode", ["strict", "project"])
 @pytest.mark.parametrize("activation", ["VIRTUAL_ENV", "CONDA_PREFIX"])
 def test_selected_interpreter_environment_and_real_rpc(child_env, project_python, monkeypatch, mode, activation):
     python, prefix = project_python
     monkeypatch.setenv(activation, str(prefix))
     repo = Path(__file__).resolve().parents[2]
-    site = Path(sys.prefix) / ("Lib/site-packages" if os.name == "nt" else
-                              f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages")
+    site = Path(sys.prefix) / f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
     user_lib = child_env / "user-lib"
     user_lib.mkdir()
     (user_lib / "user_probe.py").write_text("VALUE = 'user → 雪'\n", encoding="utf-8")
@@ -41,7 +40,6 @@ print(json.dumps({{
     "sys_path": sys.path,
     "staging": os.path.dirname(hermes_tools.__file__),
     "encoding": [os.environ.get("PYTHONIOENCODING"), os.environ.get("PYTHONUTF8")],
-    "essentials": {{k: os.environ.get(k) for k in ("SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT")}},
     "secret": os.environ.get("OPENAI_API_KEY"),
     "project": (__import__("project_only_probe").VALUE
                 if importlib.util.find_spec("project_only_probe") else None),
@@ -49,8 +47,6 @@ print(json.dumps({{
 }}, ensure_ascii=False))
 ''', mode)
     assert result["encoding"] == ["utf-8", "1"]
-    if os.name == "nt":
-        assert result["essentials"] == {k: before.get(k) for k in result["essentials"]}
     assert result["secret"] is None
     assert result["user"] == "user → 雪"
     assert "RPC → 雪" in result["rpc"]["content"]
@@ -72,7 +68,7 @@ print(json.dumps({{
     assert dict(os.environ) == before
 
 
-@pytest.mark.platforms("linux", "macos", "windows")
+@pytest.mark.platforms("linux", "macos")
 @pytest.mark.parametrize("mode", ["strict", "project"])
 def test_credential_policy_and_whitelist_in_real_child(child_env, monkeypatch, mode):
     from tools.env_passthrough import register_env_passthrough

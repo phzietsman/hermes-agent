@@ -90,8 +90,7 @@ def test_cli_entrypoint_end_to_end(tmp_path):
     scripts.mkdir()
     for name in ("add_contributor.py",):
         # Explicit encoding: add_contributor.py contains UTF-8 multi-byte
-        # characters (an em dash), so the locale-default read_text() raises
-        # UnicodeDecodeError on non-UTF-8 Windows locales (e.g. cp950).
+        # characters (an em dash) and the locale need not be UTF-8.
         (scripts / name).write_text(
             (SCRIPTS_DIR / name).read_text(encoding="utf-8"), encoding="utf-8"
         )
@@ -111,7 +110,7 @@ def test_cli_entrypoint_end_to_end(tmp_path):
 # ── case-insensitive filename collisions ──────────────────────────────
 #
 # The mapping key IS the filename, so two emails differing only in case are the
-# same file on Windows and default macOS; add_contributor must refuse them.
+# same file on default macOS; add_contributor must refuse them.
 # scripts/check-case-collisions.py enforces the repo-wide invariant in CI.
 
 
@@ -129,7 +128,7 @@ def test_add_contributor_refuses_case_collision_even_for_same_login(emails_dir, 
 
 
 def test_case_collision_uses_casefold(emails_dir):
-    # casefold, not lower: matches how macOS/Windows fold non-ASCII (ß ~ ss).
+    # casefold, not lower: matches how macOS folds non-ASCII (ß ~ ss).
     emails_dir.mkdir(parents=True)
     (emails_dir / "strasse@example.com").write_text("someone\n")
     assert add_contributor("STRASSE@example.com", "someone") == 1

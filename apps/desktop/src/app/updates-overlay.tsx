@@ -21,8 +21,7 @@ import type {
   DesktopUpdateCommit,
   DesktopUpdateStage,
   DesktopUpdateStatus,
-  DesktopVersionInfo,
-  UpdaterMechanismClient
+  DesktopVersionInfo
 } from '@/global'
 import { useI18n } from '@/i18n'
 import { buildCommitChangelog, type CommitGroup, formatFullChangelogText } from '@/lib/commit-changelog'
@@ -124,7 +123,7 @@ export function UpdatesOverlay() {
         showCloseButton={phase !== 'applying'}
       >
         {phase === 'applying' && (
-          <ApplyingView apply={apply} isBackend={isBackend} statusMechanism={status?.mechanism} />
+          <ApplyingView apply={apply} isBackend={isBackend} />
         )}
 
         {phase === 'manual' && (
@@ -220,32 +219,6 @@ function IdleView({
   }
 
   const details = version ? <VersionDetails version={version} /> : null
-
-  // App-installer check-unknown (OS checker unavailable): NOT "no updates"
-  // and NOT a generic error — the OS also installs updates automatically on
-  // restart (it re-reads the .appinstaller feed on every launch), so the
-  // honest view names that path. Only this mechanism gets it.
-  if (status.mechanism === 'app-installer' && status.error && !status.updateAvailable) {
-    return (
-      <div className="grid gap-4 px-6 pb-6 pt-1 pr-8">
-        <VersionHero
-          renderHeading={heading => (
-            <DialogTitle className="text-lg font-semibold tracking-tight">{heading}</DialogTitle>
-          )}
-          version={version}
-        />
-        <div className="flex flex-col items-center gap-2 text-center">
-          <AlertCircle className="size-6 text-muted-foreground" />
-          <p className="text-sm font-medium">{u.checkUnknownTitleAppInstaller}</p>
-          <p className="max-w-prose text-sm leading-5 text-muted-foreground">{u.checkUnknownBodyAppInstaller}</p>
-        </div>
-        <Button onClick={onRetryCheck} size="sm">
-          {u.tryAgain}
-        </Button>
-        {details}
-      </div>
-    )
-  }
 
   // Everything that is NOT the install pitch — unsupported, check error, and
   // already-latest — is exactly the About page's state: render the shared
@@ -472,21 +445,11 @@ function GuiSkewView({ message, onDone }: { message?: string; onDone: () => void
   )
 }
 
-function ApplyingView({
-  apply,
-  isBackend,
-  statusMechanism
-}: {
-  apply: UpdateApplyState
-  isBackend: boolean
-  statusMechanism?: UpdaterMechanismClient
-}) {
+function ApplyingView({ apply, isBackend }: { apply: UpdateApplyState; isBackend: boolean }) {
   const { t } = useI18n()
   const u = t.updates
   const label = u.stages[apply.stage as DesktopUpdateStage] ?? u.stages.idle
-  const isWindowsPackage = statusMechanism === 'app-installer' || statusMechanism === 'microsoft-store'
-
-  const body = isWindowsPackage ? u.applyingBodyAppInstaller : isBackend ? u.applyingBodyBackend : u.applyingBody
+  const body = isBackend ? u.applyingBodyBackend : u.applyingBody
 
   const currentMessage = apply.message.trim()
   const recentLog = apply.log.slice(-4)

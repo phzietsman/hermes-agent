@@ -188,7 +188,7 @@ def locked_source(tmp_path, build_tools):
     (source / "pyproject.toml").write_text(
         '[project]\nname="export-root"\nversion="1"\nrequires-python=">=3.11"\n'
         'dependencies=["base-dep==1.0"]\n'
-        '[project.optional-dependencies]\nchosen=["chosen-dep==1.0; sys_platform == \'win32\'"]\n'
+        '[project.optional-dependencies]\nchosen=["chosen-dep==1.0; sys_platform == \'emscripten\'"]\n'
         '[dependency-groups]\ndev=["dev-dep==1.0"]\n'
         '[tool.uv]\npackage=false\nno-index=true\n'
         f'find-links=[{json.dumps(wheels.as_posix())}]\n', encoding="utf-8",
@@ -238,7 +238,7 @@ def test_frozen_export_keeps_markers_and_excludes_build_metadata(locked_source, 
     assert str(requirements["base-dep"].specifier) == "==1.0"
     marker = requirements["chosen-dep"].marker
     assert marker is not None
-    assert marker.evaluate({"sys_platform": "win32"})
+    assert marker.evaluate({"sys_platform": "emscripten"})
     assert not marker.evaluate({"sys_platform": "linux"})
     assert "#" not in text and "--hash" not in text
     assert {p.name: p.read_bytes() for p in source.iterdir() if p.is_file()} == before

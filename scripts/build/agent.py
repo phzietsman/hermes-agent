@@ -133,7 +133,7 @@ def assemble(inputs: AgentInputs, out: Path) -> dict:
         (out / "command-map.json").write_text(json.dumps(mapping, indent=2) + "\n", encoding="utf-8")
     else:
         for name, command in previous.get("runtime", {}).get("commands", {}).items():
-            if name not in entries and command == f"{inputs.bin_dir}/{name}{'.exe' if inputs.target.startswith('win32') else ''}":
+            if name not in entries and command == f"{inputs.bin_dir}/{name}":
                 (out / command).unlink(missing_ok=True)
         launch_python = f"{location(inputs.environment)}/bin/python" if inputs.target.endswith("-bionic") else python
         commands = write_launchers(out, entries, python=launch_python, repo=inputs.repo, site=site,

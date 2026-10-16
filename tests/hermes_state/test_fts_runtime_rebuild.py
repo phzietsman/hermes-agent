@@ -175,7 +175,7 @@ class TestRuntimeFtsRebuild:
                 "/opt/hermes-agent/hermes_cli/main.py",
                 "gateway",
             ),
-            ("python.exe", "--", "hermes_cli/main.py", "gateway"),
+            ("python3", "--", "hermes_cli/main.py", "gateway"),
             ("python3", "/opt/hermes-agent/run_agent.py", "--query", "hello"),
         ),
     )

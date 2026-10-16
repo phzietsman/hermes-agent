@@ -12,7 +12,7 @@ never probed. Unstamped (pre-upgrade) records differ by policy:
 * :func:`persistent_record_pidns_checkable` — LEGACY, for no-expiry flock
   records: unstamped keeps probing so orphaned-lock cleanup still works.
 
-Platforms without PID namespaces (macOS, Windows) keep the plain pid probe; a
+Platforms without PID namespaces (macOS) keep the plain pid probe; a
 failed Linux lookup is not cached and makes every holder unverifiable.
 """
 

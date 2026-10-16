@@ -7,8 +7,7 @@ import { promisify } from 'node:util'
 
 import { test } from 'vitest'
 
-import { REMOTE_MARKER_GATE_PY, REMOTE_MARKER_JUDGE_PY, WINDOWS_MARKER_JUDGE_PS } from './remote-update-marker-programs'
-import { parseUpdateMarker } from './update-marker-judge'
+import { REMOTE_MARKER_GATE_PY, REMOTE_MARKER_JUDGE_PY } from './remote-update-marker-programs'
 
 const execFile = promisify(execFileCallback)
 const corpusPath = path.resolve(__dirname, '../../../tests/fixtures/update_marker_corpus.json')
@@ -28,7 +27,7 @@ for case in corpus['judge']:
 print(json.dumps(out))
 `
 
-test.skipIf(process.platform === 'win32')('the remote marker judge agrees with every corpus judge case', async () => {
+test('the remote marker judge agrees with every corpus judge case', async () => {
   const corpus = JSON.parse(readFileSync(corpusPath, 'utf8'))
   const { stdout } = await execFile('python3', ['-c', `${REMOTE_MARKER_JUDGE_PY}\n${DRIVER}`, corpusPath])
 
@@ -39,72 +38,6 @@ test.skipIf(process.platform === 'win32')('the remote marker judge agrees with e
   assert.ok(corpus.judge.length >= 40)
   assert.deepEqual(JSON.parse(stdout), expected)
 })
-
-// The same replay through the PowerShell judge Windows remotes run, with each
-// case's live table and the corpus clock injected over its fact seams.
-const PS_DRIVER = String.raw`
-function Get-MarkerProcessFacts([int]$ownerId){if($script:live.ContainsKey([int64]$ownerId)){return @{Alive=$true;Ct=$script:live[[int64]$ownerId]}};return @{Alive=$false}}
-function Get-MarkerNow{[int64]$script:corpus.now}
-$script:corpus=Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8 | ConvertFrom-Json
-foreach($case in $script:corpus.judge){
-$script:live=@{};foreach($p in $case.live.PSObject.Properties){$script:live[[int64]$p.Name]=if($null -eq $p.Value){$null}else{[double]$p.Value}}
-[Console]::Out.WriteLine($case.name+[char]9+(Get-MarkerVerdict $case.text))
-}
-`
-
-const powershell = ['pwsh', 'powershell'].find(
-  shell => spawnSync(shell, ['-NoProfile', '-Command', 'exit 0']).status === 0
-)
-
-test.skipIf(!powershell)(
-  'the Windows remote marker judge agrees with every corpus judge case',
-  async () => {
-    const corpus = JSON.parse(readFileSync(corpusPath, 'utf8'))
-    const dir = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-ps-judge-'))
-    const script = path.join(dir, 'replay.ps1')
-
-    try {
-      writeFileSync(script, `${WINDOWS_MARKER_JUDGE_PS}\n${PS_DRIVER}`)
-
-      const { stdout } = await execFile(powershell!, [
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
-        script,
-        corpusPath
-      ])
-
-      const verdicts = Object.fromEntries(
-        stdout
-          .trim()
-          .split(/\r?\n/)
-          .map(line => line.split('\t'))
-      )
-
-      // Only the host shell is "us" to this judge (never a marker owner), so the
-      // corpus cases about the reader's own pid do not apply.
-      const cases = corpus.judge.filter((c: any) => {
-        const marker = parseUpdateMarker(c.text)
-
-        return ![marker?.pid, marker?.delegate?.pid].includes(c.our_pid ?? corpus.our_pid)
-      })
-
-      const verdict = (c: any) =>
-        ({ malformed: 'UNCERTAIN', dead: 'CLEAR', live: `LIVE:${c.expect.owner}` })[c.expect.verdict as string]
-
-      assert.ok(cases.length >= 40)
-      assert.deepEqual(
-        Object.fromEntries(cases.map((c: any) => [c.name, verdicts[c.name]])),
-        Object.fromEntries(cases.map((c: any) => [c.name, verdict(c)]))
-      )
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
-    // pwsh cold start alone can take seconds on a loaded runner; same budget as the other subprocess tests.
-  },
-  20_000
-)
 
 // A dead claim whose checkout lock is still flocked (a killed updater's completion
 // child) must be kept: the gate answers HELD instead of unlinking it (review G1).
@@ -143,7 +76,7 @@ async function gate(args: string[]) {
   }
 }
 
-test.skipIf(process.platform === 'win32')(
+test(
   'the remote gate keeps a dead marker while the default checkout lock is held',
   async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-gate-'))
@@ -168,7 +101,7 @@ test.skipIf(process.platform === 'win32')(
   }
 )
 
-test.skipIf(process.platform === 'win32')(
+test(
   'the remote gate probes the checkout of the hermes executable it is given (linked worktree)',
   async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-gate-'))
@@ -203,7 +136,7 @@ test.skipIf(process.platform === 'win32')(
 // macOS/BSD remotes read creation time from `ps -o lstart=`. Python's judge asks
 // for it in UTC (TZ=UTC0 + calendar.timegm); a local-time parse of the repeated
 // DST hour lands an hour off and judges a live owner dead (review G2).
-test.skipIf(process.platform === 'win32')('the remote judge reads ps lstart in UTC, not local time', async () => {
+test('the remote judge reads ps lstart in UTC, not local time', async () => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'hermes-remote-lstart-'))
 
   try {

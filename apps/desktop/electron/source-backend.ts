@@ -18,7 +18,6 @@ export interface SourceBackend {
 }
 
 interface SourceOptions {
-  isWindows?: boolean
   env?: NodeJS.ProcessEnv
 }
 
@@ -32,25 +31,20 @@ export async function resolveSourceInstallationBackend(
     return null
   }
 
-  const isWindows: boolean = options.isWindows ?? process.platform === 'win32'
-  const launcher: string | null = resolveInstallationLauncher(root, isWindows, options.hermesHome)
+  const launcher: string | null = resolveInstallationLauncher(root, options.hermesHome)
 
   if (!launcher) {
     return null
   }
 
-  const shell: boolean = isWindows && /\.(cmd|bat)$/i.test(launcher)
-  const command: string = shell ? `"${launcher}"` : launcher
   const env: NodeJS.ProcessEnv = buildDesktopBackendEnv({ currentEnv: options.env ?? process.env })
 
   try {
-    await execProbe(command, ['--version'], {
+    await execProbe(launcher, ['--version'], {
       cwd: root,
       env: { ...process.env, ...options.env, ...env },
-      shell,
       stdio: 'ignore',
-      timeout: PROBE_TIMEOUT_MS,
-      windowsHide: true
+      timeout: PROBE_TIMEOUT_MS
     })
   } catch {
     return null
@@ -59,12 +53,12 @@ export async function resolveSourceInstallationBackend(
   return {
     kind: 'command',
     label: `Hermes at ${root}`,
-    command,
+    command: launcher,
     args: [...args],
     env,
     root,
     bootstrap: false,
-    shell,
+    shell: false,
     local: 'installed'
   }
 }
@@ -80,21 +74,10 @@ export function createSourcePythonBackend(
     return null
   }
 
-  let command: string = python
-
-  if ((options.isWindows ?? process.platform === 'win32') && /[\\/]pythonw\.exe$/i.test(python)) {
-    // Use only the console interpreter beside the selected windowless one.
-    const consolePython: string = python.replace(/pythonw\.exe$/i, 'python.exe')
-
-    if (existsSync(consolePython)) {
-      command = consolePython
-    }
-  }
-
   return {
     kind: 'python',
     label: `Hermes source at ${root}`,
-    command,
+    command: python,
     args: ['-m', 'hermes_cli.main', ...args],
     // The backend runs in the user's workspace cwd, and the selected
     // interpreter need not have this checkout installed: name it explicitly.

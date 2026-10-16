@@ -32,7 +32,7 @@ function fixture() {
   const nested = path.join(tools, 'chromium', 'Browser.app')
   const binaries = [path.join(app, 'Contents', 'MacOS', 'Hermes'),
     path.join(tools, 'python', 'bin', 'python3'),
-    path.join(nested, 'Contents', 'MacOS', process.platform === 'win32' ? 'chrome.exe' : 'Chromium')]
+    path.join(nested, 'Contents', 'MacOS', 'Chromium')]
   for (const binary of binaries) {
     fs.mkdirSync(path.dirname(binary), { recursive: true })
     const bytes = Buffer.alloc(64)

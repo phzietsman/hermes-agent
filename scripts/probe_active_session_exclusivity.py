@@ -33,9 +33,7 @@ import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-PYTHON = REPO / "venv" / "Scripts" / "python.exe"
-if not PYTHON.exists():  # posix layout
-    PYTHON = REPO / "venv" / "bin" / "python"
+PYTHON = REPO / "venv" / "bin" / "python"
 
 
 class Gateway:

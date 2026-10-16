@@ -15,12 +15,9 @@ import pytest
 @pytest.fixture
 def child_env(monkeypatch, tmp_path):
     # Never dump the operator's environment or source their shell startup files.
-    names = (
-        "PATH", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT",
-        "TEMP", "TMP", "OS", "PROCESSOR_ARCHITECTURE", "NUMBER_OF_PROCESSORS",
-    )
+    names = ("PATH", "TMPDIR")
     seed = {k: v for k, v in os.environ.items() if k.upper() in names}
-    seed.update(HOME=str(tmp_path), USERPROFILE=str(tmp_path), USER="env-test",
+    seed.update(HOME=str(tmp_path), USER="env-test",
                 HERMES_HOME=str(tmp_path / "hermes"),
                 HERMES_RUNTIME_DIR=str(tmp_path / "runtime"),
                 TERMINAL_ENV="local", TERMINAL_CWD=str(tmp_path), LANG="C.UTF-8")
@@ -51,7 +48,7 @@ def project_python(child_env):
     # A symlink to the parent binary triggers realpath's same-env shortcut;
     # copies=True semantics are essential to distinguish both interpreters.
     venv.EnvBuilder(with_pip=False, symlinks=False).create(root)
-    python = root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = root / "bin/python"
     result = subprocess.run(
         [str(python), "-c", "import sys,sysconfig,json; print(json.dumps([sys.prefix,sysconfig.get_path('purelib')]))"],
         env=dict(os.environ), stdin=subprocess.DEVNULL, capture_output=True,

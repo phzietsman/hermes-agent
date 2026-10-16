@@ -69,7 +69,7 @@ def allocate_receivers(publisher, commit: str, source_version: str, controller: 
         request = {"schema": 1, "channel": "stable", "repository": publisher.repository,
                    "sequence": sequence, "commit": commit, "sourceVersion": source_version,
                    "controllerCommit": controller, "version": f"0.0.{sequence}",
-                   "windowsVersion": f"0.0.{sequence}.0", "releaseTag": f"v0.0.{sequence}",
+                   "releaseTag": f"v0.0.{sequence}",
                    "receiverCandidate": True, "identity": identity, "bundleEnv": {},
                    "publicBase": publisher.public_base}
         request["buildId"] = hashlib.sha256(canonical_json(request)).hexdigest()[:32]

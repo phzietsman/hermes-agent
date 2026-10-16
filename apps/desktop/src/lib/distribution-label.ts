@@ -9,15 +9,14 @@ import type { DesktopVersionInfo } from '@/global'
  *  - `distribution`  the steward of a sealed tree (`desktop-app`) — gates the
  *                    desktop-app rows below.
  *  - `payload`       the artifact kind of the app itself: `bootstrap` is the
- *                    old-style installer shell (a .app/.exe over a managed
+ *                    old-style installer shell (a .app over a managed
  *                    checkout), `bundled` ships the runtime in the artifact,
  *                    `light` carries no runtime.
- *  - `updateMechanism` who applies the next update (Store, App Installer,
- *                    electron-updater, …). `self` on a `bootstrap` artifact is
+ *  - `updateMechanism` who applies the next update (electron-updater, …). `self` on a `bootstrap` artifact is
  *                    truthful forever: the shell never updates itself, the
  *                    managed checkout underneath does.
  * `installedByScript` refines an external/git install into "installed by
- * install.sh / install.ps1" vs a manual clone — those checkouts carry the
+ * install.sh" vs a manual clone — those checkouts carry the
  * bootstrap installers' `.hermes-bootstrap-complete` receipt.
  *
  * `hermes desktop` packs the app from a source checkout with the same
@@ -29,8 +28,6 @@ import type { DesktopVersionInfo } from '@/global'
 
 /** Keys of the updates i18n section this resolver may return. */
 export type DistributionLabelKey =
-  | 'versionDetailsDistributionStore'
-  | 'versionDetailsDistributionDesktopMsix'
   | 'versionDetailsDistributionDesktop'
   | 'versionDetailsDistributionDesktopInstaller'
   | 'versionDetailsDistributionSourceInstaller'
@@ -58,10 +55,6 @@ export function distributionLabelKey(version: DistributionLabelInput): Distribut
     return null
   }
 
-  if (version.updateMechanism === 'microsoft-store') {
-    return 'versionDetailsDistributionStore'
-  }
-
   if (version.distribution !== 'desktop-app') {
     // A plain source install: the bootstrap receipt separates the script
     // installers from a manual clone. No provenance at all shows no row —
@@ -81,10 +74,6 @@ export function distributionLabelKey(version: DistributionLabelInput): Distribut
     }
 
     return 'versionDetailsDistributionDesktopInstaller'
-  }
-
-  if (version.updateMechanism === 'app-installer') {
-    return 'versionDetailsDistributionDesktopMsix'
   }
 
   return 'versionDetailsDistributionDesktop'

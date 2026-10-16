@@ -11,18 +11,11 @@ import logging
 import os
 import shutil
 import stat
-import sys
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Set, Tuple
 
-# Force UTF-8 stdout/stderr: GBK-style Windows locales can't encode the glyphs
-# printed here (✓ ↑ →), and install.ps1 parses this script's stdout as UTF-8.
-for _stream in (sys.stdout, sys.stderr):
-    if hasattr(_stream, "reconfigure"):
-        with suppress(ValueError, TypeError):
-            _stream.reconfigure(encoding="utf-8", errors="replace")
 from hermes_constants import get_bundled_skills_dir, get_hermes_home, get_optional_skills_dir
 from agent.skill_utils import ESSENTIAL_SKILLS, is_excluded_skill_path
 from tools.skill_usage import _read_skill_name

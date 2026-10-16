@@ -448,7 +448,7 @@ class ChildHost:
     def kill(self) -> None:
         """SIGKILL: the process dies with whatever it had in flight (a crash, not a drain)."""
         if self.proc is not None and self.proc.poll() is None:
-            os.kill(self.proc.pid, signal.SIGKILL)  # windows-footgun: ok (POSIX-only harness)
+            os.kill(self.proc.pid, signal.SIGKILL)
             self.proc.wait(timeout=DEADLINE_SECONDS)
 
     def stop(self) -> None:

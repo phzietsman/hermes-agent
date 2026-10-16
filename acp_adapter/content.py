@@ -94,10 +94,7 @@ def _path_from_file_uri(uri: str) -> Path | None:
         drive, rest = path_text[0], path_text[2:]
     else:
         return Path(path_text)
-    import os
     rest = rest.lstrip("/\\").replace("\\", "/")
-    if os.name == "nt":
-        return Path(f"{drive}:/{rest}")
     return Path("/mnt") / drive.lower() / rest
 
 

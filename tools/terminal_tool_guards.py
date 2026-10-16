@@ -2,7 +2,7 @@
 
 Pure functions that decide whether a command may run at all: workdir
 validation, the foreground long-lived/background-operator guidance, the
-supervised-gateway lifecycle block, and the Windows self-repo git guard.
+and the supervised-gateway lifecycle block.
 Each ``*_block`` helper returns a finished JSON error string, or None when
 the command may proceed. Split out of tools/terminal_tool.py; the origin
 module re-imports every public helper so ``tools.terminal_tool.<name>``
@@ -22,7 +22,7 @@ from tools.shell_heredoc import strip_inert_heredoc_bodies
 logger = logging.getLogger("tools.terminal_tool")
 
 
-# Workdir allowlist: Unicode alnum plus path/drive/UNC separators and common
+# Workdir allowlist: Unicode alnum plus path separators and common
 # punctuation; shell metacharacters stay rejected. Unicode is allowed on
 # purpose (e.g. CJK vault paths). Defense-in-depth — the cwd is also
 # shlex-quoted before reaching the shell.
@@ -261,31 +261,3 @@ def gateway_lifecycle_block(
             "error",
         )
     return None
-
-
-def self_repo_block(
-    *,
-    command: str,
-    cwd: str,
-    workdir: Optional[str],
-    session_key: str,
-) -> Optional[str]:
-    """Windows-only guard against git-mutating the checkout backing this interpreter.
-
-    NTFS locks loaded module files, so rewriting the live checkout can corrupt
-    the running process; POSIX keeps old inodes alive for open handles, so the
-    guard is off there (``guard_active``). Local backend only — remote
-    backends cannot reach that checkout. Returns the JSON error string when
-    blocked, else None.
-    """
-    from tools.self_repo_guard import detect_self_repo_git_mutation, guard_active
-    from tools.terminal_tool import _resolve_command_cwd
-
-    if not guard_active():
-        return None
-    guard_cwd = _resolve_command_cwd(workdir=workdir, default_cwd=cwd, session_key=session_key)
-    hit, msg = detect_self_repo_git_mutation(command, guard_cwd)
-    if not hit:
-        return None
-    logger.warning("Blocked self-repo git mutation (command: %s)", _safe_command_preview(command))
-    return _blocked_json(msg, "blocked")

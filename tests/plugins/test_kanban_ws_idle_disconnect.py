@@ -6,8 +6,8 @@ raised — which never happens on a board with no new events. Every closed
 dashboard tab therefore left a zombie poll task querying SQLite forever.
 
 The event tail must also reuse one SQLite connection instead of opening and
-closing the last WAL connection on every idle poll. On Windows that repeatedly
-deletes and recreates ``kanban.db-wal`` and ``kanban.db-shm``.
+closing the last WAL connection on every idle poll, which repeatedly deletes
+and recreates ``kanban.db-wal`` and ``kanban.db-shm``.
 """
 
 from __future__ import annotations

@@ -241,7 +241,7 @@ def _generate_presets(mdir: Path, preset_path: Path) -> Path | None:
     (``hardware.launch_budget``), which never moves weights to the CPU.
 
     Degradation ladder on failure: a STALE policy still beats no policy — stock fit (f16 KV at max
-    context, no placement) is the silent-busy-wait failure on Windows. Keep serving with the
+    context, no placement) is the silent-busy-wait failure. Keep serving with the
     previous INI when one exists; only a first boot with no INI at all falls to stock fit.
     """
     from hermes_cli.local_runtime.hardware import probe_budget
@@ -331,38 +331,20 @@ def _any_holds_memory(sup) -> bool:
 
 
 def _try_lock_boot_fd(fd: int) -> bool:
-    """Non-blocking exclusive attempt; portable across fcntl/msvcrt."""
-    if os.name == "nt":
-        import msvcrt
+    """Non-blocking exclusive attempt."""
+    import fcntl
 
-        if os.fstat(fd).st_size == 0:
-            os.write(fd, b"\0")
-        os.lseek(fd, 0, os.SEEK_SET)
-        try:
-            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-            return True
-        except OSError:
-            return False
-    else:
-        import fcntl
-
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return True
-        except OSError:
-            return False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except OSError:
+        return False
 
 
 def _unlock_boot_fd(fd: int) -> None:
-    if os.name == "nt":
-        import msvcrt
+    import fcntl
 
-        os.lseek(fd, 0, os.SEEK_SET)
-        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-    else:
-        import fcntl
-
-        fcntl.flock(fd, fcntl.LOCK_UN)
+    fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 @contextmanager

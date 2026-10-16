@@ -1,7 +1,6 @@
 """Checkout freshness follows the selected PM generation, not a second stamp."""
 import importlib
 import json
-import os
 from pathlib import Path
 import subprocess
 
@@ -118,7 +117,7 @@ def test_own_tree_sync_reuses_pm_without_writing_an_extra_stamp(admission_env, m
     assert not (core / ".hermes-runtime" / "cache" / "venv-sync.json").exists()
     assert venv_sync.sync(core) == {'state': 'current', 'ok': True}
     assert paths.runtime_facts_path().read_bytes() == saved
-    python = environment / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    python = environment / 'bin/python'
     result = subprocess.run([str(python), '-I', '-c', 'import sys; print(sys.prefix)'],
                             cwd=home, capture_output=True, text=True, check=True, timeout=30)
     assert Path(result.stdout.strip()).resolve() == environment.resolve()

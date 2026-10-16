@@ -123,7 +123,7 @@ test('probe times out when the socket never opens', async () => {
 })
 
 // --- waiting on a spawned backend (#96177) ----------------------------------
-// A Windows cold start can stall the backend's event loop for 12-28s after
+// A cold start can stall the backend's event loop for 12-28s after
 // HTTP is up, leaving the upgrade unanswered past the fixed budget. Fake timers
 // drive every deadline so these cases never race the wall clock.
 

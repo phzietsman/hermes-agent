@@ -10,9 +10,6 @@ name: Install & Update E2E
 #   Matrix: linux     the real curl|bash install one-liner, isolated by a
 #                     git URL redirect to a local bare clone
 #                     (install-e2e-run.yml)
-#   Matrix: windows   the real desktop user flow: website Hermes-Setup.exe
-#                     clicked by AutoHotkey, update via the app, Playwright
-#                     clicking "Update now" (install-e2e-windows-run.yml)
 #   Matrix: macos     script installs on the shared OS-agnostic driver,
 #                     plus the real desktop user flow: website
 #                     Hermes-Setup.dmg mounted and run, updates via the
@@ -39,9 +36,9 @@ name: Install & Update E2E
 #     releases to sample;
 #   * pull_request, path-filtered to the install/update surface, runs ONLY the
 #     `pr` route (generate-e2e-matrix.mjs PR_SUBSET): installer-script ->
-#     hermes-update on linux (newest release -> PR, and PR -> NEXT), windows
-#     (PR -> NEXT) and macos (newest release -> PR), sampling just the newest tag.
-#     Four legs in parallel keep a PR's wall clock near one leg (~15 min);
+#     hermes-update on linux (newest release -> PR, and PR -> NEXT) and macos
+#     (newest release -> PR), sampling just the newest tag.
+#     Three legs in parallel keep a PR's wall clock near one leg (~15 min);
 #     the full matrix multiplies that, so it stays on the clock and releases.
 #     A red scheduled run is reported by install-e2e-red.yml.
 
@@ -49,14 +46,10 @@ on:
   workflow_dispatch:
     inputs:
       route:
-        description: 'Which legs to run: all = every OS; both/update/installer = the linux legs; windows-desktop / macos-desktop = that OS; bundled / windows-bundled / macos-bundled = the signed-bundle legs. Anything else selects legs by name (a leg or job name, or a fragment of one).'
+        description: 'Which legs to run: all = every OS; both/update/installer = the linux legs; macos-desktop = that OS; bundled / macos-bundled = the signed-bundle legs. Anything else selects legs by name (a leg or job name, or a fragment of one).'
         required: false
         type: string
         default: all
-      windows-bundle-manifest:
-        description: 'HTTPS manifest pinning signed Windows OLD/NEW msixbundles; NEW must match this ref.'
-        type: string
-        default: ''
       macos-bundle-manifest:
         description: 'HTTPS manifest pinning signed macOS OLD/NEW app ZIPs; NEW must match this ref.'
         type: string
@@ -87,15 +80,10 @@ on:
         type: boolean
         default: false
       route:
-        description: 'Which legs to run: all = every OS; both/update/installer = the linux legs; windows-desktop / macos-desktop = that OS; bundled / windows-bundled / macos-bundled = the signed-bundle legs. Anything else selects legs by name (a leg or job name, or a fragment of one).'
+        description: 'Which legs to run: all = every OS; both/update/installer = the linux legs; macos-desktop = that OS; bundled / macos-bundled = the signed-bundle legs. Anything else selects legs by name (a leg or job name, or a fragment of one).'
         required: false
         type: string
         default: all
-      windows-bundle-manifest:
-        description: 'HTTPS manifest pinning signed Windows OLD/NEW msixbundles; NEW must match this ref.'
-        required: false
-        type: string
-        default: ''
       macos-bundle-manifest:
         description: 'HTTPS manifest pinning signed macOS OLD/NEW app ZIPs; NEW must match this ref.'
         required: false
@@ -142,7 +130,6 @@ on:
       - 'hermes_cli/relaunch.py'
       - 'hermes_cli/gateway.py'
       - 'gateway/status.py'
-      - 'apps/bootstrap-installer/**'
       - 'apps/desktop/electron/*update*'
       - 'apps/desktop/electron/updater/**'
       - 'pyproject.toml'
@@ -191,8 +178,7 @@ jobs:
           # Inputs never touch shell syntax directly: TAG_COUNT arrives via
           # the environment and is validated decimal-only (bash arithmetic
           # reads a leading zero as octal). GitHub's 256-job cap applies to
-          # each per-OS matrix separately; at 10 tags the largest is windows
-          # at 180 (first over the cap at 15 tags = 270).
+          # each per-OS matrix separately.
           #
           # EXCLUDE_REF removes one tag from the sampled OLD baselines: on a
           # stable release the candidate tag itself is the newest release
@@ -237,10 +223,8 @@ jobs:
     timeout-minutes: 5
     outputs:
       linux: ${{ steps.gen.outputs.linux }}
-      windows: ${{ steps.gen.outputs.windows }}
       macos: ${{ steps.gen.outputs.macos }}
       linux-legs: ${{ steps.gen.outputs.linux-legs }}
-      windows-legs: ${{ steps.gen.outputs.windows-legs }}
       macos-legs: ${{ steps.gen.outputs.macos-legs }}
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
@@ -257,7 +241,7 @@ jobs:
           matrices="$(node scripts/sandbox/generate-e2e-matrix.mjs \
             --tags '${{ needs.pick-releases.outputs.tags }}' --route "$ROUTE")"
           echo "$matrices"
-          for key in linux windows macos; do
+          for key in linux macos; do
             echo "$key=$(echo "$matrices" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>console.log(JSON.stringify(JSON.parse(d)[process.argv[1]])))' "$key")" >> "$GITHUB_OUTPUT"
             echo "$key-legs=$(echo "$matrices" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>console.log(JSON.parse(d)[process.argv[1]].include.length))' "$key")" >> "$GITHUB_OUTPUT"
           done
@@ -274,36 +258,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      windows: ${{ steps.inputs.outputs.windows }}
       macos: ${{ steps.inputs.outputs.macos }}
-      windows-arch: ${{ steps.inputs.outputs.windows-arch }}
       macos-arch: ${{ steps.inputs.outputs.macos-arch }}
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
       - id: inputs
         env:
-          BUNDLE_WINDOWS_MANIFEST: ${{ inputs.windows-bundle-manifest }}
           BUNDLE_MACOS_MANIFEST: ${{ inputs.macos-bundle-manifest }}
           BUNDLE_ROUTE: ${{ inputs.route }}
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           node tests/install/e2e-assets/bundle-plan.mjs
-
-  windows-bundled:
-    name: ${{ matrix.name }}
-    if: inputs.windows-bundle-manifest != '' && contains(fromJSON('["all", "bundled", "windows-bundled"]'), inputs.route)
-    needs: bundle-inputs
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.bundle-inputs.outputs.windows) }}
-    uses: ./.github/workflows/install-e2e-windows-run.yml
-    with:
-      install-method: packaged-app
-      update-method: open-app-update
-      install-ref: ${{ matrix.install_ref }}
-      leg-id: ${{ matrix.leg_id }}
-      bundle-manifest-url: ${{ inputs.windows-bundle-manifest }}
-      bundle-arch: ${{ needs.bundle-inputs.outputs.windows-arch }}
 
   macos-bundled:
     name: ${{ matrix.name }}
@@ -333,22 +298,6 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.linux) }}
     uses: ./.github/workflows/install-e2e-run.yml
-    with:
-      install-method: ${{ matrix.install_method }}
-      update-method: ${{ matrix.update_method }}
-      install-ref: ${{ matrix.install_ref }}
-      update-ref: ${{ matrix.update_ref }}
-      tag-has-desktop: ${{ matrix.tag_has_desktop }}
-      leg-id: ${{ matrix.leg_id }}
-
-  windows:
-    name: ${{ matrix.name }}
-    if: needs.generate-matrix.outputs.windows-legs != '0'
-    needs: generate-matrix
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.windows) }}
-    uses: ./.github/workflows/install-e2e-windows-run.yml
     with:
       install-method: ${{ matrix.install_method }}
       update-method: ${{ matrix.update_method }}
@@ -400,7 +349,7 @@ jobs:
           if-no-files-found: error
 
   # Strict source-matrix gate (release runs). needs collapses each matrix to
-  # one aggregate, so the three source parents are the required check here.
+  # one aggregate, so the two source parents are the required check here.
   # Every source leg must succeed — a skip is a failure EXCEPT when it is the
   # native, declared capability skip (a starting tag predating the desktop
   # app reports tag-has-desktop=false and its GUI leg legitimately cannot
@@ -410,22 +359,20 @@ jobs:
   source-gate:
     name: Source matrix gate
     if: always() && inputs.release == true
-    needs: [generate-matrix, linux, windows, macos]
+    needs: [generate-matrix, linux, macos]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Evaluate source legs
         env:
           LINUX: ${{ needs.linux.result }}
-          WINDOWS: ${{ needs.windows.result }}
           MACOS: ${{ needs.macos.result }}
           LINUX_MATRIX: ${{ needs.generate-matrix.outputs.linux }}
-          WINDOWS_MATRIX: ${{ needs.generate-matrix.outputs.windows }}
           MACOS_MATRIX: ${{ needs.generate-matrix.outputs.macos }}
         run: |
           set -euo pipefail
           fail=0
-          for os_name in LINUX WINDOWS MACOS; do
+          for os_name in LINUX MACOS; do
             result="${!os_name}"
             matrix_var="${os_name}_MATRIX"
             matrix="${!matrix_var}"
@@ -452,7 +399,7 @@ jobs:
   report:
     name: Result chart
     if: always()
-    needs: [leg-player, pick-releases, linux, windows, macos, bundle-inputs, windows-bundled, macos-bundled]
+    needs: [leg-player, pick-releases, linux, macos, bundle-inputs, macos-bundled]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -487,7 +434,7 @@ jobs:
             exit 0
           fi
           {
-            echo "OS jobs: linux ${{ needs.linux.result }}, windows ${{ needs.windows.result }}, macos ${{ needs.macos.result }}"
+            echo "OS jobs: linux ${{ needs.linux.result }}, macos ${{ needs.macos.result }}"
             echo
             # The tag annotations let the chart say WHY a cell skipped
             # (pre-desktop vs declared TODO) instead of a flat "skip".

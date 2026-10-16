@@ -93,7 +93,7 @@ def test_staged_plugin_publication_uses_installed_identity_and_local_dependencie
     selected = selected_venv(project)
     assert (selected != previous) is active
     if active:
-        python = selected / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        python = selected / "bin/python"
         probe = subprocess.run([str(python), "-I", "-c", "import publication_dep; print(publication_dep.__version__)"],
                                text=True, capture_output=True, timeout=30)
         assert probe.returncode == 0, probe.stderr

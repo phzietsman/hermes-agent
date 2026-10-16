@@ -1,8 +1,6 @@
-"""A sealed payload enters its venvs on its own interpreter, never through their redirectors.
+"""A sealed payload enters its venvs on its own interpreter.
 
-A venv's ``Scripts\\python.exe`` sits outside the MSIX and starts the package's interpreter,
-which Windows refuses (WinError 5) to a process without package identity. ``venv_command``
-must therefore run the payload's interpreter with the venv attached, and the result must
+``venv_command`` runs the payload's interpreter with the venv attached, and the result must
 behave like the venv's own interpreter for scripts, ``-c`` and ``-m``.
 """
 from __future__ import annotations

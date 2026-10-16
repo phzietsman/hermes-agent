@@ -38,12 +38,12 @@ it('retains a close when the same runtime owner is refined from profile-only to 
   expect($previewStatusBySession.get()['refined-append'].map(item => item.id)).toEqual(['/work/second.html'])
 })
 
-it('tolerates malformed persisted scope keys and keeps Windows aliases identical', () => {
+it('tolerates malformed persisted scope keys and keeps relative and file-URL aliases identical', () => {
   window.localStorage.setItem('hermes.desktop.previewDismissals.v1', '{"__proto__":["x"],"constructor":["y"]}')
   expect(() => migrateTilesForProfile('old-profile', 'new-profile')).not.toThrow()
-  recordPreviewArtifact('windows-alias', './report.html', 'C:\\work')
-  const item = $previewStatusBySession.get()['windows-alias'][0]
-  dismissPreviewArtifact('windows-alias', item.id)
-  recordPreviewArtifact('windows-alias', 'file:///C:/work/report.html', 'C:\\work')
-  expect($previewStatusBySession.get()['windows-alias']).toBeUndefined()
+  recordPreviewArtifact('path-alias', './report.html', '/work')
+  const item = $previewStatusBySession.get()['path-alias'][0]
+  dismissPreviewArtifact('path-alias', item.id)
+  recordPreviewArtifact('path-alias', 'file:///work/report.html', '/work')
+  expect($previewStatusBySession.get()['path-alias']).toBeUndefined()
 })

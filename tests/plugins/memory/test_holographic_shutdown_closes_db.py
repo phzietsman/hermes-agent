@@ -49,9 +49,8 @@ def test_shutdown_closes_store_connection(tmp_path):
 def test_release_all_under_closes_connections_inside_directory_only(tmp_path):
     """Regression test for #88347 — profile delete must break refcounted handles.
 
-    ``close()`` alone can never free a database held by a live agent (refs >= 1),
-    and on Windows an open SQLite handle makes rmtree of the profile directory
-    fail with WinError 32. ``release_all_under`` force-closes exactly the shared
+    ``close()`` alone can never free a database held by a live agent (refs >= 1).
+    ``release_all_under`` force-closes exactly the shared
     connections under the doomed directory and leaves everything else alone.
     """
     from plugins.memory.holographic.store import MemoryStore

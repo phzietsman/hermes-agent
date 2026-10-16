@@ -11,17 +11,15 @@ import pytest
 
 # Win32 strips a trailing space from every path component, so the literal-suffix contract is
 # only checkable with the leading space there.
-_SPACED = " spaced" if sys.platform == "win32" else " spaced "
+_SPACED = " spaced "
 
 
-@pytest.mark.platforms("linux", "macos", "windows")
 @pytest.mark.parametrize("suffix", ["", "-asdfasdf", "magic-test", _SPACED])
 def test_suffix_scopes_default_home_and_profiles(tmp_path, suffix):
     env = dict(os.environ)
     env.pop("HERMES_HOME", None)
     env.update(
-        HOME=str(tmp_path), USERPROFILE=str(tmp_path),
-        LOCALAPPDATA=str(tmp_path / "AppData" / "Local"),
+        HOME=str(tmp_path),
         HERMES_DATA_DIR_SUFFIX=suffix,
     )
     script = """
@@ -49,7 +47,7 @@ print(json.dumps(result))
         text=True, capture_output=True,
     )
     assert result.returncode == 0, result.stderr
-    base = tmp_path / "AppData" / "Local" / "hermes" if sys.platform == "win32" else tmp_path / ".hermes"
+    base = tmp_path / ".hermes"
     root = Path(str(base) + suffix)
     profile = root / "profiles" / "coder"
     assert json.loads(result.stdout) == list(map(str, [
@@ -58,7 +56,6 @@ print(json.dumps(result))
     ]))
 
 
-@pytest.mark.platforms("linux", "macos", "windows")
 def test_startup_readers_use_the_suffixed_home(tmp_path, monkeypatch):
     from hermes_constants import get_process_hermes_home
     from hermes_cli.dashboard_procs import _hermes_home_dir
@@ -66,7 +63,6 @@ def test_startup_readers_use_the_suffixed_home(tmp_path, monkeypatch):
     from hermes_startup_watchdog import get_startup_watchdog_dump_path
 
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "AppData" / "Local"))
     monkeypatch.delenv("HERMES_HOME", raising=False)
     monkeypatch.setenv("HERMES_DATA_DIR_SUFFIX", "magic-test")
     monkeypatch.delenv("SUFFIX_TEST_CREDENTIAL", raising=False)
@@ -87,7 +83,6 @@ def test_suffix_does_not_change_explicit_or_context_home(tmp_path, monkeypatch):
     )
 
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "AppData" / "Local"))
     explicit = tmp_path / "explicit"
     scoped = tmp_path / "scoped"
     monkeypatch.setenv("HERMES_HOME", str(explicit))

@@ -274,19 +274,15 @@ export function reportInstallMethodWarning(message: string | undefined): void {
  */
 export function maybeNotifyUpdateAvailable(status: DesktopUpdateStatus | null, target: UpdateTarget = 'client') {
   // Either signal means "update ready": behind > 0 (git checkout) or
-  // updateAvailable (shallow clone, App Installer feed).
+  // updateAvailable (shallow clone, release feed).
   if (!status || status.supported === false || status.error) {
     return
   }
 
-  // The package update owner reports availability without a commit SHA.
-  // Git checks must still identify their target commit; a native macOS
+  // Git checks must identify their target commit; a native macOS
   // (electron-updater) check names its target by release tag instead.
   const hasTargetIdentity: boolean =
-    Boolean(status.targetSha) ||
-    Boolean(status.latestTag) ||
-    status.mechanism === 'app-installer' ||
-    status.mechanism === 'microsoft-store'
+    Boolean(status.targetSha) || Boolean(status.latestTag)
 
   if (!hasTargetIdentity) {
     return
@@ -319,11 +315,9 @@ export function maybeNotifyUpdateAvailable(status: DesktopUpdateStatus | null, t
     id: UPDATE_TOAST_ID,
     kind: 'info',
     message:
-      status.mechanism === 'app-installer'
-        ? translateNow('notifications.updateReadyMessageAppInstaller')
-        : behind !== null && behind > 0
-          ? translateNow('notifications.updateReadyMessage', behind)
-          : translateNow('notifications.updateReadyMessageUnknown'),
+      behind !== null && behind > 0
+        ? translateNow('notifications.updateReadyMessage', behind)
+        : translateNow('notifications.updateReadyMessageUnknown'),
     onDismiss: () => snoozeUpdateToast(),
     title: translateNow('notifications.updateReadyTitle')
   })

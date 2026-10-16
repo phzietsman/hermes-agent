@@ -98,7 +98,6 @@ Skills 可以使用 `platforms` 字段将自身限制在特定操作系统上：
 |-------|---------|
 | `macos` | macOS（Darwin） |
 | `linux` | Linux |
-| `windows` | Windows |
 
 ```yaml
 platforms: [macos]            # macOS only (e.g., Apple Reminders, FindMy)

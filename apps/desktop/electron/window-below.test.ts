@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   type EnumeratedWindow,
   enumerationFailureNote,
-  getWindowsFailureReason,
   pickWindowBelow,
   resolveOutsideAsar
 } from './window-below'
@@ -124,7 +123,7 @@ describe('enumerationFailureNote', () => {
   })
 
   it('does not offer Linux advice on other platforms', () => {
-    for (const platform of ['darwin', 'win32']) {
+    for (const platform of ['darwin']) {
       const note = enumerationFailureNote(platform, {})
 
       expect(note).not.toMatch(/xprop|Wayland/)
@@ -132,12 +131,12 @@ describe('enumerationFailureNote', () => {
     }
   })
 
-  // The macOS/Windows note used to be one fixed sentence, so a real report came
+  // The macOS note used to be one fixed sentence, so a real report came
   // back saying only "could not enumerate windows on this system" — the module
   // failing to load, the helper failing to spawn, and the OS answering with
   // nothing are three different fixes and all three said that.
   it('carries the enumerator\u2019s own reason where there is no environmental fork', () => {
-    for (const platform of ['darwin', 'win32']) {
+    for (const platform of ['darwin']) {
       expect(enumerationFailureNote(platform, {}, 'the helper failed: spawn EACCES')).toMatch(/spawn EACCES/)
     }
   })
@@ -152,32 +151,6 @@ describe('enumerationFailureNote', () => {
   })
 })
 
-describe('getWindowsFailureReason', () => {
-  it('explains the native binding gap on Windows ARM64 without discarding the failure', () => {
-    for (const detail of [
-      'module missing',
-      'binding failed to load',
-      'the window enumerator returned no window list'
-    ]) {
-      const reason = getWindowsFailureReason(detail, 'win32', 'arm64')
-
-      expect(reason).toContain(detail)
-      expect(reason).toMatch(/win32-arm64/)
-      expect(reason).toMatch(/native binding/)
-      expect(reason).toMatch(/x64/)
-      expect(enumerationFailureNote('win32', {}, reason)).toContain(reason)
-
-      for (const [platform, arch] of [
-        ['win32', 'x64'],
-        ['darwin', 'arm64'],
-        ['linux', 'arm64']
-      ]) {
-        expect(getWindowsFailureReason(detail, platform, arch)).toBe(detail)
-      }
-    }
-  })
-})
-
 describe('resolveOutsideAsar', () => {
   // The helper binary get-windows execs cannot run from inside the archive
   // (execFile on a path through app.asar fails ENOTDIR), so the import must
@@ -189,18 +162,6 @@ describe('resolveOutsideAsar', () => {
       )
     ).toBe(
       'file:///Applications/Hermes.app/Contents/Resources/app.asar.unpacked/dist/node_modules/get-windows/index.js'
-    )
-  })
-
-  // The staged specifier is built with path.join, so on Windows the archive
-  // segment is delimited by backslashes, not the slashes a file: URL has.
-  it('redirects a Windows packaged path built with backslashes', () => {
-    expect(
-      resolveOutsideAsar(
-        'C:\\Users\\me\\AppData\\Local\\Hermes\\resources\\app.asar\\dist\\node_modules\\get-windows\\index.js'
-      )
-    ).toBe(
-      'C:\\Users\\me\\AppData\\Local\\Hermes\\resources\\app.asar.unpacked\\dist\\node_modules\\get-windows\\index.js'
     )
   })
 

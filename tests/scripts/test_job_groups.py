@@ -15,9 +15,9 @@ def test_one_group_selects_only_itself():
     selected = parse_jobs("termux")
     assert selected["termux"] is True
     assert all(value is False for group, value in selected.items() if group != "termux")
-    selected = parse_jobs("darwin-arm64, win32-bundle")
+    selected = parse_jobs("darwin-arm64, termux")
     assert selected == {**{group: False for group in JOB_GROUPS},
-                        "darwin-arm64": True, "win32-bundle": True}
+                        "darwin-arm64": True, "termux": True}
 
 
 def test_duplicates_unknown_names_and_empty_are_refused():
@@ -30,14 +30,14 @@ def test_duplicates_unknown_names_and_empty_are_refused():
     with pytest.raises(ValueError, match="empty group name"):
         parse_jobs("termux,")
     with pytest.raises(ValueError, match="unknown job group"):
-        parse_jobs("termux,smoke-win32")
+        parse_jobs("termux,smoke-darwin")
 
 
 def test_selects_all_refuses_partial_selections():
     assert selects_all(None) is True
     assert selects_all(ALL_JOBS) is True
     assert selects_all("termux") is False
-    assert selects_all("darwin-arm64,darwin-x64,win32-arm64,win32-x64") is False
+    assert selects_all("darwin-arm64,darwin-x64,linux-x64,linux-arm64") is False
     with pytest.raises(ValueError):
         selects_all("bogus")
 
@@ -46,10 +46,7 @@ def test_phase_jobs_judge_only_the_selected_groups():
     every = {group: True for group in JOB_GROUPS}
     candidate = phase_jobs(every, "candidate")
     assert candidate == ["validate", "build-darwin-arm64", "smoke-darwin-arm64",
-                         "build-darwin-x64", "smoke-darwin-x64",
-                         "build-win32-arm64", "smoke-win32-arm64",
-                         "build-win32-x64", "smoke-win32-x64",
-                         "assemble-win32-bundle", "termux-deb"]
+                         "build-darwin-x64", "smoke-darwin-x64", "termux-deb"]
     termux_only = {**{group: False for group in JOB_GROUPS}, "termux": True}
     assert phase_jobs(termux_only, "candidate") == ["validate", "termux-deb"]
     # B4 moved candidate-manifest into stable-release.yml; the desktop phase
@@ -60,7 +57,7 @@ def test_phase_jobs_judge_only_the_selected_groups():
     # A claim that skipped tests still judges every build, and no smoke.
     untested = phase_jobs(every, "candidate", skip_tests=True)
     assert untested == [job for job in candidate if not job.startswith("smoke-")]
-    assert phase_jobs(every, "publish") == ["validate", "stable-publish", "stable-store"]
+    assert phase_jobs(every, "publish") == ["validate", "stable-publish"]
     with pytest.raises(ValueError, match="Unknown release phase"):
         phase_jobs(every, "promote")
 

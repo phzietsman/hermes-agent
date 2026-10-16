@@ -2,7 +2,7 @@
  * bootstrap-runner.ts
  *
  * Drives apps/desktop's first-launch install of Hermes Agent by spawning
- * scripts/install.ps1 stage-by-stage and streaming progress events back to
+ * scripts/install.sh stage-by-stage and streaming progress events back to
  * the renderer.
  *
  * Wired from electron/main.ts:
@@ -10,7 +10,7 @@
  *   const result = await runBootstrap({
  *     installStamp,        // INSTALL_STAMP from main.ts (may be null in dev)
  *     activeRoot,          // ACTIVE_HERMES_ROOT
- *     sourceRepoRoot,      // SOURCE_REPO_ROOT (for dev install.ps1 lookup)
+ *     sourceRepoRoot,      // SOURCE_REPO_ROOT (for dev install.sh lookup)
  *     hermesHome,          // HERMES_HOME
  *     logRoot,             // HERMES_HOME/logs
  *     emit: ev => {...}    // event sink (sender.send or similar)
@@ -41,10 +41,7 @@ import path from 'node:path'
 // with no tsconfig path resolution (see scripts/bundle-electron-main.mjs).
 import { stripAnsi } from '../../shared/src/ansi'
 
-import { pathEnvKey, storeFirstPath } from './backend-env'
-import { hiddenWindowsChildOptions } from './windows-child-options'
-
-const IS_WINDOWS = process.platform === 'win32'
+import { PATH_ENV_KEY, storeFirstPath } from './backend-env'
 
 const STAMP_COMMIT_RE = /^[0-9a-f]{7,40}$/i
 const FALLBACK_COMMIT_RE = /^0{7,40}$/
@@ -80,7 +77,6 @@ function resolveCheckoutHead(
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
         timeout: 15_000,
-        ...hiddenWindowsChildOptions()
       }).trim())
 
   try {
@@ -92,7 +88,7 @@ function resolveCheckoutHead(
   }
 }
 
-/** Prefer a real pin already written by install.ps1's bootstrap-marker stage. */
+/** Prefer a real pin already written by install.sh's bootstrap-marker stage. */
 function readExistingPinnedCommit(activeRoot: string | null | undefined): string | null {
   if (!activeRoot) {
     return null
@@ -170,22 +166,18 @@ function installRefForStamp(installStamp, { pinCommit = true } = {}) {
 }
 
 // Stages flagged needs_user_input=true in the manifest are skipped by the
-// runner (passed -NonInteractive to install.ps1, which the install script
+// runner (passed --non-interactive to install.sh, which the install script
 // itself handles by emitting skipped=true frames). The renderer / 1E onboarding
 // overlay takes over for those concerns (API keys, model, persona, gateway).
-// We let install.ps1's own -NonInteractive logic drive this rather than
+// We let install.sh's own --non-interactive logic drive this rather than
 // filtering client-side -- single source of truth.
 
 // ---------------------------------------------------------------------------
-// install.ps1 source resolution
+// install.sh source resolution
 // ---------------------------------------------------------------------------
 
 function installScriptName() {
-  return process.platform === 'win32' ? 'install.ps1' : 'install.sh'
-}
-
-function installScriptKind() {
-  return process.platform === 'win32' ? 'powershell' : 'posix'
+  return 'install.sh'
 }
 
 function resolveLocalInstallScript(sourceRepoRoot) {
@@ -221,7 +213,7 @@ function hasExistingGitCheckout(activeRoot) {
 }
 
 function cachedScriptPath(hermesHome, cacheKey) {
-  return path.join(bootstrapCacheDir(hermesHome), `install-${cacheKey}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
+  return path.join(bootstrapCacheDir(hermesHome), `install-${cacheKey}.sh`)
 }
 
 function downloadInstallScript(ref, destPath) {
@@ -326,7 +318,7 @@ async function resolveInstallScript({
   if (localScript) {
     emit({ type: 'log', line: `[bootstrap] using local ${installScriptName()} at ${localScript}` })
 
-    return { path: localScript, source: 'local', kind: installScriptKind() }
+    return { path: localScript, source: 'local' }
   }
 
   // 2. Packaged path: download using the same identity policy as the stages.
@@ -357,61 +349,7 @@ async function resolveInstallScript({
   await _download(installRef.ref, cached)
   emit({ type: 'log', line: `[bootstrap] saved to ${cached}` })
 
-  return { path: cached, source: 'download', commit: resolvedCommit, kind: installScriptKind() }
-}
-
-// ---------------------------------------------------------------------------
-// powershell wrapper
-// ---------------------------------------------------------------------------
-
-// Canonical PowerShell 5.1 location under a Windows root (%SystemRoot%).
-function powershellUnderRoot(root) {
-  return path.join(root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-}
-
-// Resolve the PowerShell interpreter to spawn.
-//
-// Spawning bare 'powershell.exe' trusts PATH to contain
-// %SystemRoot%\System32\WindowsPowerShell\v1.0. On machines whose PATH was
-// trimmed, truncated, or stored as a non-expanding REG_SZ (so %SystemRoot%
-// never expands), that lookup fails and the spawn dies with ENOENT before
-// install.ps1 ever runs — the installer stalls at "0 of 0 steps". Resolve by
-// absolute path first, then fall back to PATH (powershell 5.1, then pwsh 7),
-// then a bare name as a last resort.
-function resolveWindowsPowerShell() {
-  for (const v of ['SystemRoot', 'windir']) {
-    const root = process.env[v]
-
-    if (root) {
-      const candidate = powershellUnderRoot(root)
-
-      try {
-        if (fs.statSync(candidate).isFile()) {
-          return candidate
-        }
-      } catch {
-        void 0
-      }
-    }
-  }
-
-  const pathDirs = (process.env.PATH || process.env.Path || '').split(path.delimiter).filter(Boolean)
-
-  for (const exe of ['powershell.exe', 'pwsh.exe']) {
-    for (const dir of pathDirs) {
-      const candidate = path.join(dir, exe)
-
-      try {
-        if (fs.statSync(candidate).isFile()) {
-          return candidate
-        }
-      } catch {
-        void 0
-      }
-    }
-  }
-
-  return 'powershell.exe'
+  return { path: cached, source: 'download', commit: resolvedCommit }
 }
 
 // install.sh (and the git/curl/uv children it drives) writes SGR colours,
@@ -431,115 +369,11 @@ function cleanInstallerLogLine(raw: string): string {
 // login-shell entries shell-path.ts merged in front of them.
 function installerEnv(hermesHome) {
   const env = { ...process.env, HERMES_HOME: hermesHome || process.env.HERMES_HOME || '' }
-  const key = pathEnvKey(env)
+  const key = PATH_ENV_KEY
 
   env[key] = storeFirstPath(env[key] || '', { currentEnv: env })
 
   return env
-}
-
-function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, hermesHome }: any = {}) {
-  return new Promise<any>((resolve, reject) => {
-    const ps = process.platform === 'win32' ? resolveWindowsPowerShell() : 'pwsh'
-    const fullArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...args]
-
-    const child = spawn(
-      ps,
-      fullArgs,
-      hiddenWindowsChildOptions({
-        stdio: ['ignore', 'pipe', 'pipe'],
-        // Pass HERMES_HOME through so install.ps1 respects the caller's
-        // choice rather than re-computing the default.
-        env: installerEnv(hermesHome)
-      })
-    )
-
-    let stdout = ''
-    let stderr = ''
-    let killed = false
-
-    const onAbort = () => {
-      killed = true
-
-      try {
-        child.kill('SIGTERM')
-      } catch {
-        void 0
-      }
-    }
-
-    if (abortSignal) {
-      if (abortSignal.aborted) {
-        onAbort()
-      } else {
-        abortSignal.addEventListener('abort', onAbort, { once: true })
-      }
-    }
-
-    child.stdout.setEncoding('utf8')
-    child.stderr.setEncoding('utf8')
-
-    // Stream stdout line-by-line so the renderer sees progress in real time.
-    let stdoutBuf = ''
-    child.stdout.on('data', chunk => {
-      stdout += chunk
-      stdoutBuf += chunk
-      let nl
-
-      while ((nl = stdoutBuf.indexOf('\n')) !== -1) {
-        const line = cleanInstallerLogLine(stdoutBuf.slice(0, nl))
-        stdoutBuf = stdoutBuf.slice(nl + 1)
-
-        if (line) {
-          emit && emit({ type: 'log', stage: stageName, line, stream: 'stdout' })
-        }
-      }
-    })
-
-    let stderrBuf = ''
-    child.stderr.on('data', chunk => {
-      stderr += chunk
-      stderrBuf += chunk
-      let nl
-
-      while ((nl = stderrBuf.indexOf('\n')) !== -1) {
-        const line = cleanInstallerLogLine(stderrBuf.slice(0, nl))
-        stderrBuf = stderrBuf.slice(nl + 1)
-
-        if (line) {
-          emit && emit({ type: 'log', stage: stageName, line, stream: 'stderr' })
-        }
-      }
-    })
-
-    child.on('error', err => {
-      if (abortSignal) {
-        abortSignal.removeEventListener('abort', onAbort)
-      }
-
-      reject(err)
-    })
-
-    child.on('close', (code, signal) => {
-      if (abortSignal) {
-        abortSignal.removeEventListener('abort', onAbort)
-      }
-
-      // Flush any trailing bytes
-      const stdoutTail = cleanInstallerLogLine(stdoutBuf)
-      const stderrTail = cleanInstallerLogLine(stderrBuf)
-
-      if (stdoutTail) {
-        emit && emit({ type: 'log', stage: stageName, line: stdoutTail, stream: 'stdout' } as any)
-      }
-
-      if (stderrTail) {
-        emit && emit({ type: 'log', stage: stageName, line: stderrTail, stream: 'stderr' } as any)
-      }
-
-      resolve({ stdout, stderr, code, signal, killed } as any)
-    })
-  })
 }
 
 function spawnBash(scriptPath, args, { emit, stageName, abortSignal, hermesHome }: any = {}) {
@@ -639,25 +473,6 @@ function spawnBash(scriptPath, args, { emit, stageName, abortSignal, hermesHome 
 // Manifest + stage dispatch
 // ---------------------------------------------------------------------------
 
-// Build the installer branch/pin args from the install stamp. The commit pin
-// is fresh-install only: once a managed checkout already exists, bootstrap is
-// a repair/update path and must not let an old packaged app detach the checkout
-// back to the commit baked into that app. All-zero fallback stamps are never
-// passed as -Commit/--commit — only the branch is used (#50823 / #50864 review).
-function buildPinArgs(installStamp, { pinCommit = true } = {}) {
-  const args = []
-
-  if (pinCommit && installStamp && isPinnedCommit(installStamp.commit)) {
-    args.push('-Commit', installStamp.commit)
-  }
-
-  if (installStamp && installStamp.branch) {
-    args.push('-Branch', installStamp.branch)
-  }
-
-  return args
-}
-
 function buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit = true }) {
   const args = ['--dir', activeRoot, '--hermes-home', hermesHome]
 
@@ -674,7 +489,6 @@ function buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit = t
 
 async function fetchManifest({
   scriptPath,
-  installerKind,
   emit,
   hermesHome,
   activeRoot,
@@ -683,13 +497,9 @@ async function fetchManifest({
   abortSignal
 }) {
   abortSignal?.throwIfAborted()
-  const isPosix = installerKind === 'posix'
+  const args = ['--manifest', ...buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit })]
 
-  const args = isPosix
-    ? ['--manifest', ...buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit })]
-    : ['-Manifest', ...buildPinArgs(installStamp, { pinCommit })]
-
-  const result = await (isPosix ? spawnBash : spawnPowerShell)(scriptPath, args, {
+  const result = await spawnBash(scriptPath, args, {
     emit,
     stageName: '__manifest__',
     abortSignal,
@@ -702,11 +512,11 @@ async function fetchManifest({
     const tail = stripAnsi(result.stderr || result.stdout).trim()
 
     throw new Error(
-      `${isPosix ? 'install.sh --manifest' : 'install.ps1 -Manifest'} failed: exit ${result.code}\n${tail}`
+      `install.sh --manifest failed: exit ${result.code}\n${tail}`
     )
   }
 
-  // The manifest is the LAST JSON line on stdout (install.ps1 may print
+  // The manifest is the LAST JSON line on stdout (install.sh may print
   // banner / info lines first depending on Console.OutputEncoding effects).
   // Find the last line that parses as JSON with a `stages` field.
   const lines = result.stdout.split(/\r?\n/).filter(Boolean)
@@ -724,13 +534,13 @@ async function fetchManifest({
   }
 
   throw new Error(
-    `${isPosix ? 'install.sh --manifest' : 'install.ps1 -Manifest'} produced no parseable JSON payload\n${result.stdout}`
+    `install.sh --manifest produced no parseable JSON payload\n${result.stdout}`
   )
 }
 
 // Parse the JSON result frame from a stage run. The protocol guarantees
 // exactly one JSON line per stage in -Json or -Stage mode (post #27224 fix
-// for the double-emit bug we addressed in the install.ps1 PR).
+// for the double-emit bug we addressed in the install.sh PR).
 function parseStageResult(stdout) {
   const lines = stdout.split(/\r?\n/).filter(Boolean)
 
@@ -751,7 +561,6 @@ function parseStageResult(stdout) {
 
 async function runStage({
   scriptPath,
-  installerKind,
   stage,
   emit,
   hermesHome,
@@ -763,19 +572,15 @@ async function runStage({
   const startedAt = Date.now()
   emit({ type: 'stage', name: stage.name, state: 'running' })
 
-  const isPosix = installerKind === 'posix'
+  const args = [
+    '--stage',
+    stage.name,
+    '--non-interactive',
+    '--json',
+    ...buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit })
+  ]
 
-  const args = isPosix
-    ? [
-        '--stage',
-        stage.name,
-        '--non-interactive',
-        '--json',
-        ...buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit })
-      ]
-    : ['-Stage', stage.name, '-NonInteractive', '-Json', ...buildPinArgs(installStamp, { pinCommit })]
-
-  const result = await (isPosix ? spawnBash : spawnPowerShell)(scriptPath, args, {
+  const result = await spawnBash(scriptPath, args, {
     emit,
     stageName: stage.name,
     abortSignal,
@@ -799,7 +604,7 @@ async function runStage({
       name: stage.name,
       state: 'failed',
       durationMs,
-      error: `${isPosix ? 'install.sh --stage' : 'install.ps1 -Stage'} ${stage.name} produced no JSON result frame (exit=${result.code})`,
+      error: `install.sh --stage ${stage.name} produced no JSON result frame (exit=${result.code})`,
       json: null
     }
 
@@ -928,13 +733,10 @@ async function runBootstrap(opts) {
     const scriptInfo = await resolveInstallScript({ installStamp, sourceRepoRoot, hermesHome, emit, pinCommit })
     abortSignal?.throwIfAborted()
 
-    const installerKind = scriptInfo.kind || 'powershell'
-
     // 2. Fetch manifest
     const manifest = await fetchManifest({
       scriptPath: scriptInfo.path,
-      installerKind,
-      emit,
+          emit,
       hermesHome,
       activeRoot,
       installStamp,
@@ -951,7 +753,7 @@ async function runBootstrap(opts) {
     })
 
     // 3. Iterate stages in order. Stages flagged needs_user_input are still
-    //    invoked -- install.ps1's own -NonInteractive handler in those stages
+    //    invoked -- install.sh's own --non-interactive handler in those stages
     //    emits skipped=true. We trust the protocol rather than filtering
     //    client-side.
     for (const stage of manifest.stages) {
@@ -963,8 +765,7 @@ async function runBootstrap(opts) {
 
       const ev = await runStage({
         scriptPath: scriptInfo.path,
-        installerKind,
-        stage,
+              stage,
         emit,
         hermesHome,
         activeRoot,
@@ -1031,7 +832,6 @@ async function runBootstrap(opts) {
 }
 
 export {
-  buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,
   cleanInstallerLogLine,

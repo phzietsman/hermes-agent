@@ -28,10 +28,9 @@ import contextlib
 import os
 import re
 import sqlite3
-import sys
 import threading
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import pytest
 
@@ -48,8 +47,6 @@ from tests.e2e.core.delivery._fake_platform import (
 )
 from tests.e2e.core.delivery._pending_fixes import known_failure
 from tests.fakes.fake_llm_provider import FakeLLMServer, StallMidStream, Text, ToolCall
-
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="SIGKILL + process-group restart harness")
 
 PLATFORMS = {"fk_tg": "telegram", "fk_dc": "discord", "fk_ne": "noedit"}
 STREAMING = {"fk_tg": True, "fk_dc": True, "fk_ne": False}

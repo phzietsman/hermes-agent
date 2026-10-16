@@ -1,11 +1,9 @@
-"""Deleting or renaming a profile removes its system-scope systemd unit and Windows Scheduled
-Task, not only the user unit / launchd plist. Both carry ``--profile <old>`` with HERMES_HOME
+"""Deleting or renaming a profile removes its system-scope systemd unit, not only the user unit /
+launchd plist. Both carry ``--profile <old>`` with HERMES_HOME
 pinned to a dir that no longer exists, so a survivor restarts the removed profile at boot.
 """
 from __future__ import annotations
 
-import sys
-import types
 from pathlib import Path
 
 import pytest
@@ -48,28 +46,3 @@ def test_cleanup_handles_the_system_scope_unit(victim, tmp_path, monkeypatch, ca
         assert not removed and unit.exists()
         out = capsys.readouterr().out
         assert str(unit) in out and "sudo systemctl disable --now hermes-gateway-victim" in out
-
-
-def test_cleanup_deletes_the_windows_scheduled_task(victim, tmp_path, monkeypatch):
-    registered = {"HermesGateway_victim"}
-    startup = tmp_path / "Startup" / "HermesGateway_victim.vbs"
-    startup.parent.mkdir()
-    startup.write_text("")
-    fake = types.SimpleNamespace(
-        get_task_name=lambda: "HermesGateway_victim",
-        is_task_registered=lambda: bool(registered),
-        _exec_schtasks=lambda args: (registered.discard(args[-1]), (0, "", ""))[1],
-        get_startup_entry_path=lambda: startup,
-        _legacy_startup_entry_path=lambda: tmp_path / "Startup" / "legacy.vbs",
-    )
-    monkeypatch.setitem(sys.modules, "hermes_cli.gateway_windows", fake)
-    # `from hermes_cli import gateway_windows` reads the package attribute first when an earlier
-    # test already imported the real module, so the fake must be bound there too.
-    import hermes_cli
-    monkeypatch.setattr(hermes_cli, "gateway_windows", fake, raising=False)
-    import platform
-    monkeypatch.setattr(platform, "system", lambda: "Windows")
-
-    assert profiles._cleanup_gateway_service("victim", victim) is True
-    assert registered == set()
-    assert not startup.exists()

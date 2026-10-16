@@ -239,51 +239,18 @@ DANGEROUS_PATTERNS = [
      # spellings the two patterns above catch — without this rule they run with no approval prompt at all.
      # Port of openai/codex#33464 ("recognize force options when they follow operands").
      "recursive delete (flags after operands)"),
-    # Windows cmd/powershell destructive built-ins: gate only when executed through the shell so
-    # prose/filenames containing "del"/"rd" do not trip.
-    (r'\bcmd(?:\.exe)?\s+/(?:c|k)\s+.*\b(?:del|erase|rd|rmdir)\b', "Windows cmd destructive delete"),
-    # PowerShell runs the verb as default positional arg (no -Command needed); anchor the verb to command
-    # position (after leading -Flag switches and optional -Command/-c) so `-File c:\del-logs\run.ps1` is not caught.
-    (r'\b(?:powershell|pwsh)(?:\.exe)?\b(?:\s+-\S+)*\s+(?:-(?:command|c)\s+)?["\']?(?:remove-item|rmdir|erase|del|rd|ri|rm)\b', "Windows PowerShell destructive delete"),
-    (r'\b(?:powershell|pwsh)(?:\.exe)?\b.*\s-(?:encodedcommand|enc|e)\b', "PowerShell encoded command execution"),
-    # ── Windows destructive tier: native Windows EXEs/cmdlets reachable from ANY backend on a
-    # Windows host (incl. git-bash). Input is lowercased by the variant loop, so patterns are
-    # lowercase. Each requires the destructive flag/verb so benign usage (`taskkill /IM app.exe`,
-    # `reg query`, `icacls file`) does NOT prompt. Bare Remove-Item form (ACP clients, pwsh-default
-    # SSH hosts, or compound commands where `powershell` appeared earlier).
-    # See #69472.
+    # PowerShell (pwsh ships on Linux/macOS) runs the verb as default positional arg (no -Command
+    # needed); anchor the verb to command position (after leading -Flag switches and optional
+    # -Command/-c) so `-File ./del-logs/run.ps1` is not caught.
+    (r'\b(?:powershell|pwsh)\b(?:\s+-\S+)*\s+(?:-(?:command|c)\s+)?["\']?(?:remove-item|rmdir|erase|del|rd|ri|rm)\b', "PowerShell destructive delete"),
+    (r'\b(?:powershell|pwsh)\b.*\s-(?:encodedcommand|enc|e)\b', "PowerShell encoded command execution"),
+    # Input is lowercased by the variant loop, so patterns are lowercase. Bare cmdlet form covers
+    # compound commands where `pwsh` appeared earlier. See #69472.
     (r'\bremove-item\b[^\n;|&]*\s-(?:recurse|force)\b', "PowerShell destructive delete (Remove-Item)"),
-    # Bare cmd builtins with /s (recurse) or /q (quiet); plain `del file.txt` is covered only by the prefixed rule.
-    (r'\b(?:del|erase|rd|rmdir)\s+(?:/[a-z]\s+)*/[sq]\b', "Windows destructive delete (recursive/quiet switch)"),
     # Remote content piped to Invoke-Expression — PowerShell's `curl | sh`.
     (r'\b(?:iwr|invoke-webrequest|invoke-restmethod|irm|curl|wget)\b[^\n]*\|\s*(?:iex|invoke-expression)\b', "pipe remote content to PowerShell (iwr | iex)"),
     (r'\b(?:iex|invoke-expression)\s*\(\s*(?:iwr|invoke-webrequest|invoke-restmethod|irm)\b', "execute remote content via Invoke-Expression"),
-    # Force process kills — Windows analogue of pkill -9.
-    (r'\btaskkill\b[^\n]*\s/f\b', "force kill processes (taskkill /F)"),
     (r'\bstop-process\b[^\n]*\s-force\b', "force kill processes (Stop-Process -Force)"),
-    # Volume/disk destruction — Windows analogue of mkfs / dd.
-    (r'\bformat-volume\b', "format filesystem (Format-Volume)"),
-    (r'\bclear-disk\b', "wipe disk (Clear-Disk)"),
-    (r'\bdiskpart\b', "disk partitioning (diskpart)"),
-    (r'\bformat(?:\.com)?\s+[a-z]:', "format drive (format.com)"),
-    (r'\bcipher\s+/w\b', "wipe free space (cipher /w)"),
-    # ACL destruction — Windows analogue of chmod 777.
-    (r'\bicacls\b[^\n]*\s/grant\b[^\n]*\b(?:everyone|todos|jeder|tout\s+le\s+monde|\*s-1-1-0)\b', "grant Everyone access (icacls)"),
-    (r'\bicacls\b[^\n]*\s/reset\b', "reset ACLs recursively (icacls /reset)"),
-    # Backup/recovery destruction — classic ransomware prep.
-    (r'\bvssadmin\b[^\n]*\bdelete\s+shadows\b', "delete volume shadow copies (vssadmin)"),
-    (r'\bwbadmin\b[^\n]*\bdelete\b', "delete backups (wbadmin)"),
-    (r'\bbcdedit\b[^\n]*\s/set\b', "modify boot configuration (bcdedit /set)"),
-    # Registry deletion with force flag.
-    (r'\breg(?:\.exe)?\s+delete\b', "registry delete (reg delete)"),
-    (r'\bremove-itemproperty\b[^\n]*\s-force\b', "registry value delete (Remove-ItemProperty -Force)"),
-    # Windows service/system stop — analogue of systemctl stop.
-    (r'\bstop-service\b[^\n]*\s-force\b', "force stop service (Stop-Service -Force)"),
-    (r'\bsc(?:\.exe)?\s+(?:stop|delete)\b', "stop/delete service (sc)"),
-    # Windows-form credential paths; the POSIX ~/.ssh patterns never match drive-letter or backslash spellings.
-    (r'\busers[\\/][^\\/\s]+[\\/]\.ssh\b', "access to SSH keys (Windows path)"),
-    (r'\bappdata[\\/](?:local|roaming)[\\/]hermes[^\n]*\.env\b', "access to Hermes secrets (Windows path)"),
-    # ── end of Windows tier
     (r'\bchmod\s+(-[^\s]*\s+)*(777|666|o\+[rwx]*w|a\+[rwx]*w)\b', "world/other-writable permissions"),
     (r'\bchmod\s+--recursive\b.*(777|666|o\+[rwx]*w|a\+[rwx]*w)', "recursive world/other-writable (long flag)"),
     (r'\bchown\s+(-[^\s]*)?R\s+root', "recursive chown to root"),
@@ -527,10 +494,9 @@ def _normalize_command_for_detection(command: str) -> str:
     # precede the generic escape strip below, whose [^\n] class skips newlines and would leave the
     # backslash wedged between tokens, defeating the structured rm/mkfs/dd patterns incl. the HARDLINE floor.
     command = re.sub(r'\\\r?\n', '', command)
-    # Fold absolute user/Hermes home prefixes to ~/ and ~/.hermes/ so the static patterns catch /home/alice/.bashrc
-    # and C:\Users\alice\.bashrc. Resolved at detection time (not import time) so it tracks HOME/HERMES_HOME set
-    # later. MUST run before the backslash strip (which would dissolve C:\Users\alice to C:Usersalice). Hermes home
-    # first: on Windows it nests under the user home, and folding the user home first would eat the prefix it needs.
+    # Fold absolute user/Hermes home prefixes to ~/ and ~/.hermes/ so the static patterns catch /home/alice/.bashrc.
+    # Resolved at detection time (not import time) so it tracks HOME/HERMES_HOME set later. Hermes home first: it
+    # usually nests under the user home, and folding the user home first would eat the prefix it needs.
     command = _rewrite_resolved_hermes_home(command)
     command = _rewrite_resolved_user_home(command)
     # Strip backslash-escapes (r\m -> rm) and empty-string literals (r''m -> rm).
@@ -552,21 +518,19 @@ def _lower_preserving_flags(command: str) -> str:
 
 # Shell metacharacters, quotes, and whitespace that terminate a path token.
 _PATH_TOKEN_STOP = r"""\s'"`;|&<>()"""
-_PATH_TAIL = r"(?P<tail>(?:[/\\][^/\\" + _PATH_TOKEN_STOP + r"]*)+)"
+_PATH_TAIL = r"(?P<tail>(?:/[^/" + _PATH_TOKEN_STOP + r"]*)+)"
 
 
 @functools.lru_cache(maxsize=64)
 def _home_prefix_fold_regex(path: str):
     """Compile a regex matching *path* as an absolute directory prefix.
-    Components match with either separator so native Windows, forward-slash, and mixed forms all
-    fold; the caller normalizes the tail's backslashes to ``/``. A non-empty tail is required, so a
-    bare home is never folded. Returns ``None`` for an unset/degenerate path (fewer than two
-    components: ``/``, ``C:\\``, ``""``) so a stray HOME cannot rewrite unrelated prefixes."""
-    components = [c for c in re.split(r"[/\\]+", path) if c] if path else []
+    A non-empty tail is required, so a bare home is never folded. Returns ``None`` for an
+    unset/degenerate path (fewer than two components: ``/``, ``""``) so a stray HOME cannot rewrite
+    unrelated prefixes."""
+    components = [c for c in re.split(r"/+", path) if c] if path else []
     if len(components) < 2:
         return None
-    # Optional leading root separator; a Windows drive letter is a component.
-    return re.compile(r"[/\\]*" + r"[/\\]+".join(re.escape(c) for c in components) + _PATH_TAIL)
+    return re.compile(r"/*" + r"/+".join(re.escape(c) for c in components) + _PATH_TAIL)
 
 
 def _fold_home_prefixes(command: str, paths, replacement: str) -> str:
@@ -575,14 +539,13 @@ def _fold_home_prefixes(command: str, paths, replacement: str) -> str:
     for path in dict.fromkeys(sorted((p for p in paths if p), key=len, reverse=True)):
         pattern = _home_prefix_fold_regex(path)
         if pattern is not None:
-            command = pattern.sub(lambda m: replacement + m.group("tail").replace("\\", "/"), command)
+            command = pattern.sub(lambda m: replacement + m.group("tail"), command)
     return command
 
 
 def _rewrite_resolved_user_home(command: str) -> str:
     """User home (expanduser / realpath / $HOME) -> ``~/``; no-op when unset, degenerate, or unresolvable."""
     try:
-        # expanduser, realpath, and an explicit HOME — Windows expanduser uses USERPROFILE, not HOME.
         home = os.path.expanduser("~")
         paths = [home, os.path.realpath(home), os.environ.get("HOME", "")]
     except Exception:
@@ -630,10 +593,10 @@ _SHELL_COMMAND_TRANSITIONS = {"if", "then", "else", "elif", "do", "while", "unti
 _SHELL_REDIRECTION_RE = re.compile(r"(?:[0-9]+)?(?:>>|<<|<>|>&|<&|>\||[<>])")
 
 _INTERPRETER_NAME_RES = tuple((family, re.compile(pattern)) for family, pattern in (
-    ("python", r"py(?:\.exe)?|python[23]?(?:\.\d+)*(?:\.exe)?"), ("node", r"node(?:js)?(?:\.exe)?"),
-    ("perl", r"perl[0-9]*(?:\.\d+)*(?:\.exe)?"), ("ruby", r"ruby[0-9.]*(?:\.exe)?"), ("php", r"php(?:\.exe)?"),
-    ("powershell", r"powershell(?:\.exe)?|pwsh(?:\.exe)?"),
-    ("bun", r"bun(?:\.exe)?"), ("deno", r"deno(?:\.exe)?"),
+    ("python", r"python[23]?(?:\.\d+)*"), ("node", r"node(?:js)?"),
+    ("perl", r"perl[0-9]*(?:\.\d+)*"), ("ruby", r"ruby[0-9.]*"), ("php", r"php"),
+    ("powershell", r"powershell|pwsh"),
+    ("bun", r"bun"), ("deno", r"deno"),
 ))
 _INTERPRETER_EXEC_FLAGS = {
     "python": {"-c"}, "node": {"-e", "--eval", "-p", "--print"}, "perl": {"-e", "--eval"}, "ruby": {"-e"},
@@ -1444,15 +1407,6 @@ def _command_detection_variants(command: str):
         seen.add(variant)
         return True
 
-    # Windows-path variant: normalization strips backslashes as shell escapes, so `del C:\Users\me\.ssh\id_rsa`
-    # reaches the patterns as `del C:Usersme.sshid_rsa`. When the RAW command has a drive-letter or UNC backslash
-    # path, also yield a variant with backslashes flattened to `/` BEFORE normalization. Gated on a real path shape so
-    # POSIX escape semantics (`echo a\"b`) are untouched elsewhere.
-    # See #69472.
-    if re.search(r"(?:[A-Za-z]:|\\\\)[\\\\]", command) or re.search(r"[A-Za-z]:\\", command):
-        win_variant = _normalize_command_for_detection(_mask_quoted_newlines(command.replace("\\", "/")))
-        if fresh(win_variant):
-            yield win_variant
     # Program-bearing options are parsed in their owning command's context; surfacing only the payload lets the
     # hardline floor inspect what will actually run without promoting similar flags or quoted prose.
     pending = [normalized]

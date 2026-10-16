@@ -262,8 +262,8 @@ class TestGitPullPluginDirAutostash:
         assert git(checkout, "stash", "list").strip() == ""
 
     def test_autostash_addresses_git_by_sha_never_brace_selector(self, tmp_path, monkeypatch):
-        """Native Windows: MSYS strips the braces from ``stash@{0}`` in git.exe's argv, so the
-        apply and the drop must target the autostash by its commit sha / positionally (#87542)."""
+        """The apply and the drop target the autostash by its commit sha / positionally, never a
+        ``stash@{0}`` selector a wrapper could mangle (#87542)."""
         import hermes_cli.plugins_cmd as pc
 
         if not pc._resolve_git_executable():

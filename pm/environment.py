@@ -19,7 +19,6 @@ import tempfile
 import time
 from typing import TextIO
 
-from pm.filesystem import native
 from pm.package import InstallError
 from pm.progress import LiveTail, TextSink, verbose_output
 
@@ -100,16 +99,11 @@ def prune_site_pth(venv_dir: Path) -> None:
     ``uv sync`` leaves two behind: ``_virtualenv.pth`` (repoints
     ``sys.prefix`` at the venv) and the project's ``__editable__`` pointer
     (names the BUILD machine — the payload wires the repo snapshot itself,
-    see scripts/build/launcher_wrapper.py). Bundled launchers process every
-    other .pth with ``site.addsitedir()``; pywin32.pth is load-bearing on
-    Windows (win32\\lib on sys.path is what makes ``import pywintypes``
-    resolve, which portalocker/concurrent-log-handler need to write logs).
+    see scripts/build/launchers.py). Bundled launchers process every
+    other .pth with ``site.addsitedir()``.
     """
-    if (venv_dir / "Scripts").is_dir():
-        sites = [venv_dir / "Lib" / "site-packages"]
-    else:
-        lib = venv_dir / "lib"
-        sites = sorted(lib.glob("python*/site-packages")) if lib.is_dir() else []
+    lib = venv_dir / "lib"
+    sites = sorted(lib.glob("python*/site-packages")) if lib.is_dir() else []
     for site_dir in sites:
         if not site_dir.is_dir():
             continue
@@ -121,29 +115,11 @@ def prune_site_pth(venv_dir: Path) -> None:
                     pass
 
 
-def _read_pipe(fd: int) -> bytes:
-    size = 65536
-    if sys.platform == "win32":
-        import _winapi
-        import msvcrt
-
-        # Bootstrap can run on Python 3.11, before Windows os.set_blocking
-        # exists. Peek keeps the sole reader bounded without changing pipe mode.
-        try:
-            available, _ = _winapi.PeekNamedPipe(msvcrt.get_osfhandle(fd), 0)
-        except BrokenPipeError:
-            return b""
-        if not available:
-            raise BlockingIOError
-        size = min(size, available)
-    return os.read(fd, size)
-
-
 def _run_streaming(command: list[str], *, cwd: Path, env: dict[str, str],
                    timeout: int, output: TextSink) -> subprocess.CompletedProcess:
     """Keep CI progress live, a bounded diagnostic tail, and a wall-clock timeout."""
     deadline = time.monotonic() + timeout
-    proc = subprocess.Popen(command, cwd=native(cwd), env=env, stdout=subprocess.PIPE,
+    proc = subprocess.Popen(command, cwd=str(cwd), env=env, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", bufsize=0)
     pipe = proc.stdout
     assert isinstance(pipe, io.TextIOWrapper)  # Popen was given stdout=PIPE and text=True.
@@ -152,8 +128,7 @@ def _run_streaming(command: list[str], *, cwd: Path, env: dict[str, str],
     try:
         # A descendant can keep stdout open after proc exits. Nonblocking reads
         # bound that drain without leaving a thread stuck in readline()/close().
-        if sys.platform != "win32":
-            os.set_blocking(pipe.fileno(), False)
+        os.set_blocking(pipe.fileno(), False)
         decoder = io.IncrementalNewlineDecoder(
             codecs.getincrementaldecoder(pipe.encoding)(errors="replace"), translate=True,
         )
@@ -162,7 +137,7 @@ def _run_streaming(command: list[str], *, cwd: Path, env: dict[str, str],
             if remaining <= 0:
                 raise subprocess.TimeoutExpired(command, timeout, stderr=tail)
             try:
-                data = _read_pipe(pipe.fileno())
+                data = os.read(pipe.fileno(), 65536)
             except BlockingIOError:
                 time.sleep(min(.05, remaining))
                 continue
@@ -287,11 +262,11 @@ class PythonEnvironment:
             env = {key: value for key, value in env.items() if not is_index_redirect(key)}
         # uv is a child: it gets the ordinary spelling of store paths (pm.filesystem.native),
         # or the venv it writes would record the extended-length one in pyvenv.cfg.
-        env.update(UV_PYTHON=native(self.python), UV_PROJECT_ENVIRONMENT=native(self.destination),
-                   UV_CACHE_DIR=native(self.cache), UV_PYTHON_DOWNLOADS="never")
+        env.update(UV_PYTHON=str(self.python), UV_PROJECT_ENVIRONMENT=str(self.destination),
+                   UV_CACHE_DIR=str(self.cache), UV_PYTHON_DOWNLOADS="never")
         with tempfile.TemporaryDirectory(prefix="pm-uv-config-") as config:
             env.update(XDG_CONFIG_HOME=config, XDG_CONFIG_DIRS=config)
-            command = [native(self.uv), *map(native, args)]
+            command = [str(self.uv), *map(str, args)]
             if self.no_config and "--no-config" not in command:
                 command.append("--no-config")
             if self.offline:
@@ -317,7 +292,7 @@ class PythonEnvironment:
                         raise
                     tail.close(result.returncode == 0)
                     return result
-                return subprocess.run(command, cwd=native(cwd), env=env, capture_output=True,
+                return subprocess.run(command, cwd=str(cwd), env=env, capture_output=True,
                                       text=True, encoding="utf-8", errors="replace", timeout=timeout)
             except subprocess.TimeoutExpired as exc:
                 from pm.index_config import TIMEOUT_HINT

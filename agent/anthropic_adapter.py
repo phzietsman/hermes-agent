@@ -237,8 +237,6 @@ _claude_code_version_cache: Optional[str] = None
 # LaunchAgents) inherit the bare ``/usr/bin:/bin:/usr/sbin:/sbin``, which carries none of these,
 # so a PATH-only lookup finds nothing there even with the CLI installed — detection then returns
 # the stale fallback and Anthropic 400s with "Claude Code X does not support this model".
-# These are additive: on Windows none resolve to a file and detection falls back to the PATH
-# lookup (which handles PATHEXT), leaving current behaviour there unchanged.
 _CLAUDE_CODE_PREFIXES = (
     "~/.local/bin", "~/.claude/local", "~/bin", "~/.npm-global/bin", "~/.bun/bin",
     "~/.volta/bin", "/opt/homebrew/bin", "/usr/local/bin",

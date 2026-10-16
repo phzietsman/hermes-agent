@@ -1,18 +1,16 @@
 """Pre-swap gateway pause for ``hermes update`` on Linux and macOS.
 
-Windows pauses its gateways before the fetch (``update_cmd_windows``) because they lock venv
-files. On POSIX nothing is locked, but a gateway that keeps running while git rewrites the tree
-loads new-tree modules into an old process on its next lazy import. So every gateway running
+A gateway that keeps running while git rewrites the tree loads new-tree modules into an old
+process on its next lazy import. So every gateway running
 from this install is stopped at the commit point, immediately before the first checkout move
 (``update_cmd_commit.arm_commit_point``), and the same set is restarted once the dependencies
 are synced and the launchers published, before the product builds
 (``source_completion.complete_source_checkout``'s ``before_build``).
 
-The set rides the Windows pause contract: one token in ``update_pause_record`` (identity = pid
-+ start time; supervisor unit, or argv + home for bare processes), written before the first stop,
-resumed by ``_resume_windows_gateways_after_update`` (which dispatches here on
-``platform == "posix"``), adopted by the next ``hermes update`` and resumed by the next launch
-when this process dies.
+The set is one token in ``update_pause_record`` (identity = pid + start time; supervisor unit,
+or argv + home for bare processes), written before the first stop, resumed by
+:func:`resume_paused_gateways_after_update`, adopted by the next ``hermes update`` and resumed by
+the next launch when this process dies.
 
 * every gateway is drained first: the control socket's ``pause-for-update`` runs the same
   ``request_restart`` drain as the post-update restart's SIGUSR1 (refuse new turns, let the
@@ -39,8 +37,11 @@ import signal
 import subprocess
 import sys
 import time
-from contextlib import suppress
+from contextlib import nullcontext, redirect_stdout, suppress
+from datetime import datetime, timezone
 from pathlib import Path
+
+from hermes_cli.update_cmd_common import _best_effort
 
 #: This run's token: armed in ``_cmd_update_impl``, filled at the commit point. Same dict object
 #: the completion request carries, so the paused set reaches the completion child.
@@ -57,6 +58,26 @@ class PauseRefused(RuntimeError):
     """The pause could not be completed; everything it stopped was started again."""
 
 
+def _planned_stop_marker_path(profile_path: Path) -> Path:
+    return Path(profile_path) / ".gateway-planned-stop.json"
+
+
+def _write_update_planned_stop_marker(profile_path: Path, pid: int) -> bool:
+    """Write a planned-stop marker into a specific profile home."""
+    try:
+        from gateway.status import _get_process_start_time
+        from utils import atomic_json_write
+        atomic_json_write(
+            _planned_stop_marker_path(profile_path),
+            {"target_pid": pid, "target_start_time": _get_process_start_time(pid), "stopper_pid": os.getpid(),
+             "written_at": datetime.now(timezone.utc).isoformat()},
+            indent=None, separators=(",", ":"),
+        )
+        return True
+    except OSError:
+        return False
+
+
 def _empty_token() -> dict:
     return {"platform": "posix", "resume_needed": False, "profiles": {}, "unmapped_pids": [],
             "unmapped": [], "posix_units": []}
@@ -65,11 +86,10 @@ def _empty_token() -> dict:
 def arm_pause(*, no_gateway_restart: bool) -> dict | None:
     """Arm this run's pause (no stop yet) and adopt any set a killed update left paused.
 
-    ``None`` on Windows (its own pause) and with ``--no-gateway-restart`` (the user manages
-    gateways, nothing is stopped). An adopted orphan set is recorded under this process now, so
+    ``None`` with ``--no-gateway-restart`` (the user manages gateways, nothing is stopped). An adopted orphan set is recorded under this process now, so
     even an update that never moves the checkout restarts it at exit."""
     global _RUN
-    if sys.platform == "win32" or no_gateway_restart:
+    if no_gateway_restart:
         return None
     from hermes_cli import update_pause_record as pause_record
     token = _empty_token()
@@ -355,7 +375,6 @@ def _stop_job(job: dict, *, drained: bool = False) -> None:
     """Boot *job* out of launchd. *drained*: its gateway already exited through the drain; the
     bootout only keeps KeepAlive from serving the update."""
     from hermes_cli.gateway import _locate_launchd_gateway_service
-    from hermes_cli.update_cmd_windows import _write_update_planned_stop_marker
     if not drained and job.get("home"):
         _write_update_planned_stop_marker(Path(job["home"]), job["pid"])
     result = subprocess.run(["launchctl", "bootout", f"{job['domain']}/{job['label']}"],
@@ -422,7 +441,6 @@ def _ask_to_drain(entry: dict) -> bool:
 
 def _stop_at_once(entry: dict) -> None:
     """The stop for a gateway that did not take the drain: its supervisor's, else marker + SIGTERM."""
-    from hermes_cli.update_cmd_windows import _write_update_planned_stop_marker
     if entry.get("kind") == "systemd":
         _stop_unit(entry)
     elif entry.get("kind") == "launchd":
@@ -549,19 +567,15 @@ def _describe(token: dict) -> str:
 
 # --------------------------------------------------------------------------- the commit point
 
-def pause_at_commit_point() -> str | None:
+def pause_at_commit_point() -> None:
     """Stop this install's gateways before the first checkout move; once per run.
 
     Never refuses the update: the pause is protection, not a gate. When it cannot complete
     (discovery or the durable record fails, a stop fails), the gateways run through the swap and
-    the post-commit restart refreshes them, which is how POSIX updated before the pause existed.
-    Always ``None``; the caller's refusal branch stays for the contract it shares with Windows."""
+    the post-commit restart refreshes them, which is how updates ran before the pause existed."""
     token = _RUN
-    if token is None:
-        return None
-    if "posix_pause_verdict" not in token:
+    if token is not None and "posix_pause_verdict" not in token:
         token["posix_pause_verdict"] = _pause(token)
-    return token["posix_pause_verdict"]
 
 
 def _pause(token: dict) -> str | None:
@@ -579,7 +593,6 @@ def _pause(token: dict) -> str | None:
     if not supervised and not bare:
         return None
     from gateway.status import get_process_start_time
-    from hermes_cli.update_cmd_windows import _planned_stop_marker_path
     before = copy.deepcopy(token)  # what this attempt may add; a failed record puts it back
     for entry in supervised + bare:
         entry["ct"] = get_process_start_time(entry["pid"])  # native birth stamp: what _alive compares
@@ -673,3 +686,71 @@ def resume_paused_set(token: dict) -> None:
 def already_restarted() -> dict:
     """What the early resume restarted on the new code in this process (for the fleet restart)."""
     return _RESTARTED
+
+
+def resume_paused_gateways_after_update(token: dict | None) -> None:
+    """Restart the gateways this update (or a killed one) paused; a no-op without an owed set."""
+    if not token or not token.get("resume_needed"):
+        return
+    # The foreground call sites register this same function via atexit as a safety net for
+    # process death before they get a chance to run it themselves (#115563). Once execution
+    # actually reaches here — foreground or the atexit fallback itself — ownership is taken:
+    # unregister immediately so a failure below (or the foreground caller failing after this
+    # returns) cannot replay the same RuntimeError a second time at interpreter teardown.
+    import atexit
+    atexit.unregister(resume_paused_gateways_after_update)
+    if token.get("platform") != "posix":  # a record no pause on this host wrote: nothing to restart
+        token["resume_needed"] = False
+        return
+    # Startup recovery runs ahead of an unrelated command whose stdout may be parsed (``--json``):
+    # its notices go to stderr, as ``recover()``'s own do.
+    with redirect_stdout(sys.stderr) if token.get("recovery") else nullcontext():
+        _resume_unless_torn(token)
+
+
+def _resume_unless_torn(token: dict) -> None:
+    """Resume the paused set, or leave it owed when the checkout is not whole."""
+    from hermes_cli import update_pause_record as pause_record
+    if token.get("pause_id"):
+        whole, why = pause_record.tree_is_whole(token)
+        if not whole:
+            # Starting gateways now would boot them on a half-written tree or the pre-sync
+            # dependencies. The durable record keeps the obligation for the next launch, which
+            # runs after the interrupted-pull restore and the dependency sync.
+            print(f"  ⚠ Paused gateway(s) left stopped: {why}.\n"
+                  "    The next `hermes` command (or `hermes update`) restarts them.")
+            token["resume_needed"] = False
+            token["resume_deferred"] = why
+            pause_record.sync(token)
+            return
+    try:
+        resume_paused_set(token)
+    finally:
+        pause_record.sync(token)
+
+
+def resume_paused_gateways_and_merge_outcome(outcome, pause_token, gateway_mode: bool):
+    """Resume the paused gateways and fold the token into ``outcome``'s restart bookkeeping so
+    reconciliation never reports a healthy gateway as unaccounted. Must never abort the update."""
+    try:
+        resume_paused_gateways_after_update(pause_token)
+    except Exception as exc:  # health: allow BLE001 -- owed restart, recorded as a follow-up; never aborts the update
+        # Owed restart, not a failed update (C3): verification records the ``gateway_restart``
+        # follow-up; the gateway's /update marker keeps the committed result.
+        outcome.incomplete = True
+        outcome.phase_errors.append(str(exc))
+        print(f"  ⚠ Paused gateway restart incomplete: {exc}")
+    if not isinstance(pause_token, dict):
+        return
+    with _best_effort("Could not merge the paused-gateway restart into fleet reconciliation bookkeeping: %s"):
+        restarted = [name for name in dict.fromkeys(pause_token.get("restarted_services") or [])
+                     if name not in outcome.restarted_services]
+        outcome.restarted_services.extend(restarted)
+    with suppress(Exception):
+        from hermes_cli.update_receipt import record_gateway_restart
+        record_gateway_restart(
+            restarted_services=outcome.restarted_services, relaunched_profiles=outcome.relaunched_profiles,
+            externally_supervised_profiles=outcome.externally_supervised_profiles, killed_pids=sorted(outcome.killed_pids),
+            failed_units=outcome.failed_or_stale_units, incomplete=outcome.incomplete or bool(outcome.failed_or_stale_units),
+            phase_error="; ".join(outcome.phase_errors) or None,
+        )

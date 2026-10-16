@@ -55,8 +55,7 @@ function captureIpc(stamp: DesktopUninstallIpcDeps['stamp']): CapturedIpc {
     fallbackSummary: localSummary,
     probeSummary,
     runUninstall,
-    removableAppPath: (): null => null,
-    openAppsSettings: async (): Promise<void> => {}
+    removableAppPath: (): null => null
   })
 
   return {
@@ -80,7 +79,6 @@ test('excluded artifact owners block every uninstall IPC before a Python probe o
     { distribution: 'nix' },
     { source: 'nix' },
     { payload: 'bundled', updateMechanism: 'electron-updater' },
-    { payload: 'light', updateMechanism: 'app-installer' },
     { payload: 'bootstrap', distribution: 'package-manager', updateMechanism: 'external' }
   ]
 

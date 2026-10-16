@@ -2208,7 +2208,6 @@ cli:
     force_exiting: "⚡ Sortie forcée..."
     interrupting_again_hint: "⚡ Interruption de l'agent... (appuyez de nouveau sur Ctrl+C pour forcer la sortie)"
     interrupting: "⚡ Interruption de l'agent..."
-    suspend_unsupported: "La suspension (Ctrl+Z) n'est pas prise en charge sous Windows."
     suspended: "{agent_name} a été suspendu. Exécutez `fg` pour ramener {agent_name} au premier plan."
     steer_failed_queued: "Échec de l'orientation ({error}) — mise en file pour le prochain tour."
     steered: "⏩ Orienté : '{preview}'"

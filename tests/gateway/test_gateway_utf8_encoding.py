@@ -1,8 +1,6 @@
 """Static guard: every ``read_text`` / ``write_text`` call in the gateway and
 bundled update-response adapters must pass an explicit ``encoding=`` keyword
-argument so non-UTF-8 Windows locales don't corrupt file IPC.  Mirrors the
-AST-based guard pattern in
-``tests/tools/test_windows_compat.py``.
+argument so non-UTF-8 locales don't corrupt file IPC.
 """
 
 import ast

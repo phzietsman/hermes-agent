@@ -68,7 +68,7 @@ _version_info._cached_version_info = _version_info.VersionInfo(
 _PRE_SANDBOX_KANBAN_OVERRIDE = os.environ.get("HERMES_KANBAN_HOME", "").strip()
 _PRE_SANDBOX_HERMES_HOME = os.environ.get("HERMES_HOME", "")
 
-# Capture before any test fixture can override Path.home()/LOCALAPPDATA.
+# Capture before any test fixture can override Path.home().
 from hermes_constants import _get_platform_default_hermes_home
 
 _NATIVE_HERMES_PARENT = _get_platform_default_hermes_home().parent
@@ -90,9 +90,8 @@ def _hermes_home_points_at_production(value: str) -> bool:
     if not value:
         return True
     try:
-        # The platform-default root, not a hardcoded ``~/.hermes``: Windows installs live under
-        # ``%LOCALAPPDATA%\hermes``, and a dev shell exporting that path used to be honored as
-        # "custom", pinning import-time paths (``tui_gateway.server._hermes_home``) to the live
+        # The platform-default root, not a hardcoded ``~/.hermes``: a dev shell exporting that
+        # path used to be honored as "custom", pinning import-time paths (``tui_gateway.server._hermes_home``) to the live
         # install so the state.db guard tripped on every store-touching test (#112692).
         from hermes_state_guard import _real_platform_state_root
 
@@ -153,7 +152,7 @@ if _hermes_home_points_at_production(os.environ.get("HERMES_HOME", "")):
     atexit.register(shutil.rmtree, _SESSION_HERMES_HOME, True)
 
 # PYTHONPYCACHEPREFIX is a bytecode-mirror escape hatch: when set (the
-# bundled desktop app exports it as %LOCALAPPDATA%\hermes\pycache),
+# bundled desktop app exports it under the Hermes home),
 # importlib/pytest write .pyc files to <prefix>/<absolute source path>
 # instead of next to the sources. Un-scrubbed, that mirror lands under
 # the REAL hermes home and trips the real-home tripwire on any module
@@ -288,7 +287,7 @@ def _hermetic_environment(tmp_path, tmp_path_factory, monkeypatch):
 
     def isolated_platform_default() -> Path:
         root = platform_default()
-        # Explicit Path.home()/LOCALAPPDATA overrides in individual tests
+        # Explicit Path.home() overrides in individual tests
         # still select their own layout. Suffix changes retain their name.
         return tmp_path / root.name if root.parent == _NATIVE_HERMES_PARENT else root
 
@@ -864,7 +863,7 @@ def mock_config():
 #
 # The subprocess-per-test plugin enforces the configured ``isolate_timeout``
 # ini key by terminating the child if it overruns. The old SIGALRM-based
-# fixture (POSIX-only, didn't work on Windows) is gone.
+# fixture is gone.
 
 
 @pytest.fixture(autouse=True)
@@ -1003,8 +1002,7 @@ def _relocate_basetemp_outside_operator_home(config) -> None:
 
     Every per-test sandbox is ``<basetemp>/.../hermes_test``. ``get_default_hermes_root()``
     prefers the platform-native home whenever ``HERMES_HOME`` sits *under* it, so a basetemp
-    inside ``~/.hermes`` (or ``%LOCALAPPDATA%\\hermes``, where ``TEMP`` commonly lives on
-    Windows) turns the sandbox back into the live install and ``get_profile_dir("default")``
+    inside ``~/.hermes`` turns the sandbox back into the live install and ``get_profile_dir("default")``
     writes fixtures over the operator's config.yaml / .env / MEMORY.md (#111101).
     """
     from hermes_constants import _get_platform_default_hermes_home
@@ -1017,8 +1015,7 @@ def _relocate_basetemp_outside_operator_home(config) -> None:
     )
     if not candidate.resolve().is_relative_to(native):
         return
-    # The system temp dir may itself be inside the home (Windows TEMP under the
-    # Hermes home). The repo is no escape either: the default install checks it
+    # The system temp dir may itself be inside the home. The repo is no escape either: the default install checks it
     # out *inside* the home (~/.hermes/hermes-agent). The relocated basetemp goes
     # into ONE prunable root outside the home, never loose into the operator's
     # $HOME (123 ``hermes-pytest-basetemp-*`` dirs piled up there in a day, one per
@@ -1041,7 +1038,7 @@ def _pytest_disk_temp_root(native: Path) -> Path:
     the native home. Entries idle for a day are swept on the way in."""
     from hermes_constants_scratch import prune_idle_entries
 
-    if os.name != "nt" and os.path.isdir("/var/tmp"):  # no-tmp: ok — disk-backed FHS root
+    if os.path.isdir("/var/tmp"):  # no-tmp: ok — disk-backed FHS root
         root = Path("/var/tmp/hermes-pytest")  # no-tmp: ok — /var/tmp is disk-backed by FHS, never tmpfs
     else:
         root = native.parent / "hermes-pytest"
@@ -1136,13 +1133,7 @@ def pytest_configure(config):  # noqa: D401 — pytest hook
     config.addinivalue_line(
         "markers",
         "platforms(*specs, arch=None, arch_negate=False): run only on hosts "
-        "matching at least one spec — linux/macos/windows/posix/any, "
-        "'not X' negation, optional arch filter (e.g. arch='arm64')",
-    )
-    config.addinivalue_line(
-        "markers",
-        "platforms(*specs, arch=None, arch_negate=False): run only on hosts "
-        "matching at least one spec — linux/macos/windows/posix/any, "
+        "matching at least one spec — linux/macos/posix/any, "
         "'not X' negation, optional arch filter (e.g. arch='arm64')",
     )
     config.addinivalue_line(
@@ -1153,8 +1144,7 @@ def pytest_configure(config):  # noqa: D401 — pytest hook
     config.addinivalue_line(
         "markers",
         "require_symlinks: skip the test if symbolic links cannot be "
-        "created in the current environment (needs admin/developer mode "
-        "on Windows).",
+        "created in the current environment.",
     )
     config.addinivalue_line(
         "markers",
@@ -1162,20 +1152,12 @@ def pytest_configure(config):  # noqa: D401 — pytest hook
         "dispatcher's memory guard to 'no data' — only for tests that "
         "exercise the guard itself with their own patched samples.",
     )
-    # NOTE: platforms("linux") / platforms("macos") / platforms("windows") are declared in
+    # NOTE: platforms("linux") / platforms("macos") are declared in
     # pyproject.toml's ``markers`` list, not here — they are part of the
     # project's public marker vocabulary (``pytest --markers``, and the CI
     # lanes select on them), whereas the marks above are conftest-internal
     # guards. Declaring them in both places just meant two descriptions that
     # could drift apart.
-
-    # The pyproject addopts pin ``--timeout-method=signal`` relies on
-    # ``signal.SIGALRM``, which does not exist on Windows — pytest-timeout
-    # raises AttributeError at timer setup and the whole run aborts before any
-    # test executes. Fall back to the thread-based timer on Windows so the
-    # suite runs natively there (POSIX keeps the more reliable signal method).
-    if sys.platform == "win32" and getattr(config.option, "timeout_method", None) == "signal":
-        config.option.timeout_method = "thread"
 
 
 _symlink_supported_cache = None
@@ -1220,8 +1202,7 @@ def pytest_runtest_setup(item):
     if item.get_closest_marker("require_symlinks"):
         if not _check_symlink_support():
             pytest.skip(
-                "Environment does not support symbolic links "
-                "(requires admin/developer mode on Windows)"
+                "Environment does not support symbolic links"
             )
 
 
@@ -1374,16 +1355,6 @@ def _capture_real_hermes_root() -> list[Path]:
         roots.append(default_root)
     except Exception:
         pass
-    # native-Windows default: %LOCALAPPDATA%\hermes (get_hermes_home's
-    # platform-native path) — guard it too
-    localappdata = os.environ.get("LOCALAPPDATA", "")
-    if localappdata:
-        try:
-            win_root = (Path(localappdata) / "hermes").resolve()
-            if win_root not in roots:
-                roots.append(win_root)
-        except Exception:
-            pass
     if _PRE_SANDBOX_HERMES_HOME and not _hermes_home_points_at_production(
         _PRE_SANDBOX_HERMES_HOME
     ):
@@ -1428,14 +1399,5 @@ def _forbid_real_hermes_home_io(monkeypatch, request):
 
 @pytest.fixture
 def real_bash() -> str:
-    """A bash that runs shell scripts: on the Windows runners PATH resolves ``bash`` to
-    System32's WSL launcher, which prints a UTF-16 "no installed distributions" notice and
-    exits 1. Prefer Git for Windows' bash there; elsewhere the PATH one is real."""
-    found = shutil.which("bash")
-    if sys.platform == "win32" and (
-            not found or any(marker in found.lower() for marker in ("system32", "windowsapps"))):
-        for rel in (("Git", "bin", "bash.exe"), ("Git", "usr", "bin", "bash.exe")):
-            candidate = Path(os.environ.get("ProgramFiles", r"C:\Program Files")).joinpath(*rel)
-            if candidate.exists():
-                return str(candidate)
-    return found or "bash"
+    """The bash on PATH, for tests that run shell scripts."""
+    return shutil.which("bash") or "bash"

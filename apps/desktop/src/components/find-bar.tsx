@@ -303,7 +303,7 @@ export function FindBar() {
         // fallback must be the real titlebar height (34px, matching
         // floating-hud.ts / notifications.tsx) — a 0px fallback parks the bar
         // inside the titlebar strip, underneath the native min/max/close
-        // window-controls overlay on Windows/Linux.
+        // window-controls overlay on Linux.
         'pointer-events-auto fixed right-4 top-[calc(var(--titlebar-height,34px)+0.5rem)] z-50',
         'flex items-center gap-2 rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-surface-background) px-2 py-1.5 shadow-md'
       )}

@@ -1,17 +1,17 @@
-"""Regression for #93406 (residual) — the Windows pause/resume token is NOT a
+"""Regression for #93406 (residual) — the paused-gateway resume token is NOT a
 fleet runtime and must not be counted by ``_fleet_probe_expected_runtimes``.
 
 The first #93406 guard counted the ``_windows_gateway_resume`` token
 (``profiles`` / ``unmapped`` entries) as an "expected fleet rows" signal. But
 the token is pause/resume *bookkeeping*, not a runtime inventory:
 
-* ``unmapped`` entries (Scheduled-Task gateways) never publish
+* ``unmapped`` entries (bare gateways) may not publish
   ``gateway_state.json`` rows at all, and
 * a paused-then-resumed profile gateway relaunches DETACHED and may not
   republish its identity within the probe's window,
 
 so ``collect_fleet_versions()`` can legitimately return zero rows for a
-perfectly healthy Windows update. With the token counted as an expected
+perfectly healthy update. With the token counted as an expected
 runtime, ``_fleet_rows_expected`` is True, the verification loop silently
 waits out its polling window (~14 min wall clock on an end-user report with
 the retry loop), prints "Fleet version check returned no rows", and ``hermes
@@ -21,7 +21,7 @@ The invariant this file pins: ``_fleet_probe_expected_runtimes`` may only
 return True for signals that correspond to rows ``collect_fleet_versions()``
 is actually capable of returning (restart-phase bookkeeping, the pre-restart
 PID snapshot, the pre-update plan inventory). A genuinely live pre-update
-Windows gateway is already covered by ``pre_restart_pids`` and the plan
+gateway is already covered by ``pre_restart_pids`` and the plan
 inventory — the token adds no row-capable information on top.
 
 Counterfactual: every test in ``TestResumeTokenIsNotARuntime`` FAILS on the

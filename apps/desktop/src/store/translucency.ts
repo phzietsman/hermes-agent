@@ -26,8 +26,6 @@ import {
   GLASS_MATERIALS,
   GLASS_SCOPES,
   type GlassMaterial,
-  glassMaterialForPicker,
-  glassMaterialsFor,
   type GlassScope,
   glassSurfaceKeep,
   normalizeBook,
@@ -45,15 +43,13 @@ import {
 } from '@hermes/shared/translucency'
 import { atom, computed } from 'nanostores'
 
-import { isMacPlatform, isWindowsPlatform } from '@/lib/platform'
+import { isMacPlatform } from '@/lib/platform'
 import { readJson, writeJson } from '@/lib/storage'
 
 export {
   defaultTranslucencyValues,
   GLASS_MATERIALS,
   GLASS_SCOPES,
-  glassMaterialForPicker,
-  glassMaterialsFor,
   TRANSLUCENCY_MAX,
   TRANSLUCENCY_MIN,
   TRANSLUCENCY_STEP
@@ -63,15 +59,14 @@ export type { Appearance }
 
 /**
  * Glass needs a native window material. Electron is authoritative (preload
- * sets `hermesDesktop.glassSupported` from `os.release()` so Win10 cannot
- * sneak through). Tests and non-Electron shells fall back to a UA sniff —
- * Mac or Windows — which is why this file pins `navigator.platform` before
+ * sets `hermesDesktop.glassSupported`). Tests and non-Electron shells fall
+ * back to a UA sniff — Mac — which is why this file pins `navigator.platform` before
  * import.
  */
 export const GLASS_SUPPORTED =
   typeof window !== 'undefined' && typeof window.hermesDesktop?.glassSupported === 'boolean'
     ? window.hermesDesktop.glassSupported
-    : isMacPlatform() || isWindowsPlatform()
+    : isMacPlatform()
 
 /**
  * Whether the setting is worth showing at all. Linux has neither half —
@@ -81,10 +76,7 @@ export const GLASS_SUPPORTED =
 export const TRANSLUCENCY_SUPPORTED =
   typeof window !== 'undefined' && typeof window.hermesDesktop?.translucencySupported === 'boolean'
     ? window.hermesDesktop.translucencySupported
-    : isMacPlatform() || isWindowsPlatform()
-
-/** Windows collapses the frost ladder — see `glassMaterialsFor`. */
-export const GLASS_IS_WINDOWS = GLASS_SUPPORTED && !isMacPlatform()
+    : isMacPlatform()
 
 // v1 held a flat state (one setting for both appearances); v2 is the book.
 // Reading v1 as the seed is what carries an already-tuned window across the
@@ -116,7 +108,7 @@ export function setAppearance(appearance: Appearance): void {
 
 /** The resolved state for the painted appearance — the shape every consumer reads. */
 export const $translucency = computed([$translucencyBook, $appearance], (book, appearance) =>
-  resolveTranslucency(book, appearance, isWindowsPlatform())
+  resolveTranslucency(book, appearance)
 )
 
 /** Write an edit against the appearance being painted. */

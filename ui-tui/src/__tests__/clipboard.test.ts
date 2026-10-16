@@ -10,24 +10,7 @@ describe('readClipboardText', () => {
     expect(run).toHaveBeenCalledWith(
       'pbpaste',
       [],
-      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, windowsHide: true })
-    )
-  })
-
-  it('reads text from PowerShell on Windows', async () => {
-    const b64 = Buffer.from('from windows\r\n', 'utf8').toString('base64')
-    const run = vi.fn().mockResolvedValue({ stdout: b64 })
-
-    await expect(readClipboardText('win32', run)).resolves.toBe('from windows\r\n')
-    expect(run).toHaveBeenCalledWith(
-      'powershell',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        '[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((Get-Clipboard -Raw)))'
-      ],
-      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, windowsHide: true })
+      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 })
     )
   })
 
@@ -46,7 +29,7 @@ describe('readClipboardText', () => {
         '-Command',
         '[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((Get-Clipboard -Raw)))'
       ],
-      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, windowsHide: true })
+      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 })
     )
   })
 
@@ -59,7 +42,7 @@ describe('readClipboardText', () => {
     expect(run).toHaveBeenCalledWith(
       'wl-paste',
       ['--type', 'text'],
-      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, windowsHide: true })
+      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 })
     )
   })
 
@@ -76,13 +59,13 @@ describe('readClipboardText', () => {
       1,
       'wl-paste',
       ['--type', 'text'],
-      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, windowsHide: true })
+      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 })
     )
     expect(run).toHaveBeenNthCalledWith(
       2,
       'xclip',
       ['-selection', 'clipboard', '-out'],
-      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, windowsHide: true })
+      expect.objectContaining({ encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 })
     )
   })
 
@@ -162,7 +145,7 @@ describe('writeClipboardText', () => {
     expect(start).toHaveBeenCalledWith(
       'pbcopy',
       [],
-      expect.objectContaining({ stdio: ['pipe', 'ignore', 'ignore'], windowsHide: true })
+      expect.objectContaining({ stdio: ['pipe', 'ignore', 'ignore'] })
     )
     expect(stdin.end).toHaveBeenCalledWith('hello world')
   })
@@ -208,7 +191,7 @@ describe('writeClipboardText', () => {
     expect(start).toHaveBeenCalledWith(
       'wl-copy',
       ['--type', 'text/plain'],
-      expect.objectContaining({ stdio: ['pipe', 'ignore', 'ignore'], windowsHide: true })
+      expect.objectContaining({ stdio: ['pipe', 'ignore', 'ignore'] })
     )
     expect(stdin.end).toHaveBeenCalledWith('wayland text')
   })
@@ -336,33 +319,6 @@ describe('writeClipboardText', () => {
     const script = calledArgs[commandIdx + 1]
     expect(script).toContain('FromBase64String')
     expect(script).toContain(Buffer.from('wslg text', 'utf8').toString('base64'))
-  })
-
-  it('uses PowerShell on Windows', async () => {
-    const stdin = { end: vi.fn() }
-
-    const child = {
-      once: vi.fn((event: string, cb: (code?: number) => void) => {
-        if (event === 'close') {
-          cb(0)
-        }
-
-        return child
-      }),
-      unref: vi.fn(),
-      stdin
-    }
-
-    const start = vi.fn().mockReturnValue(child)
-
-    await expect(writeClipboardText('windows text', 'win32', start as any)).resolves.toBe(true)
-    expect(start).toHaveBeenCalledWith(
-      'powershell',
-      expect.arrayContaining(['-NoProfile', '-NonInteractive']),
-      expect.anything()
-    )
-    // PowerShell uses base64-encoded UTF-8 via command argument, not stdin
-    expect(stdin.end).not.toHaveBeenCalled()
   })
 
   it('preserves CJK text via base64 encoding in PowerShell on WSL', async () => {

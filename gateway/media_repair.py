@@ -1,8 +1,8 @@
 """Repair model-mangled ``computer_use`` screenshot paths in final responses.
 
-Some models rewrite the Windows path ``computer_use`` reported into a POSIX-looking
-one (``C:\\Users\\Alice\\...`` -> ``/Users/Alice/...``) inside an explicit ``MEDIA:``
-directive, so delivery-path validation rejects it and drops the attachment.
+Some models rewrite the path ``computer_use`` reported (``/Users/alice/.hermes/...`` ->
+``/home/alice/.hermes/...``) inside an explicit ``MEDIA:`` directive, so delivery-path
+validation rejects it and drops the attachment.
 Deliberately narrow: only rewrites paths in a response that *already* carries a
 ``MEDIA:`` directive whose ``computer_use_<uuid>`` basename exactly matches a
 canonical path returned this turn.  Never auto-attaches; validation still runs.
@@ -17,9 +17,8 @@ from typing import Any, Dict, Iterator, List
 
 logger = logging.getLogger(__name__)
 
-# Absolute-path prefix for canonical capture paths: Windows drive letter, POSIX
-# root, or UNC share. Shared string so the summary regex stays in sync.
-_ABS_PATH_PREFIX_PATTERN = r"(?:[A-Za-z]:[/\\]|/|\\\\)"
+# Absolute-path prefix for canonical capture paths. Shared string so the summary regex stays in sync.
+_ABS_PATH_PREFIX_PATTERN = r"/"
 _ABS_PATH_PREFIX_RE = re.compile(r"^" + _ABS_PATH_PREFIX_PATTERN)
 _CAPTURE_BASENAME_PATTERN = r"computer_use_[0-9a-f]{32}\.(?:png|jpe?g)"
 
@@ -46,8 +45,8 @@ def tool_name_by_call_id(messages: List[Dict[str, Any]]) -> Dict[str, str]:
 
 
 def _computer_use_capture_basename(path: Any) -> str:
-    """Canonical (lowercased) capture basename for either separator style, or ''."""
-    basename = re.split(r"[/\\]", str(path or "").strip().strip("`\"'"))[-1]
+    """Canonical (lowercased) capture basename, or ''."""
+    basename = str(path or "").strip().strip("`\"'").rsplit("/", 1)[-1]
     return basename.lower() if _COMPUTER_USE_CAPTURE_BASENAME_RE.fullmatch(basename) else ""
 
 
@@ -61,8 +60,8 @@ def _iter_computer_use_capture_paths(content: Any) -> Iterator[str]:
             for match in _COMPUTER_USE_CAPTURE_SUMMARY_RE.finditer(content):
                 yield match.group("path").strip()
             return
-        # Parse JSON, never regex-scan it: JSON escaping doubles backslashes, so a raw-text
-        # hit would yield a path that exists nowhere.  Fail closed on truncated JSON.
+        # Parse JSON, never regex-scan it: escaped characters would yield a path that exists
+        # nowhere.  Fail closed on truncated JSON.
         try:
             payload = json.loads(stripped)
         except Exception:

@@ -2062,7 +2062,6 @@ cli:
     force_exiting: "⚡ Force exiting..."
     interrupting_again_hint: "⚡ Interrupting agent... (press Ctrl+C again to force exit)"
     interrupting: "⚡ Interrupting agent..."
-    suspend_unsupported: "Suspend (Ctrl+Z) is not supported on Windows."
     suspended: "{agent_name} has been suspended. Run `fg` to bring {agent_name} back."
     steer_failed_queued: "Steer failed ({error}) — queued for next turn."
     steered: "⏩ Steered: '{preview}'"

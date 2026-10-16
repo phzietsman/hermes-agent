@@ -41,7 +41,7 @@ def pm_driver(tmp_path, monkeypatch):
     return binary
 
 
-@pytest.mark.platforms("linux", "macos", "windows")
+@pytest.mark.platforms("linux", "macos")
 def test_status_finds_pm_driver_when_path_omits_it(pm_driver, monkeypatch):
     """Desktop status probes the same selected binary as the runtime, without installing."""
     from pm import paths

@@ -10,8 +10,6 @@ export interface ChannelIdentity {
   appNamePascal: string
   artifactNamePascal: string
   cliName: string
-  windowsExecutableName: string
-  msixAppIdWithOrg: string
 }
 
 /** Build-stamp facts, independent of the Python payload or stamp module. */
@@ -23,7 +21,6 @@ export interface ChannelBuild {
   commit: string
   sourceVersion: string
   version: string
-  windowsVersion: string
   identity: ChannelIdentity
   bundleEnv: { [name: string]: string | null }
   publicBase: string
@@ -67,13 +64,12 @@ export interface RetiredChannel extends ChannelRecordBase {
 }
 export type ChannelRecord = ActiveChannel | RetiredChannel
 export interface ChannelPackage {
-  platform: 'darwin' | 'win32'
+  platform: 'darwin'
   arch: 'x64' | 'arm64'
   variant: 'bundled'
   version: string
   identity: string
   artifact: { key: string; sha256: string; size: number }
-  publisher?: string
   teamId?: string
   feed: { key: string; channel: string }
 }
@@ -249,9 +245,7 @@ function identity(fields: Fields): ChannelIdentity {
     appId: fields.text('appId', /^[a-z][a-z0-9.-]{2,127}$/),
     appNamePascal: fields.text('appNamePascal', /^[A-Za-z][A-Za-z0-9]{0,63}$/),
     artifactNamePascal: fields.text('artifactNamePascal', /^[A-Za-z][A-Za-z0-9]{0,63}$/),
-    cliName: fields.text('cliName', /^[a-z][a-z0-9-]{0,63}$/),
-    windowsExecutableName: fields.text('windowsExecutableName', /^[A-Za-z][A-Za-z0-9 ._-]{0,79}$/),
-    msixAppIdWithOrg: fields.text('msixAppIdWithOrg', /^[A-Za-z][A-Za-z0-9.-]{2,49}$/)
+    cliName: fields.text('cliName', /^[a-z][a-z0-9-]{0,63}$/)
   }
 }
 
@@ -262,9 +256,7 @@ export function sameChannelIdentity(left: ChannelIdentity, right: ChannelIdentit
     left.appId === right.appId &&
     left.appNamePascal === right.appNamePascal &&
     left.artifactNamePascal === right.artifactNamePascal &&
-    left.cliName === right.cliName &&
-    left.windowsExecutableName === right.windowsExecutableName &&
-    left.msixAppIdWithOrg === right.msixAppIdWithOrg
+    left.cliName === right.cliName
   )
 }
 
@@ -403,14 +395,6 @@ function request(fields: Fields): ChannelRequest {
 
   const releaseTag = fields.optional('releaseTag', /^v\d+\.\d+\.\d+(?:\+canary\.20\d{6}T\d{6}Z)?$/)
 
-  const canaryRelease: boolean = /\+canary\./.test(releaseTag || '')
-
-  const windowsVersion = fields.text('windowsVersion', canaryRelease ? /^\d+\.\d+\.\d+\.\d+$/ : /^\d+\.\d+\.\d+\.0$/)
-
-  if (windowsVersion.split('.').some((part: string): boolean => Number(part) > 65535)) {
-    throw new Error('Invalid Windows version')
-  }
-
   return {
     schema: 1,
     buildId: fields.text('buildId', BUILD_ID),
@@ -420,7 +404,6 @@ function request(fields: Fields): ChannelRequest {
     commit: fields.text('commit', COMMIT),
     sourceVersion: fields.text('sourceVersion', VERSION),
     version: fields.text('version', VERSION),
-    windowsVersion,
     publicBase,
     bundleEnv,
     identity: identity(fields.object('identity')),
@@ -436,7 +419,7 @@ function packageEntry(value: unknown): ChannelPackage {
   const arch = fields.text('arch')
 
   if (
-    (platform !== 'darwin' && platform !== 'win32') ||
+    platform !== 'darwin' ||
     (arch !== 'x64' && arch !== 'arm64') ||
     fields.get('variant') !== 'bundled'
   ) {
@@ -450,14 +433,13 @@ function packageEntry(value: unknown): ChannelPackage {
     platform,
     arch,
     variant: 'bundled',
-    version: fields.text('version', platform === 'darwin' ? VERSION : /^\d+\.\d+\.\d+\.\d+$/),
+    version: fields.text('version', VERSION),
     identity: fields.text('identity'),
     artifact: {
       key: channelKey(artifact.text('key')),
       sha256: artifact.text('sha256', SHA256),
       size: artifact.integer('size')
     },
-    publisher: fields.optional('publisher'),
     teamId: fields.optional('teamId', /^[A-Z0-9]{10}$/),
     feed: { key: channelKey(feed.text('key')), channel: feed.text('channel', /^[a-z][a-z0-9-]{0,31}$/) }
   }

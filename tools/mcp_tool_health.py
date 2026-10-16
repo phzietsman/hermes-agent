@@ -281,7 +281,7 @@ class MCPServerHealthMixin:
             return False
         try:
             import psutil
-            return not any(psutil.pid_exists(pid) for pid in pids)  # Windows-safe, no signal noise
+            return not any(psutil.pid_exists(pid) for pid in pids)  # no signal noise
         except Exception:  # missing psutil or failed probe → unknown → don't fail fast
             return False
 

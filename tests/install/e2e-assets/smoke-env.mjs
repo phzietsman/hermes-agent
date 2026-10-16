@@ -3,7 +3,6 @@
 // runs it under a bare `node` with no workspace install, so nothing here may
 // import Playwright, zod, or the TypeScript smoke modules.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 
 /**
@@ -22,7 +21,7 @@ export function within(root, candidate) {
  * @param {NodeJS.ProcessEnv} inherited
  * @param {string} home
  * @param {string} userData
- * @returns {Record<string, string> & {HOME: string, USERPROFILE: string, HERMES_HOME: string,
+ * @returns {Record<string, string> & {HOME: string, HERMES_HOME: string,
  *   HERMES_DESKTOP_USER_DATA_DIR: string, XDG_CONFIG_HOME: string, XDG_DATA_HOME: string, XDG_CACHE_HOME: string}}
  */
 export function smokeEnvironment(inherited, home, userData) {
@@ -40,9 +39,9 @@ export function smokeEnvironment(inherited, home, userData) {
     }
     clean[key] = value;
   }
-  const electronTemp = process.platform === 'win32' ? os.tmpdir() : '/tmp';
+  const electronTemp = '/tmp';
   return {
-    ...clean, HOME: path.join(home, '.desktop-smoke-home'), USERPROFILE: path.join(home, '.desktop-smoke-home'),
+    ...clean, HOME: path.join(home, '.desktop-smoke-home'),
     XDG_CONFIG_HOME: path.join(home, '.desktop-smoke-home', '.config'),
     XDG_DATA_HOME: path.join(home, '.desktop-smoke-home', '.local', 'share'),
     XDG_CACHE_HOME: path.join(home, '.desktop-smoke-home', '.cache'),
@@ -53,8 +52,6 @@ export function smokeEnvironment(inherited, home, userData) {
     // app.close() cannot answer a native modal. This bypasses confirmation only;
     // normal backend teardown and the driver's process-exit checks still run.
     HERMES_DESKTOP_SKIP_QUIT_CONFIRM: '1',
-    APPDATA: path.join(home, '.desktop-smoke-home', 'AppData', 'Roaming'),
-    LOCALAPPDATA: path.join(home, '.desktop-smoke-home', 'AppData', 'Local'),
   };
 }
 

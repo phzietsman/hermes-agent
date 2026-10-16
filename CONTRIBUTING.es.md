@@ -82,13 +82,6 @@ source ./activate
 hermes --version
 ```
 
-En PowerShell:
-
-```powershell
-. .\activate.ps1
-hermes --version
-```
-
 ### Entorno independiente de pruebas
 
 Usa el Python preparado por PM para crear un entorno nuevo:
@@ -101,7 +94,6 @@ scripts/run_tests.sh tests/agent/ -v
 La ruta de salida no debe existir. Para regenerarla, detén sus procesos y elimina
 explícitamente solo ese entorno desechable. PM no elimina destinos existentes.
 No modifiques los entornos de Hermes con comandos directos de pip o uv.
-En Windows, ejecuta el script de pruebas mediante Bash.
 
 Si cambias `pyproject.toml`, regenera el lock, vuelve a cargar la activación y
 confirma `pyproject.toml` junto con `uv.lock`:
@@ -173,7 +165,6 @@ hermes-agent/
 │
 ├── scripts/                  # Scripts del instalador y puente
 │   ├── install.sh                # Instalador Linux/macOS
-│   ├── install.ps1               # Instalador Windows PowerShell
 │   └── whatsapp-bridge/          # Puente WhatsApp Node.js (Baileys)
 │
 ├── skills/                   # Habilidades incluidas (copiadas a ~/.hermes/skills/ en la instalación)
@@ -438,34 +429,8 @@ Añade al dict `_BUILTIN_SKINS` en `hermes_cli/skin_engine.py`. Usa el mismo esq
 
 ## Compatibilidad Multiplataforma
 
-Hermes se ejecuta en Linux, macOS y Windows nativo (además de WSL2). Al escribir código
-que toca el SO, asume que *cualquier* plataforma puede alcanzar tu ruta de código.
-
-> **Antes de hacer PR:** ejecuta `scripts/check-windows-footguns.py` para detectar
-> los patrones inseguros comunes de Windows en tu diff. Es basado en grep y barato;
-> CI también lo ejecuta en cada PR.
-
-### Reglas críticas
-
-1. **Nunca llames `os.kill(pid, 0)` para comprobaciones de liveness.** En Windows **NO es una operación sin efecto**. Usa `psutil.pid_exists(pid)` en su lugar.
-
-2. **Usa `shutil.which()` antes de hacer shell — no asumas que Windows tiene las herramientas que tiene Linux.** `ps`, `kill`, `grep`, `awk`, etc. simplemente no existen en Windows.
-
-3. **`termios` y `fcntl` son solo de Unix.** Siempre captura tanto `ImportError` como `NotImplementedError`.
-
-4. **Codificación de archivos.** Windows puede guardar archivos `.env` en `cp1252`. Siempre maneja errores de codificación.
-
-5. **Gestión de procesos.** `os.setsid()`, `os.killpg()`, `os.fork()`, `os.getuid()` y el manejo de señales POSIX difieren en Windows.
-
-6. **Señales que no existen en Windows:** `SIGALRM`, `SIGCHLD`, `SIGHUP`, `SIGUSR1`, `SIGUSR2`, etc.
-
-7. **Separadores de ruta.** Usa `pathlib.Path` en lugar de concatenación de cadenas con `/`.
-
-8. **Los enlaces simbólicos necesitan privilegios elevados en Windows** (a menos que el Modo Desarrollador esté activado).
-
-9. **Los modos de archivo POSIX (0o600, 0o644, etc.) NO se aplican en NTFS** por defecto.
-
-10. **Los daemons de fondo desacoplados en Windows necesitan `pythonw.exe`, NO `python.exe`.**
+Hermes se ejecuta en Linux y macOS (en Windows se usa mediante WSL2, que es Linux). Al escribir código
+que toca el SO, asume que *cualquiera* de las dos plataformas puede alcanzar tu ruta de código.
 
 ---
 

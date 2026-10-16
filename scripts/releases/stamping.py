@@ -7,9 +7,7 @@ require a native version in their own project metadata.
 from __future__ import annotations
 
 import argparse
-import json
 import re
-import tomllib
 from pathlib import Path
 
 
@@ -38,41 +36,7 @@ def stamp(tree: Path, version: str) -> list[Path]:
     ):
         written.append(nix_package)
 
-    installer = tree / "apps" / "bootstrap-installer" / "src-tauri"
-    json_version = rf'\g<1>"{version}"'
-    for path, pattern, replacement, flags in (
-        (
-            installer / "tauri.conf.json",
-            r'("version"\s*:\s*)"[^"]+"',
-            json_version,
-            0,
-        ),
-        (
-            installer / "Cargo.toml",
-            r'^version\s*=\s*"[^"]+"',
-            f'version = "{version}"',
-            re.MULTILINE,
-        ),
-    ):
-        if _rewrite(path, pattern, replacement, count=1, flags=flags):
-            written.append(path)
-
-    if installer.is_dir():
-        validate_bootstrap_version(tree, version)
     return written
-
-
-def validate_bootstrap_version(tree: Path, version: str) -> None:
-    installer = tree / "apps" / "bootstrap-installer" / "src-tauri"
-    tauri = json.loads((installer / "tauri.conf.json").read_text(encoding="utf-8-sig"))
-    cargo = tomllib.loads((installer / "Cargo.toml").read_text(encoding="utf-8-sig"))
-    values = {
-        "Tauri config": tauri.get("version"),
-        "Cargo package": cargo.get("package", {}).get("version"),
-    }
-    mismatches = {name: value for name, value in values.items() if value != version}
-    if mismatches:
-        raise ValueError(f"Bootstrap installer version differs from {version}: {mismatches}")
 
 
 def main(argv: list[str] | None = None) -> None:

@@ -83,44 +83,6 @@ if [ -f "$HOME/.hermes/pytest_live_guard.py" ]; then
 fi
 
 
-# ── Windows location variables (computed before we drop env) ───────────────
-# `env -i` forwards HOME, which is enough on POSIX. Native Windows CPython
-# resolves Path.home() from USERPROFILE (or HOMEDRIVE+HOMEPATH), stdlib
-# platform paths come from LOCALAPPDATA/APPDATA, ssl/sockets need SYSTEMROOT,
-# and tempfile needs TEMP/TMP. Dropping them breaks collection on native
-# Windows (issues #67385, #70813). PATHEXT is also required: without .EXE,
-# PowerShell opens a native child as a document without waiting for its exit.
-# These are location variables, not
-# credentials, so forwarding them keeps the isolation intent intact. Each is
-# only forwarded when actually set, so POSIX runs are byte-for-byte unchanged.
-WIN_ENV=()
-for _win_var in USERPROFILE HOMEDRIVE HOMEPATH LOCALAPPDATA APPDATA SYSTEMROOT TEMP TMP \
-    ComSpec PATHEXT PROGRAMFILES ProgramFiles PROGRAMDATA ProgramData; do
-  if [ -n "${!_win_var:-}" ]; then
-    WIN_ENV+=("$_win_var=${!_win_var}")
-  fi
-done
-# Native build toolchain (Windows arm64 has no wheels for every pinned C extension, so
-# `uv sync` inside a PM test compiles ruamel-yaml-clib and friends). The MSVC developer
-# environment is exported by scripts/build/windows-deps.ps1 into the job env; without
-# INCLUDE/LIB/VSINSTALLDIR the build backend reports "Visual C++ 14.0 or greater is
-# required". These describe compiler locations, not credentials.
-for _tool_var in INCLUDE LIB LIBPATH VSINSTALLDIR VCINSTALLDIR VCToolsInstallDir VCToolsVersion \
-    VCToolsRedistDir WindowsSdkDir WindowsSDKVersion WindowsSdkBinPath WindowsSdkVerBinPath \
-    WindowsLibPath UCRTVersion UniversalCRTSdkDir VSCMD_ARG_HOST_ARCH VSCMD_ARG_TGT_ARCH VSCMD_VER \
-    DevEnvDir ExtensionSdkDir Platform CARGO_HOME RUSTUP_HOME RUSTUP_TOOLCHAIN \
-    CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_LINKER CC_aarch64_pc_windows_msvc CC CXX AR \
-    VCPKG_ROOT OPENSSL_DIR OPENSSL_STATIC OPENSSL_LIB_DIR OPENSSL_INCLUDE_DIR; do
-  if [ -n "${!_tool_var:-}" ]; then
-    WIN_ENV+=("$_tool_var=${!_tool_var}")
-  fi
-done
-# setuptools locates the compiler through vswhere under "%ProgramFiles(x86)%\Microsoft Visual
-# Studio\Installer"; without that variable a primed INCLUDE/LIB still reads as "Visual C++ 14.0
-# or greater is required". The parenthesised name cannot be read with ${!var}.
-_pf86="$(env | sed -n 's/^ProgramFiles(x86)=//p' | head -n1)"
-[ -z "$_pf86" ] || WIN_ENV+=("ProgramFiles(x86)=$_pf86")
-
 # ── Test-runner knobs (computed before we drop env) ────────────────────────
 # The runner's own documented environment knobs must survive the hermetic
 # `env -i` below, or they are silent no-ops for anyone invoking this script:
@@ -138,10 +100,6 @@ _pf86="$(env | sed -n 's/^ProgramFiles(x86)=//p' | head -n1)"
 #     tests/e2e/core/terminal instead of a skip (set by the e2e CI job).
 #   * CI / GITHUB_ACTIONS tell suites they run on a disposable runner (e.g.
 #     tests/e2e/core/upgrade runs the real updater unsandboxed only there).
-#   * HERMES_E2E_WINDOWS_INSTALL opts tests/e2e/core/windows_update into running
-#     the real install.ps1 (it writes HKCU PATH); HERMES_E2E_MACHINE_ROOT,
-#     HERMES_E2E_PROFILES_ROOT and HERMES_E2E_ARTIFACTS place its fake machines,
-#     their user profiles and the transcripts CI uploads.
 #   * HERMES_E2E_STRICT_ACCEPTANCE makes tests/e2e/core/_pending_fixes.py's
 #     known gaps hard failures in an acceptance run (workflow dispatch input).
 #
@@ -157,7 +115,6 @@ TEST_ENV=()
 for _test_var in HERMES_TEST_IMAGE HERMES_TEST_WORKERS HERMES_TEST_PATHS \
   HERMES_TEST_FILE_TIMEOUT HERMES_TEST_FILE_RETRIES HERMES_TEST_SLICE \
   SSL_CERT_FILE SSL_CERT_DIR HERMES_GATEWAY_LOCK_DIR HERMES_E2E_REQUIRE_TUI CI GITHUB_ACTIONS \
-  HERMES_E2E_WINDOWS_INSTALL HERMES_E2E_MACHINE_ROOT HERMES_E2E_PROFILES_ROOT HERMES_E2E_ARTIFACTS \
   HERMES_E2E_STRICT_ACCEPTANCE; do
   if [ -n "${!_test_var:-}" ]; then
     TEST_ENV+=("$_test_var=${!_test_var}")
@@ -184,7 +141,6 @@ echo "▶ launching test runner"
 exec env -i \
   PATH="$PATH" \
   HOME="$HOME" \
-  ${WIN_ENV[@]+"${WIN_ENV[@]}"} \
   ${TEST_ENV[@]+"${TEST_ENV[@]}"} \
   TZ=UTC \
   LANG=C.UTF-8 \

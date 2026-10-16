@@ -24,8 +24,6 @@ INTERRUPTED_ENVELOPES = (
 # here, and it is the case the #86570 wording was written for.
 UNREACHABLE_ENVELOPES = (
     "API call failed after 3 retries: httpx.ConnectError: [Errno 111] Connection refused",
-    "API call failed after 3 retries: ConnectionError: [WinError 10061] No connection could "
-    "be made because the target machine actively refused it",
     "API call failed after 3 retries: httpx.ConnectError: [Errno 113] No route to host",
 )
 
@@ -55,7 +53,6 @@ class TestGatewayConnectionErrorReply:
         """
         samples = [
             "httpx.ConnectError: connection refused",
-            "ConnectionError: [WinError 10061] No connection could be made",
             "Errno 111 Connection refused",
             "All connection attempts failed: Connection refused",
         ]

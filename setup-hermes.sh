@@ -66,24 +66,13 @@ mirror_url_for() { # $1 = lowercase sha256
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
-  MINGW*|MSYS*|CYGWIN*) os=win32 ;;
   *) echo -e "${RED}✗${NC} unsupported OS $(uname -s)" >&2; exit 1 ;;
 esac
-if [ "$os" = win32 ]; then
-  # PROCESSOR_ARCHITECTURE lies under an emulated shell (x64 msys on a
-  # WoA box reports AMD64); the registry carries the machine's truth.
-  winarch="$(MSYS2_ARG_CONV_EXCL='*' reg.exe query 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' /v PROCESSOR_ARCHITECTURE 2>/dev/null | tr -d '\r' | awk '/PROCESSOR_ARCHITECTURE/ {print $NF}')"
-  case "${winarch:-${PROCESSOR_ARCHITECTURE:-}}" in
-    ARM64) arch=arm64 ;;
-    *) arch=x64 ;;
-  esac
-else
-  case "$(uname -m)" in
-    arm64|aarch64) arch=arm64 ;;
-    x86_64|amd64) arch=x64 ;;
-    *) echo -e "${RED}✗${NC} unsupported arch $(uname -m)" >&2; exit 1 ;;
-  esac
-fi
+case "$(uname -m)" in
+  arm64|aarch64) arch=arm64 ;;
+  x86_64|amd64) arch=x64 ;;
+  *) echo -e "${RED}✗${NC} unsupported arch $(uname -m)" >&2; exit 1 ;;
+esac
 target="$os-$arch"
 
 # The machine-written lock has one member per line. Follow object names and
@@ -108,7 +97,7 @@ py_version="$(pin version python | cut -d+ -f1 | cut -d. -f1,2)"
 
 store="${HERMES_RUNTIME_DIR:-$HOME/.hermes/tools}"
 entry="$store/uv-$uv_version-$target"
-uv="$entry/uv"; [ "$os" = win32 ] && uv="$entry/uv.exe"
+uv="$entry/uv"
 
 if [ -x "$uv" ]; then
   echo -e "${GREEN}✓${NC} pinned uv found ($("$uv" --version 2>/dev/null))"
@@ -134,10 +123,7 @@ else
   got="$( (sha256sum "$archive" 2>/dev/null || shasum -a 256 "$archive") | cut -d' ' -f1 | tr -d '\\')"
   [ "$got" = "$sha" ] || { echo -e "${RED}✗${NC} sha256 mismatch for uv (got $got, pinned $sha)" >&2; exit 1; }
   mkdir -p "$tmp/tree"
-  case "$archive" in
-    *.zip) unzip -q "$archive" -d "$tmp/tree" ;;
-    *) tar -xzf "$archive" -C "$tmp/tree" ;;
-  esac
+  tar -xzf "$archive" -C "$tmp/tree"
   # flatten a single wrapping dir (uv tarballs ship uv-<triple>/uv).
   # BSD find lacks GNU's -mindepth/-maxdepth flags, so enumerate children in
   # the shell; the two dot globs include hidden entries without matching . or ..
@@ -164,17 +150,9 @@ fi
 echo -e "${CYAN}→${NC} Installing python + tools + dependencies via pm (hash-verified via uv.lock)..."
 echo -e "${CYAN}→${NC} (first run on a fresh checkout can take 1-5 minutes)"
 # PM can replace its uv entry only after the bootstrap uv has exited.
-# A bare version lets uv pick emulated x86_64 on Windows-on-ARM.
-py_request="$py_version"
-if [ "$os" = win32 ]; then
-  case "$arch" in arm64) py_request="cpython-$py_version-windows-aarch64-none" ;;
-                  *) py_request="cpython-$py_version-windows-x86_64-none" ;; esac
-fi
-"$uv" python install --no-bin --no-registry "$py_request"
-boot_py="$("$uv" python find --managed-python "$py_request")"
-boot_py="${boot_py%$'\r'}"
-# Activation trusts the recorded tool digest; a direct setup re-checks it
-# (setup-hermes.ps1 draws the same line).
+"$uv" python install --no-bin --no-registry "$py_version"
+boot_py="$("$uv" python find --managed-python "$py_version")"
+# Activation trusts the recorded tool digest; a direct setup re-checks it.
 pm_args=("$test_environment")
 [ "$runtime_only" = true ] && pm_args+=(--trust-recorded)
 if ! "$boot_py" -m pm.cli install "${pm_args[@]}"; then
@@ -214,51 +192,46 @@ echo -e "${CYAN}→${NC} Setting up hermes command..."
 
 # Reuse the bootstrap interpreter only to run the shared launcher writer.
 bin_dir="$HOME/.local/bin"
-if [ "$os" = win32 ]; then
-    bin_dir="$(cygpath -am "${HERMES_HOME:-${LOCALAPPDATA:-$HOME/AppData/Local}/hermes}/bin")"
-fi
 if ! "$boot_py" -I -X utf8 hermes_cli/_launchers.py "$bin_dir"; then
     echo -e "${RED}✗${NC} launcher publication failed" >&2
     exit 1
 fi
 echo -e "${GREEN}✓${NC} Published Hermes commands in $bin_dir"
 
-if [ "$os" != win32 ]; then
-    # Determine the appropriate shell config file
-    SHELL_CONFIG=""
-    if [[ "$SHELL" == *"zsh"* ]]; then
-            SHELL_CONFIG="$HOME/.zshrc"
-        elif [[ "$SHELL" == *"bash"* ]]; then
-            SHELL_CONFIG="$HOME/.bashrc"
-            [ ! -f "$SHELL_CONFIG" ] && SHELL_CONFIG="$HOME/.bash_profile"
+# Determine the appropriate shell config file
+SHELL_CONFIG=""
+if [[ "$SHELL" == *"zsh"* ]]; then
+    SHELL_CONFIG="$HOME/.zshrc"
+elif [[ "$SHELL" == *"bash"* ]]; then
+    SHELL_CONFIG="$HOME/.bashrc"
+    [ ! -f "$SHELL_CONFIG" ] && SHELL_CONFIG="$HOME/.bash_profile"
+else
+    # Fallback to checking existing files
+    if [ -f "$HOME/.zshrc" ]; then
+        SHELL_CONFIG="$HOME/.zshrc"
+    elif [ -f "$HOME/.bashrc" ]; then
+        SHELL_CONFIG="$HOME/.bashrc"
+    elif [ -f "$HOME/.bash_profile" ]; then
+        SHELL_CONFIG="$HOME/.bash_profile"
+    fi
+fi
+
+if [ -n "$SHELL_CONFIG" ]; then
+    # Touch the file just in case it doesn't exist yet but was selected
+    touch "$SHELL_CONFIG" 2>/dev/null || true
+
+    if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
+        if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
+            echo "" >> "$SHELL_CONFIG"
+            echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
+            echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
         else
-            # Fallback to checking existing files
-            if [ -f "$HOME/.zshrc" ]; then
-                SHELL_CONFIG="$HOME/.zshrc"
-            elif [ -f "$HOME/.bashrc" ]; then
-                SHELL_CONFIG="$HOME/.bashrc"
-            elif [ -f "$HOME/.bash_profile" ]; then
-                SHELL_CONFIG="$HOME/.bash_profile"
-            fi
+            echo -e "${GREEN}✓${NC} ~/.local/bin already in $SHELL_CONFIG"
         fi
-
-        if [ -n "$SHELL_CONFIG" ]; then
-            # Touch the file just in case it doesn't exist yet but was selected
-            touch "$SHELL_CONFIG" 2>/dev/null || true
-
-            if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
-                if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
-                    echo "" >> "$SHELL_CONFIG"
-                    echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
-                    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
-                    echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
-                else
-                    echo -e "${GREEN}✓${NC} ~/.local/bin already in $SHELL_CONFIG"
-                fi
-            else
-                echo -e "${GREEN}✓${NC} ~/.local/bin already on PATH"
-            fi
-        fi
+    else
+        echo -e "${GREEN}✓${NC} ~/.local/bin already on PATH"
+    fi
 fi
 
 # ============================================================================

@@ -269,8 +269,7 @@ def test_channel_failure_never_probes_or_heals_a_branch(installation, name, fail
         body["identity"] = {
             "token": "a" * 16, "displayName": "Fixture", "appNamePascal": "Fixture",
             "artifactNamePascal": "Fixture", "appId": "ai.fixture.preview",
-            "msixAppIdWithOrg": "Fixture.Preview", "cliName": "fixture-preview",
-            "windowsExecutableName": "Fixture",
+            "cliName": "fixture-preview",
         }
     responses[channel_path] = (code, body)
     responses["/repos/fixture/fork/commits/main"] = (200, head)

@@ -69,14 +69,4 @@ assert r.returncode == 0, r   # a real spawn of this path would ENOENT
 [ "$(cat "$WORK/spec.json.captured")" = "packaged" ] || fail "treatment 2: wrong shape"
 echo "OK"
 
-echo "--- treatment 3: windows-style packaged argv matches too"
-rm -f "$WORK"/spec.json*
-run_py yes -c '
-import subprocess
-r = subprocess.run(["C:\\x\\apps\\desktop\\release\\win-unpacked\\Hermes.exe"], env={})
-assert r.returncode == 0
-'
-[ "$(cat "$WORK/spec.json.captured")" = "packaged" ] || fail "treatment 3: wrong shape"
-echo "OK"
-
 echo "ALL PROBES PASSED"

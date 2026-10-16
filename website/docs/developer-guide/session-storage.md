@@ -10,8 +10,7 @@ Source files: `hermes_state.py` (facade) plus the `hermes_state_*.py` siblings (
 
 `get_hermes_home()` is the authoritative filesystem resolver for state and
 configuration. It uses a context-local override first, then the `HERMES_HOME`
-environment variable, and finally the platform default (`~/.hermes` on macOS
-and Linux; `%LOCALAPPDATA%/hermes` on Windows). Consequently, the default
+environment variable, and finally the platform default (`~/.hermes`). Consequently, the default
 database is always `get_hermes_home() / "state.db"`, not a path that callers
 should hard-code as `~/.hermes/state.db`.
 

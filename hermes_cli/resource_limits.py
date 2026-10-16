@@ -8,10 +8,7 @@ from typing import Any
 
 from hermes_cli.config_defaults import DEFAULT_CONFIG
 
-try:  # ``resource`` is POSIX-only (and unavailable on Windows).
-    import resource as _resource
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - Windows only
-    _resource = None  # type: ignore[assignment]
+import resource as _resource
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +50,9 @@ def apply_nofile_soft_limit(config: Mapping[str, Any] | None = None) -> bool:
     """Best-effort raise of this process's ``RLIMIT_NOFILE`` soft limit; ``True`` iff changed.
 
     Target = ``runtime.nofile_soft_limit`` (default :data:`DEFAULT_NOFILE_SOFT_LIMIT`), clamped
-    to a finite hard limit; never lowers a higher soft limit. Unsupported platforms, malformed
-    settings, and denied ``setrlimit`` must never prevent a server from starting.
+    to a finite hard limit; never lowers a higher soft limit. Malformed
+    settings and denied ``setrlimit`` must never prevent a server from starting.
     """
-    if _resource is None:
-        return False
     target = configured_nofile_soft_limit(config)
     if target is None:
         return False

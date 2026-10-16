@@ -200,13 +200,13 @@ def _unique_slug(conn: sqlite3.Connection, candidate: str) -> str:
 
 
 def _primary_path_key(path: str) -> str:
-    """Comparison key for primary-path dedup (absolute + case/sep-normalized)."""
-    return os.path.normcase(_normalize_path(path))
+    """Comparison key for primary-path dedup (absolute + normalized)."""
+    return _normalize_path(path)
 
 
 def find_by_primary_path(conn: sqlite3.Connection, path: str, *, include_archived: bool = False) -> Optional[Project]:
-    """The first (oldest) project whose primary path matches ``path`` (separator/case normalized so
-    equivalent Windows spellings don't slip past the dedup check), else None."""
+    """The first (oldest) project whose primary path matches ``path`` (normalized so equivalent
+    spellings don't slip past the dedup check), else None."""
     key = _primary_path_key(path)
     for proj in list_projects(conn, include_archived=include_archived) if key else ():
         primary = proj.primary_path or next(

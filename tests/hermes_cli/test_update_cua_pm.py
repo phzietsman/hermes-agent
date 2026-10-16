@@ -51,23 +51,6 @@ def test_linux_refresh_reconciles_installed_pin(refresh):
     ensure.assert_called_once_with("cua-driver", explicit=True)
 
 
-@pytest.mark.platforms("windows")
-def test_windows_refresh_defers_pin_and_uac_to_explicit_setup(refresh, monkeypatch, capsys):
-    """Keep the task's versioned executable selected until interactive re-registration."""
-    _, ensure = refresh
-    host_setup = Mock(side_effect=AssertionError("unattended UAC"))
-    monkeypatch.setattr(setup, "install_cua_driver", host_setup)
-
-    update._refresh_cua_driver_after_update()
-
-    ensure.assert_not_called()
-    host_setup.assert_not_called()
-    output = capsys.readouterr().out
-    assert "deferred" in output.lower()
-    assert "UAC" in output
-    assert "hermes computer-use install --upgrade" in output
-
-
 @pytest.mark.platforms("macos")
 @pytest.mark.parametrize("registration_exit", [0, 1])
 def test_macos_refresh_registers_post_ensure_signed_app(

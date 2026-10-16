@@ -1,8 +1,8 @@
 """Trajectory saving + scratchpad helpers (``_convert_to_trajectory_format`` stays an AIAgent method — batch_runner.py calls it)."""
 
+import fcntl
 import json
 import logging
-import os
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -21,19 +21,6 @@ def has_incomplete_scratchpad(content: str) -> bool:
     return bool(content) and "<REASONING_SCRATCHPAD>" in content and "</REASONING_SCRATCHPAD>" not in content
 
 
-def _lock_append_handle(f, acquire: bool) -> None:
-    """Exclusive whole-file lock on an append handle: ``flock`` on POSIX, a 1-byte
-    ``msvcrt.locking`` range at offset 0 on Windows (append position is restored by the OS)."""
-    if os.name == "nt":
-        import msvcrt
-        f.seek(0)
-        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK if acquire else msvcrt.LK_UNLCK, 1)
-        f.seek(0, os.SEEK_END)
-    else:
-        import fcntl
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX if acquire else fcntl.LOCK_UN)
-
-
 def save_trajectory(trajectory: List[Dict[str, Any]], model: str, completed: bool, filename: str = None):
     """Append a ShareGPT-format entry to a JSONL file (default trajectory_samples.jsonl / failed_trajectories.jsonl by ``completed``)."""
     if filename is None:
@@ -45,12 +32,12 @@ def save_trajectory(trajectory: List[Dict[str, Any]], model: str, completed: boo
             # Gateway sessions and batch workers append to the SAME default file; without an
             # exclusive lock around write+flush, entries larger than one write() interleave and the
             # JSONL stops parsing (#12684).
-            _lock_append_handle(f, True)
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
             try:
                 f.write(line)
                 f.flush()
             finally:
-                _lock_append_handle(f, False)
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         logger.info("Trajectory saved to %s", filename)
     except Exception as e:
         logger.warning("Failed to save trajectory: %s", e)

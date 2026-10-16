@@ -553,7 +553,7 @@ declare global {
       terminal: {
         attach: (id: string) => Promise<boolean>
         /** Best-effort current working directory of the live PTY child (POSIX
-         *  only; null on Windows or when unavailable). Used to reopen a tab
+         *  only; null when unavailable). Used to reopen a tab
          *  where the user last `cd`'d. */
         cwd: (id: string) => Promise<string | null>
         dispose: (id: string) => Promise<boolean>
@@ -663,7 +663,6 @@ declare global {
       uninstall: {
         summary: () => Promise<DesktopUninstallSummary>
         run: (mode: DesktopUninstallMode) => Promise<DesktopUninstallResult>
-        openAppsSettings: () => Promise<void>
       }
       themes: {
         // Download a VS Code Marketplace extension and return the raw color
@@ -775,16 +774,14 @@ export interface DesktopVersionInfo {
   dirty?: boolean
   source?: 'build' | 'commit-build' | 'ci' | 'docker' | 'fallback' | 'git' | 'local' | 'nix' | 'unknown'
   distribution?: 'desktop-app' | 'docker' | 'nix'
-  /** Who applies the next update (from the stamp). Names the Store on a
-   *  Store-identity build — the Settings label keys off this, never
-   *  process.windowsStore (which also matches sideloaded MSIX). */
-  updateMechanism?: 'self' | 'app-installer' | 'electron-updater' | 'external' | 'microsoft-store'
+  /** Who applies the next update (from the stamp). */
+  updateMechanism?: 'self' | 'electron-updater' | 'external'
   /** The artifact kind of the desktop app carrying this info ('bootstrap' |
    *  'bundled' | 'light'). 'bootstrap' is the old-style installer shell over
    *  a managed checkout; the Distribution label keys on it. */
   payload?: 'bootstrap' | 'bundled' | 'light'
   /** True when the runtime checkout carries the bootstrap installers'
-   *  `.hermes-bootstrap-complete` receipt — install.sh / install.ps1 (or the
+   *  `.hermes-bootstrap-complete` receipt — install.sh (or the
    *  desktop first-launch bootstrap) created it, a manual clone did not. */
   installedByScript?: boolean
   /** sha16 of the canonical install-root path — the per-install channel key and
@@ -854,7 +851,7 @@ export interface DesktopUpdateCommit {
 }
 
 export type UpdaterMechanismClient =
-  'app-installer' | 'electron-updater' | 'external' | 'microsoft-store' | 'windows-handoff' | 'posix-handoff' | 'manual'
+  'electron-updater' | 'external' | 'posix-handoff' | 'manual'
 
 export interface DesktopUpdateStatus {
   supported: boolean

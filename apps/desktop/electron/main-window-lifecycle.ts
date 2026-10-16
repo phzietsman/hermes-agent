@@ -45,7 +45,7 @@ export function ensureMainWindow<T extends MainWindowLike>(
  * so `window-all-closed` never fires while one lingers. This fallback quits
  * when no chat surface remains. It is keyed on whether a quit is actually in
  * progress (`quitInProgress`), never on the overlay-suppression latch
- * (`appQuitting`): on Windows/Linux an ordinary primary-window close sets
+ * (`appQuitting`): on Linux an ordinary primary-window close sets
  * `appQuitting = true` in its `close` handler (for #55920 pop-in
  * suppression) before `closed` fires, so gating on that latch would suppress
  * the very quit the fallback exists for and strand a windowless

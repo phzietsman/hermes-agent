@@ -109,7 +109,7 @@ own turn) down. Kills scoped to a process the agent owns pass: the `proc_*` id o
 background job (`process(action="kill", …)`) or an explicit PID
 (`taskkill /F /PID <pid>`, `kill <pid>`). Other image names (`taskkill /F /IM notepad.exe`)
 are unaffected. The guard is active under every generated launcher — systemd unit,
-launchd plist, s6 run script and the Windows Scheduled Task — via the
+launchd plist and s6 run script — via the
 `HERMES_SUPERVISED_CHILD` marker they export.
 
 On macOS, executed `launchctl submit` and `launchctl bootstrap` commands are
@@ -361,7 +361,6 @@ These categories are always denied, even when `HERMES_WRITE_SAFE_ROOT` is unset:
 |----------|----------|
 | OS credential stores | `~/.ssh/` (keys, `authorized_keys`), `~/.aws/`, `~/.kube/`, `/etc/sudoers`, `~/.netrc` |
 | Hermes secret stores | `.env`, `.anthropic_oauth.json`, `auth/google_oauth.json`, Bitwarden cache (`cache/bws_cache.json`, `cache/bws_cache.enc.json`), `vault/`, `browser-profile/`, `mcp-tokens/`, `pairing/` under HERMES_HOME (active profile and global root). Control files (`auth.json`, `config.yaml`, `webhook_subscriptions.json`) are read-denied but stay writable. |
-| Windows NT/device-namespace paths | `\??\...`, `\\.\...`, `\\?\UNC\...`, `\\?\GLOBALROOT...` — rejected for both reads and writes on every platform. On Windows, merely *resolving* such a path (e.g. `\??\UNC\host\share`) triggers outbound SMB authentication and can leak the user's NTLM hash; the prefixes also bypass normal path normalization. Ordinary extended-length local paths (`\\?\C:\...`) and plain UNC shares (`\\server\share`) are unaffected. |
 
 Project-local `.env`, `.env.local`, `.env.production` and `.envrc` files are **read-denied** anywhere on disk (the file tools refuse to read them) but remain writable: the agent can create or edit them for you, it just cannot read the values back.
 
@@ -386,7 +385,7 @@ file bridge, background jobs with no human channel) fail closed. Private keys,
 When set, `write_file` and `patch` may only target paths inside the listed directory prefix(es). Anything outside is **hard-blocked** — not routed through dangerous-command approval.
 
 - Set automatically in the [official Docker image](https://github.com/NousResearch/hermes-agent) (`HERMES_WRITE_SAFE_ROOT=/opt/data`)
-- Supports multiple roots separated by `:` on Unix or `;` on Windows
+- Supports multiple roots separated by `:`
 - **Do not add to `~/.hermes/.env` casually.** If you set it to a project directory, the agent cannot write to `~/.hermes/cron/jobs.json`, profile skills, or other Hermes state outside that prefix
 
 To allow both a workspace and Hermes home:
@@ -895,8 +894,7 @@ The SSH connection details live in `.env` (not `config.yaml`) so they aren't che
 
 ## TLS certificate trust
 
-Hermes initializes the platform verifier through `truststore`. Windows uses
-its certificate store, macOS uses its system trust services, and Linux uses
+Hermes initializes the platform verifier through `truststore`. macOS uses its system trust services, and Linux uses
 the OpenSSL system trust paths. If initialization fails, Hermes logs the
 failure and falls back to OpenSSL defaults.
 

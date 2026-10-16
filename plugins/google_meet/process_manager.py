@@ -47,7 +47,6 @@ def _write_active(data: Dict[str, Any]) -> None:
 
 
 def _pid_alive(pid: int) -> bool:
-    # Not ``os.kill(pid, 0)``: on Windows that can kill the target (bpo-14484).
     from gateway.status import _pid_exists
     return bool(pid) and _pid_exists(pid)
 
@@ -194,7 +193,7 @@ def stop(*, reason: str = "requested") -> Dict[str, Any]:
                 break
             time.sleep(0.5)
         else:
-            _kill(pid, signal.SIGKILL)  # windows-footgun: ok — POSIX-only plugin (google_meet registers no-op on Windows; see __init__.py)
+            _kill(pid, signal.SIGKILL)
     _active_file().unlink(missing_ok=True)
     return {"ok": True, "reason": reason, "meetingId": active.get("meeting_id"),
             "transcriptPath": str(Path(out_dir) / "transcript.txt") if out_dir else None}

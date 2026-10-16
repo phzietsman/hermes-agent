@@ -6,12 +6,8 @@
  * is live when the pid is alive and its creation time is within
  * CREATE_TIME_TOLERANCE_S of the recorded `ct:`; with no recorded/readable ct it
  * is live only while `now - started_at <= V1_MAX_AGE_S`. Owner or delegate live => LIVE, both dead =>
- * CLEAR, malformed => UNCERTAIN. Only the host's system Python (POSIX) or
- * PowerShell/.NET (Windows relaunch/spawn) runs these: nothing imports the
- * checkout an updater may be replacing.
- *
- * The Python stays free of double quotes: managed-ssh-update ships it to Windows
- * as a PowerShell native argument, and PowerShell 5.1 does not escape them.
+ * CLEAR, malformed => UNCERTAIN. Only the host's system Python runs these:
+ * nothing imports the checkout an updater may be replacing.
  */
 
 import { CREATE_TIME_TOLERANCE_S, OWN_CT_EPSILON_S, V1_MAX_AGE_S } from './update-marker-judge'
@@ -59,26 +55,7 @@ def marker_stat(pid):
     raw=open('/proc/%d/stat'%pid).read()
     return raw[raw.rfind(')')+2:].split()
 
-def marker_win(pid):
-    # (alive, creation unix seconds or None); an open we are denied is alive with no ct.
-    import ctypes
-    from ctypes import wintypes
-    k=ctypes.WinDLL('kernel32',use_last_error=True)
-    k.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD];k.OpenProcess.restype=wintypes.HANDLE
-    k.GetExitCodeProcess.argtypes=[wintypes.HANDLE,ctypes.POINTER(wintypes.DWORD)]
-    k.GetProcessTimes.argtypes=[wintypes.HANDLE]+[ctypes.POINTER(wintypes.FILETIME)]*4
-    k.CloseHandle.argtypes=[wintypes.HANDLE]
-    handle=k.OpenProcess(0x1000,False,pid)
-    if not handle:return ctypes.get_last_error()!=87,None
-    try:
-        code=wintypes.DWORD();times=[wintypes.FILETIME() for _ in range(4)]
-        if k.GetExitCodeProcess(handle,ctypes.byref(code)) and code.value!=259:return False,None
-        if not k.GetProcessTimes(handle,*[ctypes.byref(t) for t in times]):return True,None
-        return True,((times[0].dwHighDateTime<<32)|times[0].dwLowDateTime)/1e7-11644473600
-    finally:k.CloseHandle(handle)
-
 def marker_alive(pid):
-    if os.name=='nt':return marker_win(pid)[0]
     try:os.kill(pid,0)
     except (ProcessLookupError,OverflowError):return False
     except OSError:pass  # EPERM or unprovable: alive (fail closed)
@@ -88,7 +65,6 @@ def marker_alive(pid):
 def marker_ct(pid):
     # psutil.create_time() without psutil; unreadable => None => the v1 age ceiling.
     try:
-        if os.name=='nt':return marker_win(pid)[1]
         if sys.platform.startswith('linux'):
             with open('/proc/stat') as stat:btime=next(int(line.split()[1]) for line in stat if line.startswith('btime '))
             return btime+int(marker_stat(pid)[19])/os.sysconf('SC_CLK_TCK')
@@ -189,69 +165,3 @@ if payload is None or verdict!='CLEAR':
     print(verdict,file=sys.stderr if payload else sys.stdout);sys.exit(75 if payload else 0)
 sys.exit(subprocess.run(['sh','-c',payload,'hermes-update-mutex',str(fd)],pass_fds=(fd,)).returncode)
 `
-
-/**
- * PowerShell `Get-MarkerVerdict $text` -> CLEAR | LIVE:<pid> | UNCERTAIN, the
- * same rule via .NET process facts (Process.StartTime = psutil create_time on
- * Windows; a process we may not query is alive with no ct). Windows runs this
- * instead of the venv python so a probe never holds the runtime's python.exe
- * open while an updater replaces it. The process facts and clock sit in
- * `Get-MarkerProcessFacts` / `Get-MarkerNow` so the corpus replay can inject them.
- */
-export const WINDOWS_MARKER_JUDGE_PS = [
-  'function Get-MarkerProcessFacts([int]$ownerId){',
-  // Our own pid is never a remote owner.
-  'if($ownerId -eq $PID){return @{Alive=$false}}',
-  'try{$proc=[Diagnostics.Process]::GetProcessById($ownerId)}catch [ArgumentException]{return @{Alive=$false}}',
-  'try{if($proc.HasExited){return @{Alive=$false}};return @{Alive=$true;Ct=([DateTimeOffset]$proc.StartTime).ToUnixTimeMilliseconds()/1000.0}}catch{return @{Alive=$true}}finally{$proc.Dispose()}',
-  '}',
-  'function Get-MarkerNow{[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()}',
-  'function Test-MarkerIdentity($ownerId,$ct,$started,$now){',
-  'if($ownerId -eq 0 -or $ownerId -gt [int]::MaxValue){return $false}',
-  '$facts=Get-MarkerProcessFacts $ownerId',
-  'if(-not $facts.Alive){return $false}',
-  `if($null -eq $ct -or $null -eq $facts.Ct){return ($now-[double]$started) -le ${V1_MAX_AGE_S}}`,
-  `return [Math]::Abs($ct-$facts.Ct) -le ${CREATE_TIME_TOLERANCE_S}`,
-  '}',
-  'function Get-MarkerCt([string]$digits){$value=0.0;if([double]::TryParse($digits,[Globalization.NumberStyles]::AllowDecimalPoint,[Globalization.CultureInfo]::InvariantCulture,[ref]$value)){return $value};return [double]::PositiveInfinity}',
-  'function Get-MarkerVerdict([string]$text){',
-  '$lines=@(($text -replace "^\\uFEFF","") -split "`n" | ForEach-Object {($_ -replace "`r$","").Trim([char[]]" `t")})',
-  '$style=[Globalization.NumberStyles]::None;$culture=[Globalization.CultureInfo]::InvariantCulture;[uint32]$ownerId=0;[uint64]$started=0',
-  'if($lines.Count -lt 2 -or $lines[0] -cnotmatch "^[0-9]+$" -or $lines[1] -cnotmatch "^[0-9]+$" -or -not [uint32]::TryParse($lines[0],$style,$culture,[ref]$ownerId) -or -not [uint64]::TryParse($lines[1],$style,$culture,[ref]$started)){return "UNCERTAIN"}',
-  '$ct=$null;if($lines.Count -gt 2 -and $lines[2] -cmatch "^ct:([0-9]+(\\.[0-9]+)?)$"){$ct=Get-MarkerCt $Matches[1]}',
-  '$ids=@(,@($ownerId,$ct))',
-  'foreach($line in @($lines | Select-Object -Skip 3)){[uint32]$delegateId=0;if($line -cmatch "^delegate:([0-9]+) ct:([0-9]+(\\.[0-9]+)?)$" -and [uint32]::TryParse($Matches[1],$style,$culture,[ref]$delegateId)){$ids+=,@($delegateId,(Get-MarkerCt $Matches[2]));break}}',
-  '$now=Get-MarkerNow',
-  'foreach($id in $ids){if(Test-MarkerIdentity $id[0] $id[1] $started $now){return "LIVE:$($id[0])"}}',
-  'return "CLEAR"',
-  '}'
-].join('\n')
-
-/**
- * PowerShell `Test-CheckoutLockHeld $roots` -> $true while any checkout in
- * `$roots` has its update kernel lock held: the Python update_lock byte range on
- * `checkout_lock_path` (offset 1048576, the owner byte plus the 16 R5b lease
- * bytes a refused completion child keeps while it outlives its owner), taken for
- * one try and dropped. A lock file that exists but cannot be opened or locked
- * counts as held. Gates delete a dead marker only when this is $false.
- */
-export const WINDOWS_CHECKOUT_LOCK_PS = [
-  'function Get-CheckoutLockPath([string]$root){',
-  '$plain=[IO.Path]::Combine($root,".hermes-update.lock");$dot=[IO.Path]::Combine($root,".git");$gitdir=$null',
-  'try{',
-  'if([IO.Directory]::Exists($dot)){$gitdir=$dot}elseif([IO.File]::Exists($dot)){$text=[IO.File]::ReadAllText($dot).Trim();if($text.StartsWith("gitdir:")){$gitdir=[IO.Path]::Combine($root,$text.Substring(7).Trim())}}',
-  'if($gitdir){$common=[IO.Path]::Combine($gitdir,"commondir");if([IO.File]::Exists($common)){$gitdir=[IO.Path]::Combine($gitdir,[IO.File]::ReadAllText($common).Trim())}}',
-  '}catch{return $plain}',
-  'if(-not $gitdir){return $plain}',
-  'return [IO.Path]::GetFullPath([IO.Path]::Combine($gitdir,"hermes-update.lock"))',
-  '}',
-  'function Test-CheckoutLockHeld([object[]]$roots){',
-  'foreach($root in $roots){',
-  'if([string]::IsNullOrWhiteSpace([string]$root)){continue}',
-  '$lockFile=$null',
-  'try{$lockFile=[IO.File]::Open((Get-CheckoutLockPath ([string]$root)),[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)}catch [IO.FileNotFoundException],[IO.DirectoryNotFoundException]{continue}catch{return $true}',
-  'try{$lockFile.Lock(1048576,17);$lockFile.Unlock(1048576,17)}catch{return $true}finally{$lockFile.Dispose()}',
-  '}',
-  'return $false',
-  '}'
-].join('\n')

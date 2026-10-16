@@ -46,7 +46,7 @@ class ResolvedImage:
     origin: str  # one of: data | http | file | local | container
 
 
-# Explicit URL scheme ("ftp://", "s3://"). Bare Windows drive paths lack the "//".
+# Explicit URL scheme ("ftp://", "s3://").
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*://")
 
 

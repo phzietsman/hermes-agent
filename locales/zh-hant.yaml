@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ 強制結束中..."
     interrupting_again_hint: "⚡ 正在中斷代理...（再按一次 Ctrl+C 強制結束）"
     interrupting: "⚡ 正在中斷代理..."
-    suspend_unsupported: "Windows 不支援暫停（Ctrl+Z）。"
     suspended: "{agent_name} 已暫停。執行 `fg` 可讓 {agent_name} 回來。"
     steer_failed_queued: "引導失敗（{error}）— 已排入下一輪。"
     steered: "⏩ 已引導：「{preview}」"

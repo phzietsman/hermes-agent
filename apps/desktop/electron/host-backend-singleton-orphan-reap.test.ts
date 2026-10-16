@@ -128,10 +128,6 @@ test(
     // the parent is dead; the next launch's reapOrphans must stop the child.
     // Real processes + the real platform start-marker probe (ps / /proc), so
     // this exercises the same identity matching the packaged reaper uses.
-    if (process.platform === 'win32') {
-      return // Windows uses PowerShell Get-Process; covered by the Windows lane.
-    }
-
     const orphan = spawnDetachedChild()
     const fakeParent = spawnDetachedChild()
 
@@ -232,10 +228,6 @@ test(
     // a second launch reaches reapOrphans. Same real-process probe, parent kept
     // alive — the mirror image of the crash case and the guard that makes the
     // reaper safe to run on every boot.
-    if (process.platform === 'win32') {
-      return
-    }
-
     const owned = spawnDetachedChild()
     const liveParent = spawnDetachedChild()
 

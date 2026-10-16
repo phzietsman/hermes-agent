@@ -1,44 +1,38 @@
-"""A gateway started through one of Hermes' own inline bootstraps is a gateway on every OS (#124318).
+"""A gateway started through one of Hermes' own inline bootstraps is a gateway (#124318).
 
-The store launcher (``_launchers.runtime_command``, also the Windows updater's relaunch), the
-published launcher script (POSIX shell launcher and the Windows ``.cmd`` base64 wrapper) and the
+The store launcher (``_launchers.runtime_command``), the published shell launcher script and the
 ``venv_sync`` re-entry all run ``python -I -c <source> …`` with the entry point IN that process.
 The #107002 guard that keeps an inline program's trailing argv as data made all of them invisible.
-The readers hand the matchers different strings: ``/proc``, psutil and ``ps`` space-join argv (the
-source splits across tokens); Windows CIM reports the CreateProcess line (``list2cmdline``).
+``/proc``, psutil and ``ps`` space-join argv, so the source splits across tokens.
 """
 
 from __future__ import annotations
 
-import base64
-import subprocess
 from pathlib import Path
 
 import pytest
 
 from gateway.status import looks_like_gateway_command_line
 from hermes_cli import _launchers, venv_sync
-from hermes_cli.update_cmd_windows import _hermes_holder_subcommand
+from hermes_cli.update_cmd import _hermes_holder_subcommand
 
 ROOT = Path("/opt/Hermes Agent/hermes-agent")
 PY = "/opt/venv/bin/python3"
 _SCRIPT = _launchers._launcher_script("hermes", ROOT, None)
-_JOINS = {"space-joined": " ".join, "windows": subprocess.list2cmdline}
+_JOINS = {"space-joined": " ".join}
 
 
 def _forms(argv: list[str]) -> dict[str, list[str]]:
     forms = {
         "store-launcher": _launchers.runtime_command(ROOT, argv, python=Path(PY)),
         "launcher-script": [PY, "-I", "-c", _SCRIPT, *argv],
-        "cmd-launcher": [PY, "-I", "-c", f"import base64; exec(base64.b64decode('{base64.b64encode(_SCRIPT.encode()).decode()}'))", *argv],
         "venv-reentry": venv_sync.relaunch_command(
             Path(PY), ROOT, [str(ROOT / "hermes_cli" / "main.py"), *argv], ["/old/python", "-m", "hermes_cli.main", *argv],
             "hermes_cli.main"),
     }
     # A launch through a published launcher that synced dependencies first re-enters it via exec().
-    for name in ("launcher-script", "cmd-launcher"):
-        forms[f"venv-reentry-{name}"] = venv_sync.relaunch_command(
-            Path(PY), ROOT, ["-c", *argv], ["/old/python", *forms[name][1:]], None)
+    forms["venv-reentry-launcher-script"] = venv_sync.relaunch_command(
+        Path(PY), ROOT, ["-c", *argv], ["/old/python", *forms["launcher-script"][1:]], None)
     return forms
 
 

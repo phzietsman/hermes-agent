@@ -179,7 +179,7 @@ describe('shouldRelaunchForLinuxGpuCrash', () => {
     ).toBe(false)
     expect(
       shouldRelaunchForLinuxGpuCrash({
-        platform: 'win32',
+        platform: 'darwin',
         details: { type: 'GPU', reason: 'crashed' },
         alreadySoftware: false,
         relaunchAttempted: false

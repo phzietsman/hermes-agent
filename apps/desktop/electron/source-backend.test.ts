@@ -66,7 +66,7 @@ async function ping(port: number, token: string): Promise<unknown> {
   }
 }
 
-test.skipIf(process.platform === 'win32')(
+test(
   'a PM source launcher reaches real health and RPC without adopting a legacy venv (POSIX)',
   async (): Promise<void> => {
     const temp: string = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-pm-start-'))
@@ -126,11 +126,9 @@ test.skipIf(process.platform === 'win32')(
         const poison: string = path.join(temp, 'legacy-python-used')
 
         if (poisoned) {
-          for (const suffix of ['bin/python', 'Scripts/python.exe']) {
-            const oldPython: string = path.join(fixture.root, 'venv', suffix)
-            fs.mkdirSync(path.dirname(oldPython), { recursive: true })
-            fs.writeFileSync(oldPython, `#!/bin/sh\ntouch '${poison}'\nexit 93\n`, { mode: 0o755 })
-          }
+          const oldPython: string = path.join(fixture.root, 'venv', 'bin', 'python')
+          fs.mkdirSync(path.dirname(oldPython), { recursive: true })
+          fs.writeFileSync(oldPython, `#!/bin/sh\ntouch '${poison}'\nexit 93\n`, { mode: 0o755 })
         }
 
         const backend: SourceBackend | null = await resolveSourceInstallationBackend(fixture.root, serveBackendArgs(), {
@@ -176,7 +174,6 @@ test.skipIf(process.platform === 'win32')(
 
         if (poisoned) {
           const source: SourceBackend | null = createSourcePythonBackend(fixture.root, fixture.python, ['--version'], {
-            isWindows: true,
             env
           })
 
@@ -209,27 +206,3 @@ test.skipIf(process.platform === 'win32')(
   },
   150_000
 )
-
-test('Windows console selection uses only the selected interpreter directory', (): void => {
-  const temp: string = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-console-policy-'))
-  const root: string = path.join(temp, 'repo')
-  const selected: string = path.join(temp, 'external', 'pythonw.exe')
-  const consolePython: string = path.join(path.dirname(selected), 'python.exe')
-
-  try {
-    fs.mkdirSync(path.join(root, 'venv', 'Scripts'), { recursive: true })
-    fs.writeFileSync(path.join(root, 'venv', 'Scripts', 'python.exe'), 'stale')
-    fs.mkdirSync(path.dirname(selected), { recursive: true })
-    fs.writeFileSync(selected, '')
-    assert.equal(createSourcePythonBackend(root, selected, [], { isWindows: true })?.command, selected)
-    fs.writeFileSync(consolePython, '')
-    const backend: SourceBackend | null = createSourcePythonBackend(root, selected, ['serve'], { isWindows: true })
-    assert.equal(backend?.command, consolePython)
-    assert.equal(backend?.env.PYTHONPATH, root)
-    assert.equal(backend?.env.PYTHONHOME, '')
-    assert.equal(createSourcePythonBackend(root, selected, [], { isWindows: false })?.command, selected)
-    assert.equal(createSourcePythonBackend(root, null, []), null)
-  } finally {
-    fs.rmSync(temp, { recursive: true, force: true })
-  }
-})

@@ -71,7 +71,7 @@ def format_renews(value: Optional[str]) -> Optional[str]:
             dt = datetime.strptime(text[:10], "%Y-%m-%d")
         except ValueError:
             return text
-    # %-d isn't portable to Windows; build the day without a leading zero.
+    # %-d is a glibc/BSD extension, not C strftime; build the day without a leading zero.
     return f"{safe_strftime(dt, '%b')} {dt.day}, {dt.year}"
 
 

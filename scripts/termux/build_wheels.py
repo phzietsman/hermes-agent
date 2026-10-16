@@ -82,7 +82,7 @@ def load_entries(resolved: Path) -> dict[str, str]:
 def write_reqs_file(resolved: Path, reqs: Path) -> None:
     """name==spec[ ; marker] lines for a pip/uv -r file: markers
     stay attached so the INSTALLER evaluates them on the target platform
-    (win32-marker deps resolve-skip on bionic); documented build misses
+    (platform-marker deps resolve-skip on bionic); documented build misses
     are skipped (no offline solution exists for them, by design).
     """
     out = []
@@ -273,11 +273,11 @@ def fetch_pure_wheels(build_set: list[str], specs: dict[str, str], wheelhouse: P
     here, but the pure wheels live only on PyPI. Fetch them (the build
     container may resolve; the USER machine never does). Wheels already
     present (built natives) are skipped by pip download naturally.
-    Marker-excluded deps (pywin32, winrt-*) and documented build misses
+    Marker-excluded deps and documented build misses
     (nemo-relay) are skipped -- the gate's reqs carry the same exclusions
     via the venv's own marker evaluation... which they do NOT: write_reqs_file
     writes the full list and uv evaluates markers from the RUNNING platform.
-    The gate reqs keep all lines; pip/uv on bionic skips the win32 ones.
+    The gate reqs keep all lines; pip/uv on bionic skips the excluded ones.
     """
     reqs = []
     for name, spec, marker, source in _parse_full(resolved):
@@ -354,7 +354,7 @@ def wheelhouse_gates(resolved: Path, wheelhouse: Path, build_set: list[str]) -> 
        -- a dep missing from the wheelhouse fails loudly. The container's
        own bionic python evaluates the markers exactly as the phone will
        (sys_platform/platform_machine are real here), so deps the android
-       target excludes (pywin32, winrt-*) are skipped by pip itself.
+       target excludes are skipped by pip itself.
     2. imports: every NATIVE wheel we built must import (the py3-none-any
        wheels are PyPI bytes; OUR builds are what this gate proves).
     """

@@ -19,7 +19,7 @@ def test_inventory_uses_the_target_and_requires_every_anchor(tmp_path, monkeypat
         [sys.executable, "-m", "venv", "--without-pip", str(target_root)],
         capture_output=True, check=True, timeout=60,
     )
-    target = target_root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    target = target_root / "bin/python"
     dependencies = tmp_path / "dependencies"
     site = site_packages(dependencies)
     site.mkdir(parents=True)

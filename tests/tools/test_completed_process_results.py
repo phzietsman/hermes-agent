@@ -63,7 +63,7 @@ def test_headless_terminal_result_survives_cli_exit(tmp_path):
         print("review stderr", file=sys.stderr)
         sys.exit(7)
     '''), encoding="utf-8")
-    # The local terminal backend uses bash, including Git Bash on Windows.
+    # The local terminal backend uses bash.
     command = shlex.join(path.as_posix() for path in (Path(sys.executable), child, release))
     observed = []
     seen_tool = set()

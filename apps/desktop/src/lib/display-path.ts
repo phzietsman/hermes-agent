@@ -7,7 +7,7 @@
  *
  * When `home` is unknown (renderer has no `os.homedir()` and remote cwd may
  * not match the local machine), a conservative heuristic still collapses the
- * common `/Users/<name>`, `/home/<name>`, and `C:/Users/<name>` prefixes so a
+ * common `/Users/<name>` and `/home/<name>` prefixes so a
  * long absolute path never paints raw in chrome.
  */
 
@@ -16,23 +16,18 @@ export interface DisplayPathOptions {
   home?: null | string
 }
 
-/** Normalize separators and drop a trailing slash (except root / drive root). */
+/** Collapse repeated slashes and drop a trailing slash (except root). */
 export function normalizeDisplayPath(raw: string): string {
-  let path = (raw || '').trim().replace(/\\/g, '/')
+  let path = (raw || '').trim()
 
   if (!path) {
     return ''
   }
 
-  // Collapse repeated slashes, but keep a leading UNC `//server/...` pair.
-  if (path.startsWith('//')) {
-    path = `//${path.slice(2).replace(/\/{2,}/g, '/')}`
-  } else {
-    path = path.replace(/\/{2,}/g, '/')
-  }
+  path = path.replace(/\/{2,}/g, '/')
 
-  // Drop trailing slash except bare `/` or `C:/`.
-  if (path.length > 1 && path.endsWith('/') && !/^[A-Za-z]:\/$/.test(path)) {
+  // Drop trailing slash except bare `/`.
+  if (path.length > 1 && path.endsWith('/')) {
     path = path.replace(/\/+$/, '')
   }
 
@@ -85,13 +80,6 @@ function inferredHomePrefix(path: string): string {
     return match[1]
   }
 
-  // Windows user profile: C:/Users/name[/...] (also works after \ → /)
-  match = path.match(/^([A-Za-z]:\/Users\/[^/]+)(?:\/|$)/)
-
-  if (match) {
-    return match[1]
-  }
-
   return ''
 }
 
@@ -100,7 +88,6 @@ function inferredHomePrefix(path: string): string {
  *
  *   /Users/brooklyn/www/hermes-agent  →  ~/www/hermes-agent
  *   /Users/brooklyn                   →  ~
- *   C:\Users\brooklyn\src             →  ~/src
  *   /var/log                          →  /var/log
  *   already/relative                  →  already/relative
  */
@@ -117,15 +104,15 @@ export function displayPath(raw: null | string | undefined, options: DisplayPath
   }
 
   const explicitHome = options.home ? normalizeHome(options.home) : ''
-  // Windows paths are case-insensitive; POSIX paths with an explicit home keep
-  // case-sensitive matching (Linux). Heuristic homes on mac/win ignore case.
+  // POSIX paths with an explicit home keep case-sensitive matching (Linux).
+  // Heuristic homes and macOS /Users homes ignore case.
   const home = explicitHome || inferredHomePrefix(path)
 
   if (!home) {
     return path
   }
 
-  const caseInsensitive = !explicitHome || /^[A-Za-z]:\//.test(home) || home.startsWith('/Users/')
+  const caseInsensitive = !explicitHome || home.startsWith('/Users/')
 
   if (!startsWithHome(path, home, caseInsensitive)) {
     return path
@@ -144,11 +131,6 @@ export function pathLeaf(raw: null | string | undefined): string {
 
   if (!path || path === '/' || path === '~') {
     return path
-  }
-
-  // `C:/` drive root
-  if (/^[A-Za-z]:\/$/.test(path) || /^[A-Za-z]:$/.test(path)) {
-    return path.endsWith('/') ? path : `${path}/`
   }
 
   const leaf = path.split('/').filter(Boolean).pop()

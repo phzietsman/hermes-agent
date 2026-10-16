@@ -54,7 +54,7 @@ export function fromLocalGit(repoRoot = REPO_ROOT, execFn = tryExec) {
   // We exclude untracked files (-uno) intentionally: a developer who's
   // checked out an installer scratch dir alongside the repo shouldn't
   // poison every local build with a [DIRTY] stamp.  We DO care about
-  // tracked-but-modified files because those mean the .exe content
+  // tracked-but-modified files because those mean the binary content
   // differs from the commit being pinned.
   const status = execFn(["git", "status", "--porcelain", "-uno"], { cwd: repoRoot })
   const dirty = status !== null && status.length > 0
@@ -118,17 +118,16 @@ export function isFallbackCommit(commit) {
  * come from the declared filenames, never those internal keys. The canonical
  * files stay beside them: the agent's own terminal puts <payload>/bin first on
  * PATH (pm.environments.activate_dependencies) and runs bare `hermes`, while
- * only the qualified names are published (MSIX aliases, ~/.local/bin links).
+ * only the qualified names are published (~/.local/bin links).
  */
 export function stageDesktopLaunchers(root, identity = productIdentity) {
   const file = join(root, 'manifest.json')
   const manifest = JSON.parse(readFileSync(file, 'utf8'))
-  const windows = manifest.target.startsWith('win32')
   const commands = {}
   const launchers = []
   for (const [name, source] of Object.entries(manifest.runtime.commands)) {
     const alias = name.replace(/^hermes(?=-|$)/, identity.cliName)
-    const destination = posix.join(posix.dirname(source), `${alias}${windows ? '.exe' : ''}`)
+    const destination = posix.join(posix.dirname(source), alias)
     if (source !== destination && existsSync(join(root, source))) {
       copyFileSync(join(root, source), join(root, destination))
     }
@@ -162,7 +161,7 @@ function main() {
         "  - `git rev-parse HEAD` failed at " +
         REPO_ROOT +
         "\n" +
-        "Packaged builds require a git ref to pin first-launch install.ps1\n" +
+        "Packaged builds require a git ref to pin first-launch install.sh\n" +
         "against. Run from a git checkout or set $GITHUB_SHA explicitly."
     )
     process.exit(1)
@@ -187,7 +186,7 @@ function main() {
     )
   }
 
-  const bundled = ['bundled', 'store'].includes(process.env.HERMES_DESKTOP_VARIANT)
+  const bundled = process.env.HERMES_DESKTOP_VARIANT === 'bundled'
   const payload = bundled
     ? stageDesktopLaunchers(join(OUT_DIR, 'agent-payload'))
     : null
@@ -251,19 +250,18 @@ export function buildStampPayload(stamp, env = process.env, platform = process.p
   const updateMechanism = {
     '': 'self',
     bootstrap: 'self',
-    store: 'microsoft-store',
-    bundled: { win32: 'app-installer', darwin: 'electron-updater' }[platform] || 'external',
+    bundled: platform === 'darwin' ? 'electron-updater' : 'external',
     light: platform === 'darwin' ? 'electron-updater' : 'external'
   }[variant]
   if (!updateMechanism) throw new Error(`Unknown desktop variant: ${variant}`)
   if (channelBuild && updateMechanism === 'external') throw new Error('Channel builds require a supported native update owner')
-  const bundled = variant === 'bundled' || variant === 'store'
+  const bundled = variant === 'bundled'
   if (bundled && !payload?.runtime?.commands?.hermes) {
     throw new Error('PM payload has no completed launch contract; stage the bundle before packaging')
   }
   return {
     ...base,
-    payload: variant === "store" ? "bundled" : variant || "bootstrap",
+    payload: variant || "bootstrap",
     distribution: "desktop-app",
 
     updateMechanism: commitBuild ? 'external' : updateMechanism,

@@ -100,7 +100,6 @@ Skill 可通过 `platforms` 字段将自身限制在特定操作系统上：
 ```yaml
 platforms: [macos]            # 仅 macOS（例如 iMessage、Apple Reminders）
 platforms: [macos, linux]     # macOS 和 Linux
-platforms: [windows]          # 仅 Windows
 ```
 
 设置后，该 skill 会在不兼容的平台上自动从系统 prompt（提示词）、`skills_list()` 和斜杠命令中隐藏。若省略或留空，则在所有平台上加载（向后兼容）。

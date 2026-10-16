@@ -5,7 +5,7 @@ per host, each multiplexing every profile. The per-``HERMES_HOME`` gateway lock/
 (``gateway.status``) cannot express that — N profiles are N homes, so N processes each take
 their own flock and none of them ever sees the others. This module adds the missing layer:
 
-* a **host lock** (flock/``msvcrt``) held for the lifetime of the winning process, and
+* a **host lock** (flock) held for the lifetime of the winning process, and
 * a **rendezvous record** the winner publishes so a second invocation can find it, prove it
   is the same live process, and ATTACH instead of binding a second port.
 
@@ -39,7 +39,6 @@ import json
 import logging
 import os
 import stat
-import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -168,10 +167,9 @@ def ensure_host_state_dir() -> Path:
     """
     directory = host_state_dir()
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if sys.platform != "win32":
-        with contextlib.suppress(OSError):
-            if stat.S_IMODE(directory.stat().st_mode) & 0o077:
-                os.chmod(directory, 0o700)
+    with contextlib.suppress(OSError):
+        if stat.S_IMODE(directory.stat().st_mode) & 0o077:
+            os.chmod(directory, 0o700)
     return directory
 
 
@@ -181,17 +179,14 @@ def _record_is_own(path: Path) -> bool:
     ``read_record`` hands its result straight to :mod:`gateway.host_attach`, which dials the home
     it names and believes the served set it carries. A hand-written record therefore buys an
     attacker the lifecycle verdict for every profile on the host, so the file's ``st_uid`` — not
-    its contents — is what makes it a record at all. Windows sets no ACLs from mode bits; there
-    the dir already lives under the user's own state root.
+    its contents — is what makes it a record at all.
     """
-    if sys.platform == "win32":
-        return True
     try:
         info = path.stat()
         parent = path.parent.stat()
     except OSError:
         return False
-    uid = os.getuid()  # windows-footgun: ok — unreachable on Windows (early return above)
+    uid = os.getuid()
     if info.st_uid != uid or parent.st_uid != uid:
         logger.warning(
             "ignoring host record %s: owned by uid %s (expected %s)", path, info.st_uid, uid)
@@ -348,8 +343,7 @@ def read_token(role: str) -> str:
 
     This is the handle an attaching client uses when the backend is auth-gated and therefore
     withholds its token from an unauthenticated ``GET /``. Confidentiality is enforced at WRITE
-    time by :func:`_write_private_text` (POSIX ``0o600``; an owner+SYSTEM-only protected DACL on
-    Windows, where mode bits set no ACLs at all). Reading it is therefore evidence of, not proof
+    time by :func:`_write_private_text` (``0o600``). Reading it is therefore evidence of, not proof
     of, same-OS-user authority — the authority boundary the host lock is scoped to.
     """
     try:
@@ -371,19 +365,7 @@ def record_token_is_consistent(record: HostRecord) -> bool:
 
 
 def _write_private_text(path: Path, text: str) -> None:
-    """Create/replace ``path`` with owner-only content.
-
-    POSIX: ``0o600`` via tmp + atomic replace. Windows: mode bits set NO ACLs, so the same
-    ``os.open`` would leave a live session token readable by whatever the inherited DACL grants;
-    the SSH runtime's protected owner+SYSTEM DACL writer is the repo's primitive for exactly this
-    credential class and is reused here. It also replaces in place, because ``os.replace`` onto a
-    token file another process still holds open fails on Windows.
-    """
-    if sys.platform == "win32":
-        from hermes_cli.windows_ssh_runtime import write_private_file
-
-        write_private_file(path, text.encode("utf-8"))
-        return
+    """Create/replace ``path`` with owner-only content: ``0o600`` via tmp + atomic replace."""
     tmp = path.with_name(path.name + ".tmp")
     fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:

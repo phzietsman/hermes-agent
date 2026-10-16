@@ -1,8 +1,7 @@
 /**
  * Swapped-bundle detection.
  *
- * The detached updater (scripts/desktop-update/posix.sh mac_swap /
- * windows.ps1) rebuilds and swaps the packaged app on disk AFTER
+ * The detached updater (scripts/desktop-update/posix.sh mac_swap) rebuilds and swaps the packaged app on disk AFTER
  * `hermes update` exits. An instance that was launched from the PRE-swap
  * bundle — the user reopened Hermes mid-update, the #50238 gesture the boot
  * gate exists for — would otherwise proceed to run the NEW runtime under the
@@ -97,7 +96,7 @@ export interface BundleSwapRelaunchHost {
 }
 
 // The detached updater swaps the packaged bundle on disk AFTER `hermes update`
-// exits (posix.sh mac_swap / windows.ps1). An instance reopened mid-update —
+// exits (posix.sh mac_swap). An instance reopened mid-update —
 // the #50238 gesture the boot update gate exists for — was launched from the
 // PRE-swap bundle, and the updater's `open` leg then merely focuses us (single
 // instance), so no process ever loads the new build. Letting boot proceed here

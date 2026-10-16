@@ -21,28 +21,16 @@ _INSTALL_ID_LOCK, _INSTALL_ID_PUBLICATION_LOCK = threading.Lock(), threading.Loc
 
 @contextlib.contextmanager
 def _install_id_file_lock(root: Path):
-    """Serialize identity publication across processes on POSIX and Windows."""
+    """Serialize identity publication across processes."""
+    import fcntl
+
     fd = os.open(root / ".install_id.lock", os.O_RDWR | os.O_CREAT, 0o600)
-    windows = os.name == "nt"
     try:
-        if windows:
-            import msvcrt
-            if os.fstat(fd).st_size == 0:
-                os.write(fd, b"\0")
-                os.fsync(fd)
-            os.lseek(fd, 0, os.SEEK_SET)
-            msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(fd, fcntl.LOCK_EX)
+        fcntl.flock(fd, fcntl.LOCK_EX)
         yield
     finally:
         try:
-            if windows:
-                os.lseek(fd, 0, os.SEEK_SET)
-                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(fd, fcntl.LOCK_UN)
+            fcntl.flock(fd, fcntl.LOCK_UN)
         finally:
             os.close(fd)
 
@@ -65,8 +53,7 @@ def read_or_create_install_id(root: Path | None = None) -> Optional[str]:
     """
     root = get_default_hermes_root() if root is None else root
     path = root / _INSTALL_ID_FILENAME
-    # A reader can collide with the first atomic replace on Windows. Serialize
-    # threads before reading, and recheck an unavailable file under the OS lock.
+    # Serialize threads before reading, and recheck an unavailable file under the OS lock.
     with _INSTALL_ID_PUBLICATION_LOCK:
         existing, _ = _read_existing(path)
         if existing is not None:

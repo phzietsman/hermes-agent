@@ -285,7 +285,7 @@ def test_headed_chromium_spawn_asks_the_screen_to_start_but_the_env_builder_neve
     class _Done:
         returncode = 0
         def wait(self, timeout=None): return 0
-    def _fake_popen(argv, env, socket_dir, tag, stdin_payload=None):
+    def _fake_popen(argv, env, socket_dir, tag):
         for slot in ("stdout", "stderr"):
             Path(socket_dir, f"_{slot}_{tag}").write_text("{}" if slot == "stdout" else "", encoding="utf-8")
         return _Done()

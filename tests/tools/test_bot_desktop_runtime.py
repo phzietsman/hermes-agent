@@ -251,7 +251,7 @@ def test_orphaned_x_server_of_a_dead_launcher_is_reaped_on_next_start(in_process
     first = runtime.start(wait_seconds=10)
     lock = scratch / "xlocks" / f".X{first.display.lstrip(':')}-lock"
     orphan = int(lock.read_text(encoding="utf-8-sig"))
-    os.kill(first.pid, signal.SIGKILL)  # windows-footgun: ok — Linux-only test requires an uncatchable launcher death
+    os.kill(first.pid, signal.SIGKILL)  # uncatchable launcher death
     assert _wait_until(lambda: _gone(first.pid))
     assert not _gone(orphan), "the X server outlives its launcher (that is the bug's precondition)"
     assert runtime.status().running is False

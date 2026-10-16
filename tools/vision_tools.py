@@ -232,9 +232,8 @@ def _write_private_bytes(path: Path, data: bytes) -> None:
     dir is 0700, so this matters only under ``HERMES_HOME_MODE=0701`` — but
     ``tools.computer_use.tool`` already writes private captures into this
     very directory, and one directory with two file-mode conventions is the
-    kind of inconsistency that rots. POSIX mode bits are advisory on Windows
-    (``os.chmod`` there only toggles the read-only flag), so on an ``os.open``
-    failure this degrades to a plain write rather than failing the download.
+    kind of inconsistency that rots. On an ``os.open`` failure this degrades
+    to a plain write rather than failing the download.
     """
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     try:

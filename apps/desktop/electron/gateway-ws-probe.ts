@@ -25,7 +25,7 @@
  * caller passes the Node/Electron global ``WebSocket``.
  *
  * The boot-time probe of a backend child this app spawned also uses it, with
- * ``keepWaitingWhile``: a Windows cold start can stall the backend's event
+ * ``keepWaitingWhile``: a cold start can stall the backend's event
  * loop for 12-28s after HTTP is up, well past the fixed 10s budget (#96177).
  * See ``spawnedBackendProbeOptions``.
  */
@@ -300,7 +300,7 @@ function closeReason(event, fallback) {
 }
 
 // Boot-time probe policy for a backend child THIS app spawned (#96177). On a
-// Windows cold start the backend answers HTTP, then holds the GIL for 12-28s
+// cold start the backend answers HTTP, then holds the GIL for 12-28s
 // importing gateway platform modules; the event loop (and so the WS upgrade)
 // is stalled and the process prints nothing until it recovers — the
 // web_server loop heartbeat only logs "event loop stalled" afterwards. So the

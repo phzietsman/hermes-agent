@@ -43,15 +43,8 @@ def _fs_path(raw_path: str, *, cwd: str | None = None, decode_fallback: bool = T
             parsed = urllib.parse.urlparse(raw)
             uri_path = parsed.path
             if parsed.netloc and parsed.netloc.lower() != "localhost":
-                if os.name != "nt":
-                    raise ValueError
-                uri_path = f"//{parsed.netloc}{uri_path}"
+                raise ValueError
             raw = urllib.request.url2pathname(uri_path)
-        elif os.name == "nt":
-            # MEDIA links can reuse Git Bash paths; native Path would read /c/ as C:\c\.
-            from tools.environments.local import _msys_to_windows_path
-
-            raw = _msys_to_windows_path(raw)
         candidate = _resolve_fs_candidate(raw, cwd=cwd)
         # A remote client hop may percent-encode a path on top of HTTP's own
         # decoding, so a non-ASCII name can arrive as a literal "%E5%8D%8A..."

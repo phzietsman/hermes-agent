@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def _pid_alive(pid: int) -> bool:
     """Liveness for the state file's supervisor-child pid: psutil when available, else True
-    (optimistic). On Windows ``os.kill(pid, 0)`` TERMINATES the process — never use it as a probe."""
+    (optimistic)."""
     if not pid or pid < 0:
         return False
     with suppress(Exception):

@@ -1178,7 +1178,7 @@ _SMALL_CTX_WINDOW_LIMIT = 512_000
 _SMALL_CTX_THRESHOLD_PERCENT = 0.75
 
 
-_PATH_MENTION_RE = re.compile(r"(?:/|~/?|[A-Za-z]:\\)[^\s`'\")\]}<>]+")
+_PATH_MENTION_RE = re.compile(r"(?:/|~/?)[^\s`'\")\]}<>]+")
 
 # MEDIA directives must not reach the summarizer or they get re-emitted as active.
 # MEDIA delivery directives must not reach the summarizer — if one leaks into the summary, the downstream

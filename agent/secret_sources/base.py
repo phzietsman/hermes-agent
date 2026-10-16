@@ -240,7 +240,7 @@ def run_secret_cli(argv: Sequence[str], *, allow_env: Sequence[str] = (), extra_
     full post-dotenv ``os.environ``): PATH/HOME/locale basics plus ``allow_env``
     and ``extra_env``. ``NO_COLOR=1`` + ANSI-scrubbed stderr; stdin is /dev/null so
     a prompting helper fails fast. Pass user refs AFTER a ``--`` terminator."""
-    base_keep = ("PATH", "HOME", "USERPROFILE", "SYSTEMROOT", "TMPDIR", "TEMP",
+    base_keep = ("PATH", "HOME", "TMPDIR",
                  "LANG", "LC_ALL", "XDG_CONFIG_HOME", "XDG_DATA_HOME")
     env = {k: os.environ[k] for k in (*base_keep, *allow_env) if k in os.environ}
     if extra_env:

@@ -74,7 +74,7 @@ test('extreme percentages clamp to the level bounds', () => {
   assert.equal(percentToZoomLevel(1_000_000), 9)
 })
 
-test('installZoomReassertOnWindowEvents wires Windows maximize transitions in addition to normal lifecycle events', () => {
+test('installZoomReassertOnWindowEvents wires the platform lifecycle events', () => {
   const handlers = new Map()
 
   const win = {
@@ -90,30 +90,26 @@ test('installZoomReassertOnWindowEvents wires Windows maximize transitions in ad
     () => {
       calls += 1
     },
-    'win32'
+    'darwin'
   )
 
-  assert.deepEqual([...handlers.keys()], zoomReassertWindowEvents('win32'))
+  assert.deepEqual([...handlers.keys()], zoomReassertWindowEvents('darwin'))
   handlers.get('show')()
   handlers.get('restore')()
   handlers.get('focus')()
-  handlers.get('maximize')()
-  handlers.get('unmaximize')()
   handlers.get('resized')()
   handlers.get('moved')()
-  assert.equal(calls, 7)
+  assert.equal(calls, 5)
 })
 
-test('zoomReassertWindowEvents does not add Windows-only maximize events on macOS', () => {
+test('zoomReassertWindowEvents uses the settled resized/moved events on macOS', () => {
   assert.deepEqual(zoomReassertWindowEvents('darwin'), ['show', 'restore', 'focus', 'resized', 'moved'])
 })
 
-test('isDebouncedReassertEvent debounces focus only on Linux, not Windows/macOS', () => {
+test('isDebouncedReassertEvent debounces focus only on Linux, not macOS', () => {
   assert.equal(isDebouncedReassertEvent('focus', 'linux'), true)
-  assert.equal(isDebouncedReassertEvent('focus', 'win32'), false)
   assert.equal(isDebouncedReassertEvent('focus', 'darwin'), false)
   assert.equal(isDebouncedReassertEvent('resize', 'linux'), true)
-  assert.equal(isDebouncedReassertEvent('resize', 'win32'), true)
   assert.equal(isDebouncedReassertEvent('show', 'linux'), false)
   assert.equal(isDebouncedReassertEvent('restore', 'linux'), false)
 })

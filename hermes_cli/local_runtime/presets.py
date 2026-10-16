@@ -219,7 +219,7 @@ def admitted_residency_count(models_dir: Path, budget: HardwareBudget, configure
     """How many models the card may hold resident at once: priced against the budget, not a count.
 
     Residency used to be bounded by a count alone, so a second model was admitted against an
-    already-full card. On Windows/WDDM that over-commit is not refused — the allocation is paged
+    already-full card. A paging driver does not refuse that over-commit — the allocation is paged
     to host memory, and that child decodes at a third of its speed for the rest of its life: no
     error, no UI hint, and ejecting the incumbent afterwards does not repair it (only a clean
     reload does). Capping the count instead has llama.cpp evict its LRU *before* the incoming

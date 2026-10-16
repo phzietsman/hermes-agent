@@ -144,7 +144,7 @@ def test_a_background_hook_never_keeps_a_completed_update_locked(repo, tmp_path)
     finally:
         contender.release()
         if pid_file.exists():
-            os.kill(int(pid_file.read_text(encoding="utf-8")), signal.SIGKILL)  # windows-footgun: ok - POSIX-only test
+            os.kill(int(pid_file.read_text(encoding="utf-8")), signal.SIGKILL)
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="parent-death signal is Linux-only")
@@ -214,75 +214,6 @@ def _state(pid: int) -> str:
     return stat[stat.rfind(")") + 2:][:1]
 
 
-def test_a_refused_build_join_is_logged_and_noted_in_the_receipt(tmp_path, monkeypatch, caplog):
-    """m1: the job-joining launcher's notice used to reach only the build's captured stderr
-    (run_contained merges it into the output it drops on success). The report it leaves is now
-    a warning (errors.log) and a receipt step; the build's outcome is untouched."""
-    import json
-    import logging
-
-    import hermes_cli.update_receipt as ur
-    from hermes_cli import update_custody
-
-    home = tmp_path / ".hermes"
-    home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    report = tmp_path / "report.txt"
-    note = f"{update_custody._CUSTODY_UNAVAILABLE} (could not join the update job: 5); the command was not run"
-    report.write_text(note, encoding="utf-8")
-    with ur.update_receipt_scope():
-        ur.begin_update_receipt()
-        with caplog.at_level(logging.WARNING, logger="hermes_cli.update_custody"):
-            assert update_custody._report_refused_join(str(report), ["node", "scripts/build/tui.mjs"]) == note
-        payload = json.loads(ur.finalize_update_receipt("success").read_text(encoding="utf-8-sig"))
-    assert any(note in rec.getMessage() and "tui.mjs" in rec.getMessage() for rec in caplog.records)
-    steps = [s for s in payload["steps"] if s["name"] == "update_custody"]
-    assert steps and steps[0]["ok"] is False and note in steps[0]["detail"], payload["steps"]
-    assert payload["outcome"] == "success"
-    assert not report.exists()
-    empty = tmp_path / "joined.txt"
-    empty.write_text("", encoding="utf-8")
-    assert update_custody._report_refused_join(str(empty), ["node"]) is None  # joined: silent
-
-
-def test_a_swallowed_refusal_is_what_the_update_reports(tmp_path, monkeypatch, capsys):
-    """R8 m2: readers swallow an OSError (``_git_stdout``, ``_capture_head_sha``), so a refused
-    child used to end ``hermes update`` as whatever error followed downstream. The refusal is
-    receipted and kept for the run, and the command's failure path prints it, actionably."""
-    import contextlib
-    from types import SimpleNamespace
-
-    import hermes_cli.update_receipt as ur
-    from hermes_cli import main, update_cmd, update_custody, update_owning_install
-
-    monkeypatch.setattr(update_custody, "_RUN", {"ran": False, "refused": None})
-    monkeypatch.setattr(update_owning_install, "retarget_to_owning_install", lambda root: None)
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
-    (tmp_path / "checkout").mkdir()
-    monkeypatch.setattr(main, "PROJECT_ROOT", tmp_path / "checkout")
-    monkeypatch.setattr(main, "_update_preflight_handled", lambda args: False)
-    monkeypatch.setattr(main, "_install_hangup_protection", lambda **kw: None)
-    monkeypatch.setattr(main, "_finalize_update_output", lambda state: None)
-
-    def impl(args, gateway_mode):
-        ur.begin_update_receipt()
-        with contextlib.suppress(OSError):  # a reader that swallows it, as _git_stdout does
-            raise update_custody._refuse(["git", "rev-parse"], OSError(6, "The handle is invalid"))
-        print("✗ Could not resolve HEAD")  # the downstream error it turned into
-        raise SystemExit(1)
-
-    monkeypatch.setattr(update_cmd, "_cmd_update_impl", impl)
-    with ur.update_receipt_scope(), pytest.raises(SystemExit) as stop:
-        main.cmd_update(SimpleNamespace(gateway=False))
-    assert stop.value.code == 1
-    out = capsys.readouterr().out
-    assert "`hermes update` stopped: Windows would not put `git` in this update's process job" in out, out
-    assert "Nothing was changed" in out and "Run `hermes update` again from a regular terminal" in out, out
-    payload = ur.read_latest_receipt()
-    steps = [s for s in payload["steps"] if s["name"] == "update_custody"]
-    assert steps and steps[0]["ok"] is False and "rev-parse" in steps[0]["detail"], payload["steps"]
-
-
 @pytest.mark.skipif(not Path("/proc/self/fd").is_dir(), reason="needs /proc fd listing")
 def test_a_partial_clone_move_never_fetches_under_the_lock_fd(repo, tmp_path, monkeypatch):
     """m3: installer checkouts are partial clones, so `reset --hard <target>` used to fetch the
@@ -350,33 +281,6 @@ def test_run_git_hands_the_lock_fd_to_local_mutators_only(repo, tmp_path, monkey
     assert out.read_text(encoding="utf-8-sig").split() == (["yes"] if holds else ["no"]), args
 
 
-class _Win32Sys:
-    """``sys`` as one module sees it on Windows; everything but ``platform`` is the real module."""
-
-    platform = "win32"
-
-    def __getattr__(self, name):
-        return getattr(sys, name)
-
-
-@pytest.mark.platforms("posix")
-def test_a_timed_out_child_never_waits_on_a_grandchild_holding_its_pipes(monkeypatch):
-    """N14: the in-update (Windows) run() killed only the direct child on a timeout, then waited
-    unbounded for the pipes a grandchild still held (git-remote-https under a stalled fetch).
-    Driven here through that branch with a POSIX grandchild the tree kill (taskkill) cannot reach."""
-    from hermes_cli import update_custody
-
-    # Only update_custody sees win32: patching sys.platform itself would send every lazy import
-    # in this window (the suite's Popen guard imports gateway.status) down its Windows branch.
-    monkeypatch.setattr(update_custody, "sys", _Win32Sys())
-    monkeypatch.setattr(update_custody, "_held", lambda: {"fd": None})
-    monkeypatch.setattr(update_custody, "popen", lambda argv, **kw: subprocess.Popen(list(argv), **kw))
-    started = time.monotonic()
-    with pytest.raises(subprocess.TimeoutExpired):
-        update_custody.run(["sh", "-c", "sleep 20 & sleep 20"], capture_output=True, timeout=0.5)
-    assert time.monotonic() - started < 15, "run() waited on a grandchild after the timeout"
-
-
 def _held_lock_recorder(tmp_path: Path, name: str, body: str) -> Path:
     """An executable on a fresh PATH dir that records whether it holds the checkout lock fd."""
     bin_dir = tmp_path / "bin"
@@ -413,7 +317,7 @@ def test_no_build_descendant_outlives_the_build_call(repo, tmp_path, monkeypatch
 def _late_writer(late: Path, *, detach: bool = False, delay: float = 2.0) -> str:
     """Python source for a build descendant that writes ``late`` after ``delay`` seconds, holding
     no inherited fd and no pipe (so nothing but a kill stops it); ``detach`` starts its own session."""
-    detach_code = "os.setsid(); " if detach else ""  # windows-footgun: ok - the callers are POSIX-only
+    detach_code = "os.setsid(); " if detach else ""
     return (f"import os, pathlib, time; {detach_code}os.closerange(3, 4096); "
             f"time.sleep({delay}); pathlib.Path({str(late)!r}).touch()")
 
@@ -424,7 +328,7 @@ def _heartbeat_writer(beat: Path) -> str:
     custody SIGKILLs this writer at an arbitrary instant, and an in-place ``write_text`` killed
     between its truncating open and its write leaves ``beat`` empty, so the test could no longer
     read the pid back out of it."""
-    return (f"import os, pathlib, time; os.setsid(); os.closerange(3, 4096); p = pathlib.Path({str(beat)!r})\n"  # windows-footgun: ok - Linux-only callers
+    return (f"import os, pathlib, time; os.setsid(); os.closerange(3, 4096); p = pathlib.Path({str(beat)!r})\n"
             "t = p.with_name(p.name + '.tmp')\n"
             "for i in range(300):\n    t.write_text(f'{os.getpid()} {i}'); os.replace(t, p); time.sleep(0.1)")
 
@@ -466,7 +370,7 @@ def test_a_group_kill_of_the_caller_stops_the_whole_build(repo, tmp_path):
     # The launcher leads a fresh group here, as the completion child does for its build.
     launcher = _launch_in_custody(repo, tmp_path, node, start_new_session=True)
     time.sleep(1)
-    os.killpg(launcher.pid, signal.SIGKILL)  # windows-footgun: ok - Linux-only test
+    os.killpg(launcher.pid, signal.SIGKILL)
     launcher.wait(timeout=10)
     time.sleep(3)
     assert not late_node.exists(), "node survived a group kill of its caller"
@@ -502,7 +406,7 @@ def test_a_group_kill_of_the_caller_keeps_custody_until_a_detached_writer_is_gon
     while not beat.exists() and time.monotonic() < deadline:
         time.sleep(0.1)
     assert beat.exists(), "the detached writer never started"
-    os.killpg(owner.pid, signal.SIGKILL)  # windows-footgun: ok - Linux-only test
+    os.killpg(owner.pid, signal.SIGKILL)
     owner.wait(timeout=10)
     contender = ul.UpdateLock(path=tmp_path / "next-marker", install_root=repo)
     deadline = time.monotonic() + 20
@@ -516,7 +420,7 @@ def test_a_group_kill_of_the_caller_keeps_custody_until_a_detached_writer_is_gon
     finally:
         contender.release()
         with contextlib.suppress(ProcessLookupError):
-            os.kill(int(beat.read_text(encoding="utf-8").split()[0]), signal.SIGKILL)  # windows-footgun: ok - Linux-only test
+            os.kill(int(beat.read_text(encoding="utf-8").split()[0]), signal.SIGKILL)
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="POSIX sessions + /proc")
@@ -557,7 +461,7 @@ def test_a_ctrl_c_keeps_custody_until_a_detached_writer_is_gone(repo, tmp_path, 
     while not (beat.exists() and ready.exists()) and time.monotonic() < deadline:
         time.sleep(0.1)
     assert beat.exists() and ready.exists(), "the build never started"
-    os.killpg(owner.pid, signal.SIGINT)  # windows-footgun: ok - Linux-only test
+    os.killpg(owner.pid, signal.SIGINT)
     owner.wait(timeout=10)
     contender = ul.UpdateLock(path=tmp_path / "next-marker", install_root=repo)
     deadline = time.monotonic() + 30
@@ -571,7 +475,7 @@ def test_a_ctrl_c_keeps_custody_until_a_detached_writer_is_gone(repo, tmp_path, 
     finally:
         contender.release()
         with contextlib.suppress(ProcessLookupError):
-            os.kill(int(beat.read_text(encoding="utf-8").split()[0]), signal.SIGKILL)  # windows-footgun: ok - Linux-only test
+            os.kill(int(beat.read_text(encoding="utf-8").split()[0]), signal.SIGKILL)
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="POSIX sessions + /proc")
@@ -623,129 +527,3 @@ def test_the_desktop_build_runs_in_checkout_custody(repo, tmp_path, monkeypatch)
     finally:
         lock.release()
     assert out.read_text(encoding="utf-8-sig").split() == ["yes"], "the desktop build ran without the checkout lock"
-
-
-
-# --- C3: the Windows build launcher returns only once the command's whole tree is gone ---------
-
-class _FakeWinCall:
-    def __init__(self, name, events, answer):
-        self.name, self.events, self.answer = name, events, answer
-        self.argtypes = self.restype = None
-
-    def __call__(self, *args):
-        import ctypes
-
-        self.events.append((self.name, *(a.value if isinstance(a, ctypes.c_void_p) else a for a in args)))
-        return self.answer(*args) if callable(self.answer) else self.answer
-
-
-def _run_join_launcher(monkeypatch, *, stray_polls: int, escaped: bool = False, rebind: int = 1):
-    """Execute the real ``_JOIN_JOB`` launcher source against a recording kernel32/ntdll and a
-    fake leader process. The command's job reports ``stray_polls`` live processes (a build
-    grandchild still writing) before its tree is empty. ``escaped``: the suspended command
-    starts outside the update job (Store Python's breakaway), and assigning it there answers
-    ``rebind``. Returns the ordered events."""
-    import ctypes
-    import types
-
-    from hermes_cli.update_custody import _JOIN_JOB
-
-    events = []
-    live = {"left": stray_polls}
-
-    def query(job, info_class, usage, size, _ret):
-        usage._obj.active = 1 if live["left"] > 0 else 0
-        live["left"] -= 1
-        return 1
-
-    placed = {"update job": not escaped}
-
-    def assign(job, proc):
-        if tuple(getattr(a, "value", a) for a in (job, proc)) != (11, 33):
-            return 1
-        placed["update job"] = bool(rebind)
-        return rebind
-
-    def in_job(proc, job, inside):
-        inside._obj.value = int(placed["update job"])
-        return 1
-
-    kernel32 = {"AssignProcessToJobObject": assign, "GetCurrentProcess": 7, "CloseHandle": 1, "CreateJobObjectW": 22,
-                "SetInformationJobObject": 1, "TerminateJobObject": 1, "QueryInformationJobObject": query,
-                "IsProcessInJob": in_job}
-    dlls = {"kernel32": types.SimpleNamespace(**{n: _FakeWinCall(n, events, a) for n, a in kernel32.items()}),
-            "ntdll": types.SimpleNamespace(NtResumeProcess=_FakeWinCall("NtResumeProcess", events, 0))}
-    # The real ctypes (its Structure, byref, c_* types), with Windows' DLL loader recorded.
-    monkeypatch.setattr(ctypes, "WinDLL", lambda name, **_kw: dlls[name], raising=False)
-    monkeypatch.setattr(ctypes, "get_last_error", lambda: 0, raising=False)
-
-    class _Leader:
-        _handle = 33
-
-        def __init__(self, argv, **kwargs):
-            events.append(("Popen", tuple(argv), kwargs.get("creationflags")))
-
-        def wait(self):
-            events.append(("leader exited",))
-            return 3
-
-        def kill(self):
-            events.append(("kill",))
-
-    monkeypatch.setattr(subprocess, "Popen", _Leader)
-    monkeypatch.setattr(sys, "argv", ["launcher", "11", "report.txt", "npm", "run", "build"])
-    with pytest.raises(SystemExit) as exited:
-        exec(compile(_JOIN_JOB, "<join-job>", "exec"), {"__name__": "__main__"})
-    events.append(("exit", exited.value.code))
-    return events
-
-
-def _index(events, name, *args):
-    return next(i for i, event in enumerate(events) if event[0] == name and event[1:1 + len(args)] == args)
-
-
-def test_the_windows_build_launcher_reaps_the_command_tree_before_it_returns(monkeypatch):
-    """C3: npm (the leader) exits while a build/builder descendant it started still writes. A
-    normal return of the launcher lets the updater release the checkout, so the launcher must
-    terminate the command's own job (never the update job, which holds the update's other
-    children) and return only once no process of it is left, with the leader's exit status."""
-    events = _run_join_launcher(monkeypatch, stray_polls=2)
-    tree = 22
-    assert _index(events, "AssignProcessToJobObject", tree, 33) < _index(events, "NtResumeProcess"), \
-        "the command ran before it was held in its own job"
-    assert _index(events, "leader exited") < _index(events, "TerminateJobObject", tree), events
-    assert not any(e[0] == "TerminateJobObject" and e[1] != tree for e in events), "terminated the update job"
-    polls = [i for i, e in enumerate(events) if e[0] == "QueryInformationJobObject"]
-    assert len(polls) == 3 and polls[0] > _index(events, "TerminateJobObject", tree), \
-        "the launcher returned while a build descendant was still alive"
-    assert events[-1] == ("exit", 3), events
-
-
-def test_a_build_command_that_starts_outside_the_update_job_is_put_in_it_before_it_runs(monkeypatch, tmp_path):
-    """F80: under Store Python the suspended node starts outside the update job (desktop-app
-    breakaway through a job that permits breakaway); refusing it made every Node build of the
-    update fail. It is assigned to the update job while suspended and runs once it is in."""
-    monkeypatch.chdir(tmp_path)  # a refusal writes its report file (argv[2]) relative to here
-    events = _run_join_launcher(monkeypatch, stray_polls=0, escaped=True)
-    assert _index(events, "AssignProcessToJobObject", 11, 33) < _index(events, "NtResumeProcess"), \
-        "the command ran before it was in the update job"
-    assert events[-1] == ("exit", 3), events
-
-
-def test_a_build_command_the_update_job_will_not_take_never_runs(monkeypatch, tmp_path):
-    """F54 kept: a suspended command outside the job that Windows also refuses to assign to it
-    is killed before its first instruction and the launcher refuses."""
-    from hermes_cli.update_custody import _REFUSED_EXIT
-
-    monkeypatch.chdir(tmp_path)
-    events = _run_join_launcher(monkeypatch, stray_polls=0, escaped=True, rebind=0)
-    assert not any(e[0] == "NtResumeProcess" for e in events) and ("kill",) in events, events
-    assert events[-1] == ("exit", _REFUSED_EXIT), events
-
-
-def test_the_windows_build_launcher_returns_at_once_when_nothing_was_left(monkeypatch):
-    """C3 healthy control: a build whose descendants all exited with the leader costs one poll."""
-    events = _run_join_launcher(monkeypatch, stray_polls=0)
-    assert [e[0] for e in events if e[0] == "QueryInformationJobObject"] == ["QueryInformationJobObject"]
-    assert events[-1] == ("exit", 3), events

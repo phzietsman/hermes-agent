@@ -9,20 +9,17 @@ import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-import type { AppInfo as BuilderAppInfo, Configuration, Metadata, Packager, Protocol } from 'app-builder-lib'
+import type { Configuration, Metadata, Protocol } from 'app-builder-lib'
 import { build, type BuildResult } from 'esbuild'
 import { afterEach, beforeEach, test, vi } from 'vitest'
 
 import type { applyDesktopIdentity, ProductIdentity } from './product-identity'
 
-type PackagingConfiguration = Omit<Configuration, 'extraMetadata' | 'mac' | 'msix' | 'protocols' | 'win'> & {
+type PackagingConfiguration = Omit<Configuration, 'extraMetadata' | 'mac' | 'protocols'> & {
   extraMetadata: Metadata
   mac: Omit<NonNullable<Configuration['mac']>, 'extendInfo'> & { extendInfo: { CFBundleExecutable: string } }
-  msix: NonNullable<Configuration['msix']>
   protocols: Protocol[]
-  win: NonNullable<Configuration['win']>
 }
 
 const require: NodeJS.Require = createRequire(import.meta.url)
@@ -76,7 +73,7 @@ test('baked runtime identity never evaluates ambient build selectors', async ():
     const actual: unknown = JSON.parse(
       execFileSync(process.execPath, [file], {
         encoding: 'utf8',
-        env: { ...process.env, HERMES_DESKTOP_VARIANT: 'store', HERMES_BUILD_COMMIT: 'a'.repeat(40) }
+        env: { ...process.env, HERMES_DESKTOP_VARIANT: 'light', HERMES_BUILD_COMMIT: 'a'.repeat(40) }
       })
     )
 
@@ -134,7 +131,6 @@ test.each([
     assert.equal(stable.displayName, display)
     assert.equal(stable.channel, channel)
     assert.equal(stable.light, variant === 'light')
-    assert.equal(stable.storeMsix, undefined)
     const identities: ProductIdentity[] = [stable]
 
     for (const [tag, commit, expectedCli, expectedChannel] of [
@@ -147,7 +143,6 @@ test.each([
       const current: ProductIdentity = await identityForVariant(variant)
       assert.equal(current.channel, expectedChannel)
       assert.equal(current.cliName, expectedCli)
-      assert.equal(current.windowsExecutableName, expectedCli)
       assert.equal(current.artifactNamePascal, stable.artifactNamePascal)
       assert.deepEqual(current, await identityForVariant(variant))
 
@@ -156,14 +151,7 @@ test.each([
       }
 
       for (const previous of identities) {
-        for (const field of [
-          'displayName',
-          'appId',
-          'appNamePascal',
-          'msixAppIdWithOrg',
-          'windowsExecutableName',
-          'cliName'
-        ] as const) {
+        for (const field of ['displayName', 'appId', 'appNamePascal', 'cliName'] as const) {
           assert.notEqual(current[field], previous[field], `${field} must isolate installations`)
 
           if (commit) {
@@ -192,7 +180,7 @@ test('light and bundled retain distinct OS markers from the full client', async 
     }
 
     if (variant === 'light') {
-      assert.notEqual(other.msixAppIdWithOrg, full.msixAppIdWithOrg)
+      assert.notEqual(other.cliName, full.cliName)
       assert.notEqual(other.channel, full.channel)
     }
   }
@@ -211,10 +199,6 @@ test('packaging isolates boot metadata and executable names without renaming rel
   const stable: PackagingConfiguration = load()
   assert.equal(stable.extraMetadata.productName || pkg.productName, pkg.productName)
 
-  process.env.HERMES_PAYLOAD_TAG = 'v0.28.0'
-  process.env.HERMES_BUILD_COMMIT = ''
-  assert.equal(load().msix.customManifestPath, 'build/msix-manifest.xml')
-
   for (const build of ['canary', 'abcdef1234567890abcdef1234567890abcdef12']) {
     process.env.HERMES_PAYLOAD_TAG = build === 'canary' ? 'v0.28.0+canary.20260818T000000Z' : ''
     process.env.HERMES_BUILD_COMMIT = build === 'canary' ? '' : build
@@ -225,77 +209,13 @@ test('packaging isolates boot metadata and executable names without renaming rel
     assert.equal(config.extraMetadata.productName, identity.displayName)
     assert.equal(config.extraMetadata.name, identity.appNamePascal)
     assert.notEqual(config.extraMetadata.name, stableIdentity.appNamePascal)
-    assert.equal(config.win.executableName, identity.windowsExecutableName)
-
-    const {
-      AppInfo
-    }: { AppInfo: typeof BuilderAppInfo } = require('../../../node_modules/app-builder-lib/dist/appInfo.js')
-
-    const appInfo: BuilderAppInfo = new AppInfo(
-      { config, metadata: { ...pkg, ...config.extraMetadata } } as Packager,
-      null,
-      config.win
-    )
-
-    // Windows packaging, afterPack, rollback preservation and final signing
-    // all consume this resolved name, not the display name.
-    assert.equal(appInfo.productFilename, identity.windowsExecutableName)
     assert.equal(config.mac.extendInfo.CFBundleExecutable, config.executableName)
     assert.equal(config.artifactName, stable.artifactName)
-    assert.equal(config.msix.customManifestPath, 'build/msix-manifest.xml')
-
-    const {
-      appIdentity
-    }: {
-      appIdentity: (desktopDir: string) => { name: string; identity: ProductIdentity }
-    } = require('../../../scripts/msix-shared.mjs')
-
-    process.env.HERMES_PAYLOAD_VERSION = '0.28.0'
-    const artifact: ReturnType<typeof appIdentity> = appIdentity(fileURLToPath(new URL('../', import.meta.url)))
-    assert.equal(artifact.name, identity.artifactNamePascal)
-    assert.equal(artifact.identity.msixAppIdWithOrg, config.msix.identityName)
     assert.deepEqual(config.protocols[0].schemes, ['hermes'])
 
     if (build !== 'canary') {
       assert.equal(config.publish, null)
       assert.equal(config.mac.publish, null)
     }
-  }
-})
-
-test('store inherits the bundled app identity (shared userData) but swaps the MSIX packaging identity', async (): Promise<void> => {
-  const bundled: ProductIdentity = await identityForVariant('bundled')
-  const store: ProductIdentity = await identityForVariant('store')
-
-  // Same Electron app: displayName/appNamePascal (-> shared userData dir),
-  // appId, and the out-of-store org-prefixed name are all inherited.
-  assert.equal(store.store, true)
-  assert.equal(store.light, false)
-  assert.equal(store.displayName, bundled.displayName)
-  assert.equal(store.appNamePascal, bundled.appNamePascal)
-  assert.equal(store.appId, bundled.appId)
-  assert.equal(store.msixAppIdWithOrg, bundled.msixAppIdWithOrg)
-  // The store build never publishes to a feed.
-  assert.equal(store.channel, null)
-})
-
-test('nonstable builds cannot claim the official Store package', async (): Promise<void> => {
-  process.env.HERMES_PAYLOAD_TAG = 'v0.28.0+canary.20260818T000000Z'
-  await assert.rejects(identityForVariant('store'), /Store.*stable/)
-  delete process.env.HERMES_PAYLOAD_TAG
-  process.env.HERMES_BUILD_COMMIT = 'abcdef1234567890abcdef1234567890abcdef12'
-  await assert.rejects(identityForVariant('store'), /Store.*stable/)
-})
-
-test('store carries the Partner Center MSIX identity and no other variant does', async (): Promise<void> => {
-  const store: ProductIdentity = await identityForVariant('store')
-  assert.deepEqual(store.storeMsix, {
-    identityName: 'NousResearchInc.HermesAgent',
-    publisher: 'CN=EE6D86E4-606F-4E38-B940-AD7248C9D519',
-    publisherDisplayName: 'Nous Research Inc.'
-  })
-
-  for (const v of [undefined, 'bundled', 'light'] as const) {
-    assert.equal((await identityForVariant(v)).storeMsix, undefined, `variant ${v} must carry no storeMsix`)
   }
 })

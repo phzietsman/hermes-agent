@@ -21,8 +21,9 @@ def finish_update(*, root, assume_yes, gateway_mode, pre_update_snapshot_id,
     from hermes_cli.update_cmd import (
         _run_post_update_maintenance,
         _restart_gateway_fleet_after_update, _verify_fleet_after_update,
-        _write_gateway_update_exit_code, _resume_windows_gateways_and_merge_outcome,
+        _write_gateway_update_exit_code,
     )
+    from hermes_cli.update_cmd_posix_pause import resume_paused_gateways_and_merge_outcome
     from hermes_cli import update_receipt
     from hermes_cli.update_receipt import TAIL_FOLLOWUPS, record_build_stage, record_followup
 
@@ -59,7 +60,7 @@ def finish_update(*, root, assume_yes, gateway_mode, pre_update_snapshot_id,
     update_id = run.data.get("update_id") if run is not None else None
     try:
         restarted = _restart_gateway_fleet_after_update(plan, gateway_mode)
-        _resume_windows_gateways_and_merge_outcome(restarted, windows_resume, gateway_mode)
+        resume_paused_gateways_and_merge_outcome(restarted, windows_resume, gateway_mode)
         _verify_fleet_after_update(restarted, _pre_update_plan=plan, _windows_gateway_resume=windows_resume,
                                   update_complete=bool(runtime_safe) and not tail_owed)
     except (Exception, SystemExit) as exc:  # health: allow BLE001 -- the code is committed (C3): the fleet obligation stays armed
@@ -110,7 +111,7 @@ def main(context: Path, result: Path) -> int:
         from hermes_cli import main as cli
         from hermes_cli.source_build import build_update_products
         from hermes_cli.update_lock import UpdateLock, describe_holder
-        from hermes_cli.update_cmd_windows import _resume_windows_gateways_after_update
+        from hermes_cli.update_cmd_posix_pause import resume_paused_gateways_after_update
         from hermes_cli.venv_sync import arm_completion
 
         cli.PROJECT_ROOT = root
@@ -127,7 +128,7 @@ def main(context: Path, result: Path) -> int:
                     print(describe_holder(lock.holder), file=sys.stderr)
                     code = 2
                     return code
-                resume = _resume_windows_gateways_after_update
+                resume = resume_paused_gateways_after_update
                 desktop = request.get("desktop")
                 if desktop is None:
                     # Historical hooks can precede Desktop detection. Resolve
@@ -184,7 +185,7 @@ def main(context: Path, result: Path) -> int:
                 resume(token)
             except Exception as exc:  # noqa: BLE001 — a restart failure is owed, never the exit status (C3)
                 attempted = True
-                update_receipt.owe_followup(request["update_id"], "windows_resume", f"Windows gateway recovery failed: {exc}")
+                update_receipt.owe_followup(request["update_id"], "gateway_resume", f"Paused gateway recovery failed: {exc}")
         handled = cli_started or (begun and update_receipt._current.get() is None)
         written = update_receipt.finalize_pending_update_receipt(code, "historical takeover completion")
         result.write_text(json.dumps({

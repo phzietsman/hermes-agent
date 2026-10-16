@@ -9,7 +9,6 @@ import {
   appendUniquePathEntries,
   buildDesktopBackendEnv,
   normalizeHermesHomeRoot,
-  pathEnvKey,
   pooledProfileBackendEnv,
   POSIX_SANE_PATH_ENTRIES,
   profileBackendParentEnv
@@ -94,16 +93,6 @@ test('HERMES_RUNTIME_DIR names the store; look-alike prefixes are not Hermes-own
   ])
 })
 
-test('Windows PATH casing and delimiter are preserved without POSIX sane entries', () => {
-  const env = buildDesktopBackendEnv({
-    currentEnv: { Path: 'C:\\Windows\\System32;C:\\Windows' },
-    platform: 'win32'
-  })
-
-  assert.equal(env.Path, 'C:\\Windows\\System32;C:\\Windows')
-  assert.equal(env.PATH, undefined)
-})
-
 test('buildDesktopBackendEnv forces PYTHONUTF8 unless the user set it explicitly', () => {
   const defaulted = buildDesktopBackendEnv({
     currentEnv: { PATH: '/usr/bin' },
@@ -129,10 +118,6 @@ test('normalizeHermesHomeRoot expands a literal leading ~ against the home direc
     normalizeHermesHomeRoot('~/.hermes/profiles/oracle', { pathModule: path.posix, homedir: '/Users/test' }),
     '/Users/test/.hermes'
   )
-  assert.equal(
-    normalizeHermesHomeRoot('~\\.hermes', { pathModule: path.win32, homedir: 'C:\\Users\\test' }),
-    'C:\\Users\\test\\.hermes'
-  )
   assert.equal(normalizeHermesHomeRoot('~', { pathModule: path.posix, homedir: '/Users/test' }), '/Users/test')
 })
 
@@ -141,18 +126,7 @@ test('normalizeHermesHomeRoot maps profile homes back to the global Hermes root'
     normalizeHermesHomeRoot('/Users/test/.hermes/profiles/oracle', { pathModule: path.posix }),
     '/Users/test/.hermes'
   )
-  assert.equal(
-    normalizeHermesHomeRoot('C:\\Users\\test\\AppData\\Local\\hermes\\profiles\\oracle', { pathModule: path.win32 }),
-    'C:\\Users\\test\\AppData\\Local\\hermes'
-  )
   assert.equal(normalizeHermesHomeRoot('/Users/test/.hermes', { pathModule: path.posix }), '/Users/test/.hermes')
-})
-
-test('pathEnvKey finds the platform-cased PATH key', () => {
-  assert.equal(pathEnvKey({ Path: 'x' }, 'win32'), 'Path')
-  assert.equal(pathEnvKey({ PATH: 'x' }, 'win32'), 'PATH')
-  assert.equal(pathEnvKey({}, 'win32'), 'PATH')
-  assert.equal(pathEnvKey({ Path: 'x' }, 'darwin'), 'PATH')
 })
 
 test('appendUniquePathEntries flattens, dedupes, and preserves first occurrence', () => {
@@ -249,33 +223,6 @@ test('Desktop launched from a named profile keeps that profile out of the defaul
   )
 })
 
-test('Windows matches profile homes and dotenv names case-insensitively', () => {
-  const root = 'C:\\Users\\test\\AppData\\Local\\hermes'
-  const files = { [`${root}\\.env`]: 'TELEGRAM_BOT_TOKEN=root-token\r\n' }
-
-  const fsModule = {
-    readFileSync: file => {
-      if (!(file in files)) {
-        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-      }
-
-      return files[file]
-    }
-  }
-
-  const currentEnv = {
-    HERMES_HOME: 'c:\\users\\test\\appdata\\local\\HERMES',
-    Path: 'C:\\Windows',
-    Telegram_Bot_Token: 'root-token'
-  }
-
-  const scoped = (profile: string) =>
-    profileBackendParentEnv({ hermesHome: root, profile, currentEnv, platform: 'win32', fsModule })
-
-  assert.deepEqual(scoped('default'), currentEnv)
-  assert.deepEqual(scoped('urbot'), { HERMES_HOME: currentEnv.HERMES_HOME, Path: 'C:\\Windows' })
-})
-
 test('a pooled profile backend drops the launch profile TERMINAL_CWD (#87584)', () => {
   withHermesRoot(ROOT_SCOPE_FILES, root => {
     // The Desktop env carries the app-global cwd (resolveHermesCwd) and the
@@ -295,22 +242,6 @@ test('a pooled profile backend drops the launch profile TERMINAL_CWD (#87584)', 
     assert.equal(env.TLON_SHIP_CODE, undefined)
     assert.equal(env.OP_SERVICE_ACCOUNT_TOKEN, undefined)
     assert.equal(env.OPENROUTER_API_KEY, 'shell-key')
-  })
-})
-
-test('a pooled backend removes case-insensitive TERMINAL_CWD on Windows', () => {
-  withHermesRoot(ROOT_SCOPE_FILES, root => {
-    const env = pooledProfileBackendEnv({
-      hermesHome: root,
-      profile: 'urbot',
-      currentEnv: { Path: 'C:\\Windows', Terminal_Cwd: 'C:\\source\\workspace' },
-      backendEnv: { terminal_cwd: 'C:\\backend' },
-      platform: 'win32'
-    })
-
-    assert.equal(env.Terminal_Cwd, undefined)
-    assert.equal(env.terminal_cwd, undefined)
-    assert.equal(env.Path, 'C:\\Windows')
   })
 })
 

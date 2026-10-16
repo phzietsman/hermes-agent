@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import contextlib
 import json
-import os
 import time
 from dataclasses import dataclass, field
 from functools import partial
@@ -128,9 +127,8 @@ def load_room_links_tolerant(db_path: DbPath) -> tuple[tuple[StoredRoomLink, ...
 
 def save_room_link(db_path: DbPath, link: StoredRoomLink) -> None:
     hosted_rooms.upsert_room_link_record(db_path, record=link.as_record(), max_links=MAX_LINKS)
-    if os.name == "posix":
-        with contextlib.suppress(OSError):
-            Path(db_path).chmod(0o600)
+    with contextlib.suppress(OSError):
+        Path(db_path).chmod(0o600)
 
 
 def mark_room_link_status(db_path: DbPath, *, room_id: str, member_id: str, status: str) -> bool:

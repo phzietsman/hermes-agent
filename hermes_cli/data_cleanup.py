@@ -5,8 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 import stat
 
-from pm.filesystem import is_junction
-
 
 @dataclass(frozen=True)
 class DataRemovalPlan:
@@ -56,7 +54,7 @@ def plan_data_removal(home: Path, project: Path, userdata: Path | None = None) -
         resolved = path.resolve()
         if any(path == root or resolved == root or path.is_relative_to(root) for root in protected):
             keep.add(path)
-        elif path.is_symlink() or is_junction(path):
+        elif path.is_symlink():
             remove.append(path)  # Remove the directory entry, never its target.
         elif any(root.is_relative_to(path) for root in protected):
             if stat.S_ISDIR(mode):
@@ -91,8 +89,6 @@ def remove_data(plan: DataRemovalPlan) -> tuple[list[Path], list[tuple[Path, str
             mode = path.lstat().st_mode
             if path.is_symlink() or not stat.S_ISDIR(mode):
                 path.unlink()
-            elif is_junction(path):
-                path.rmdir()
             else:
                 shutil.rmtree(path)
             removed.append(path)

@@ -102,13 +102,6 @@ export function UninstallSection(): ReactElement | null {
           <p className="text-xs text-muted-foreground">{u.managedBody}</p>
           <p className="text-sm font-medium">{summary.native_removal_instructions}</p>
           <p className="text-xs text-muted-foreground">{u.dataKept(summary.hermes_home)}</p>
-          {summary.platform === 'win32' && (
-            <div className="mt-1">
-              <Button onClick={(): void => void bridge.openAppsSettings()} size="sm" variant="outline">
-                {u.openAppsSettings}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     )

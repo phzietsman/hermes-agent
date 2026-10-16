@@ -438,14 +438,6 @@ class TestGatewayRuntimeStatus:
             assert status._command_line_belongs_to_profile(cmdline, default_home) is True, cmdline
         assert status._command_line_belongs_to_profile("hermes -p coder gateway run", default_home) is False
 
-    def test_command_line_belongs_to_profile_normalizes_separators(self):
-        """A Windows argv renders HERMES_HOME with backslashes while the
-        profile's Path may carry forward slashes (and, on Windows, vice
-        versa).  The separator difference must not defeat the match."""
-        home = Path("c:/opt/data/profiles/coder")
-        cmdline = r"hermes_home=c:\opt\data\profiles\coder hermes gateway run --replace"
-        assert status._command_line_belongs_to_profile(cmdline, home) is True
-
     def test_command_line_belongs_to_profile_rejects_sibling_homes(self):
         """A substring test let ``HERMES_HOME=/root/profiles/ops2`` satisfy the ``ops`` profile's
         predicate, so a stale state record could borrow the sibling's live gateway identity (same
@@ -646,7 +638,7 @@ class TestGetProcessStartTime:
     """Start-time fingerprint backing the PID-reuse guard (#43846 / #50468).
 
     Must be stable across repeated reads of the same live process and degrade to
-    a cross-platform psutil fallback when /proc is unavailable (macOS/Windows),
+    a psutil fallback when /proc is unavailable (macOS),
     so the guard isn't a Linux-only no-op.
     """
 
@@ -665,46 +657,10 @@ class TestGetProcessStartTime:
 
 
 class TestTerminatePid:
-    @pytest.mark.platforms("windows")
-    def test_force_uses_taskkill_on_windows(self, monkeypatch):
-        # Faking _IS_WINDOWS on POSIX could not reproduce the real
-        # CREATE_NO_WINDOW creationflags value that windows_hide_flags()
-        # returns only on Windows (it is 0 elsewhere).
-        calls = []
-
-        def fake_run(cmd, capture_output=False, text=False, timeout=None, creationflags=0, **kwargs):
-            calls.append((cmd, capture_output, text, timeout, creationflags))
-            return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-        monkeypatch.setattr(status.subprocess, "run", fake_run)
-
-        monkeypatch.setattr(status, "_get_process_start_time", lambda pid: 456)
-
-        status.terminate_pid(123, force=True, expected_start_time=456)
-
-        # taskkill is spawned with the no-window flag so the windowless
-        # pythonw.exe backend doesn't flash a conhost window on force-kill.
-        from hermes_cli._subprocess_compat import windows_hide_flags
-
-        assert calls == [
-            (["taskkill", "/PID", "123", "/T", "/F"], True, True, 10, windows_hide_flags())
-        ]
-
-    @pytest.mark.platforms("windows")
-    def test_windows_force_refuses_pid_without_start_time_guard(self, monkeypatch):
-        calls = []
-        monkeypatch.setattr(status.subprocess, "run", lambda *args, **kwargs: calls.append(args))
-
-        with pytest.raises(OSError, match="without a process start-time guard"):
-            status.terminate_pid(123, force=True)
-
-        assert calls == []
-
-    @pytest.mark.platforms("windows")
-    def test_windows_force_refuses_reused_pid(self, monkeypatch):
+    def test_force_refuses_reused_pid(self, monkeypatch):
         monkeypatch.setattr(status, "_get_process_start_time", lambda pid: 999)
         calls = []
-        monkeypatch.setattr(status.subprocess, "run", lambda *args, **kwargs: calls.append(args))
+        monkeypatch.setattr(status.os, "kill", lambda *args: calls.append(args))
 
         with pytest.raises(OSError, match="process identity changed"):
             status.terminate_pid(123, force=True, expected_start_time=456)
@@ -713,9 +669,7 @@ class TestTerminatePid:
 
 
 class TestPidExistsZombieProbe:
-    """#115578: the psutil ``status()`` zombie probe is POSIX-only. On Windows it costs ~7 ms per
-    pid, runs once per registry entry inside the session-registry file lock, and can never
-    report a zombie (Windows has no such state), so pollers starve at a handful of leases."""
+    """A zombie still answers ``pid_exists()``, so the psutil ``status()`` probe must run."""
 
     @staticmethod
     def _spy_status(monkeypatch):
@@ -730,55 +684,14 @@ class TestPidExistsZombieProbe:
         monkeypatch.setattr(psutil.Process, "status", spy)
         return calls
 
-    @pytest.mark.platforms("windows")
-    def test_windows_skips_zombie_status_probe(self, monkeypatch):
-        # Faking os.name on POSIX proves nothing about the cost on the real host; the wine2e
-        # runner receipt (red on main, green on the fix) is the live repro for this test.
-        calls = self._spy_status(monkeypatch)
-        assert status._pid_exists(os.getpid()) is True
-        assert calls == []
-
     @pytest.mark.platforms("linux")
     def test_posix_still_probes_zombie_status(self, monkeypatch):
-        # Control: on POSIX a zombie still answers pid_exists(), so the probe must survive.
         calls = self._spy_status(monkeypatch)
         assert status._pid_exists(os.getpid()) is True
         assert calls == [os.getpid()]
 
 
 class TestScopedLocks:
-    @pytest.mark.platforms("windows")
-    def test_windows_file_lock_uses_high_offset(self, tmp_path, monkeypatch):
-        # Faking _IS_WINDOWS on POSIX could not reproduce the msvcrt
-        # byte-range locking path at all: msvcrt does not exist off Windows,
-        # so the stub below had to invent the module as well as the host.
-        lock_path = tmp_path / "gateway.lock"
-        handle = open(lock_path, "a+", encoding="utf-8")
-        fd = handle.fileno()
-        calls = []
-
-        def fake_locking(fd, mode, size):
-            calls.append((fd, mode, size, handle.tell()))
-
-        monkeypatch.setattr(
-            status,
-            "msvcrt",
-            SimpleNamespace(LK_NBLCK=1, LK_UNLCK=2, locking=fake_locking),
-            raising=False,
-        )
-
-        try:
-            assert status._try_acquire_file_lock(handle) is True
-            status._release_file_lock(handle)
-        finally:
-            handle.close()
-
-        assert calls == [
-            (fd, 1, 1, status._WINDOWS_LOCK_OFFSET),
-            (fd, 2, 1, status._WINDOWS_LOCK_OFFSET),
-        ]
-        assert lock_path.read_text(encoding="utf-8") == "\n"
-
     def test_acquire_scoped_lock_rejects_live_other_process(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_GATEWAY_LOCK_DIR", str(tmp_path / "locks"))
         lock_path = tmp_path / "locks" / "telegram-bot-token-2bb80d537b1da3e3.lock"
@@ -790,7 +703,7 @@ class TestScopedLocks:
         }))
 
         # Post-#21561 the liveness probe routes through
-        # ``gateway.status._pid_exists`` (psutil-first, safe on Windows).
+        # ``gateway.status._pid_exists`` (psutil-first).
         monkeypatch.setattr(status, "_pid_exists", lambda pid: True)
         monkeypatch.setattr(status, "_get_process_start_time", lambda pid: 123)
 
@@ -818,7 +731,7 @@ class TestScopedLocks:
         }))
 
         # Post-#21561 the liveness probe routes through
-        # ``gateway.status._pid_exists`` (psutil-first, safe on Windows),
+        # ``gateway.status._pid_exists`` (psutil-first),
         # not ``os.kill``.
         monkeypatch.setattr(status, "_pid_exists", lambda pid: True)
         monkeypatch.setattr(status, "_get_process_start_time", lambda pid: None)
@@ -1128,21 +1041,20 @@ class TestTakeoverMarker:
         assert "written_at" in payload
 
 
-    def test_consume_returns_true_on_windows_when_start_time_unavailable(
+    def test_consume_returns_true_when_start_time_unavailable(
         self, tmp_path, monkeypatch
     ):
         """Takeover consume must also recognise a self-marker on platforms
-        without ``/proc`` (macOS / native Windows).
+        without ``/proc`` (macOS).
 
         ``consume_takeover_marker_for_self`` shares ``_consume_pid_marker_for_self``
         with the planned-stop path, so the same start_time fallback applies:
-        a ``--replace`` SIGTERM on Windows (where start_time is None on both
-        sides) must be recognised as a planned takeover and exit 0, not be
+        a ``--replace`` SIGTERM where start_time is None on both sides must be recognised as a planned takeover and exit 0, not be
         misclassified as an unexpected UNKNOWN exit. With start_time
         unavailable we fall back to PID equality alone, bounded by the TTL.
         """
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        # Simulate Windows: no start_time available for any PID.
+        # No start_time available for any PID.
         monkeypatch.setattr(status, "_get_process_start_time", lambda pid: None)
 
         ok = status.write_takeover_marker(target_pid=os.getpid())
@@ -1313,15 +1225,14 @@ class TestPlannedStopMarker:
         assert "written_at" in payload
 
 
-    def test_consume_returns_true_on_windows_when_start_time_unavailable(
+    def test_consume_returns_true_when_start_time_unavailable(
         self, tmp_path, monkeypatch
     ):
         """Regression for #34597: a legitimate stop must be recognised on
         platforms without ``/proc``.
 
-        ``_get_process_start_time`` returns None on macOS / native Windows
-        (no ``/proc/<pid>/stat``). The planned-stop watcher only runs there,
-        so if the authoritative consume required a non-None start_time match
+        ``_get_process_start_time`` can return None on macOS
+        (no ``/proc/<pid>/stat``). If the authoritative consume required a non-None start_time match
         it would always return False — and ``hermes gateway stop`` would be
         misclassified as an unexpected ``UNKNOWN`` exit, exit 1, and revived
         by the service manager (the very crash loop #34597 set out to fix).
@@ -1329,12 +1240,12 @@ class TestPlannedStopMarker:
         equality alone, bounded by the marker TTL.
         """
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        # Simulate Windows: no start_time available for any PID.
+        # No start_time available for any PID.
         monkeypatch.setattr(status, "_get_process_start_time", lambda pid: None)
 
         ok = status.write_planned_stop_marker(target_pid=os.getpid())
         assert ok is True
-        # Marker carries a null start_time, exactly as written on Windows.
+        # Marker carries a null start_time.
         payload = json.loads((tmp_path / ".gateway-planned-stop.json").read_text())
         assert payload["target_start_time"] is None
 
@@ -1349,7 +1260,7 @@ class TestPlannedStopMarker:
     ):
         """PID-reuse defence is preserved when BOTH start_times are present.
 
-        The Windows fallback only relaxes matching when a start_time is
+        The fallback only relaxes matching when a start_time is
         unavailable. When both sides report one (Linux), a mismatch must
         still reject — otherwise PID reuse could resurrect a stale marker.
         """
@@ -1820,7 +1731,6 @@ def test_strict_gateway_identity_adopts_held_lock_when_pid_file_is_gone(tmp_path
     monkeypatch.setattr(status, "_pid_exists", lambda _pid: True)
     monkeypatch.setattr(status, "_get_process_start_time", lambda _pid: 10.0)
     monkeypatch.setattr(status, "_read_process_cmdline", lambda _pid: "python -m hermes_cli.main gateway run --replace")
-    monkeypatch.setattr(status, "_IS_WINDOWS", False)
 
     assert status.get_running_pid_identity_strict(pid_path) == (123, 10.0)
     # The lock alone is still held to the full proof: a recycled PID is refused, not adopted.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Hermes Agent CLI — interactive terminal interface (``python cli.py --help`` for usage)."""
 
-# Must be the very first import (UTF-8 stdio on Windows). Missing only mid-``hermes update``.
+# Must be the very first import (PM activation). Missing only mid-``hermes update``.
 try:
     import hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError as exc:
@@ -187,7 +187,6 @@ from hermes_cli.cli_terminal_input import (  # noqa: F401,E402
     _split_path_input,
     _status_bar_visible_from_display_config,
     _strip_leaked_terminal_responses_with_meta,
-    _terminal_may_leak_cpr,
     _terminal_supports_extended_enter_keys,
     _termux_example_image_path,
 )
@@ -1252,13 +1251,10 @@ class HermesCLI(CLIInitMixin, CLITuiRuntimeMixin, CLIProcessNotificationsMixin, 
             # shell=True is intentional (user-authored config snippets, never LLM controlled);
             # the env is sanitized because this process holds every API key.
             from tools.environments.local import build_subprocess_env
-            from hermes_cli._subprocess_compat import windows_hide_flags
             result = subprocess.run(
                 exec_cmd, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace",
                 timeout=30, env=build_subprocess_env(),
-                creationflags=windows_hide_flags(),  # no console flash on Windows (#56747)
             )
-            # See #56747.
             output = result.stdout.strip() or result.stderr.strip()
             if output:
                 from agent.redact import redact_sensitive_text
@@ -1388,8 +1384,7 @@ class HermesCLI(CLIInitMixin, CLITuiRuntimeMixin, CLIProcessNotificationsMixin, 
     # when the modal can't be marshaled onto the app loop).
     # A general escape hatch for non-interactive use (scripting/automation) and for the degraded path where
     # the modal can't be marshaled onto the app loop — lets users self-serve without flipping
-    # approvals.destructive_slash_confirm in config. (Native Windows now drives the modal normally — see
-    # #33961.)
+    # approvals.destructive_slash_confirm in config.
     _DESTRUCTIVE_SKIP_TOKENS = frozenset({"now", "--yes", "-y"})
 
 
@@ -1497,7 +1492,7 @@ class HermesCLI(CLIInitMixin, CLITuiRuntimeMixin, CLIProcessNotificationsMixin, 
             self._tui_shutdown()
 
         # /update relaunch happens here, after prompt_toolkit restored terminal modes, on the
-        # main thread (the process_loop thread would skip cleanup / only exit itself on Windows).
+        # main thread (the process_loop thread would skip cleanup).
         if self._pending_relaunch:
             from hermes_cli.relaunch import relaunch
             relaunch(self._pending_relaunch, preserve_inherited=False)
@@ -1712,11 +1707,6 @@ def main(
         python cli.py -w                         # Start in isolated git worktree
         python cli.py -w -q "Fix issue #123"     # Single query in worktree
     """
-    # UTF-8 stdio on Windows before any print (Rich box-drawing would UnicodeEncodeError on cp1252).
-    with suppress(Exception):
-        from hermes_cli.stdio import configure_windows_stdio
-        configure_windows_stdio()
-
     os.environ["HERMES_INTERACTIVE"] = "1"  # terminal_tool: interactive sudo prompts with timeout
 
     if gateway:

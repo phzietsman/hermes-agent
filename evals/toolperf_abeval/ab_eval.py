@@ -72,10 +72,8 @@ def make_sandbox(work: Path):
     (proj / "README.md").write_text(
         "# Consume\n\nRun:\n\n```\npython consume.py\n```\n", encoding="utf-8")
     import venv as venv_mod
-    venv_mod.create(proj / "venv", with_pip=False, symlinks=(os.name != "nt"))
-    lib = proj / "venv" / ("Lib" if os.name == "nt" else "lib")
-    sp = (lib / "site-packages") if os.name == "nt" else (
-        next(lib.glob("python*")) / "site-packages")
+    venv_mod.create(proj / "venv", with_pip=False, symlinks=True)
+    sp = next((proj / "venv" / "lib").glob("python*")) / "site-packages"
     sp.mkdir(parents=True, exist_ok=True)
     (sp / "miniyaml.py").write_text("MAGIC = 'ENV_OK_4477'\n", encoding="utf-8")
     (proj / "consume.py").write_text(

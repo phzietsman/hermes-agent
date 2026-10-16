@@ -658,16 +658,10 @@ def _write_cache_file(cache_dir: Path, prefix: str, ext: str, data: bytes) -> st
 
     The file is written owner-only (0600) — inbound media is private user
     content and the cache dir is hardened to 0700 by ``_secure_media_cache_dir``;
-    one directory should not carry two file-mode conventions. Best-effort on
-    platforms where POSIX mode bits are advisory (Windows): falls back to a
-    plain write rather than failing the media write.
+    one directory should not carry two file-mode conventions.
     """
     filepath = cache_dir / f"{prefix}_{uuid.uuid4().hex[:12]}{ext}"
-    try:
-        fd = os.open(str(filepath), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    except OSError:
-        filepath.write_bytes(data)
-        return str(filepath)
+    fd = os.open(str(filepath), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "wb") as handle:
         handle.write(data)
     return str(filepath)
@@ -1014,9 +1008,9 @@ def _parse_docker_volume_mounts() -> List[Tuple[Path, Path]]:
         if sep <= 0:
             continue
         container_raw = spec[sep + 1:].split(":", 1)[0]  # starts with /
-        # Skip named volumes (no absolute/drive host path).
+        # Skip named volumes (no absolute host path).
         host_expanded = os.path.expanduser(spec[:sep])
-        if not (host_expanded.startswith("/") or (len(host_expanded) > 1 and host_expanded[1] == ":")):
+        if not host_expanded.startswith("/"):
             continue
         host_path, container_path = _resolve_path(Path(host_expanded)), Path(container_raw)
         if host_path is not None and container_path.is_absolute():
@@ -1307,7 +1301,7 @@ _MEDIA_EXT_ALTERNATION = "|".join(sorted((e.lstrip(".") for e in MEDIA_DELIVERY_
 # extends past ``.tar``); CJK full-width punctuation terminates paths (``早报.pdf（782.6 KB）``).
 # A ``MEDIA:`` tag with an unknown extension is left in the text so it can still be picked up by the
 # bare-path detector (extract_local_files) downstream rather than silently deleted. Path anchors: ``~/``
-# (Unix home-relative), ``/`` (Unix absolute), ``X:\\`` or ``X:/`` (Windows drive-letter absolute — #34632).
+# (home-relative) and ``/`` (absolute).
 # Emphasis tolerance: models routinely wrap the tag in Markdown emphasis (``**MEDIA:/x.pdf**``,
 # ``*MEDIA:/x.pdf*``, ``_MEDIA:/x.pdf_``) when they present a file to the user. The old single-quote anchor
 # (``[`"']?``) and the closing lookahead (which lacked ``*``/``_``) failed to match such tags, so the file
@@ -1319,14 +1313,14 @@ _MEDIA_EXT_ALTERNATION = "|".join(sorted((e.lstrip(".") for e in MEDIA_DELIVERY_
 # intact — for ``archive.tar.gz`` the ``.`` after ``tar`` is followed by ``g``, so the match must extend to
 # ``.gz`` instead of stopping early at ``.tar``. CJK full-width punctuation accepted as MEDIA path
 # terminators, mirroring the ASCII set in the looka below. Chinese-language agent output naturally writes
-# ``MEDIA:D:\path\早报.pdf（782.6 KB）`` or ``MEDIA:...pdf：内容`` — without these, the lookahead fails and the
+# ``MEDIA:/path/早报.pdf（782.6 KB）`` or ``MEDIA:...pdf：内容`` — without these, the lookahead fails and the
 # attachment is silently dropped (#88038).
 _MEDIA_CJK_TERMINATORS = "（）〈〉《》：，。；！？、\u201c\u201d\u2018\u2019【】"
 
 MEDIA_TAG_CLEANUP_RE = re.compile(
     r'''[`"'*_]{0,3}MEDIA:\s*'''
     r'''(?P<path>`[^`\n]+?`|"[^"\n]+?"|'[^'\n]+?'|'''
-    r'''(?:~/|/|[A-Za-z]:[/\\])\S+?(?:[^\S\n]+\S+?)*?\.(?:''' + _MEDIA_EXT_ALTERNATION + r'''))'''
+    r'''(?:~/|/)\S+?(?:[^\S\n]+\S+?)*?\.(?:''' + _MEDIA_EXT_ALTERNATION + r'''))'''
     r'''(?=[\s`"'*_,;:)\]}\[''' + _MEDIA_CJK_TERMINATORS + r''']|MEDIA:|\.(?:\s|$)|$)[`"'*_]{0,3}\.?''',
     re.IGNORECASE)
 
@@ -1347,14 +1341,14 @@ MEDIA_TAG_CLEANUP_RE = re.compile(
 # string and dropped the file (#68773). The bare form stays non-greedy and whitespace-bounded — spaced paths
 # are NOT absorbed at the regex level, because greedy space-tolerance would reintroduce the #68773 bug class
 # (gluing the next MEDIA: tag or trailing prose into one invalid path). Instead, unknown-extension paths
-# containing spaces (``MEDIA:/data/map data.kmz``, ``C:\...\My Documents\x.log``) are recovered by
+# containing spaces (``MEDIA:/data/map data.kmz``, ``MEDIA:/home/me/My Documents/x.log``) are recovered by
 # ``_match_extensionless_path`` (#24032): when the bare match fails validation, the candidate is
 # progressively extended forward across single spaces — bounded, stopping at newline / the next ``MEDIA:``
 # keyword — and the first extension that validates on disk wins.
 MEDIA_EXTENSIONLESS_TAG_RE = re.compile(
     r'''[`"'*_]{0,3}MEDIA:\s*'''
     r'''(?P<path>`[^`\n]+`|"[^"\n]+"|'[^'\n]+'|'''
-    r'''(?:~/|/|[A-Za-z]:[/\\])[^\s\n`"']+?)'''
+    r'''(?:~/|/)[^\s\n`"']+?)'''
     r'''(?=[`"'\s,;:)\]}''' + _MEDIA_CJK_TERMINATORS + r''']|MEDIA:|$)'''
     r'''[`"'*_]{0,3}\s*''',
     re.IGNORECASE)
@@ -3304,7 +3298,7 @@ class BasePlatformAdapter(ABC):
         # quote.
         spans = [
             m.span(1) for m in re.finditer(r'(?<=[:,{\[])\s*"((?:[^"\\\n]|\\.)*)"', content)
-            if re.search(r'MEDIA:\s*(?:~/|/|[A-Za-z]:[/\\])', m.group(1))]
+            if re.search(r'MEDIA:\s*(?:~/|/)', m.group(1))]
         return _blank_spans(content, spans)
 
     @staticmethod
@@ -3359,17 +3353,16 @@ class BasePlatformAdapter(ABC):
 
     @staticmethod
     def extract_local_files(content: str) -> Tuple[List[str], str]:
-        """Bare local file paths (absolute, ``~/`` or drive-letter) with deliverable extensions ->
+        """Bare local file paths (absolute or ``~/``) with deliverable extensions ->
         ``(expanded_paths, cleaned_text)``. Candidates must exist on disk (URLs / hallucinated paths
         ignored); paths inside fenced or inline code are skipped so code samples are never
         mutilated. Dispatch by type lives in ``gateway/run.py``."""
         ext_part = '|'.join(e.lstrip('.') for e in MEDIA_DELIVERY_EXTS)
         # Lookbehind rejects URL/relative matches (https://…/img.png, ./foo.png).
         # (?<![/:\w.]) prevents matching inside URLs (e.g. https://…/img.png) and relative paths (./foo.png)
-        # (?:~/|/)    anchors to absolute or home-relative Unix paths (?:[A-Za-z]:[/\\]) anchors to Windows
-        # drive-letter paths (#34632)
+        # (?:~/|/)    anchors to absolute or home-relative paths
         path_re = re.compile(
-            r'(?<![/:\w.])(?:~/|/|[A-Za-z]:[/\\])(?:[\w.\-]+[/\\])*[\w.\-]+\.(?:' + ext_part + r')\b',
+            r'(?<![/:\w.])(?:~/|/)(?:[\w.\-]+/)*[\w.\-]+\.(?:' + ext_part + r')\b',
             re.IGNORECASE)
         code_spans = _code_spans(content)
         unique: dict = {}  # expanded_path -> raw_match_text, deduped in discovery order

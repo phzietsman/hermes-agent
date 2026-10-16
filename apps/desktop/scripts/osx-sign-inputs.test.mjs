@@ -28,7 +28,7 @@ test('the signing walk stays bounded on a truncated protobuf-like resource', () 
       .then(async ({ walk }) => console.log(JSON.stringify(await walk(${JSON.stringify(root)}))))
       .catch(error => { console.error(error); process.exitCode = 1 })`
     const result = spawnSync(process.execPath, ['--max-old-space-size=64', '-e', code], {
-      encoding: 'utf8', timeout: 10000, maxBuffer: 64 * 1024, windowsHide: true
+      encoding: 'utf8', timeout: 10000, maxBuffer: 64 * 1024
     })
 
     assert.equal(result.status, 0, result.error?.message || result.stderr)

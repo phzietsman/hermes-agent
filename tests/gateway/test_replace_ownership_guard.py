@@ -355,7 +355,7 @@ class TestSignalBoundary:
     def test_provable_same_home_reaches_replace_flow(self, profile_env):
         """Counterpart: bound same-home target still enters the replace flow
         (terminate attempted) — the fail-closed gate must not disable legit
-        Windows-style replaces."""
+        replaces."""
         def configure(stack):
             stack.enter_context(
                 patch(

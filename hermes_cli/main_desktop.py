@@ -1,4 +1,4 @@
-"""Desktop (Electron) app: build/stamp, stage-and-swap pack, exe integrity gate, macOS signing, Linux sandbox, launch (hermes gui/desktop).
+"""Desktop (Electron) app: build/stamp, stage-and-swap pack, macOS signing, Linux sandbox, launch (hermes gui/desktop).
 
 Split out of ``hermes_cli/main.py``. Names that still live in main (``PROJECT_ROOT``, ...)
 are imported lazily inside the functions that use them (avoids an import cycle).
@@ -10,7 +10,6 @@ import argparse
 import hashlib
 import json
 import os
-import platform
 import re
 import shlex
 import shutil
@@ -20,9 +19,7 @@ import sys
 import time as _time_mod
 
 from pathlib import Path
-from typing import Callable, Optional
-from hermes_cli.desktop_console import desktop_console_output, desktop_launch_notice
-from hermes_platform.host import facts
+from typing import Optional
 
 # Log-record parity with the origin module.
 logger = logging.getLogger("hermes_cli.main")
@@ -160,10 +157,6 @@ def _desktop_packaged_executable_in(release_dir: Path) -> Optional[Path]:
     """
     if sys.platform == "darwin":
         candidates = list(release_dir.glob("mac*/Hermes.app/Contents/MacOS/Hermes"))
-    elif sys.platform == "win32":
-        candidates = [
-            release_dir / d / "Hermes.exe" for d in ("win-unpacked", "win-ia32-unpacked", "win-arm64-unpacked")
-        ]
     else:
         candidates = [
             release_dir / d / n for d in ("linux-unpacked", "linux-arm64-unpacked") for n in ("hermes", "Hermes")
@@ -172,18 +165,6 @@ def _desktop_packaged_executable_in(release_dir: Path) -> Optional[Path]:
     existing = [p for p in candidates if p.exists()]
     if not existing:
         return None
-    if sys.platform == "win32" and len(existing) > 1:
-        # A stale win-arm64-unpacked next to the real win-unpacked: picking by
-        # mtime can hand a wrong-architecture Hermes.exe to the launcher. Prefer
-        # candidates whose PE machine matches the host; mtime when none parse.
-        # Multiple unpacked trees can coexist (e.g. a stale win-arm64-unpacked left behind by a cross-arch
-        # experiment next to the real win-unpacked). Picking purely by mtime can then hand a
-        # wrong-architecture Hermes.exe to the launcher, which Windows rejects with "This app can't run on
-        # your computer" (#69179).
-        expected = _expected_windows_pe_machines()
-        matching = [p for p in existing if _pe_machine_or_none(p) in expected]
-        if matching:
-            existing = matching
     return max(existing, key=lambda p: p.stat().st_mtime)
 
 
@@ -197,28 +178,6 @@ def _desktop_packaged_executable_in(release_dir: Path) -> Optional[Path]:
 _DESKTOP_STAGING_PREFIX = ".staging-"
 
 _DESKTOP_PREVIOUS_SUFFIX = ".previous"
-
-# A real-time file scanner (AV/EDR) holds a short exclusive handle on a freshly packed
-# release/win-unpacked tree; the promotion rename then fails with a sharing violation
-# (WinError 32 / 5 -> PermissionError) and succeeds a moment later on identical input (#112544).
-# Only PermissionError is retried: EXDEV/ENOENT-class failures are permanent.
-_DESKTOP_SWAP_RENAME_RETRY_DELAYS_S = (0.5, 1.0, 1.0, 1.0)
-
-
-def _rename_riding_out_file_lock(src: Path, dst: Path) -> None:
-    """``os.rename`` that retries a transient PermissionError with bounded backoff; re-raises the last one."""
-    for attempt, delay in enumerate(_DESKTOP_SWAP_RENAME_RETRY_DELAYS_S, start=1):
-        try:
-            os.rename(src, dst)
-            return
-        except PermissionError as exc:
-            logger.warning(
-                "desktop promotion rename %s -> %s hit a file lock (attempt %d/%d), retrying in %.1fs: %s",
-                src.name, dst.name, attempt, len(_DESKTOP_SWAP_RENAME_RETRY_DELAYS_S) + 1, delay, exc,
-            )
-            _time_mod.sleep(delay)
-    os.rename(src, dst)
-
 
 def _desktop_staging_dir(desktop_dir: Path) -> Path:
     """Fresh staging dir ``apps/desktop/.staging-<pid>-<ts>``: a sibling of ``release/`` (same fs → the
@@ -270,20 +229,20 @@ def _swap_staged_desktop_app(desktop_dir: Path, staging_dir: Path) -> Optional[P
         _recover_interrupted_swap(live_root, previous)
         moved_aside = live_root.exists()
         if moved_aside:
-            # A Desktop may have reopened during the long packaging step (Windows lock) or
+            # A Desktop may have reopened during the long packaging step or
             # never exited at all (a manual `hermes update`/`hermes desktop` run does not
             # wait for it — only the update hand-offs do). Either way a renderer alive
             # past the rename below keeps fetching its old hashed chunks from disk and
             # dies on the next lazy import, so stop it on every platform (#109643).
-            stopped = _stop_desktop_processes_locking_build(desktop_dir, also_posix=True)
+            stopped = _stop_desktop_processes_locking_build(desktop_dir)
             if stopped:
                 logger.info("stopped desktop processes before staged app promotion: %s", stopped)
-            _rename_riding_out_file_lock(live_root, previous)
+            os.rename(live_root, previous)
         try:
-            _rename_riding_out_file_lock(staged_root, live_root)
+            os.rename(staged_root, live_root)
         except OSError:
             if moved_aside:
-                _rename_riding_out_file_lock(previous, live_root)  # restore; live app back as it was
+                os.rename(previous, live_root)  # restore; live app back as it was
             raise
         if moved_aside:
             shutil.rmtree(previous, ignore_errors=True)
@@ -297,146 +256,6 @@ def _swap_staged_desktop_app(desktop_dir: Path, staging_dir: Path) -> Optional[P
 
 def _discard_desktop_staging(staging_dir: Path) -> None:
     shutil.rmtree(staging_dir, ignore_errors=True)
-
-
-# ─── Desktop exe integrity gate (#69179) ──────────────────────────────────── The desktop self-update chain
-# (Desktop → hermes-setup --update → `hermes update` → `hermes desktop --build-only` → relaunch) rebuilds
-# Hermes.exe on the end user's machine and used to verify only that the file EXISTS before declaring
-# success. A corrupt cached Electron zip whose extraction produced a truncated electron.exe, an interrupted
-# rcedit resource rewrite, a disk-full pack, or a wrong-arch unpacked tree therefore shipped a broken binary
-# that Windows refuses to load ("This app can't run on your computer" / 此应用无法在你的电脑上运行). These helpers parse
-# the PE header — no signature infrastructure required — so a structurally broken or wrong-architecture
-# Hermes.exe is caught BEFORE the updater replaces the working app, and the previous build can be restored
-# from the .bak tree that apps/desktop/scripts/before-pack.mjs now preserves.
-_PE_MACHINE_I386 = 0x014C
-_PE_MACHINE_AMD64 = 0x8664
-_PE_MACHINE_ARM64 = 0xAA64
-
-_PE_MACHINE_NAMES = {
-    _PE_MACHINE_I386: "x86 (32-bit)", _PE_MACHINE_AMD64: "x64 (AMD64)", _PE_MACHINE_ARM64: "ARM64",
-}
-
-_PE_MACHINE_TO_NAME = {_PE_MACHINE_ARM64: "ARM64", _PE_MACHINE_AMD64: "AMD64", _PE_MACHINE_I386: "X86"}
-
-# MACHINE_ATTRIBUTES bits (processthreadsapi.h). UserEnabled means the host
-# can run user-mode code of that machine type — natively or under emulation.
-_MACHINE_ATTRIBUTE_USER_ENABLED = 0x00000001
-
-
-def _kernel32():
-    import ctypes
-    return ctypes.WinDLL("kernel32", use_last_error=True)
-
-
-def _windows_user_runnable_pe_machines() -> Optional[set]:
-    """PE machines this host runs in user mode via GetMachineTypeAttributes (the only API reporting
-    AMD64-on-ARM64 emulation); None when unavailable (pre-Win11 22000) so callers fall back."""
-    import ctypes
-    from ctypes import wintypes
-    kernel32 = _kernel32()
-    kernel32.GetMachineTypeAttributes.argtypes = [wintypes.USHORT, ctypes.POINTER(ctypes.c_int)]
-    kernel32.GetMachineTypeAttributes.restype = ctypes.c_long
-
-    runnable = set()
-    for machine in (_PE_MACHINE_ARM64, _PE_MACHINE_AMD64, _PE_MACHINE_I386):
-        attributes = ctypes.c_int(0)
-        # HRESULT: zero is success, any nonzero value is a failure.
-        if kernel32.GetMachineTypeAttributes(machine, ctypes.byref(attributes)):
-            continue
-        if attributes.value & _MACHINE_ATTRIBUTE_USER_ENABLED:
-            runnable.add(machine)
-    return runnable or None
-
-
-def _windows_native_machine() -> str:
-    """Return the native Windows machine name in upper-case PE vocabulary."""
-    if sys.platform == "win32":
-        return {"arm64": "ARM64", "amd64": "AMD64", "x86": "X86"}.get(
-            facts.native_arch(), (platform.machine() or "").upper()
-        )
-    return (platform.machine() or "").upper()
-
-
-def _expected_windows_pe_machines() -> set:
-    """PE machines this Windows host can load: ``GetMachineTypeAttributes``, else by name (AMD64 → x64+x86,
-    ARM64 → ARM64+x64, x86 → x86). Unknown hosts get the full set so the gate can never brick launch."""
-    if sys.platform == "win32":
-        try:
-            runnable = _windows_user_runnable_pe_machines()
-        except (OSError, AttributeError, TypeError, ValueError):
-            runnable = None
-        if runnable:
-            return runnable
-    machine = _windows_native_machine().upper()
-    if machine in ("AMD64", "X86_64", "X64"):
-        return {_PE_MACHINE_AMD64, _PE_MACHINE_I386}
-    if machine in ("ARM64", "AARCH64"):
-        return {_PE_MACHINE_ARM64, _PE_MACHINE_AMD64}
-    if machine in ("X86", "I386", "I486", "I586", "I686"):
-        return {_PE_MACHINE_I386}
-    return {_PE_MACHINE_AMD64, _PE_MACHINE_ARM64, _PE_MACHINE_I386}
-
-
-def _parse_pe_machine(path: Path) -> int:
-    """COFF machine field of the PE at ``path``; ``ValueError`` with a readable reason when it is not a
-    structurally complete PE (bad magic, truncated header, section data past EOF). Header walk only."""
-    import struct
-    try:
-        file_size = path.stat().st_size
-    except OSError as exc:
-        raise ValueError(f"unreadable: {exc}")
-    if file_size < 512:
-        raise ValueError(f"file is only {file_size} bytes — far too small to be a Windows executable")
-    with path.open("rb") as fh:
-        head = fh.read(64)
-        if len(head) < 64 or head[:2] != b"MZ":
-            raise ValueError(
-                "missing MZ header — not a Windows executable (a truncated or non-binary file saved as .exe?)"
-            )
-        e_lfanew = struct.unpack_from("<I", head, 0x3C)[0]
-        if e_lfanew <= 0 or e_lfanew + 24 > file_size:
-            raise ValueError("corrupt DOS header: PE header offset points past end of file")
-        fh.seek(e_lfanew)
-        pe_head = fh.read(24)
-        if len(pe_head) < 24 or pe_head[:4] != b"PE\x00\x00":
-            raise ValueError("missing PE signature — corrupt executable header")
-        machine, n_sections = struct.unpack_from("<HH", pe_head, 4)
-        size_of_optional = struct.unpack_from("<H", pe_head, 20)[0]
-        fh.seek(e_lfanew + 24 + size_of_optional)
-        max_section_end = 0
-        for _ in range(n_sections):
-            section = fh.read(40)
-            if len(section) < 40:
-                raise ValueError("truncated PE section table")
-            size_of_raw, pointer_to_raw = struct.unpack_from("<II", section, 16)
-            max_section_end = max(max_section_end, pointer_to_raw + size_of_raw)
-        if file_size < max_section_end:
-            raise ValueError(
-                f"truncated executable: file is {file_size} bytes but its PE sections extend to {max_section_end} bytes"
-            )
-    return machine
-
-
-def _pe_machine_or_none(path: Path) -> Optional[int]:
-    try:
-        return _parse_pe_machine(path)
-    except ValueError:
-        return None
-
-
-def _desktop_exe_integrity_error(path: Path) -> Optional[str]:
-    """Why ``path`` cannot run on this Windows host, or None when it parses as a loadable PE."""
-    try:
-        machine = _parse_pe_machine(path)
-    except ValueError as exc:
-        return str(exc)
-    if machine not in _expected_windows_pe_machines():
-        got = _PE_MACHINE_NAMES.get(machine, f"unknown machine 0x{machine:04X}")
-        return (
-            f"architecture mismatch: built a {got} executable but this is a "
-            f"{_windows_native_machine()} Windows host"
-        )
-    return None
 
 
 def _electron_dir(project_root: Path) -> Path:
@@ -456,34 +275,13 @@ def _runs_from(proc, release_dir: Path) -> bool:
         return False
 
 
-def _desktop_ancestor_in(desktop_dir: Path) -> Optional[int]:
-    """PID of a Desktop from this build's ``release`` tree that is one of OUR ancestors, else None.
-
-    That Desktop is running this process (its backend's launch-time update tail, or a
-    `hermes update` it spawned). On Windows it holds the exe lock the promotion rename
-    needs, and it cannot be stopped without killing this process first. Never raises."""
-    try:
-        import psutil
-        release_dir = (desktop_dir / "release").resolve()
-        ancestors = list(psutil.Process(os.getpid()).parents())
-    except Exception:
-        return None
-    for parent in ancestors:
-        if _runs_from(parent, release_dir):
-            return int(parent.pid)
-    return None
-
-
-def _stop_desktop_processes_locking_build(desktop_dir: Path, *, also_posix: bool = False) -> list[int]:
+def _stop_desktop_processes_locking_build(desktop_dir: Path) -> list[int]:
     """Terminate a running desktop app whose exe lives INSIDE this build's ``release`` tree.
 
-    Windows needs it everywhere: the exe lock makes the pack die with ``Access is denied``.
-    POSIX can rename a running app's files away, so the pack itself needs no stop — but a
-    renderer left alive through the stage-and-swap promotion keeps fetching its OLD hashed
-    chunks by path after the swap and dies on the next lazy import (#109643), so the swap
-    point passes ``also_posix=True``. Never raises; returns the PIDs asked to stop."""
-    if sys.platform != "win32" and not also_posix:
-        return []
+    The pack itself needs no stop (a running app's files can be renamed away), but a renderer
+    left alive through the stage-and-swap promotion keeps fetching its OLD hashed chunks by
+    path after the swap and dies on the next lazy import (#109643). Never raises; returns the
+    PIDs asked to stop."""
     try:
         import psutil
         release_dir = (desktop_dir / "release").resolve()
@@ -497,13 +295,7 @@ def _stop_desktop_processes_locking_build(desktop_dir: Path, *, also_posix: bool
     # process lives in its tree. A historical Desktop (v2026.7.1 Linux in-app
     # update) runs `hermes update` as a child with piped stdout/stderr and owns
     # the post-update rebuild and relaunch. Killing it breaks those pipes (EPIPE
-    # fails the update) and leaves nobody to relaunch. On Windows the same holds
-    # for the launch-time tail a Desktop's own backend runs
-    # (venv_sync._finish_source_update): stopping that Desktop took the whole
-    # tree down with it before the tail could clear its markers, so every
-    # launch repeated it (#123499). The exe lock that stop was meant to free
-    # cannot be freed by the process that holds it alive; build_prepared_desktop
-    # skips that doomed build instead (_desktop_ancestor_in).
+    # fails the update) and leaves nobody to relaunch.
     #
     # Spare that Desktop's whole process tree, not just its main process. Its
     # zygote, renderer, GPU and network-service helpers run the same release
@@ -550,7 +342,7 @@ def _stop_desktop_processes_locking_build(desktop_dir: Path, *, also_posix: bool
         except Exception:
             continue
     if stopped:
-        # Wait for the handles (and thus the file locks) to actually release.
+        # Wait for the processes to actually exit.
         with contextlib.suppress(Exception):
             _, alive = psutil.wait_procs(victims, timeout=5)
             killed = []
@@ -1312,7 +1104,7 @@ def _desktop_launch_options() -> tuple[list[str], str, str, str, bool]:
 
     raw_flags = desktop_cfg.get("electron_flags")
     if isinstance(raw_flags, str):
-        flags = shlex.split(raw_flags, posix=(os.name != "nt"))
+        flags = shlex.split(raw_flags)
     elif isinstance(raw_flags, (list, tuple)):
         flags = [str(f) for f in raw_flags if str(f).strip()]
 
@@ -1368,11 +1160,8 @@ def _register_linux_desktop_entry(defer: bool = False):
     return None
 
 
-def _promote_staged_desktop_app(
-    desktop_dir: Path, staging_dir: Path, *,
-    integrity_check: Optional[Callable[[Path], Optional[str]]] = None,
-) -> Path:
-    """Sign and verify before swapping; the default integrity check is Windows PE validation."""
+def _promote_staged_desktop_app(desktop_dir: Path, staging_dir: Path) -> Path:
+    """Sign and verify before swapping."""
     staged_executable = _desktop_packaged_executable_in(staging_dir)
     # Locally-built apps are ad-hoc signed; make them relaunchable after an
     # in-place self-update. Signs the STAGED bundle so the live app is never
@@ -1381,7 +1170,7 @@ def _promote_staged_desktop_app(
         # #123748: the fixup refused to sign (configured identity failed, codesign
         # missing). Promoting would replace the live app with a bundle whose
         # signature was never established — fold the refusal into the same
-        # previous-app-kept error path the integrity check uses.
+        # previous-app-kept error path a missing executable uses.
         _discard_desktop_staging(staging_dir)
         print("✗ The rebuilt desktop app could not be signed with a stable identity; "
               "not promoting it.")
@@ -1389,19 +1178,9 @@ def _promote_staged_desktop_app(
 
     # Validate only staging. The swap owns live-app rollback; raw in-place
     # pack backups are not part of this transaction.
-    if integrity_check is None and sys.platform == "win32":
-        integrity_check = _desktop_exe_integrity_error
-    error = (
-        integrity_check(staged_executable)
-        if staged_executable is not None and integrity_check is not None else None
-    )
-    if staged_executable is None or error is not None:
+    if staged_executable is None:
         _discard_desktop_staging(staging_dir)
-        if staged_executable is None:
-            print(f"✗ Desktop build produced no launchable app in {staging_dir}")
-        else:
-            print(f"✗ The built {staged_executable.name} failed its integrity check: {error}\n"
-                  f"    at: {staged_executable}")
+        print(f"✗ Desktop build produced no launchable app in {staging_dir}")
         raise RuntimeError(f"Desktop build produced no launchable app. {_PREVIOUS_APP_KEPT}")
     packaged_executable = _swap_staged_desktop_app(desktop_dir, staging_dir)
     if packaged_executable is None:
@@ -1431,37 +1210,16 @@ def build_prepared_desktop(desktop_dir: Path, *, source_mode: bool, npm: str, en
     """Build prepared desktop sources, then publish the verified staged app."""
     from hermes_cli.source_build import run_in_custody  # npm writes the checkout: update custody
 
-    if not source_mode and sys.platform == "win32" and (ancestor := _desktop_ancestor_in(desktop_dir)):
-        # The Desktop running this build holds the exe lock the promotion rename needs,
-        # and stopping it would kill this process first (#123499). Packing would only
-        # produce a build that cannot be installed; leave the app as it is. Its content
-        # stamp stays stale, so `hermes desktop` run outside the app rebuilds it
-        # (_desktop_build_needed), and the in-app update completes with desktop=True.
-        print(f"  ⚠ Skipped rebuilding the desktop app: this update is running inside it (pid {ancestor}),")
-        print("    and Windows locks a running app's files. Quit Hermes Desktop and run `hermes desktop`")
-        print("    from a terminal, or use Update now in Settings → About, to rebuild and reopen it.")
-        return None
     build_label = "source build" if source_mode else "packaged app"
     build_env = dict(env)
-    if sys.platform == "win32":
-        # The installer stages pinned Git in its own PowerShell process. Product
-        # builds run later, often with every system git removed from PATH; the
-        # desktop stamp must still resolve this checkout's real HEAD.
-        import pm
-        build_env = pm.ensure("git", base_env=build_env).env
     if _force_adhoc_macos_signing(build_env, source_mode=source_mode):
         print("  → No Developer ID configured; ad-hoc signing this local rebuild "
               "(CSC_IDENTITY_AUTO_DISCOVERY=false)")
     build_args = ["--icons", str(icons)] if icons else []
     build_cmd = [npm, "run", "build", "--", *build_args]
+    # electron-builder packs in place; only the verified staging tree may
+    # replace the running app, never a failed or incomplete build.
     staging_dir = None if source_mode else _desktop_staging_dir(desktop_dir)
-    if staging_dir is not None:
-        # electron-builder packs in place; only the verified staging tree may
-        # replace the running app, never a failed or incomplete build.
-
-        stopped = _stop_desktop_processes_locking_build(desktop_dir)
-        if stopped:
-            print(f"  ⚠ Stopped running desktop app to free the build output (pid {', '.join(map(str, stopped))})")
     try:
         run_in_custody(desktop_dir.parents[1], build_cmd, f"Building desktop {build_label}", cwd=desktop_dir, env=build_env)
         if staging_dir is not None:
@@ -1576,7 +1334,7 @@ def _check_desktop_skip_build(
         print("  Or drop --skip-build to package automatically.")
         sys.exit(1)
     else:
-        desktop_launch_notice(f"→ Skipping desktop package build (--skip-build); using {packaged_executable}")
+        print(f"→ Skipping desktop package build (--skip-build); using {packaged_executable}")
 
 
 def _packaged_desktop_launch_command(packaged_executable: Path) -> list[str]:
@@ -1722,7 +1480,7 @@ def cmd_gui(args: argparse.Namespace):
                 packaged_executable = built or packaged_executable
         else:
             build_label = "source build" if source_mode else "packaged app"
-            desktop_launch_notice(f"✓ Desktop {build_label} is up to date (content stamp matches)", source_mode=source_mode)
+            print(f"✓ Desktop {build_label} is up to date (content stamp matches)")
     except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
         print(f"✗ Desktop GUI build failed: {exc}")
         if build_lock is not None:
@@ -1789,7 +1547,7 @@ def cmd_gui(args: argparse.Namespace):
         launch_command.append("--close-preview")
     launch_command.extend(_explicit_profile_args())
     if not source_mode:
-        desktop_launch_notice(f"→ Launching packaged Hermes Desktop: {' '.join(launch_command)}")
+        print(f"→ Launching packaged Hermes Desktop: {' '.join(launch_command)}")
     # The launch target is ready; the fixups above finished mutating the
     # packaged tree. Electron is the long-lived handoff, so release the build
     # lock now — an open Desktop window must never block a future rebuild.
@@ -1799,60 +1557,18 @@ def cmd_gui(args: argparse.Namespace):
     if deferred_entry is not None:
         env = deferred_entry.child_env(env)
         pass_fds = deferred_entry.pass_fds
-    if not source_mode and sys.platform == "win32":
-        # Windows: detach the packaged Desktop from the parent console + process
-        # group, then return immediately (#58275). A console-inheriting
-        # subprocess.run dies with the launching shell (CTRL_CLOSE_EVENT fans
-        # out to the process group) and floods the parent terminal — under
-        # cp936, mojibake — with Electron/Node stdout. Mirrors the bundled
-        # launcher (_launch_bundled_desktop) and gateway_windows._spawn_detached.
-        # macOS/Linux keep the foreground run below: those launches are
-        # expected to stay attached to the terminal, and the desktop_console
-        # drain is a Windows-only concern.
-        from hermes_cli._subprocess_compat import (
-            windows_detach_flags,
-            windows_detach_flags_without_breakaway,
+    try:
+        # health: allow HX006 -- the foreground Desktop session: it runs until the user closes it
+        launch_result = subprocess.run(
+            launch_command, cwd=desktop_dir, env=env, check=False, pass_fds=pass_fds
         )
-
-        popen_kwargs = dict(
-            cwd=desktop_dir,
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            close_fds=True,
-        )
-        try:
-            subprocess.Popen(launch_command, creationflags=windows_detach_flags(), **popen_kwargs)
-        except OSError as exc:
-            # Only recover from a denied job breakaway (the parent's job object
-            # lacks JOB_OBJECT_LIMIT_BREAKAWAY_OK), which surfaces as
-            # ERROR_ACCESS_DENIED (winerror == 5). Re-raise every other spawn
-            # failure (bad argv/env, missing exe) so it stays a clear, single
-            # error instead of being masked by a doomed second attempt.
-            if getattr(exc, "winerror", None) != 5:
-                raise
-            subprocess.Popen(
-                launch_command,
-                creationflags=windows_detach_flags_without_breakaway(),
-                **popen_kwargs,
-            )
-        if deferred_entry is not None:
-            deferred_entry.finish()
-        desktop_launch_notice("✓ Hermes Desktop launched in a detached window; you can close this shell.")
+    except KeyboardInterrupt:
+        # Ctrl-C in the terminal the launcher is attached to is the user
+        # closing the Desktop, not a launcher crash. Exit cleanly instead
+        # of dumping a KeyboardInterrupt traceback from subprocess.run
+        # (#59848).
+        print("\n✓ Hermes Desktop closed.")
         sys.exit(0)
-    with desktop_console_output(source_mode=source_mode) as streams:
-        try:
-            launch_result = subprocess.run(
-                launch_command, cwd=desktop_dir, env=env, check=False, pass_fds=pass_fds, **streams
-            )
-        except KeyboardInterrupt:
-            # Ctrl-C in the terminal the launcher is attached to is the user
-            # closing the Desktop, not a launcher crash. Exit cleanly instead
-            # of dumping a KeyboardInterrupt traceback from subprocess.run
-            # (#59848).
-            print("\n✓ Hermes Desktop closed.")
-            sys.exit(0)
     if deferred_entry is not None:
         deferred_entry.finish()
     sys.exit(launch_result.returncode)

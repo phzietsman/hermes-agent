@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ 강제 종료 중..."
     interrupting_again_hint: "⚡ 에이전트 중단 중... (강제 종료하려면 Ctrl+C를 다시 누르세요)"
     interrupting: "⚡ 에이전트 중단 중..."
-    suspend_unsupported: "Windows에서는 일시 중단(Ctrl+Z)을 지원하지 않아요."
     suspended: "{agent_name}이(가) 일시 중단됐어요. `fg`를 실행하면 {agent_name}이(가) 돌아와요."
     steer_failed_queued: "조정 실패 ({error}) — 다음 턴 대기열에 추가했어요."
     steered: "⏩ 조정됨: '{preview}'"

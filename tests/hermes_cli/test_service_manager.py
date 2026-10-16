@@ -1,6 +1,6 @@
 """Tests for hermes_cli.service_manager — the abstract ServiceManager
 protocol, the detect_service_manager() entry point, and the host-side
-adapter wrappers (Systemd / Launchd / Windows).
+adapter wrappers (Systemd / Launchd).
 
 The s6 backend is added in Phase 3; its tests live alongside the
 implementation in this same file once that phase ships.
@@ -332,10 +332,6 @@ def test_s6_log_run_never_invokes_chown_with_symlinked_log_dir(tmp_path) -> None
     import threading
     import time
 
-    import pytest
-
-    if os.name == "nt":
-        pytest.skip("POSIX symlink + /bin/sh required")
 
     hermes_home = tmp_path / "hermes"
     gateways = hermes_home / "logs" / "gateways"

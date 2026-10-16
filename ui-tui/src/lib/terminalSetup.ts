@@ -1,6 +1,6 @@
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, posix, win32 } from 'node:path'
+import { join, posix } from 'node:path'
 
 import { t } from '../i18n/runtime.js'
 
@@ -213,21 +213,13 @@ export function isRemoteShellSession(env: NodeJS.ProcessEnv): boolean {
 export function getVSCodeStyleConfigDir(
   appName: string,
   platform: NodeJS.Platform = process.platform,
-  env: NodeJS.ProcessEnv = process.env,
   homeDir: string = homedir()
-): null | string {
-  // Explicit platform inputs must not inherit the host path separators.
-  const targetJoin = platform === 'win32' ? win32.join : posix.join
-
+): string {
   if (platform === 'darwin') {
-    return targetJoin(homeDir, 'Library', 'Application Support', appName, 'User')
+    return posix.join(homeDir, 'Library', 'Application Support', appName, 'User')
   }
 
-  if (platform === 'win32') {
-    return env['APPDATA'] ? targetJoin(env['APPDATA'], appName, 'User') : null
-  }
-
-  return targetJoin(homeDir, '.config', appName, 'User')
+  return posix.join(homeDir, '.config', appName, 'User')
 }
 
 function isKeybinding(value: unknown): value is Keybinding {
@@ -349,14 +341,7 @@ export async function configureTerminalKeybindings(
     }
   }
 
-  const configDir = getVSCodeStyleConfigDir(meta.appName, platform, env, homeDir)
-
-  if (!configDir) {
-    return {
-      success: false,
-      message: t('libText.terminalSetup.settingsPathUnknown', meta.label)
-    }
-  }
+  const configDir = getVSCodeStyleConfigDir(meta.appName, platform, homeDir)
 
   const keybindingsFile = join(configDir, 'keybindings.json')
 
@@ -490,11 +475,7 @@ export async function shouldPromptForTerminalSetup(options?: {
   const homeDir = options?.homeDir ?? homedir()
   const ops: FileOps = { ...DEFAULT_FILE_OPS, ...(options?.fileOps ?? {}) }
   const meta = TERMINAL_META[detected]
-  const configDir = getVSCodeStyleConfigDir(meta.appName, platform, env, homeDir)
-
-  if (!configDir) {
-    return false
-  }
+  const configDir = getVSCodeStyleConfigDir(meta.appName, platform, homeDir)
 
   try {
     const content = await ops.readFile(join(configDir, 'keybindings.json'), 'utf8')

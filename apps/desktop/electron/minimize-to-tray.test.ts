@@ -71,8 +71,6 @@ class Window extends EventEmitter {
     this.focused = false
   }
   hide() {
-    // A real Win32 window does NOT release keyboard focus by being hidden
-    // (#126570); only an explicit blur does.
     this.visible = false
     this.emit('hide')
   }
@@ -168,63 +166,15 @@ test('tray hide defers past the minimize dispatch (#119252)', async () => {
   await controller.setEnabled(true)
 
   // Hiding synchronously inside the minimize dispatch wedges the native
-  // minimized flag on Windows; hide must run after dispatch returns.
+  // minimized flag; hide must run after dispatch returns.
   main.minimize()
   expect(main.visible).toBe(true)
   await flushDeferredHide()
   expect(main.visible).toBe(false)
 })
 
-test('Windows restore re-activates the window instead of showInactive (#119252)', async () => {
-  setPlatform('win32')
-
-  try {
-    const { controller, main } = setup()
-    await controller.start()
-    await controller.setEnabled(true)
-
-    main.minimize()
-    await flushDeferredHide()
-    controller.restore()
-    expect(main.visible).toBe(true)
-    expect(main.minimized).toBe(false)
-    expect(main.skipped).toBe(false)
-    expect(main.focused).toBe(true)
-  } finally {
-    restorePlatform()
-  }
-})
-
-test('Windows restore of a tray-hidden window by any other path activates it (#127349)', async () => {
-  setPlatform('win32')
-
-  try {
-    const { controller, main } = setup()
-    await controller.start()
-    await controller.setEnabled(true)
-
-    main.minimize()
-    await flushDeferredHide()
-
-    const show = vi.spyOn(main, 'show')
-    const focus = vi.spyOn(main, 'focus')
-
-    // A relaunch, deep link or notification click restores without the tray.
-    // restore() alone leaves a painted window that is not the OS foreground
-    // window, so it drops all input. It needs show() then focus().
-    main.restore()
-    await flushDeferredHide()
-    expect(show).toHaveBeenCalledOnce()
-    expect(focus).toHaveBeenCalledOnce()
-    expect(main.skipped).toBe(false)
-    expect(show.mock.invocationCallOrder[0]).toBeLessThan(focus.mock.invocationCallOrder[0])
-  } finally {
-    restorePlatform()
-  }
-})
-
 test('a restore of a window the tray never hid is left alone', async () => {
-  setPlatform('win32')
+  setPlatform('linux')
 
   try {
     const { main } = setup()
@@ -236,31 +186,6 @@ test('a restore of a window the tray never hid is left alone', async () => {
     await flushDeferredHide()
     expect(show).not.toHaveBeenCalled()
     expect(focus).not.toHaveBeenCalled()
-  } finally {
-    restorePlatform()
-  }
-})
-
-test('Windows tray hide releases keyboard focus before hiding (#126570)', async () => {
-  setPlatform('win32')
-
-  try {
-    const { controller, main } = setup()
-    await controller.start()
-    await controller.setEnabled(true)
-
-    // The close-to-tray path hides a focused window; a real hidden Win32
-    // window keeps the UI thread's keyboard focus (the fake above models
-    // that: hide does not touch focus), so the shared hide path must blur
-    // explicitly, before the hide itself -- after it, it no longer takes.
-    main.focused = true
-    const blur = vi.spyOn(main, 'blur')
-    const hide = vi.spyOn(main, 'hide')
-    main.close()
-    expect(main.visible).toBe(false)
-    expect(main.focused).toBe(false)
-    expect(blur).toHaveBeenCalledOnce()
-    expect(blur.mock.invocationCallOrder[0]).toBeLessThan(hide.mock.invocationCallOrder[0])
   } finally {
     restorePlatform()
   }
@@ -303,10 +228,6 @@ test('opt-in minimize and primary Close preserve windows while explicit Quit sti
 
   if (process.platform === 'darwin') {
     expect(native.app.dock.hide).toHaveBeenCalled()
-  }
-
-  if (process.platform === 'win32') {
-    expect(main.skipped && peer.skipped).toBe(true)
   }
 
   native.trays[0].menu[0].click()

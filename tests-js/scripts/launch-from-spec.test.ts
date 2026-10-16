@@ -13,7 +13,7 @@ test('the update window pins its isolated route before Electron requests the sin
   )).toEqual(['--user-data-dir=/isolated/route', '--no-sandbox', '--inspect=0'])
 })
 
-test.runIf(process.platform !== 'win32')('the launch environment keeps Chromium singleton sockets below the Unix path limit', (): void => {
+test('the launch environment keeps Chromium singleton sockets below the Unix path limit', (): void => {
   const inheritedTemp = path.join(path.sep, 'deep'.repeat(40))
 
   const env = smokeEnvironment(

@@ -60,7 +60,7 @@ def _persistence_explanation_key(cause: Optional[str]) -> str:
 def _file_mutation_identity(path: str, task_id: Optional[str]) -> str:
     """One key per on-disk target: the file tools' task-resolved absolute path, case-folded
     on case-insensitive hosts. A failure recorded as ``notes.md`` and the write that later
-    lands as ``/repo/notes.md`` (or ``Notes.md`` on Windows) must meet on the same key."""
+    lands as ``/repo/notes.md`` must meet on the same key."""
     try:
         from tools.file_tools_paths import _resolve_path_for_task
 
@@ -191,10 +191,10 @@ class TurnExplainersMixin:
             cache_attr="_turn_completion_explainer_enabled_cache",
         )
 
-    # Bare absolute / home / Windows-drive paths in a footer line. Mirrors the gateway's
+    # Bare absolute / home paths in a footer line. Mirrors the gateway's
     # extract_local_files detector so anything it WOULD auto-attach is backticked first (#35584).
     _FOOTER_PATH_RE = re.compile(
-        r"(?<![/:\w.`])(?:~/|/|[A-Za-z]:[/\\])(?:[\w.\-]+[/\\])*[\w.\-]+\.[\w]+",
+        r"(?<![/:\w.`])(?:~/|/)(?:[\w.\-]+/)*[\w.\-]+\.[\w]+",
     )
 
     @classmethod

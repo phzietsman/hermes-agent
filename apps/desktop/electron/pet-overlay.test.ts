@@ -18,7 +18,6 @@ import {
 
 test('petOverlayClickThrough is off on Linux, where forward:true never re-arms the sprite', () => {
   assert.equal(petOverlayClickThrough('darwin'), true)
-  assert.equal(petOverlayClickThrough('win32'), true)
   assert.equal(petOverlayClickThrough('linux'), false)
 })
 

@@ -22,8 +22,7 @@ import {
   markerPath,
   readLiveUpdateMarker,
   updateHandoffConflict,
-  waitForHandoffClaim,
-  writeUpdateMarker
+  waitForHandoffClaim
 } from './update-marker'
 import { type JudgeEnv, judgeMarkerText } from './update-marker-judge'
 import { cleanupMarkerFixtures, tmpHome } from './update-marker.test-helpers'
@@ -120,7 +119,6 @@ describe('Electron never mutates a marker (A7 rule 3)', () => {
     await readLiveUpdateMarker(home, deps)
     await updateHandoffConflict(home, deps)
     await claimBridgeMarker(home, { ...deps, pid: deps.ownPid, startedAt: corpus.now, runId: 'desk-1-a-0000' })
-    await writeUpdateMarker(home, 4343, { ...deps, startedAt: corpus.now })
     await waitForHandoffClaim(home, deps.ownPid, { ...deps, timeoutMs: 0, runId: 'desk-1-a-0000' })
     await waitForHandoffClaim(home, deps.ownPid, { ...deps, timeoutMs: 0, startedAt: corpus.now })
 

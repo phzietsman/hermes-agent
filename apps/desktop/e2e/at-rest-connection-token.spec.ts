@@ -3,8 +3,7 @@
  *
  * The reported bug: configuring a remote gateway persisted the dashboard
  * session token as PLAINTEXT into `connection.json` under the app's userData
- * dir (macOS `~/Library/Application Support/Hermes/connection.json`, Windows
- * `AppData\Roaming\Hermes\connection.json`). Anything that can read the file
+ * dir (macOS `~/Library/Application Support/Hermes/connection.json`). Anything that can read the file
  * — a backup, a sync client, another local process, a support bundle — got a
  * live gateway credential.
  *
@@ -290,20 +289,8 @@ function storedTokenEncoding(connectionFile: string): string {
  * that nobody else can reach the file, and pinning the exact bits would make
  * this a change-detector against a future 0400 or a setgid-dir umask.
  *
- * POSIX only. `tightenSecretFileMode` no-ops on Windows deliberately (Node maps
- * chmod to the read-only bit there, and userData is already ACL'd to the user
- * profile — see the docstring in electron/hardening.ts, and PR #77527 for the
- * one place ACLs are being handled). Mode bits are advisory on Windows, so
- * asserting them would go red for behaviour the fix never claimed. The suite
- * runs ubuntu-latest today (.github/workflows/e2e-desktop.yml); nothing else in
- * this spec is platform-specific, and this assertion should not be what
- * changes that.
  */
 function expectOwnerOnlyMode(filePath: string, why: string): void {
-  if (process.platform === 'win32') {
-    return
-  }
-
   const mode = fs.statSync(filePath).mode & 0o777
 
   expect(mode & 0o077, `${why} (mode ${mode.toString(8)})`).toBe(0)

@@ -148,7 +148,7 @@ test('chmod failures are collected, not thrown', () => {
   assert.equal(result.errors[0].path, arm)
 })
 
-test('no prebuilds dir (Windows layout) is a clean no-op', () => {
+test('no prebuilds dir is a clean no-op', () => {
   const root = '/pkg/node-pty'
   const fs = fakeFs({}, {})
 

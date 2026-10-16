@@ -438,13 +438,10 @@ def _format_privileged_intents_guidance(*, needs_members: bool) -> str:
 
 
 def _load_opus_codec() -> None:
-    """Try bundled (Windows) opus, then ``ctypes.util.find_library``, then Homebrew paths
-    (find_library misses Homebrew libs on macOS); warn once if none loads."""
+    """Try ``ctypes.util.find_library``, then Homebrew paths (find_library misses Homebrew
+    libs on macOS); warn once if none loads."""
     import ctypes.util
     opus_candidates = []
-    bundled_opus = _find_discord_windows_bundled_opus(discord)
-    if bundled_opus:
-        opus_candidates.append(bundled_opus)
     opus_path = ctypes.util.find_library("opus")
     if opus_path:
         opus_candidates.append(opus_path)
@@ -462,24 +459,6 @@ def _load_opus_codec() -> None:
             logger.warning("Opus codec found at %s but failed to load", opus_path)
     if not discord.opus.is_loaded():
         logger.warning("Opus codec not found — voice channel playback disabled")
-
-
-def _find_discord_windows_bundled_opus(discord_module: Any = None) -> Optional[str]:
-    """Return discord.py's bundled Windows opus DLL path when present."""
-    if sys.platform != "win32":
-        return None
-    discord_module = discord if discord_module is None else discord_module
-    if discord_module is None:
-        return None
-    opus_module = getattr(discord_module, "opus", None)
-    opus_file = getattr(opus_module, "__file__", None)
-    if not opus_file:
-        return None
-    target = "x64" if struct.calcsize("P") * 8 > 32 else "x86"
-    bundled = _Path(opus_file).resolve().parent / "bin" / f"libopus-0.{target}.dll"
-    if bundled.is_file():
-        return str(bundled)
-    return None
 
 
 class _DiscordNonConversationalMessageTracker:
@@ -1184,7 +1163,6 @@ class VoiceReceiver:
     def pcm_to_wav(pcm_data: bytes, output_path: str, src_rate: int = 48000, src_channels: int = 2):
         """Convert raw PCM to 16kHz mono WAV via ffmpeg into *output_path* (not stdout: ffmpeg
         can't seek a pipe, so piped WAV carries placeholder RIFF sizes strict readers misreport)."""
-        from hermes_cli._subprocess_compat import windows_hide_flags
         subprocess.run(
             [
                 resolve_ffmpeg_executable(), "-y", "-loglevel", "error", "-f", "s16le",
@@ -1196,7 +1174,6 @@ class VoiceReceiver:
             timeout=10,
             # Capture stderr so a failure's CalledProcessError carries ffmpeg's real message.
             stderr=subprocess.PIPE,
-            creationflags=windows_hide_flags(),
         )
 
 

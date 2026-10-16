@@ -7,7 +7,7 @@ import { isLineKillModifier } from '../components/textInput.js'
 //   - on macOS it accepts `key.meta`, and hermes-ink reports Option as
 //     `meta` — so Option+Backspace (delete-word, the macOS standard) would
 //     silently become "delete the whole line".
-//   - on Linux/Windows it is `key.ctrl`, and Ctrl+Backspace is delete-word
+//   - on Linux it is `key.ctrl`, and Ctrl+Backspace is delete-word
 //     there in readline, VS Code, browsers, and Windows Terminal.
 // Only the kitty CSI-u / modifyOtherKeys `super` bit means Cmd.
 

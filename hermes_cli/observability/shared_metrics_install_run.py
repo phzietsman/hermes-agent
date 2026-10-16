@@ -1,4 +1,4 @@
-"""hermes.install.run: fresh installs through scripts/install.sh and scripts/install.ps1.
+"""hermes.install.run: fresh installs through scripts/install.sh.
 
 The installer runs before the user is asked about shared metrics and must never send anything, so a
 full-ladder run only leaves ONE small local receipt (closed tokens plus two epoch timestamps) under

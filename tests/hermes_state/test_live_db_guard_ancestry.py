@@ -34,7 +34,7 @@ import hermes_state_guard
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Probe run in the child: resolve the REAL platform state root (not a
-# hardcoded ~/.hermes — that root is %LOCALAPPDATA%\hermes on Windows) and
+# hardcoded ~/.hermes) and
 # report whether the guard refuses it.
 _CHILD_PROBE = """
 import sys
@@ -133,7 +133,6 @@ class TestPytestProcessRecognition:
         [
             ["/usr/bin/python", "-m", "pytest", "tests/"],
             ["/venv/bin/pytest", "-q"],
-            [r"C:\venv\Scripts\pytest.exe", "-q"],
             ["/usr/bin/py.test", "tests/"],
         ],
     )

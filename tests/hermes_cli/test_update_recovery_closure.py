@@ -91,7 +91,7 @@ def _killed_mid_write(tmp_path: Path, rel: str, committed: dict[str, str] | None
             time.sleep(0.01)
     finally:
         with contextlib.suppress(ProcessLookupError):
-            os.killpg(merge.pid, signal.SIGKILL)  # windows-footgun: ok — POSIX-only test (platforms marker)
+            os.killpg(merge.pid, signal.SIGKILL)
         merge.wait()
     assert not (root / rel).exists()
     git("config", "--unset", "filter.hold.smudge")

@@ -3,12 +3,10 @@
 import logging
 import os
 import signal
-import subprocess
 import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, List, Optional
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 
 if TYPE_CHECKING:
     from tools.process_registry import ProcessSession
@@ -34,14 +32,10 @@ class ProcessTerminationMixin:
         """Terminate a host-visible PID and its descendants.
         ``expected_start`` (kernel start time at spawn) is re-validated first: a mismatch
         or dead PID means the number was recycled onto a stranger and we refuse to touch
-        it — a leaked orphan beats tree-killing someone's browser. POSIX: snapshot descendants,
+        it — a leaked orphan beats tree-killing someone's browser. Snapshot descendants,
         SIGTERM the parent alone so it can perform an orderly shutdown, then clean up snapshot
         descendants that survive its grace window. Survivors are SIGKILLed after a second
-        ``terminal.daemon_term_grace_seconds`` window. Windows:
-        ``taskkill /T /F`` (psutil's stale PPID links miss orphans there); ``os.kill``
-        is the fallback."""
-        from tools.process_registry import _IS_WINDOWS
-
+        ``terminal.daemon_term_grace_seconds`` window."""
         if expected_start is not None and not cls._host_pid_is_ours(pid, expected_start):
             logger.warning(
                 "Refusing to terminate host pid %d: start-time mismatch — "
@@ -51,15 +45,6 @@ class ProcessTerminationMixin:
         def _sigterm_quietly():
             with suppress(OSError, ProcessLookupError, PermissionError):
                 os.kill(pid, signal.SIGTERM)
-        if _IS_WINDOWS:
-            try:
-                subprocess.run(
-                    ["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, text=True,
-                    encoding='utf-8', errors='replace', timeout=10, creationflags=windows_hide_flags(),
-                    stdin=subprocess.DEVNULL)
-            except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
-                _sigterm_quietly()
-            return
         import psutil
         gone = (psutil.NoSuchProcess, psutil.AccessDenied, OSError)
         try:
@@ -140,7 +125,7 @@ class ProcessTerminationMixin:
             return []
         return [c.pid for c in children if ProcessTerminationMixin._proc_alive(c)]
 
-    # SIGKILL / taskkill are asynchronous: the kernel needs a scheduling tick to
+    # SIGKILL is asynchronous: the kernel needs a scheduling tick to
     # tear the process down and the parent must reap it before poll()/isalive()
     # stop saying "alive". Verifying survivors in that window flagged every
     # escalated kill as incomplete.

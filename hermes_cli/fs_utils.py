@@ -1,23 +1,9 @@
-"""Filesystem helpers shared across Hermes CLI subsystems."""
+"""Frozen old-updater surface (tests/compat/old_updater_surface.json): a running pre-PM updater
+imports ``rmtree_force`` from the new tree mid-update. Current code uses ``shutil.rmtree``."""
 
-import os
 import shutil
-import stat
 from pathlib import Path
 
 
 def rmtree_force(path: Path) -> None:
-    """``shutil.rmtree`` that clears read-only bits before deleting.
-
-    Windows refuses to delete a tree containing read-only files — git clones
-    store objects read-only — raising ``PermissionError`` where POSIX unlinks
-    them fine. The ``onerror`` hook chmods the file writable and retries.
-    """
-    def _onerror(func, p, _exc_info):
-        try:
-            os.chmod(p, stat.S_IWRITE)
-        except OSError:
-            pass
-        func(p)
-
-    shutil.rmtree(path, onerror=_onerror)
+    shutil.rmtree(path)

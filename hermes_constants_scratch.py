@@ -47,7 +47,7 @@ def _open_prune_log(log_file: Path | None) -> logging.Logger:
     propagate through this module's logger to whatever logging is set up.
 
     One unregistered logger per prune, closed when it ends: no process holds the file open
-    between prunes (an open handle blocks rollover on Windows), and prunes of two homes never
+    between prunes, and prunes of two homes never
     share a handler. Without a *log_file* (test-runner temp roots) this module's logger is used.
     """
     if log_file is None:

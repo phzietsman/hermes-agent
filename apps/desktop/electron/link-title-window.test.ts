@@ -58,7 +58,7 @@ test('createLinkTitleWindow mutes audio so historical links never autoplay sound
   assert.deepEqual(calls.windowOpenHandlers[0]({ url: 'https://attacker.test/popup' }), { action: 'deny' })
 })
 
-test('createLinkTitleWindow hides and zeroes opacity so Windows cannot flash a blank frame', () => {
+test('createLinkTitleWindow hides and zeroes opacity so a leaked frame cannot flash', () => {
   // Regression for #64867: tier-2 title fetches for bot-walled URLs run during
   // browser-tool turns; the window must never paint over the Desktop chat even
   // if the platform leaks a show:false frame.

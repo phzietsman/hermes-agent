@@ -920,7 +920,6 @@ def test_restarted_dashboard_unit_is_not_killed_by_the_continued_scan(monkeypatc
         _dashboard_cmdline_for_pid=lambda pid: None,
     )
     monkeypatch.setattr(dashboard_procs, "_lock_owned_serve_pids", lambda: set())
-    monkeypatch.setattr(dashboard_procs.sys, "platform", "linux")
     monkeypatch.setattr(
         dashboard_procs.os, "kill", lambda pid, sig: killed.append(pid)
     )
@@ -950,7 +949,6 @@ def test_serve_backend_survives_selection_when_the_dashboard_unit_restarts(monke
         _respawn_dashboard_processes=lambda cmds: [],
     )
     monkeypatch.setattr(dashboard_procs, "_lock_owned_serve_pids", lambda: set())
-    monkeypatch.setattr(dashboard_procs.sys, "platform", "linux")
 
     def _fake_kill(pid, sig):
         signalled.append(pid)

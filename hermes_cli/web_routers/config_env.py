@@ -987,7 +987,7 @@ async def _probe_transport_route(client, base_url: str, mode: str, model: str, h
 def _endpoint_probe_client(url: str, timeout: float):
     """httpx client for a user-entered endpoint probe. Local endpoints (loopback, LAN, Tailscale)
     ignore ``HTTP(S)_PROXY``: httpx honours the env/system proxy but not its bypass list, so a
-    system proxy (Clash on Windows, corporate) answered the ``127.0.0.1`` probe with its own error
+    system proxy (Clash, corporate) answered the ``127.0.0.1`` probe with its own error
     page and the GUI reported "advertised no models" while the CLI saw the model (#63472)."""
     import httpx
     from agent.model_metadata import is_local_endpoint

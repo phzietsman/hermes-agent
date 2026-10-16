@@ -59,7 +59,6 @@ from tests.e2e.core.security._helpers import (
 )
 
 pytestmark = [
-    pytest.mark.skipif(sys.platform == "win32", reason="process groups + POSIX loopback listeners"),
     pytest.mark.skipif(shutil.which("node") is None, reason="the TUI hand-off needs node on PATH"),
 ]
 

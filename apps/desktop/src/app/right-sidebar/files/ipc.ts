@@ -3,7 +3,7 @@ import ignore from 'ignore'
 import type { HermesReadDirEntry, HermesReadDirResult } from '@/global'
 import { desktopFsCacheKey, desktopGitRoot, readDesktopDir, readDesktopFileDataUrl } from '@/lib/desktop-fs'
 import { ALWAYS_EXCLUDED, SHOW_IGNORED_EXCLUDED } from '@/lib/excluded-paths'
-import { cleanPath, comparisonPath, isUnderPath } from '@/lib/path-compare'
+import { cleanPath, isUnderPath } from '@/lib/path-compare'
 
 import { showsIgnoredFiles } from './prefs'
 
@@ -36,14 +36,12 @@ function decodeDataUrl(dataUrl: string) {
 function relativeTo(root: string, child: string) {
   const r = cleanPath(root)
   const c = cleanPath(child)
-  const rKey = comparisonPath(r)
-  const cKey = comparisonPath(c)
 
-  if (cKey === rKey) {
+  if (c === r) {
     return ''
   }
 
-  return cKey.startsWith(`${rKey}/`) ? c.slice(r.length + 1) : null
+  return c.startsWith(`${r}/`) ? c.slice(r.length + 1) : null
 }
 
 /** Repo-root → repo-root/a → repo-root/a/b → … for every dir between root and `dir`. */
@@ -132,7 +130,7 @@ async function isNestedRepoRoot(entry: HermesReadDirEntry): Promise<boolean> {
       try {
         const root = await desktopGitRoot(cleanPath(entry.path))
 
-        return root !== null && comparisonPath(root) === comparisonPath(entry.path)
+        return root !== null && cleanPath(root) === cleanPath(entry.path)
       } catch {
         return false
       }

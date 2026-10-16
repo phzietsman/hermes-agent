@@ -79,7 +79,7 @@ export function predictSmokeHermesHome(
   home: string = platform === 'linux' ? launchEnv.HOME || os.homedir() : os.homedir(),
 ): string {
   const effective = applyBundleEnvironment(launchEnv, bundleEnv)
-  return resolveDesktopHermesHome({ home, env: effective, platform, directoryExists: (): boolean => false, readWindowsHome: (): null => null })
+  return resolveDesktopHermesHome({ home, env: effective })
 }
 
 /** A predicted home must be empty before the driver seeds it: the smoke tests a
@@ -202,10 +202,10 @@ function captureBackendLogs(homes: readonly string[], outDir: string, phase: str
 export function settleSourceDesktopRuntime(options: SmokeOptions, launch: Launch): void {
   if (options.origin !== 'source' || (options.phase !== 'old' && options.phase !== 'new')) { return }
 
-  const invocation = sourceRuntimeSettleCommand(options.root, launch.env)
+  const invocation = sourceRuntimeSettleCommand(options.root)
   const result = spawnSync(invocation.command, invocation.args, {
     cwd: options.root, env: launch.env, encoding: 'utf8', timeout: 20 * 60_000,
-    maxBuffer: 16 * 1024 * 1024, windowsVerbatimArguments: invocation.windowsVerbatimArguments,
+    maxBuffer: 16 * 1024 * 1024,
   })
 
   const transcript = [result.stdout, result.stderr].filter(Boolean).join('')
@@ -235,8 +235,8 @@ async function verifyRunningDesktop(app: ElectronApplication, options: SmokeOpti
     return { pid: runtime.pid, executable: runtime.execPath, resources: runtime.resourcesPath, userData: electronApp.getPath('userData'), home: electronApp.getPath('home') }
   })
   // Chromium resolves DIR_HOME from the HOME env only on Linux; macOS
-  // (NSHomeDirectory) and Windows (CSIDL_PROFILE) ignore it, so the home
-  // equality is a contract only there. On those platforms the isolation proof
+  // (NSHomeDirectory) ignores it, so the home equality is a contract only
+  // there. On macOS the isolation proof
   // is the userData pin plus the seeded Hermes home the backend booted from.
   // When the artifact bakes its own env (bundleEnv known from the stamp), the
   // driver's --user-data pin is not authoritative: the app may legitimately
@@ -299,12 +299,9 @@ export async function runInstalledDesktopSmoke(options: SmokeOptions, launchApp:
     fs.mkdirSync(options.home, { recursive: true })
     fs.mkdirSync(options['user-data'], { recursive: true })
     fs.mkdirSync(launch.env.HOME!, { recursive: true })
-    // Electron resolves shell folders before app 'ready': Windows SHGetFolderPath
-    // fails (and applyDesktopIdentity crashes the process) when the roaming/local
-    // AppData dirs named by the sandboxed USERPROFILE/APPDATA do not exist. The
-    // XDG dirs serve the same role for Linux/Chromium.
-    for (const dir of [launch.env.APPDATA, launch.env.LOCALAPPDATA, launch.env.XDG_CONFIG_HOME,
-      launch.env.XDG_DATA_HOME, launch.env.XDG_CACHE_HOME]) {
+    // Electron resolves shell folders before app 'ready': the sandboxed XDG
+    // dirs must exist or applyDesktopIdentity crashes at launch.
+    for (const dir of [launch.env.XDG_CONFIG_HOME, launch.env.XDG_DATA_HOME, launch.env.XDG_CACHE_HOME]) {
       fs.mkdirSync(dir, { recursive: true })
     }
     settleSourceDesktopRuntime(options, launch)

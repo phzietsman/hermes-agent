@@ -17,7 +17,7 @@ def test_successful_historical_completion_stamps_before_restart(tmp_path, monkey
         lambda plan, gateway_mode: events.append(("restart", plan)) or object(),
     )
     monkeypatch.setattr(
-        update_cmd, "_resume_windows_gateways_and_merge_outcome", lambda *args: None,
+        "hermes_cli.update_cmd_posix_pause.resume_paused_gateways_and_merge_outcome", lambda *args: None,
     )
     monkeypatch.setattr(update_cmd, "_verify_fleet_after_update", lambda *args, **kwargs: None)
 

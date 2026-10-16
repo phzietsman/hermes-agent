@@ -4,7 +4,7 @@ import { validateBundleInputs } from './bundle-manifest.cjs'
 import { bundledMatrix } from '../../../scripts/sandbox/generate-e2e-matrix.mjs'
 
 const route = process.env.BUNDLE_ROUTE || 'all'
-for (const platform of ['windows', 'macos']) {
+for (const platform of ['macos']) {
   const url = process.env[`BUNDLE_${platform.toUpperCase()}_MANIFEST`] || ''
   const selected = ['all', 'bundled', `${platform}-bundled`].includes(route)
   if (!url || !selected) {

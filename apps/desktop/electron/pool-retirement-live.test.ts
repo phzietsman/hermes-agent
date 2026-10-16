@@ -59,7 +59,7 @@ function waitForExit(child: ChildProcess, timeoutMs: number): Promise<number | n
   })
 }
 
-test.skipIf(process.env.HERMES_TEST_REAL_SERVE !== '1' || process.platform === 'win32')(
+test.skipIf(process.env.HERMES_TEST_REAL_SERVE !== '1')(
   'native retirement preserves backend-only cron and hands both waiters capacity only after real child exit',
   async () => {
     const python = process.env.HERMES_TEST_PYTHON

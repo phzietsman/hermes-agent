@@ -1,7 +1,6 @@
 """Payload stores follow the payload, not the launching shell's home."""
 
 import json
-import os
 
 import pytest
 
@@ -81,11 +80,10 @@ def test_site_packages_follows_the_venv_python_not_the_caller(tmp_path):
     (venv / "pyvenv.cfg").write_text("home = /usr/bin\nversion = 3.9.20\n", encoding="utf-8")
 
     assert venv_python_version(venv) == (3, 9)
-    if os.name != "nt":
-        # The contract: the composed path is the venv's real tree. Dated from the
-        # caller instead, it names python<this-interpreter> and misses this dir.
-        assert site_packages(venv) == venv / "lib" / "python3.9" / "site-packages"
-        assert site_packages(venv).is_dir()
+    # The contract: the composed path is the venv's real tree. Dated from the
+    # caller instead, it names python<this-interpreter> and misses this dir.
+    assert site_packages(venv) == venv / "lib" / "python3.9" / "site-packages"
+    assert site_packages(venv).is_dir()
 
 
 def test_venv_python_version_falls_back_to_the_lib_directory(tmp_path):

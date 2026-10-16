@@ -4,7 +4,6 @@
 Split out of ``tools/browser_tool.py``. Facade-owned state is read through ``_bt`` (``tools.browser_tool``, resolved per call) — no import cycle.
 """
 
-import base64
 import json
 import logging
 import os
@@ -14,7 +13,6 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 from tools.browser_tool_origin import origin as _bt
 from tools import browser_tool_cdp as _cdp
 from tools import browser_tool_cloud as _cloud
@@ -64,26 +62,6 @@ def _apply_chromium_sandbox_args(browser_env: Dict[str, str]) -> None:
         browser_env["AGENT_BROWSER_ARGS"] = ",".join(CHROMIUM_SANDBOX_BYPASS_ARGS)
 
 
-def windows_headless_browser_options(browser_env: Dict[str, str],
-                                     is_windows: Optional[bool] = None) -> Dict[str, str]:
-    """(#64867) Pin local Chromium headless on Windows.
-
-    Local mode is documented as zero-cost headless Chromium, but the agent-browser
-    daemon inherits this env, and anything that resolves its ``--headed`` setting
-    to a window (``--headed`` is agent-browser's documented boolean flag; this env
-    var is its documented equivalent) turns a browser-tool turn into a blank
-    top-level window over the Windows Desktop chat. Pure in ``(options, is_windows)``
-    so the invariant is testable on any host; call sites pass nothing (they resolve
-    ``os.name``) and skip non-Windows hosts entirely. Never overrides an explicit
-    ``AGENT_BROWSER_HEADED`` — the opt-out stays the user's.
-    """
-    if is_windows is None:
-        is_windows = os.name == "nt"
-    if not is_windows or "AGENT_BROWSER_HEADED" in browser_env:
-        return browser_env
-    return {**browser_env, "AGENT_BROWSER_HEADED": "false"}
-
-
 def _read_command_output_files(stdout_path: str, stderr_path: str) -> tuple[str, str]:
     """Best-effort read of agent-browser stdout/stderr temp files."""
     out = []
@@ -130,37 +108,6 @@ def _format_browser_timeout_error(
 def _agent_browser_argv(browser_cmd: str) -> list:
     """Keep the selected executable, including spaces, as one argv entry."""
     return [browser_cmd]
-
-
-def _shim_safe_args(argv0: str, command: str, args: List[str]) -> "tuple[str, List[str], Optional[bytes]]":
-    """``(spawn_command, spawn_args, stdin_payload)`` for one CLI command. Arguments that reach a
-    ``.cmd``/``.bat`` shim (``npx.cmd``, npm's ``agent-browser.cmd`` on Windows) go through cmd.exe,
-    which re-parses the child command line: a newline ends the argument and ``%VAR%`` expands even
-    inside quotes, so a multi-line ``eval`` script arrives as its first line only (``SyntaxError:
-    Unexpected end of input``) and multi-line ``fill`` text is truncated the same way. ``eval``
-    scripts are sent base64-encoded (``agent-browser eval -b``); any other command whose argv carries
-    a newline or ``%`` is wrapped as ``batch`` with the command as a JSON array on stdin — cmd.exe
-    never sees the text (both forms present since the 0.26 floor). Every other spawn gets the raw
-    argv and no stdin."""
-    if not args or not argv0.lower().endswith((".cmd", ".bat")):
-        return command, args, None
-    if command == "eval":
-        script, *rest = args
-        return command, ["--base64", base64.b64encode(script.encode("utf-8")).decode("ascii"), *rest], None
-    if command == "batch" or not any(ch in arg for arg in args for ch in "\r\n%"):
-        return command, args, None
-    return "batch", [], json.dumps([[command, *args]]).encode("utf-8")
-
-
-def _unwrap_batch_result(result: Any, command: str) -> Dict[str, Any]:
-    """``batch --json`` prints ``[{command, success, result, error}]``; reshape the single entry
-    into the ``{success, data, error}`` dict every other command returns. Error dicts pass through."""
-    if not isinstance(result, list):
-        return result
-    if len(result) != 1 or not isinstance(result[0], dict):
-        return {"success": False, "error": f"Unexpected batch output for '{command}': {json.dumps(result)[:300]}"}
-    entry = result[0]
-    return {"success": bool(entry.get("success")), "data": entry.get("result"), "error": entry.get("error")}
 
 
 def _prepare_session_socket_dir(session_name: str) -> str:
@@ -227,32 +174,16 @@ def _ensure_screen_for_headed_chromium() -> None:
         ensure_started_for_tool()
 
 
-def _popen_agent_browser(argv: List[str], env: Dict[str, str], socket_dir: str, tag: str,
-                         stdin_payload: Optional[bytes] = None) -> "subprocess.Popen":
-    """Spawn agent-browser with stdout/stderr redirected to ``socket_dir/_std{out,err}_<tag>``;
-    ``stdin_payload`` (a ``batch`` JSON body) is served from ``_stdin_<tag>`` the same way.
+def _popen_agent_browser(argv: List[str], env: Dict[str, str], socket_dir: str, tag: str) -> "subprocess.Popen":
+    """Spawn agent-browser with stdout/stderr redirected to ``socket_dir/_std{out,err}_<tag>``.
 
     Temp files, not pipes: the CLI forks a daemon that inherits its fds, so pipes never
-    see EOF until the timeout. Windows: CREATE_NO_WINDOW only (CREATE_NEW_PROCESS_GROUP
-    cancels asyncio's running task on 3.11), STARTF_USESTDHANDLES + close_fds so the child
-    gets ONLY our three handles (leaked console handles kill the Rust daemon grandchild).
+    see EOF until the timeout.
     """
     fds = [os.open(os.path.join(socket_dir, f"_{slot}_{tag}"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
            for slot in ("stdout", "stderr")]
-    stdin: Any = subprocess.DEVNULL
-    if stdin_payload is not None:
-        stdin_path = os.path.join(socket_dir, f"_stdin_{tag}")
-        with open(stdin_path, "wb") as f:
-            f.write(stdin_payload)
-        fds.append(os.open(stdin_path, os.O_RDONLY))
-        stdin = fds[-1]
     try:
-        _popen_extra: dict = {}
-        if os.name == "nt":
-            _si = subprocess.STARTUPINFO()
-            _si.dwFlags |= subprocess.STARTF_USESTDHANDLES
-            _popen_extra = {"creationflags": windows_hide_flags(), "close_fds": True, "startupinfo": _si}
-        return subprocess.Popen(argv, stdout=fds[0], stderr=fds[1], stdin=stdin, env=env, **_popen_extra)
+        return subprocess.Popen(argv, stdout=fds[0], stderr=fds[1], stdin=subprocess.DEVNULL, env=env)
     finally:
         for fd in fds:
             os.close(fd)
@@ -470,14 +401,9 @@ def _read_browser_daemon_pid(task_socket_dir: str, session_name: str) -> Optiona
 
 def _browser_daemon_responsive(task_socket_dir: str, probe_timeout_s: float = 1.0) -> bool:
     """Cheap liveness probe: a connect to the daemon's unix control socket proves the accept
-    loop is alive (the command wedged page/CDP-side). Windows named pipes can't be probed →
-    report unresponsive (tree-kill + respawn is the safe recovery)."""
-    if os.name == "nt":
-        return False
+    loop is alive (the command wedged page/CDP-side)."""
     import socket as socket_mod
 
-    if not hasattr(socket_mod, "AF_UNIX"):
-        return False
     try:
         entries = os.listdir(task_socket_dir)
     except OSError:
@@ -735,7 +661,7 @@ def _browser_command_preflight() -> Dict[str, Any]:
 
 def _spawn_and_collect(
     task_id: str, session_info: Dict[str, Any], cmd_parts: List[str],
-    command: str, engine: str, timeout: int, stdin_payload: Optional[bytes] = None,
+    command: str, engine: str, timeout: int,
 ) -> Dict[str, Any]:
     """Run the prepared agent-browser argv once and interpret its output (handles timeout)."""
     task_socket_dir = _prepare_session_socket_dir(session_info["session_name"])
@@ -755,15 +681,11 @@ def _spawn_and_collect(
                              command)
     else:
         _apply_chromium_sandbox_args(browser_env)
-        # #64867: a local Chromium launch (no --cdp attach) must stay headless on
-        # Windows; headed mode is the intentional opt-out (dispatch adds --headed).
-        if not session_info.get("cdp_url") and not _cloud._is_headed_mode():
-            browser_env = windows_headless_browser_options(browser_env)
 
     stdout_path = os.path.join(task_socket_dir, f"_stdout_{command}")
     stderr_path = os.path.join(task_socket_dir, f"_stderr_{command}")
     cmd_parts, browser_env = _sandbox_wrap(cmd_parts, browser_env, task_socket_dir)
-    proc = _popen_agent_browser(cmd_parts, browser_env, task_socket_dir, command, stdin_payload)
+    proc = _popen_agent_browser(cmd_parts, browser_env, task_socket_dir, command)
 
     try:
         proc.wait(timeout=timeout)
@@ -873,13 +795,10 @@ def _dispatch_browser_command(
         if engine != "auto" and not _bt._is_camofox_mode():
             backend_args += ["--engine", engine]
 
-    argv = _agent_browser_argv(browser_cmd)
-    spawn_command, spawn_args, stdin_payload = _shim_safe_args(argv[0], command, args)
-    cmd_parts = argv + backend_args + ["--json", spawn_command] + spawn_args
+    cmd_parts = _agent_browser_argv(browser_cmd) + backend_args + ["--json", command] + args
 
     try:
-        result = _unwrap_batch_result(
-            _spawn_and_collect(task_id, session_info, cmd_parts, command, engine, timeout, stdin_payload), command)
+        result = _spawn_and_collect(task_id, session_info, cmd_parts, command, engine, timeout)
     except Exception as e:
         _bt.logger.warning("browser '%s' exception: %s", command, e, exc_info=True)
         result = {"success": False, "error": str(e)}

@@ -52,32 +52,20 @@ Dependencies:
     Pillow and resvg-py are core runtime dependencies; run this file with a
     Hermes runtime interpreter (scripts/generate-icons.mjs uses HERMES_PYTHON).
 
-Outputs (99 files):
+Outputs (25 files):
   assets/icon-master.svg                              generated light master
   assets/icon-master-dark.svg                         generated dark master
   apps/desktop/assets/icon.png                        1024x1024 squircle (light)
-  apps/desktop/assets/icon.ico                        16,24,32,48,64,128,256
   apps/desktop/assets/icon.icns                       16..1024 (real ICNS)
   apps/desktop/assets/icon-dark.png                   1024x1024 squircle (dark)
-  apps/desktop/assets/icon-dark.ico                   16,24,32,48,64,128,256
   apps/desktop/assets/icon-dark.icns                  16..1024 (real ICNS)
   apps/desktop/packaging/dmg-volume.icns                 16..1024, from assets/dmg-volume.png (DMG volume)
   apps/desktop/assets/icon.icon/icon.json             Icon Composer manifest (macOS 26)
   apps/desktop/assets/icon.icon/Assets/art-*.png      1024 girl (+ commit badge), light/dark
   apps/desktop/assets/icon.icon/Assets/mono.png       1024 Clear/Tinted material (grayscale + opacity)
-  apps/bootstrap-installer/src-tauri/icons/icon.icon/**  same package, unbranded (Tauri bundle.icon)
-  apps/desktop/assets/appx/<Logo>[.scale-N].png       MSIX logos at 100/125/150/200/400% (wide: squircle centered)
-  apps/desktop/assets/appx/Square44x44Logo.targetsize-N[_altform-(light)unplated].png
-                                                      taskbar/Start bitmaps 16..256; unplated = dark tile
   apps/desktop/public/apple-touch-icon.png            1024x1024 squircle
   apps/desktop/public/nous-girl.png                   256x256 squircle, black girl (light mark)
   apps/desktop/public/nous-girl-dark.png              256x256 squircle, white girl (dark mark)
-  apps/bootstrap-installer/src-tauri/icons/32x32.png       32x32
-  apps/bootstrap-installer/src-tauri/icons/128x128.png     128x128
-  apps/bootstrap-installer/src-tauri/icons/128x128@2x.png  256x256
-  apps/bootstrap-installer/src-tauri/icons/icon.ico        16,32,64,128,256
-  apps/bootstrap-installer/src-tauri/icons/icon.icns       16..1024
-  apps/bootstrap-installer/public/nous-girl.png   256x256 squircle mark (light)
   website/static/img/logo.png                     1772x1799 girl alone, transparent (light)
   website/static/img/logo-dark.png                1772x1799 girl alone, transparent (dark)
   website/static/img/nous-logo.png                150x150 on white (opaque)
@@ -151,88 +139,19 @@ GIRL_BOXES["icon.icon"] = ((_mx - 100.0) * _plate, (_my - 100.0) * _plate, _mw *
 # The brand-kit SVG canvas (both girl svgs share this viewBox).
 GIRL_VIEWBOX = 5487.0615
 
-# ─── MSIX (Windows) asset catalog ───────────────────────────────────────────
-# The manifest names only the base files; Windows resolves each through
-# resource qualifiers. targetsize-* is what the taskbar, Start and search
-# draw — an exact bitmap per slot, so nothing is ever upscaled (the bare 44px
-# tile was) — and altform-unplated / altform-lightunplated are the dark- and
-# light-theme forms Windows requires to exist even when identical (without
-# them it plates the icon itself). electron-builder runs makepri + `makeappx
-# /l` as soon as one qualified asset is staged (app-builder-lib
-# winAppUtil.isScaledAssetsProvided), so the qualifiers alone wire this in.
-APPX_DIR = "apps/desktop/assets/appx"
-APPX_SCALES = (100, 125, 150, 200, 400)
-APPX_TARGET_SIZES = (16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256)
-# Base size at scale-100; the wide tile keeps its 100px squircle centered.
-APPX_LOGOS: dict[str, int | tuple[int, int]] = {
-    "Square44x44Logo": 44,
-    "Square150x150Logo": 150,
-    "StoreLogo": 50,
-    "Wide310x150Logo": (310, 150),
-}
-# Theme-qualified taskbar forms: (qualifier suffix, render kind). Dark theme
-# gets the dark tile like macOS dark mode does; the unqualified file stays the
-# light tile for hosts that ignore qualifiers.
-APPX_ALTFORMS = (("", "png"), ("_altform-unplated", "png_dark"), ("_altform-lightunplated", "png"))
-
-
-def appx_scaled(base: int, scale: int) -> int:
-    # Microsoft's tables round up (150 @ 125% = 188, 50 @ 125% = 63).
-    return math.ceil(base * scale / 100 - 1e-9)
-
-
-def appx_targets() -> list[tuple[str, str, object]]:
-    targets: list[tuple[str, str, object]] = []
-    for name, base in APPX_LOGOS.items():
-        for scale in APPX_SCALES:
-            qualifier = "" if scale == 100 else f".scale-{scale}"
-            if isinstance(base, tuple):
-                w, h = base
-                arg: object = (appx_scaled(w, scale), appx_scaled(h, scale), appx_scaled(100, scale))
-                targets.append((f"{APPX_DIR}/{name}{qualifier}.png", "wide", arg))
-            else:
-                targets.append((f"{APPX_DIR}/{name}{qualifier}.png", "png", appx_scaled(base, scale)))
-    for size in APPX_TARGET_SIZES:
-        for suffix, kind in APPX_ALTFORMS:
-            targets.append((f"{APPX_DIR}/Square44x44Logo.targetsize-{size}{suffix}.png", kind, size))
-    return targets
-
-
-APPX_TARGETS = appx_targets()
-
-
-def _appx_check_sizes() -> dict[str, tuple[str, tuple[int, int]]]:
-    sizes: dict[str, tuple[str, tuple[int, int]]] = {}
-    for rel, kind, arg in APPX_TARGETS:
-        if kind == "wide":
-            w, h, _tile = arg  # type: ignore[misc]
-            sizes[rel] = ("PNG", (w, h))
-        else:
-            sizes[rel] = ("PNG", (arg, arg))  # type: ignore[arg-type]
-    return sizes
-
-
 # Target sizes for --check's structural verification: relpath -> (format, size)
 CHECK_SIZES: dict[str, tuple[str, tuple[int, int]]] = {
-    **_appx_check_sizes(),
     "apps/desktop/assets/icon.png": ("PNG", (1024, 1024)),
     "apps/desktop/assets/icon-dark.png": ("PNG", (1024, 1024)),
     "apps/desktop/packaging/dmg-volume.icns": ("ICNS", (1024, 1024)),
     **({"apps/desktop/assets/icon.icon/Assets/border-light.png": ("PNG", (1024, 1024)),
         "apps/desktop/assets/icon.icon/Assets/border-dark.png": ("PNG", (1024, 1024))} if BORDER_ENABLED else {}),
     "apps/desktop/assets/icon.icon/Assets/mono.png": ("PNG", (1024, 1024)),
-    "apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-light.png": ("PNG", (1024, 1024)),
-    "apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-dark.png": ("PNG", (1024, 1024)),
-    "apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/mono.png": ("PNG", (1024, 1024)),
     "apps/desktop/assets/icon.icon/Assets/art-light.png": ("PNG", (1024, 1024)),
     "apps/desktop/assets/icon.icon/Assets/art-dark.png": ("PNG", (1024, 1024)),
     "apps/desktop/public/apple-touch-icon.png": ("PNG", (1024, 1024)),
     "apps/desktop/public/nous-girl.png": ("PNG", (256, 256)),
     "apps/desktop/public/nous-girl-dark.png": ("PNG", (256, 256)),
-    "apps/bootstrap-installer/src-tauri/icons/32x32.png": ("PNG", (32, 32)),
-    "apps/bootstrap-installer/src-tauri/icons/128x128.png": ("PNG", (128, 128)),
-    "apps/bootstrap-installer/src-tauri/icons/128x128@2x.png": ("PNG", (256, 256)),
-    "apps/bootstrap-installer/public/nous-girl.png": ("PNG", (256, 256)),
     "website/static/img/logo.png": ("PNG", (1772, 1799)),
     "website/static/img/logo-dark.png": ("PNG", (1772, 1799)),
     "website/static/img/nous-logo.png": ("PNG", (150, 150)),
@@ -247,10 +166,8 @@ TARGETS: list[tuple[str, str, object]] = [
     ("assets/icon-master.svg", "svg", None),
     ("assets/icon-master-dark.svg", "svg_dark", None),
     ("apps/desktop/assets/icon.png", "png", 1024),
-    ("apps/desktop/assets/icon.ico", "ico", [16, 24, 32, 48, 64, 128, 256]),
     ("apps/desktop/assets/icon.icns", "icns", None),
     ("apps/desktop/assets/icon-dark.png", "png_dark", 1024),
-    ("apps/desktop/assets/icon-dark.ico", "ico_dark", [16, 24, 32, 48, 64, 128, 256]),
     ("apps/desktop/assets/icon-dark.icns", "icns_dark", None),
     # The DMG volume icon: our own drive artwork with the girl on its face,
     # one artwork for light and dark (volume icons have no appearance variants).
@@ -261,24 +178,11 @@ TARGETS: list[tuple[str, str, object]] = [
     ("apps/desktop/assets/icon.icon/Assets/art-light.png", "icon_art", "black"),
     ("apps/desktop/assets/icon.icon/Assets/art-dark.png", "icon_art", "white"),
     ("apps/desktop/assets/icon.icon/Assets/mono.png", "icon_mono", None),
-    *APPX_TARGETS,
     ("apps/desktop/public/apple-touch-icon.png", "png", 1024),
     # The dev-run Dock icon (app.dock.setIcon): same mac grid as the icns.
     ("apps/desktop/assets/icon-mac.png", "png_mac", 1024),
     ("apps/desktop/public/nous-girl.png", "girl_light", 256),
     ("apps/desktop/public/nous-girl-dark.png", "girl_dark", 256),
-    ("apps/bootstrap-installer/src-tauri/icons/32x32.png", "png", 32),
-    ("apps/bootstrap-installer/src-tauri/icons/128x128.png", "png", 128),
-    ("apps/bootstrap-installer/src-tauri/icons/128x128@2x.png", "png", 256),
-    ("apps/bootstrap-installer/src-tauri/icons/icon.ico", "ico", [16, 32, 64, 128, 256]),
-    ("apps/bootstrap-installer/src-tauri/icons/icon.icns", "icns", None),
-    # Tauri's bundler compiles an Icon Composer package from `bundle.icon`
-    # (actool >= 26) into Assets.car; the unbranded twin of the desktop package.
-    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/icon.json", "icon_manifest", None),
-    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-light.png", "icon_art", "black"),
-    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-dark.png", "icon_art", "white"),
-    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/mono.png", "icon_mono", None),
-    ("apps/bootstrap-installer/public/nous-girl.png", "girl_light", 256),
     ("website/static/img/logo.png", "logo", None),
     ("website/static/img/logo-dark.png", "logo_dark", None),
     ("website/static/img/nous-logo.png", "png_white", 150),
@@ -749,12 +653,6 @@ def render_svg(svg: str, size: int | tuple[int, int]) -> Image.Image:
     return Image.open(io.BytesIO(data)).convert("RGBA")
 
 
-def paste_centered(canvas: Image.Image, img: Image.Image) -> None:
-    x = (canvas.width - img.width) // 2
-    y = (canvas.height - img.height) // 2
-    canvas.alpha_composite(img, (x, y))
-
-
 def save_png(img: Image.Image, buf: io.BytesIO) -> None:
     """Save with alpha preserved. Flat art quantizes losslessly to an 8-bit
     palette (tRNS per-index alpha keeps the AA edges), so use that when the
@@ -822,9 +720,6 @@ def target_bytes(art: IconArt, kind: str, arg: object) -> bytes:
     elif kind == "ico":
         img = render(art.master, max(arg))
         img.save(buf, format="ICO", sizes=[(s, s) for s in arg])
-    elif kind == "ico_dark":
-        img = render(art.master_dark, max(arg))
-        img.save(buf, format="ICO", sizes=[(s, s) for s in arg])
     elif kind == "icns":
         img = render(art.master_mac, 1024)
         frames = [img.resize((s, s), Image.LANCZOS) for s in (16, 32, 64, 128, 256, 512, 1024)]
@@ -839,11 +734,6 @@ def target_bytes(art: IconArt, kind: str, arg: object) -> bytes:
         assert img.size == (1024, 1024), f"{arg} must be 1024x1024"
         frames = [img.resize((s, s), Image.LANCZOS) for s in (16, 32, 64, 128, 256, 512, 1024)]
         img.save(buf, format="ICNS", append_images=frames[1:])
-    elif kind == "wide":
-        w, h, tile = arg
-        canvas = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        paste_centered(canvas, render(art.master, tile))
-        canvas.save(buf, "PNG")
     elif kind == "logo":
         build_logo_image(art, dark=False).save(buf, "PNG")
     elif kind == "logo_dark":
@@ -894,7 +784,7 @@ def cmd_write(source: Path, out: Path) -> int:
                 print(f"  {rel}: {path.stat().st_size} bytes {'JSON' if kind == 'icon_manifest' else 'SVG'}")
                 continue
             im = Image.open(path)
-            if kind in ("ico", "ico_dark"):
+            if kind == "ico":
                 sizes = []
                 try:
                     for i in range(im.n_frames):
@@ -972,9 +862,8 @@ def cmd_check(source: Path, out: Path) -> int:
         return sorted(set(sizes))
 
     for rel, sizes in (
-        ("apps/desktop/assets/icon.ico", [16, 24, 32, 48, 64, 128, 256]),
-        ("apps/desktop/assets/icon-dark.ico", [16, 24, 32, 48, 64, 128, 256]),
-        ("apps/bootstrap-installer/src-tauri/icons/icon.ico", [16, 32, 64, 128, 256]),
+        ("website/static/img/favicon.ico", [16, 32, 48]),
+        ("web/public/favicon.ico", [16, 32, 48]),
     ):
         path = out / rel
         if not path.exists():

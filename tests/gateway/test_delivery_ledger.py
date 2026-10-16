@@ -756,13 +756,8 @@ class TestUnconnectedPlatformKeepsItsBudget:
 
 class TestOwnerAlivePidProbe:
     """_owner_alive's no-start-time fallback must route through
-    gateway.status._pid_exists, never a raw ``os.kill(pid, 0)`` probe.
-
-    On Windows ``os.kill(pid, 0)`` is NOT a no-op: CPython maps sig=0 to
-    ``GenerateConsoleCtrlEvent(0, pid)`` (bpo-14484), so probing a LIVE pid
-    whose start time psutil could not read would Ctrl+C its console group.
-    Pattern per the windows-native-support reference: patch
-    ``gateway.status._pid_exists``, not ``os.kill``.
+    gateway.status._pid_exists (psutil-first, zombie-aware), never a raw
+    ``os.kill(pid, 0)`` probe.
     """
 
     def _no_start_time(self, monkeypatch):

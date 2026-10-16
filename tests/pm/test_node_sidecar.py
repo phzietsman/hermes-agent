@@ -101,7 +101,7 @@ def test_real_npm_uses_paired_node_with_empty_ambient_path(tmp_path, monkeypatch
 def test_on_demand_sidecar_install_respects_lazy_refusal(tmp_path, monkeypatch):
     (tmp_path / "package.json").write_text('{}')
     monkeypatch.setenv("HERMES_DISABLE_LAZY_INSTALLS", "1")
-    binary = tmp_path / ("npm.cmd" if os.name == "nt" else "npm")
+    binary = tmp_path / "npm"
     binary.write_text("process boundary fixture")
     binary.chmod(0o755)
     class InstalledRunner:

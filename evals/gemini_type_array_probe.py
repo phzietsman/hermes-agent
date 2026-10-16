@@ -113,7 +113,7 @@ def main():
         assert all(result != "accepted" for name, result in before.items() if name != "scalar_control")
         assert all(result == "accepted" for result in after.values())
         print(f"PASS: {len(before) - 1} failing base cases repaired; scalar control and inputs preserved.")
-        print("LOCAL SDK VALIDATION ONLY: no Google API call or Windows Desktop exercise.")
+        print("LOCAL SDK VALIDATION ONLY: no Google API call.")
 
 
 if __name__ == "__main__":

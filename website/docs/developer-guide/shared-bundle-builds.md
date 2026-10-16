@@ -64,7 +64,7 @@ The driver first prepares the complete dependency set: managed tools, the locked
 Node workspace union, icon environment, Electron-native bindings, packaging
 utilities, and (except for light) the application and independent PM environments.
 Only then does it compile products, assemble the payload, and package Electron.
-MSIX metadata, signing, notarization, and package formats remain adapter work.
+Signing, notarization, and package formats remain adapter work.
 
 ### Split desktop preparation and consumption
 
@@ -86,13 +86,11 @@ reuse admitted dependency bytes while rebuilding path-bound environments.
 
 `--prepared` does not accept new tag/commit/work/cache arguments. It validates
 the clean checkout and prepared inputs, then fails on stale or missing inputs
-instead of installing them. Bundled and Store builds may consume the same
-preparation for a stable tag; light and commit builds cannot switch to Store.
-Product builds still run each time. Native staging exposes `prepare_native` and
+instead of installing them. Product builds still run each time. Native staging exposes `prepare_native` and
 `finish_native` to this composition; `hermes pm bundle` remains a complete
 native staging command, not the desktop preparation interface.
 
-Windows and macOS release jobs use **restore → prepare → save → build**. The
+macOS release jobs use **restore → prepare → save → build**. The
 cache action derives provider paths and transports candidates; it neither
 creates the preparation workdir nor declares a cache hit valid. Saves run after
 successful preparation, before product compilation or signing. Failed
@@ -102,9 +100,8 @@ snapshot. The general `setup-pm` action remains available for other workflows.
 Native wheel caches use compact 128-bit partitions under `python/runtime`, keyed
 by the target and observed compiler/SDK inputs. Missing identities still get a
 fresh partition. uv builds source distributions inside this cache, so partition
-names must leave room for nested compiler outputs below Windows `MAX_PATH`.
-Keep a custom `--cache` root short as well; enabling OS long paths does not make
-every native compiler long-path aware. This layout retains the shared cache
+names must leave room for nested compiler outputs.
+Keep a custom `--cache` root short as well. This layout retains the shared cache
 transport and all target-compatible extras, including Silk.
 
 The strict boundary forbids dependency acquisition during consumption, not all
@@ -157,8 +154,7 @@ Assembly deliberately supplies no frontend products, as with `hermes pm bundle`.
 The `payload-test` producer on the existing cache action selects only `tools`,
 `python/runtime` and `native`. It excludes source `node_modules`, npm caches,
 icon environments and packagers. PM's managed tool bootstrap still includes Node
-and npm, but does not run desktop `npm ci`. Native compiler identity and Windows
-ARM64 prerequisites use the shared owner once. Cache hits always undergo provider
+and npm, but does not run desktop `npm ci`. Native compiler identity uses the shared owner once. Cache hits always undergo provider
 admission; native SDK/compiler prerequisites still belong to the host. PR jobs
 only restore; saves require successful preparation on the default-branch trusted
 lane with no alternate source ref. No signing or publication is added.
@@ -191,17 +187,15 @@ inputs. It writes the completion manifest after structural assembly. Nix also
 receives a command/environment map for its native wrappers.
 
 The launcher implementation lives in `scripts/build/launchers.py`.
-`launcher_wrapper.py` and `mint_launchers.py` live in that same directory.
 `scripts/bundles/payload.py` owns git snapshots, PM tool facts, PM runtime
 sealing, and portable link handling. It no longer owns frontend placement or
 launcher generation.
 
 The desktop stamp carries the declared launch paths. Electron consumes that
 contract without payload adoption or repair. Non-bundled builds carry no
-placeholder agent payload. Store packages declare `microsoft-store` as their
-update mechanism. Sideload bundles declare `app-installer`.
+placeholder agent payload.
 
-Windows launcher minting runs the payload interpreter. POSIX launchers use
+Launchers use
 explicit interpreter, source, and dependency paths. Structural assembly does
 not replace target-native launch tests. A manifest alone does not prove that
 a relocated or signed artifact runs.
@@ -226,8 +220,7 @@ These contracts live in `pm/runtime.py:55–88,171–182` and
 
 Ordinary native staging does not scan user plugin trees. It runs provisioning
 in a child with temporary home and PM roots plus an explicit persistent build
-cache. Windows ARM64 prerequisite preparation runs before HOME isolation and
-uses the same provider as source setup and CI. Live PM retains plugin
+cache. Live PM retains plugin
 admission, generation selection, and transaction state. Both paths use
 `pm.environment.PythonEnvironment` for explicit uv environment construction.
 
@@ -235,7 +228,7 @@ admission, generation selection, and transaction state. Both paths use
 
 | Distribution | Selected products | Current output layout |
 |---|---|---|
-| Desktop bundled/Store | Icons, TUI, web, agent, desktop UI | Products: `apps/desktop/build/products/`. Agent: `apps/desktop/build/agent-payload/`. UI: `apps/desktop/dist/`. Packages: `apps/desktop/release/` |
+| Desktop bundled | Icons, TUI, web, agent, desktop UI | Products: `apps/desktop/build/products/`. Agent: `apps/desktop/build/agent-payload/`. UI: `apps/desktop/dist/`. Packages: `apps/desktop/release/` |
 | Desktop light | Icons and desktop UI | `apps/desktop/dist/` and `apps/desktop/release/`, without an agent payload |
 | Docker | Icons, TUI, web, agent | Agent at `/opt/hermes`, dependencies at `.venv`, PM at `pm-runtime`, generated commands at `libexec` |
 | Nix TUI | TUI | `$out/lib/hermes-tui/{dist/entry.js,package.json}` |
@@ -285,11 +278,9 @@ acceptance and publication across distributions.
 
 The desktop release workflow downloads and installs each supported bundled
 format on a fresh native runner, then runs the same composer/provider/reply
-check as install-e2e. Windows universal assembly stages bytes before the smoke;
-its canary feed is published separately only after both native smoke matrices
-pass. macOS feed publication and stable candidate acceptance are likewise gated.
+check as install-e2e. macOS feed publication and stable candidate acceptance are likewise gated.
 See [install and chat acceptance](https://github.com/NousResearch/hermes-agent/blob/main/tests/install/README.md#post-build-artifact-smoke)
-for covered formats, checkpoint evidence and the Store/Linux/no-upload limits.
+for covered formats, checkpoint evidence and the Linux/no-upload limits.
 
 `scripts.releases.handoff fetch --public-base URL` downloads a staged artifact
 without R2 credentials. Supply either `--tag TAG --commit SHA` or
@@ -348,7 +339,7 @@ release and commit execution jobs with literal `cache-mode: write` and
 `cache-mode: read`, respectively. GitHub enforces these permissions on scoped
 cache tokens, so commit builds cannot save caches even from their own scripts.
 Both branches share their matrix, environment, and steps through YAML anchors.
-The original `build-win32` and `build-darwin` IDs aggregate the branches: after
+The original `build-darwin` IDs aggregate the branches: after
 successful validation and input archiving, exactly the selected branch must
 succeed and the other must be skipped. A failed, cancelled, or unexpectedly
 skipped selected build fails the aggregate; it cannot permit publication.
@@ -402,8 +393,7 @@ Signed installers and Android device execution require their native runners.
 
 The macOS dmgbuild acquisition owner is part of packaging preparation, not the
 strict build. Native DMG creation, detach diagnostics, signing and notarization
-must be exercised after tool-provider changes. Windows x64/ARM64 and
-macOS x64/ARM64 cold/warm and signed-artifact acceptance remain separate from
+must be exercised after tool-provider changes. macOS x64/ARM64 cold/warm and signed-artifact acceptance remain separate from
 Linux helper tests. Linux desktop release lanes remain disabled.
 
 Focused helper tests cannot establish all of these requirements:

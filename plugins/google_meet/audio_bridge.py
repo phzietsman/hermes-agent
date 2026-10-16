@@ -2,7 +2,7 @@
 
 Linux: pactl creates a null-sink plus a virtual source on the sink's monitor; callers set
 ``PULSE_SOURCE=<source_name>`` in Chrome's env. macOS: only verifies BlackHole 2ch is installed
-(the default-input switch is left to the user). Windows: unsupported.
+(the default-input switch is left to the user).
 """
 
 from __future__ import annotations
@@ -44,8 +44,7 @@ class AudioBridge:
         system = platform.system()
         impl = {"Linux": self._setup_linux, "Darwin": self._setup_darwin}.get(system)
         if impl is None:
-            raise RuntimeError("windows not supported in v2" if system == "Windows"
-                               else f"unsupported platform: {system}")
+            raise RuntimeError(f"unsupported platform: {system}")
         return impl()
 
     def teardown(self) -> None:

@@ -94,7 +94,7 @@ def _ledger_lock():
     sweep, and across the CLI compact/GC path. Without it a concurrent appender's O_APPEND write can
     land on the inode ``compact_ledger``/``_trim_oldest`` are about to ``os.replace`` — the row is
     silently lost and ``gc_blobs`` then deletes its blobs. Same idiom as ``_skill_mutation_lock``:
-    ``<skills>/.locks/ledger.lock``, thread-re-entrant, no-op where neither fcntl nor msvcrt exists."""
+    ``<skills>/.locks/ledger.lock``, thread-re-entrant."""
     from tools.skill_usage import skill_file_lock
     return skill_file_lock(_skills_dir() / ".locks" / "ledger.lock")
 

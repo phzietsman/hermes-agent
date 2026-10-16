@@ -9,11 +9,11 @@ here too, so the installer's PATH launcher behaves the same way.
 
 from __future__ import annotations
 
-# hermes_bootstrap first (UTF-8 stdio on Windows; no-op on POSIX), like every other entry point.
+# hermes_bootstrap first, like every other entry point.
 try:
     import hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    pass  # partial `hermes update` — only skips the Windows UTF-8 stdio setup
+    pass  # partial `hermes update`
 
 # The `hermes-agent` console script lands here without hermes_cli.main: repair a `hermes update` killed
 # while git wrote the new tree before importing anything else from the checkout.

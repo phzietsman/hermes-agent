@@ -14,7 +14,6 @@ import fnmatch
 import os
 from pathlib import Path
 
-from agent.file_safety import get_nt_namespace_error
 from tools import file_state
 from tools.binary_extensions import (
     has_binary_extension,
@@ -145,14 +144,6 @@ def _resolved_or_raw(filepath: str, task_id: str) -> str:
 
 def _check_sensitive_path(filepath: str, task_id: str = "default") -> str | None:
     """Return an error message if the path targets a sensitive system location."""
-    # NT/device-namespace guard on the RAW string, BEFORE the task-base join:
-    # on POSIX a leading "\??\" reads as a relative segment and gets anchored
-    # under the base dir, hiding the prefix from the resolved-path checks,
-    # while the same string relayed to a Windows host (remote backend, desktop
-    # bridge) triggers the NTLM-leak vector. See agent/file_safety.py.
-    nt_err = get_nt_namespace_error(filepath, verb="Write")
-    if nt_err:
-        return nt_err
     candidates = (_resolved_or_raw(filepath, task_id), os.path.normpath(_expand_tilde(filepath)))
     if _ssh_path_escapes_home(candidates[0]) and _terminal_env_type_for_task(task_id) == "ssh":
         return (
@@ -183,7 +174,7 @@ def _check_sensitive_path(filepath: str, task_id: str = "default") -> str | None
 # always realpath before matching. Scope decision (documented): basenames match in ANY directory, because
 # project-context instruction files are loaded from cwd trees — an AGENTS.md anywhere the agent might later
 # run from is a live target. Basenames match case-insensitively so case-variant spellings on
-# case-insensitive filesystems (macOS/Windows) cannot slip past; on case-sensitive filesystems most loaders
+# case-insensitive filesystems (macOS) cannot slip past; on case-sensitive filesystems most loaders
 # probe common case variants too, so the stricter behavior is kept uniform.
 _PROTECTED_INSTRUCTION_BASENAMES = frozenset({
     "agents.md", "claude.md", "soul.md", ".cursorrules"})

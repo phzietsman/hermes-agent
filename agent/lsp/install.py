@@ -18,7 +18,6 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 from hermes_constants import find_node_executable, with_hermes_node_path
 
 logger = logging.getLogger("agent.lsp.install")
@@ -67,19 +66,11 @@ INSTALL_RECIPES: Dict[str, Dict[str, Any]] = {
     "lua-language-server": _manual("lua-language-server"),
     # laravel-lsp ships via composer (`composer global require laravel/lsp`), not npm.
     "laravel-lsp": _manual("laravel-lsp"),
-    # PowerShellEditorServices is a release-zip bundle driven by pwsh; we probe
-    # the host so `hermes lsp status` reports its presence.
-    "powershell": _manual("pwsh"),
 }
 
 _install_locks: Dict[str, threading.Lock] = {}
 _install_results: Dict[str, Optional[str]] = {}
 _install_lock_meta = threading.Lock()
-_WINDOWS_WRAPPER_SUFFIXES = (".cmd", ".exe", ".bat")
-
-
-def _is_windows() -> bool:
-    return os.name == "nt"
 
 
 def hermes_lsp_bin_dir() -> Path:
@@ -91,42 +82,11 @@ def hermes_lsp_bin_dir() -> Path:
     return p
 
 
-def _native_binary_candidates(base: Path, *, is_windows: Optional[bool] = None) -> list[Path]:
-    """Return platform-native executable candidates for a staged binary, most runnable first.
-
-    On Windows the ``.cmd``/``.exe``/``.bat`` wrappers come BEFORE the bare name: npm writes a
-    POSIX ``#!/bin/sh`` shim under the bare name next to its ``.cmd``, ``os.access(X_OK)`` is
-    always true there, and ``CreateProcess`` on the shim fails with WinError 193.  The bare name
-    stays as a last resort for genuinely extension-less executables.
-    """
-    if not (_is_windows() if is_windows is None else is_windows):
-        return [base]
-    cands: Dict[str, Path] = {}
-    for c in (*(Path(str(base) + s) for s in _WINDOWS_WRAPPER_SUFFIXES), base):
-        cands.setdefault(str(c).lower(), c)
-    return list(cands.values())
-
-
-def _first_existing(*bases: Path, is_windows: Optional[bool] = None) -> Optional[Path]:
-    """First platform-native candidate of any ``base`` that exists on disk."""
-    return next((c for base in bases for c in _native_binary_candidates(base, is_windows=is_windows) if c.exists()), None)
-
-
-def _npm_bin_dir() -> Path:
-    """npm's own ``node_modules/.bin`` under the staging tree, where its ``%~dp0``-relative wrappers work."""
-    return hermes_lsp_bin_dir().parent / "node_modules" / ".bin"
-
-
-def _existing_binary(name: str, *, is_windows: Optional[bool] = None) -> Optional[str]:
-    """Probe the staging dir (+ npm's bin dir on Windows) then PATH for a binary named ``name``.
-
-    ``is_windows`` overrides the host check so the Windows resolution is testable as data on every lane.
-    """
-    win = _is_windows() if is_windows is None else is_windows
-    bases = [hermes_lsp_bin_dir() / name] + ([_npm_bin_dir() / name] if win else [])
-    for staged in (c for base in bases for c in _native_binary_candidates(base, is_windows=win)):
-        if staged.exists() and os.access(staged, os.X_OK):
-            return str(staged)
+def _existing_binary(name: str) -> Optional[str]:
+    """Probe the staging dir then PATH for a binary named ``name``."""
+    staged = hermes_lsp_bin_dir() / name
+    if staged.exists() and os.access(staged, os.X_OK):
+        return str(staged)
     if any(r.get("strategy") == "pip" and r.get("bin") == name for r in INSTALL_RECIPES.values()):
         import pm
 
@@ -137,8 +97,7 @@ def _existing_binary(name: str, *, is_windows: Optional[bool] = None) -> Optiona
         else:
             if binary is not None:
                 return str(binary)
-    suffixes = (*_WINDOWS_WRAPPER_SUFFIXES, "") if win else ("",)
-    return next((p for s in suffixes if (p := shutil.which(f"{name}{s}"))), None)
+    return shutil.which(name)
 
 
 def try_install(pkg: str, strategy: str = "auto") -> Optional[str]:
@@ -182,7 +141,7 @@ def _run_installer(tool: str, pkg: str, cmd: list, *, timeout: int, env: Optiona
     try:
         proc = subprocess.run(
             cmd, check=False, capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=timeout, env=env, stdin=subprocess.DEVNULL, creationflags=windows_hide_flags(),
+            timeout=timeout, env=env, stdin=subprocess.DEVNULL,
         )
         if proc.returncode != 0:
             # pnpm reports ERR_PNPM_* on stdout with an empty stderr; log whichever stream carries the reason.
@@ -202,7 +161,7 @@ def _link_into_bin(target: Path) -> str:
         try:
             link.symlink_to(target)
         except (OSError, NotImplementedError):
-            # Symlinks fail on some Windows setups — copy instead.
+            # Symlinks fail on some filesystems — copy instead.
             try:
                 shutil.copy2(target, link)
             except OSError:
@@ -266,11 +225,9 @@ def _install_npm(pkg: str, bin_name: str, extra_pkgs: Optional[list] = None) -> 
     # Package install scripts are third-party code: scrubbed env, never Hermes' credentials.
     if not _run_installer(pm, pkg, cmd, timeout=300, env=with_hermes_node_path(hermes_subprocess_env())):
         return None
-    found = _first_existing(staging / "node_modules" / ".bin" / bin_name)
-    if found is not None:
-        # npm's Windows wrappers resolve their payload via ``%~dp0\..\<pkg>``, so a copy or symlink
-        # in ``lsp/bin/`` points at nothing; use them where npm put them (``_existing_binary`` probes there).
-        return str(found) if _is_windows() and found.suffix.lower() in (".cmd", ".bat") else _link_into_bin(found)
+    found = staging / "node_modules" / ".bin" / bin_name
+    if found.exists():
+        return _link_into_bin(found)
     logger.warning("[install] %s install for %s succeeded but bin %s not found", pm, pkg, bin_name)
     return None
 
@@ -287,7 +244,7 @@ def _install_go(pkg: str, bin_name: str) -> Optional[str]:
     env = {**hermes_subprocess_env(), "GOBIN": str(staging)}
     if not _run_installer("go", pkg, [go, "install", pkg], timeout=600, env=env):
         return None
-    bin_path = (staging / bin_name).with_suffix(".exe") if _is_windows() else staging / bin_name
+    bin_path = staging / bin_name
     if bin_path.exists():
         return str(bin_path)
     logger.warning("[install] go install for %s succeeded but bin %s not found", pkg, bin_name)

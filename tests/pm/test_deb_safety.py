@@ -3,9 +3,7 @@
 A safe extractor must forbid ANY write or chmod outside the staged tree.
 The malicious .deb fixtures are real ar+tars built in a temp sandbox and
 pointed at an outside SENTINEL file/dir inside the sandbox — never real
-user or /etc data. Absolute-symlink rejection runs everywhere; the
-symlink-privilege-dependent shapes are host-gated because Windows may lack
-symlink privilege (validator-checked before the test bodies create links).
+user or /etc data.
 """
 
 from __future__ import annotations

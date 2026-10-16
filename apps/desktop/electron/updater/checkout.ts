@@ -5,12 +5,10 @@ import * as path from 'node:path'
 
 import {
   claimBridgeMarker,
-  describeSkippedPrewrite,
   HANDOFF_CLAIM_TIMEOUT_MS,
   makeHandoffRunId,
   updateHandoffConflict,
-  waitForHandoffClaim,
-  writeUpdateMarker
+  waitForHandoffClaim
 } from '../update-marker'
 import {
   collectRelaunchArgs,
@@ -19,12 +17,8 @@ import {
   observeUpdaterHandoff,
   resolveInstallationLauncher,
   resolvePosixScriptHandoff,
-  resolveUpdateScriptHandoff,
   sandboxFallbackFromEnv,
-  spawnUpdaterProcess,
-  stagedUpdaterSupportsPrewrittenMarker,
-  windowsUpdatePrerequisiteError,
-  wrapHandoffForDetachedConsole
+  spawnUpdaterProcess
 } from '../updater-process'
 
 import { type SourceUpdate, sourceUpdateEnvironment } from './checkout-source'
@@ -40,13 +34,11 @@ export interface CheckoutStrategyDeps {
   resolveUpdateRoot: () => string
   readSourceUpdate: (root: string, opts: { force?: boolean }) => Promise<SourceUpdate | null>
   hermesHome: string
-  isWindows: boolean
   isMac: boolean
   defaultUpdateBranch: string
   updateHandoffDwellMs: number
   /** How long the hand-off script has to take the bridge marker (C2); default 20 s. */
   handoffClaimTimeoutMs?: number
-  resolveUpdaterBinary: () => string | null
   /**
    * True when one remote gateway serves this Desktop (app-global remote /
    * cloud / SSH). The hand-off then tells `hermes update` not to (re)start a
@@ -58,8 +50,6 @@ export interface CheckoutStrategyDeps {
   emitUpdateProgress: (payload: { stage: string; message: string; percent: number | null }) => void
   rememberLog: (chunk: unknown) => void
   startHermes: () => Promise<unknown>
-  stopBackendsForUpdate: () => Promise<void>
-  repairMacUpdaterHelper: (updater: string) => void | Promise<void>
   preflightStateDb: (hermesHome: string, rememberLog: (chunk: string) => void) => void | Promise<void>
   runningAppBundle: () => string | null
   markQuittingForHandoff: () => void
@@ -126,7 +116,7 @@ export function readStampedCommit(root: string): string | null {
 }
 
 /**
- * The checkout strategy: windows-handoff on win32, posix-handoff elsewhere.
+ * The checkout strategy: posix-handoff.
  * The bodies are the production update flow; the mechanism stamp rides on
  * every result the way the wire contract expects.
  */
@@ -136,8 +126,7 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
       updateRoot: deps.resolveUpdateRoot(),
       hermesHome: deps.hermesHome,
       desktopPid: process.pid,
-      runId,
-      isWindows: deps.isWindows
+      runId
     })
   }
 
@@ -292,7 +281,7 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
     return failure
   }
 
-  const mechanism: UpdaterMechanism = deps.isWindows ? 'windows-handoff' : 'posix-handoff'
+  const mechanism: UpdaterMechanism = 'posix-handoff'
 
   async function check(opts: { force?: boolean } = {}): Promise<UpdaterStatusWire> {
     const root: string = deps.resolveUpdateRoot()
@@ -324,74 +313,6 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
     return status
   }
 
-  /**
-   * Staged (Tauri) updater path: spawn it detached and pre-write its marker
-   * when it is new enough to adopt it.
-   */
-  async function spawnStagedUpdater(updater, updaterArgs: string[], updateRoot: string) {
-    const child = spawnUpdaterProcess(updater, updaterArgs, {
-      cwd: deps.hermesHome,
-      env: {
-        ...sourceUpdateEnvironment(updateRoot, deps.hermesHome)
-      },
-      detached: true,
-      stdio: 'ignore'
-    })
-
-    // Write the update-in-progress marker IMMEDIATELY — before the 2.5s
-    // quit dwell. The Tauri updater won't write its own marker for several
-    // seconds (window init + manifest), and during that gap our renderer
-    // can reconnect into an update still replacing application files.
-    // By writing the marker ourselves the renderer's
-    // waitForUpdateToFinish() gate sees a live update and parks instead.
-    // The marker names the updater's pid AND creation time (v2): the updater
-    // adopts it as its own claim, so no age ceiling applies to a slow update
-    // and the `hermes update` it runs can add its delegate line.
-    //
-    // SKIPPED for pre-#74782 staged updaters: those have no self-PID
-    // exclusion, so they read this very marker as a foreign live owner and
-    // abort with "Another Hermes update is already running (PID <itself>)" —
-    // an unbreakable loop, because the update that would replace the stale
-    // binary is the one being refused. Losing the anti-respawn hardening is
-    // strictly better than never updating again, and the updater still writes
-    // its own marker moments later.
-    // Exclusive create only (A7 rule 3): over any existing marker the
-    // pre-write is skipped and the staged updater claims for itself.
-    if (Number.isInteger(child.pid) && stagedUpdaterSupportsPrewrittenMarker(updater)) {
-      const prewrite = await writeUpdateMarker(deps.hermesHome, child.pid)
-
-      if (!prewrite.ok) {
-        deps.rememberLog(`[updates] skipping marker pre-write: ${describeSkippedPrewrite(prewrite)}`)
-      }
-    } else if (Number.isInteger(child.pid)) {
-      deps.rememberLog(
-        `[updates] skipping marker pre-write: staged updater predates self-adopt (${updater}); it would refuse its own claim`
-      )
-    }
-
-    deps.rememberLog(
-      `[updates] launched updater: ${updater} ${updaterArgs.join(' ')}; exiting desktop for application replacement`
-    )
-
-    return child
-  }
-
-  /** The hand-off settle window: a failure message when the updater did not take over, else null. */
-  async function settleHandoff(child, plan: HandoffPlan | null, handoffStartedAt: number): Promise<string | null> {
-    if (plan) {
-      return await confirmScriptHandoff(child, plan, handoffStartedAt)
-    }
-
-    const handoffOutcome = await observeUpdaterHandoff(child, deps.updateHandoffDwellMs)
-    const failure = handoffOutcome.ok ? null : describeUpdaterHandoffFailure(handoffOutcome)
-
-    if (failure) {
-      deps.rememberLog(`[updates] hand-off not viable, aborting quit: ${handoffOutcome.message}`)
-    }
-
-    return failure
-  }
-
   async function apply(): Promise<UpdaterApplyResultWire> {
     const result: UpdaterApplyResultWire = await applyBody()
     result.mechanism = mechanism
@@ -416,220 +337,30 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
       ? `hermes update --channel ${status.channel}`
       : buildManualUpdateCommand(branch)
 
-    const updater: string | null = deps.resolveUpdaterBinary()
     const root: string = deps.resolveUpdateRoot()
 
     // Earlier PM scripts still demand checkout/venv. Do not invoke that known
     // incompatible handoff: one exact-install CLI update obtains the new scripts.
-    if (existsSync(path.join(root, 'pm')) && !existsSync(path.join(root, 'scripts', 'desktop-update', 'runtime.ps1'))) {
-      const launcher: string | null = resolveInstallationLauncher(root, deps.isWindows, deps.hermesHome)
+    if (existsSync(path.join(root, 'pm')) && !existsSync(path.join(root, 'scripts', 'desktop-update', 'posix.sh'))) {
+      const launcher: string | null = resolveInstallationLauncher(root, deps.hermesHome)
 
       if (!launcher) {
         return { ok: false, error: 'installation-launcher-missing' }
       }
 
-      const quote = (value: string): string =>
-        deps.isWindows ? `'${value.replace(/'/g, "''")}'` : `'${value.replace(/'/g, "'\\''")}'`
+      const quote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`
 
-      const command: string = `${deps.isWindows ? '& ' : ''}${quote(launcher)} update ${targetArgs.map(quote).join(' ')}`
+      const command: string = `${quote(launcher)} update ${targetArgs.map(quote).join(' ')}`
 
       return { ok: true, manual: true, command, hermesRoot: root }
     }
 
-    if (!deps.isWindows && (!updater || status.channel)) {
-      // macOS/Linux: hand off to the repo-owned posix script — same shape as
-      // Windows (quit → detached orchestrator → `hermes update` → relaunch),
-      // minus the venv-lock gauntlet POSIX doesn't need. The old in-app
-      // updater (applyUpdatesPosixInApp) is gone with everything it dragged
-      // in: the HERMES_DESKTOP_CHILD_PID reaper-exclusion dance (#37532),
-      // the in-window rebuild retry, and the relaunch-outcome matrix — the
-      // script owns swap/relaunch, and the app is DEAD during the update so
-      // there is nothing to reap around. Checkouts that predate the script
-      // get the manual `hermes update` card once; their next update pulls it.
-      return await applyPosixHandoff(targetArgs, targetLabel, manualCommand)
-    }
-
-    if (!updater || status.channel) {
-      // No staged updater binary — this is a CLI-installed user (they ran
-      // `hermes desktop`, never the Tauri installer that self-copies
-      // hermes-setup.exe into HERMES_HOME). On Windows the repo hand-off
-      // script serves them just as well as installer users — it only needs
-      // PowerShell and the checkout — so fall through to the normal hand-off
-      // when the script exists. Only when the checkout predates the script do
-      // we surface the manual one-liner.
-      const updateRoot = deps.resolveUpdateRoot()
-
-      if (!resolveUpdateScriptHandoff(updateRoot)) {
-        const command: string = manualCommand
-
-        deps.rememberLog(
-          `[updates] no staged updater; surfacing manual \`${command}\` for CLI install at ${updateRoot}`
-        )
-        deps.emitUpdateProgress({ stage: 'manual', message: command, percent: null })
-
-        return { ok: true, manual: true, command, hermesRoot: updateRoot }
-      }
-
-      deps.rememberLog('[updates] no staged updater; using repo hand-off script for CLI install')
-    }
-
-    const handoffConflict = await updateHandoffConflict(deps.hermesHome)
-
-    if (handoffConflict) {
-      // A different updater already owns the marker — most often a previous
-      // "Update" click whose updater is still alive and parked mid-run.
-      // Spawning another here would overwrite its claim and let two updaters
-      // mutate the checkout at once (#75778); refuse instead.
-      deps.rememberLog(`[updates] refusing hand-off: ${handoffConflict.message}`)
-      deps.emitUpdateProgress({ stage: 'error', message: handoffConflict.message, percent: null })
-
-      return { ok: false, error: 'update-already-running', message: handoffConflict.message }
-    }
-
-    deps.emitUpdateProgress({
-      stage: 'restart',
-      message:
-        'Updating Hermes — this window will close and the updater will open. Don’t reopen Hermes yourself; it restarts automatically when the update finishes.',
-      percent: 100
-    })
-    deps.repairMacUpdaterHelper(updater)
-
-    const updateRoot = deps.resolveUpdateRoot()
-    const updaterArgs: string[] = ['--update', ...targetArgs]
-    const targetApp = deps.isMac ? deps.runningAppBundle() : null
-
-    if (targetApp) {
-      updaterArgs.push('--target-app', targetApp)
-    }
-
-    // ── Pre-flight state.db integrity guard (#68474) ─────────────────
-    // Emergency backup and header verification before the update touches
-    // anything.  Runs while the backend is still alive.
-    await deps.preflightStateDb(deps.hermesHome, deps.rememberLog)
-
-    if (deps.isWindows && resolveUpdateScriptHandoff(updateRoot)) {
-      const message = windowsUpdatePrerequisiteError(updateRoot, deps.hermesHome)
-
-      if (message) {
-        deps.emitUpdateProgress({ stage: 'error', message, percent: null })
-
-        return { ok: false, error: message }
-      }
-    }
-
-    // Release app-owned backends for output replacement. PM publishes a new
-    // dependency generation; old Python readers are not update blockers.
-    // The CLI owns gateway draining and restart, including failure recovery.
-    await deps.stopBackendsForUpdate()
-
-    // Detached so app replacement can outlive this process.
-    //
-    // Prefer the repo-owned hand-off script over the staged Tauri binary.
-    // The staged binary is frozen (no self-update path) and historically runs
-    // months-stale updater logic — pre-#67369 cache resolver, pre-#74782
-    // marker adoption — producing failures that were fixed on main long ago
-    // (2026-08-09 incident). scripts/desktop-update/windows.ps1 ships WITH the
-    // checkout, so each `hermes update` refreshes the code that drives the
-    // next one. Checkouts that predate the script fall back to the binary
-    // path unchanged.
-    const scriptHandoff = resolveUpdateScriptHandoff(updateRoot)
-    const handoffStartedAt = Date.now()
-    let child
-    let plan: HandoffPlan | null = null
-
-    if (scriptHandoff) {
-      const updateStartedAt = Math.floor(Date.now() / 1000)
-      const planned = await planHandoff(scriptHandoff.scriptPath, updateStartedAt)
-
-      if ('refusal' in planned) {
-        deps.startHermes().catch(() => {})
-
-        return planned.refusal
-      }
-
-      plan = planned.plan
-
-      // A bare detached+hidden powershell spawn silently dies before -File
-      // processing (console-subsystem init failure — see
-      // wrapHandoffForDetachedConsole). Spawn the cmd wrapper non-detached
-      // so windowsHide gives it a hidden console that `start /b` shares with
-      // PowerShell; the script still outlives us. The wrapper exits at once,
-      // so its pid means nothing: the bridge marker above names THIS process,
-      // and the script takes it over (adopting -DesktopPid) as its first act.
-      const wrappedArgs: string[] = [
-        '-InstallRoot',
-        updateRoot,
-        ...(status.channel ? ['-Channel', status.channel] : ['-Branch', branch]),
-        '-DesktopPid',
-        String(process.pid),
-        '-RelaunchExe',
-        process.execPath
-      ]
-
-      // Same remote-ownership rule as the posix hand-off (#117529): a
-      // remote-served Desktop owns no local messaging gateway.
-      if (deps.remoteGatewayActive()) {
-        wrappedArgs.push('-NoGateway')
-      }
-
-      if (plan.runId) {
-        wrappedArgs.push('-HandoffRun', plan.runId)
-      }
-
-      const wrapped = wrapHandoffForDetachedConsole(scriptHandoff, wrappedArgs)
-
-      child = spawnUpdaterProcess(wrapped.command, wrapped.args, {
-        cwd: deps.hermesHome,
-        env: {
-          ...sourceUpdateEnvironment(updateRoot, deps.hermesHome),
-          HERMES_UPDATE_STARTED_AT: String(updateStartedAt)
-        },
-        // Never `true` here: DETACHED_PROCESS leaves the wrapper console-less, so
-        // `start /b` hands PowerShell a new VISIBLE console whose QuickEdit
-        // selection can freeze the hand-off before relaunch (#103222).
-        detached: wrapped.detached,
-        stdio: 'ignore'
-      })
-
-      deps.rememberLog(
-        `[updates] launched repo hand-off script: ${scriptHandoff.scriptPath} (${targetLabel}); exiting desktop for application replacement`
-      )
-    } else {
-      child = await spawnStagedUpdater(updater, updaterArgs, updateRoot)
-    }
-
-    // Linger on the "updating — don't reopen" overlay long enough for the user
-    // to actually read it (and to bridge the gap until the updater's own window
-    // appears), THEN quit for application replacement. The updater rebuilds and
-    // relaunches us when it's done. (#50419 — a 600ms quit looked like a crash
-    // and lured users into the #50238 relaunch loop.)
-    //
-    // The dwell doubles as the hand-off settle window (#66753): watch the
-    // detached child for an async spawn `error` (ENOENT/EACCES) or an early
-    // non-zero/signal exit. On failure, DON'T quit — the user would be left
-    // with no app, no updater, and no evidence. Restart our backend and
-    // surface the error instead. A script hand-off additionally has to take
-    // the bridge marker within 20 s (C2); the staged binary IS the updater, so
-    // its own exit status is meaningful.
-    const dwellStartedAt = Date.now()
-    const failure: string | null = await settleHandoff(child, plan, handoffStartedAt)
-
-    if (failure) {
-      deps.emitUpdateProgress({ stage: 'error', message: failure, percent: null })
-      deps.startHermes().catch(() => {})
-
-      return { ok: false, error: 'updater-spawn-failed', message: failure }
-    }
-
-    deps.markQuittingForHandoff()
-    setTimeout(
-      () => {
-        deps.quit()
-      },
-      Math.max(0, deps.updateHandoffDwellMs - (Date.now() - dwellStartedAt))
-    )
-
-    return { ok: true, handedOff: true, updater }
+    // macOS/Linux: hand off to the repo-owned posix script (quit → detached
+    // orchestrator → `hermes update` → relaunch). The script owns
+    // swap/relaunch, and the app is DEAD during the update so there is
+    // nothing to reap around. Checkouts that predate the script get the
+    // manual `hermes update` card once; their next update pulls it.
+    return await applyPosixHandoff(targetArgs, targetLabel, manualCommand)
   }
 
   async function applyPosixHandoff(
@@ -649,7 +380,7 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
     const handoffConflict = await updateHandoffConflict(deps.hermesHome)
 
     if (handoffConflict) {
-      // Same hazard as the Windows path (#75778): a live foreign updater
+      // A live foreign updater (#75778)
       // already owns the marker — refuse rather than double-mutate the tree.
       deps.rememberLog(`[updates] refusing posix hand-off: ${handoffConflict.message}`)
       deps.emitUpdateProgress({ stage: 'error', message: handoffConflict.message, percent: null })

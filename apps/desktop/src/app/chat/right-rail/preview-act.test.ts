@@ -283,7 +283,7 @@ describe('actOnActivePreview (drive_preview tool)', () => {
         mac.mock.calls.map(([event]) => event).find(event => event.type === 'keyDown' && event.keyCode === 'a')
       ).toMatchObject({ modifiers: ['meta'] })
 
-      pin('Win32', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+      pin('Linux x86_64', 'Mozilla/5.0 (X11; Linux x86_64)')
       const win = withDrivenPane()
       await actOnActivePreview({ kind: 'type', ref: '@e1', text: 'x' })
       expect(

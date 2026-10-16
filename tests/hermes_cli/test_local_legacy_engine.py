@@ -166,7 +166,7 @@ def test_busy_store_leaves_the_engine_for_a_later_call(legacy_env):
     held, release = threading.Event(), threading.Event()
 
     def hold():
-        # A second open file: msvcrt byte locks and flock both exclude it within one process.
+        # A second open file: flock excludes it within one process.
         fd = os.open(store / ".install.lock", os.O_CREAT | os.O_RDWR, 0o600)
         try:
             assert lock_fd(fd, wait=True)

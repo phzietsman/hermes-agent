@@ -373,21 +373,20 @@ class TestSharedHostLockdown(RemoteKernelBase):
         spawn_cmd = next(c for c in env.commands if "nohup" in c)
         self.assertNotIn("HERMES_RPC_TOKEN=", spawn_cmd)
         mkdir_cmd = next(c for c in env.commands if "mkdir -p" in c)
-        if sys.platform != "win32":
-            # Behaviour, not command text: replay the recorded dir setup
-            # through a real shell under a private temp root; every dir under
-            # the shared temp dir must come out owner-only.
-            import shutil
-            import subprocess
-            import tempfile
-            root = tempfile.mkdtemp()
-            self.addCleanup(shutil.rmtree, root, True)
-            local = root + kernel.kernel_dir
-            r = subprocess.run(["bash", "-c", mkdir_cmd.replace(kernel.kernel_dir, local)],
-                               capture_output=True, text=True)
-            self.assertEqual(r.returncode, 0, r.stderr)
-            for d in (local, f"{local}/cells", f"{local}/rpc"):
-                self.assertEqual(os.stat(d).st_mode & 0o777, 0o700, d)
+        # Behaviour, not command text: replay the recorded dir setup
+        # through a real shell under a private temp root; every dir under
+        # the shared temp dir must come out owner-only.
+        import shutil
+        import subprocess
+        import tempfile
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        local = root + kernel.kernel_dir
+        r = subprocess.run(["bash", "-c", mkdir_cmd.replace(kernel.kernel_dir, local)],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for d in (local, f"{local}/cells", f"{local}/rpc"):
+            self.assertEqual(os.stat(d).st_mode & 0o777, 0o700, d)
         # Ships write owner-only and carry the base64 as stdin_data, so it
         # (which decodes to the token for kernel.env) never enters argv.
         ship_cmds = [c for c in env.commands if "base64 -d" in c]

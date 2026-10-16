@@ -104,4 +104,4 @@ def reap_tagged(eh: E2EHome) -> None:
     """Cleanup: SIGKILL any process still carrying this home's unique tag (reparented orphans too)."""
     for pid in tagged_pids(eh.tag):
         with contextlib.suppress(OSError):
-            os.kill(pid, signal.SIGKILL)  # windows-footgun: ok — callers are skipif(not linux); /proc scan
+            os.kill(pid, signal.SIGKILL)

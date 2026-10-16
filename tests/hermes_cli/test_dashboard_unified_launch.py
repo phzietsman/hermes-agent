@@ -38,40 +38,18 @@ class TestUnifiedDashboardRouting:
         monkeypatch.setattr(main_dashboard, "_dashboard_listening", lambda host, port: False)
         execs = []
 
-        if sys.platform == "win32":
-            # Windows cannot truly replace the process, so cmd_dashboard
-            # re-execs via subprocess.Popen + sys.exit(code) instead of
-            # os.execvpe (which doesn't exist on Windows).
-            spawns = []
+        def fake_exec(exe, argv, env):
+            execs.append((exe, argv, env))
+            raise SystemExit(0)  # execvpe never returns
 
-            class _Done:
-                def wait(self):
-                    return 0
+        monkeypatch.setattr(main_mod.os, "execvpe", fake_exec)
 
-            monkeypatch.setattr(
-                main_mod.subprocess,
-                "Popen",
-                lambda argv, env=None, **kw: spawns.append((argv, env)) or _Done(),
-            )
-            with pytest.raises(SystemExit):
-                main_mod.cmd_dashboard(_args())
-            assert len(spawns) == 1
-            argv, env = spawns[0]
-        else:
-            execs = []
+        with pytest.raises(SystemExit):
+            main_mod.cmd_dashboard(_args())
 
-            def fake_exec(exe, argv, env):
-                execs.append((exe, argv, env))
-                raise SystemExit(0)  # execvpe never returns
-
-            monkeypatch.setattr(main_mod.os, "execvpe", fake_exec)
-
-            with pytest.raises(SystemExit):
-                main_mod.cmd_dashboard(_args())
-
-            assert len(execs) == 1
-            exe, argv, env = execs[0]
-            assert exe == sys.executable
+        assert len(execs) == 1
+        exe, argv, env = execs[0]
+        assert exe == sys.executable
 
         # Pinned to the default profile + launching profile preselected.
         assert "-p" in argv and argv[argv.index("-p") + 1] == "default"

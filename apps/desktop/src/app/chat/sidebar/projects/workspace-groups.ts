@@ -90,31 +90,17 @@ const segments = (path: string): string[] =>
 /** A path with trailing separators stripped, for stable equality checks. */
 const normalizePath = (path: null | string | undefined): string => (path ?? '').replace(/[/\\]+$/, '')
 
-// Windows spellings: drive-letter (`C:\…`), UNC (`\\srv`, `//srv`), or any
-// backslash-rooted path (`\wsl.localhost\…`). A single leading `/` stays POSIX.
-// Mirrors the backend `_is_windows_path` so the live overlay places rows into
-// the same project the backend tree would.
-const isWindowsPath = (path: string): boolean =>
-  /^[A-Za-z]:[/\\]/.test(path) || path.startsWith('\\') || path.startsWith('//')
-
 /**
- * Segments for identity comparison: Windows paths fold case (and separators, via
- * {@link segments}) so `C:\Work` and `c:/work` are one lane; POSIX stays
- * case-sensitive. Comparison-only — emitted ids/labels keep their spelling.
- *
- * Segments are NFC-normalized before comparing: the same on-disk folder can
+ * Segments for identity comparison, NFC-normalized: the same on-disk folder can
  * reach us as NFC (typed paths, backend cwd) or NFD (macOS file pickers,
- * HFS+/APFS round-trips), and case folding does not unify the two forms — an
- * accented project folder would otherwise render empty (#65014). Mirrors
- * `_comparison_segments` in `tui_gateway/project_tree.py`.
+ * HFS+/APFS round-trips), and an accented project folder would otherwise
+ * render empty (#65014). Mirrors `_comparison_segments` in
+ * `tui_gateway/project_tree.py`. Comparison-only — emitted ids/labels keep
+ * their spelling.
  */
-const comparisonSegments = (path: string): string[] => {
-  const segs = segments(path).map(seg => seg.normalize('NFC'))
+const comparisonSegments = (path: string): string[] => segments(path).map(seg => seg.normalize('NFC'))
 
-  return isWindowsPath(path) ? segs.map(seg => seg.toLowerCase()) : segs
-}
-
-/** Canonical per-host comparison key (separator/case/trailing-slash agnostic). */
+/** Canonical comparison key (trailing-slash agnostic). */
 const pathKey = (path: null | string | undefined): string => comparisonSegments(path ?? '').join('/')
 
 /** Last path segment. */

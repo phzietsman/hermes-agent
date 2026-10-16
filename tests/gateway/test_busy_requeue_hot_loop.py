@@ -1,6 +1,6 @@
 """Regression: a busy follow-up the runner re-queues must not hot-loop through the adapter drain.
 
-Field failure (Discord, Windows): the Discord websocket fell behind and the adapter was replaced
+Field failure (Discord): the Discord websocket fell behind and the adapter was replaced
 by a reconnect while the old adapter's task was still running a long agent turn. The NEW adapter
 has no ``_active_sessions`` guard for that session, but the runner still has the running agent.
 A message / watch-notification wake arriving while context compression was in flight then:

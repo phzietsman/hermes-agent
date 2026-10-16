@@ -171,7 +171,7 @@ export function installFoundInPageForwarder(webContents: Electron.WebContents | 
  * webview focus split, etc.); this sidesteps it regardless of cause by acting
  * at the earliest point the keystroke is observable.
  *
- * On macOS / Windows the renderer's own rebindable `view.findInPage` keybind
+ * On macOS the renderer's own rebindable `view.findInPage` keybind
  * (`mod+f`, clearable/rebindable via the keybind registry) owns Ctrl/Cmd+F, so
  * the main-process hook is NOT installed there — installing it would make the
  * chord un-rebindable and double-open on a rebound binding.

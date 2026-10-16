@@ -32,7 +32,7 @@ def installed_uv(tmp_path, monkeypatch):
     digest = "1" * 64
     entry = store / "uv"
     entry.mkdir(parents=True)
-    binary = entry / ("uv.exe" if os.name == "nt" else "uv")
+    binary = entry / "uv"
     shutil.copy2(uv, binary)
     lock.set_pin("uv", "test", {target: {"url": "https://test.invalid/uv", "sha256": digest}})
     lock.set_pin("python", "test", {target: {"url": "https://test.invalid/python", "sha256": digest}})
@@ -68,10 +68,10 @@ def test_all_uv_commands_keep_the_pm_interpreter(installed_uv, monkeypatch):
     clean.update({"UV_NO_CONFIG": "1", "UV_OFFLINE": "1", "UV_PYTHON_DOWNLOADS": "never"})
     subprocess.run([str(uv), "venv", "--python", sys.executable, str(selected)],
                    cwd=root, env=clean, check=True, capture_output=True, timeout=60)
-    python = selected / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = selected / "bin/python"
 
     class FixturePython(Python):
-        binary_rel = {"win32": "Scripts/python.exe", "posix": "bin/python"}
+        binary_rel = {"posix": "bin/python"}
 
     monkeypatch.setitem(registry._packages, "python", FixturePython())
     facts.record("python", "test", selected.name, {}, selected.parent,
@@ -116,7 +116,7 @@ def test_project_environment_replaces_generation_when_pinned_python_moves(instal
                  artifacts=[digest], digest=tree_digest(uv.parent))
 
     class FixturePython(Python):
-        binary_rel = {"win32": "Scripts/python.exe", "posix": "bin/python"}
+        binary_rel = {"posix": "bin/python"}
 
     monkeypatch.setitem(registry._packages, "python", FixturePython())
     interpreters = [stage_host_python(store / name / "bin" / "python")
@@ -193,10 +193,6 @@ def test_bundled_uv_builds_on_the_shipped_python_and_writes_nothing(installed_uv
     monkeypatch.setattr(paths, "writable_store_root", lambda: writable)
     (shipped.parent / "manifest.json").write_text("{}", encoding="utf-8")
 
-    class FixtureUv(Uv):
-        emulated_arch_targets = {target}
-
-    monkeypatch.setitem(registry._packages, "uv", FixtureUv())
     facts.record("uv", "test", uv_binary.parent.name, {}, shipped,
                  target=target, artifacts=[digest], digest=tree_digest(uv_binary.parent))
     python = Python()

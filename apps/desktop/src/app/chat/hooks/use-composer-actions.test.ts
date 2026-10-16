@@ -81,7 +81,7 @@ describe('partitionDroppedFiles', () => {
     expect(partitionDroppedFiles([])).toEqual({ inAppRefs: [], osDrops: [] })
   })
 
-  it('routes a local non-image OS drop to inline refs; keeps images, remote, and cross-filesystem drops staged', () => {
+  it('routes a local non-image OS drop to inline refs; keeps images, remote, and container-backend drops staged', () => {
     // #52427: when the gateway shares this machine's filesystem, an OS drop's
     // original path resolves on the backend as-is, so it stays an inline
     // @file: ref — no staged copy, no lost path semantics. Only drops the
@@ -91,7 +91,6 @@ describe('partitionDroppedFiles', () => {
     const pathless = { file: new File(['x'], 'notes.txt'), path: '' }
 
     const local = partitionDroppedFiles([finderPdf, screenshot, pathless], {
-      backendCwd: '/Users/mahmoud/projects/app',
       remote: false,
       terminalBackend: 'local'
     })
@@ -101,7 +100,6 @@ describe('partitionDroppedFiles', () => {
 
     // Remote gateway: this machine's paths never resolve there.
     const remote = partitionDroppedFiles([finderPdf], {
-      backendCwd: '/home/gateway/app',
       remote: true,
       terminalBackend: 'local'
     })
@@ -111,21 +109,11 @@ describe('partitionDroppedFiles', () => {
     // Local connection but a container backend: the host path would dangle
     // inside the sandbox (#76577).
     const docker = partitionDroppedFiles([finderPdf], {
-      backendCwd: '/workspace',
       remote: false,
       terminalBackend: 'docker'
     })
 
     expect(docker.osDrops).toEqual([finderPdf])
-
-    // Local connection, POSIX backend cwd, Windows host path (#15317).
-    const wsl = partitionDroppedFiles([osDrop('C:\\Users\\al\\Downloads\\report.txt')], {
-      backendCwd: '/home/gateway/app',
-      remote: false,
-      terminalBackend: 'local'
-    })
-
-    expect(wsl.osDrops).toHaveLength(1)
   })
 
   it('stages every OS drop when no staging context is given', () => {

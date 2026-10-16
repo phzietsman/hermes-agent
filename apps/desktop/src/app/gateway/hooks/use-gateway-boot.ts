@@ -1158,7 +1158,7 @@ export function useGatewayBoot({
     // Secondary sockets reach the same handler through the registry's onServerRequest.
     const offRequest = gateway.onRequest(request => dispatchPrimaryServerRequest(request, sourceProfileNow()))
 
-    // Wake signals: power resume (macOS/Windows), network coming back, and the
+    // Wake signals: power resume (macOS), network coming back, and the
     // window regaining focus/visibility. Each nudges an immediate reconnect.
     //
     // Forced reconnects (power resume / 'online') close and redial every open

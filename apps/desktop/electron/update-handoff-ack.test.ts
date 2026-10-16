@@ -22,7 +22,7 @@ import {
   tmpHome
 } from './update-marker.test-helpers'
 
-const HAS_CT_PROBE = process.platform === 'linux' || process.platform === 'darwin' || process.platform === 'win32'
+const HAS_CT_PROBE = process.platform === 'linux' || process.platform === 'darwin'
 const RUN = 'desk-4242-mabc123-0f0f'
 
 afterEach(cleanupMarkerFixtures)

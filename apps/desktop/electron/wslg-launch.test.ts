@@ -33,7 +33,6 @@ describe('WSLg launch arguments', () => {
   })
 
   it('leaves other platforms, missing Wayland displays and forwarded sessions alone', () => {
-    expect(wslgLaunchArgs([], env, 'win32')).toBeNull()
     expect(wslgLaunchArgs([], env, 'darwin')).toBeNull()
     expect(wslgLaunchArgs([], { DISPLAY: ':0' }, 'linux')).toBeNull()
     expect(wslgLaunchArgs([], { WSL_DISTRO_NAME: 'Ubuntu' }, 'linux')).toBeNull()

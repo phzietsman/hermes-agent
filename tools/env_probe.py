@@ -13,13 +13,12 @@ import tempfile
 import threading
 from typing import Optional
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 
 logger = logging.getLogger(__name__)
 
 # Concurrency model: exactly ONE background worker runs the probe; ``_PROBE_DONE``
 # signals completion. Callers block at most ``_PROBE_WAIT_TIMEOUT`` s then fail open
-# with "" — a stuck probe (e.g. a Windows pipe wedged by an orphaned pip descendant)
+# with "" — a stuck probe (e.g. a pipe wedged by an orphaned pip descendant)
 # can degrade only the probe line, never system-prompt construction.
 # Module-level cache. The probe result is deterministic for the lifetime of the process — Python install
 # state doesn't change mid-session in any way that would matter for the system prompt. See #67964.
@@ -54,9 +53,8 @@ def _plugin_backend_is_remote(backend: str) -> bool:
 def _run(cmd: list[str], timeout: float = 3.0) -> tuple[int, str, str]:
     """Run a short subprocess -> (returncode, stdout, stderr); failures (binary
     missing, timeout, OSError) return (-1, "", "<reason>"). Output goes through temp
-    files, not pipes, so ``timeout`` bounds the *whole* call even on native Windows: a
-    console-script launcher (``pip.exe``) can spawn a descendant that inherits the
-    captured handles and outlives its parent; with OS pipes ``communicate()``'s reader
+    files, not pipes, so ``timeout`` bounds the *whole* call: a console-script launcher
+    can spawn a descendant that inherits the captured handles and outlives its parent; with OS pipes ``communicate()``'s reader
     threads block until that grandchild closes the write end (a warm probe could hang
     ~28 min holding ``_CACHE_LOCK``). Temp files make ``wait()`` cover only the child."""
     try:
@@ -64,8 +62,7 @@ def _run(cmd: list[str], timeout: float = 3.0) -> tuple[int, str, str]:
             try:
                 result = subprocess.run(
                     cmd, stdout=out_f, stderr=err_f, timeout=timeout, check=False,
-                    # CREATE_NO_WINDOW (0 on POSIX): pythonw hosts would flash a console
-                    stdin=subprocess.DEVNULL, creationflags=windows_hide_flags())
+                    stdin=subprocess.DEVNULL)
             except subprocess.TimeoutExpired:
                 return -1, "", "timeout"
             out_f.seek(0)

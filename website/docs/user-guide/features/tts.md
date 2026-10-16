@@ -113,7 +113,7 @@ tts:
     # normalize_audio: true
 ```
 
-KittenTTS is not available on Intel macOS or Windows ARM64: its dependencies publish no `onnxruntime` or PyTorch wheels for those platforms. Selecting it there reports the provider unavailable.
+KittenTTS is not available on Intel macOS: its dependencies publish no `onnxruntime` or PyTorch wheels for that platform. Selecting it there reports the provider unavailable.
 
 MiniMax TTS selects its region, endpoint, and credential together:
 
@@ -375,7 +375,7 @@ Use `{{` and `}}` for literal braces.
 
 | Key                | Default | Meaning                                                                                                    |
 |--------------------|---------|------------------------------------------------------------------------------------------------------------|
-| `timeout`          | `120`   | Idle seconds; stdout or stderr output resets the deadline. The process tree is killed after inactivity (Unix `killpg`, Windows `taskkill /T`). |
+| `timeout`          | `120`   | Idle seconds; stdout or stderr output resets the deadline. The process tree is killed after inactivity (`killpg`). |
 | `output_format`    | `mp3`   | One of `mp3` / `wav` / `ogg` / `flac`. Auto-inferred from the output extension if Hermes picks a path.      |
 | `voice_compatible` | `false` | When `true`, Hermes converts MP3/WAV output to Opus/OGG via ffmpeg so Telegram renders a voice bubble.      |
 | `max_text_length`  | `5000`  | Maximum input characters per command invocation; longer text is split into ordered chunks.                  |
@@ -561,7 +561,7 @@ If a trusted local template intentionally needs pipes, redirects, or another she
 export HERMES_LOCAL_STT_COMMAND='sh -c '\''whisper "$1" --output_format txt --output_dir "$2" | tee "$2/whisper.log"'\'' _ {input_path} {output_dir}'
 ```
 
-On Windows, use an explicit `cmd /c` or PowerShell wrapper instead. An explicit wrapper makes shell interpretation an opt-in part of the configured argv rather than an implicit property of every local STT template.
+An explicit wrapper makes shell interpretation an opt-in part of the configured argv rather than an implicit property of every local STT template.
 
 ```yaml
 stt:
@@ -642,7 +642,7 @@ For `format: json` / `srt` / `vtt`, Hermes returns the raw file content as the `
 
 | Key             | Default | Meaning                                                                                              |
 |-----------------|---------|------------------------------------------------------------------------------------------------------|
-| `timeout`       | `300`   | Seconds; the process tree is killed on expiry (Unix `start_new_session`, Windows `taskkill /T`).     |
+| `timeout`       | `300`   | Seconds; the process tree is killed on expiry (`start_new_session`).     |
 | `format`        | `txt`   | One of `txt` / `json` / `srt` / `vtt`. Sets the extension of `{output_path}`.                       |
 | `language`      | `en`    | Forwarded to `{language}`. Defaults to `stt.language` then `en`.                                     |
 | `model`         | empty   | Forwarded to `{model}`. The `model=` argument to `transcribe_audio()` overrides this.                |

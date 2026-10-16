@@ -626,7 +626,7 @@ test('pidIsOurDashboard accepts the venv entrypoint an installer wrapper execs i
   assert.match(ownershipProbe, /expected_profile=.*ops/)
 })
 
-test.skipIf(process.platform === 'win32')(
+test(
   'pidIsOurDashboard recognizes an installer wrapper after it execs python + entrypoint',
   async (): Promise<void> => {
     const shell: string = (await exec('command -v bash', { shell: 'bash' })).stdout.trim()
@@ -980,7 +980,7 @@ test('buildSpawnCommand never pins a non-slug profile into the remote argv', () 
   assert.ok(good.includes("'work'"), 'the profile is normalized like the CLI would')
 })
 
-test.skipIf(process.platform === 'win32')(
+test(
   'detached backend does not inherit the update mutex descriptor',
   async (): Promise<void> => {
     const shell: string = (await exec('command -v bash', { shell: 'bash' })).stdout.trim()
@@ -1440,7 +1440,7 @@ test('managed update drain never falls back to a bare kill when the identity-bou
   )
 })
 
-test.skipIf(process.platform === 'win32')(
+test(
   'managed update drain reports the real POSIX refusal, not a generic transport error',
   async () => {
     // Regression for #124617: the termination probe prints REFUSED (and, on
@@ -1941,7 +1941,7 @@ test('remote SSH ownership capability requires both secure bootstrap flags', asy
   assert.equal(await remoteSupportsSshOwnership(unsupported, '/x/hermes'), false)
 })
 
-test.skipIf(process.platform === 'win32')(
+test(
   'capability probe survives a zsh login shell on the remote (#111949)',
   async t => {
     // sshd runs the remote command under the account's LOGIN shell. A bare
@@ -2055,7 +2055,7 @@ test('cleanupStale keeps the lockfile when even SIGKILL cannot confirm the pid d
   // The record must survive so the next connect's reap pass retries.
   assert.ok(!ssh.calls.some(c => /rm -f .*backend\.lock\.json/.test(c)))
 })
-test.skipIf(process.platform === 'win32')(
+test(
   'buildSpawnCommand quotes expandRemotePath fragments exactly once (real sh parse)',
   async () => {
     // expandRemotePath() output is pre-quoted; a second shq() ships literal quote

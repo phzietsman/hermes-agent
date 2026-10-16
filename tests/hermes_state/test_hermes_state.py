@@ -122,7 +122,6 @@ def _no_fts_rebuild_throttle(monkeypatch):
 
 
 class TestConnectionLifecycle:
-    @pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
     def test_writable_state_db_is_owner_only_under_permissive_umask(self, tmp_path):
         """state.db and any live SQLite sidecars must not inherit 0644 modes."""
         db_path = tmp_path / "state.db"
@@ -151,7 +150,6 @@ class TestConnectionLifecycle:
         finally:
             session_db.close()
 
-    @pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
     def test_writable_state_db_tightens_existing_loose_mode(self, tmp_path):
         """Opening a legacy 0644 profile store repairs it in place."""
         db_path = tmp_path / "state.db"
@@ -165,7 +163,6 @@ class TestConnectionLifecycle:
         finally:
             session_db.close()
 
-    @pytest.mark.skipif(os.name == "nt", reason="POSIX fcntl locks")
     def test_writable_state_db_keeps_locks_across_second_open(self, tmp_path):
         """Opening a second SessionDB in this process must not unlink live sidecars.
 
@@ -1499,17 +1496,6 @@ class TestPruneSessionFilters:
 
         rows = db.list_prune_candidates(cwd_prefix="/home/me/proj")
         assert {r["id"] for r in rows} == {"root", "child"}
-
-    def test_cwd_prefix_windows_separator_arm(self, db):
-        """The backslash child arm (``{esc}\\\\%`` in the pattern) must keep
-        matching Windows children while ``_`` stays literal — a guard against
-        'simplifying' the quadruple backslash."""
-        self._mk(db, "win_root", cwd=r"C:\Users\me\my_project")
-        self._mk(db, "win_child", cwd=r"C:\Users\me\my_project\src")
-        self._mk(db, "win_sibling", cwd=r"C:\Users\me\myXproject\src")
-
-        rows = db.list_prune_candidates(cwd_prefix=r"C:\Users\me\my_project")
-        assert {r["id"] for r in rows} == {"win_root", "win_child"}
 
     def test_unknown_filter_rejected(self, db):
         import pytest as _pytest

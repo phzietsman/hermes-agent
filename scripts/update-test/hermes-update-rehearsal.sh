@@ -92,16 +92,6 @@ SNAP=""
 # paths
 # ---------------------------------------------------------------------------
 
-# Under git-bash/cygwin, POSIX paths are not translated for native tools
-# (git.exe), so normalise them. On macOS cygpath is absent: no-op.
-native_path() {
-  if command -v cygpath >/dev/null 2>&1; then
-    cygpath -m "$1" 2>/dev/null || printf '%s' "$1"
-  else
-    printf '%s' "$1"
-  fi
-}
-
 resolve_paths() {
   local suffix="${HERMES_DATA_DIR_SUFFIX:-}"
   if [ -n "${HERMES_HOME:-}" ]; then
@@ -115,10 +105,6 @@ resolve_paths() {
   else
     USERDATA_DIR="$HOME/Library/Application Support/Hermes${suffix}"; USERDATA_SOURCE="default"
   fi
-  BACKUP_ROOT="$(native_path "$BACKUP_ROOT")"
-  HERMES_HOME="$(native_path "$HERMES_HOME")"
-  INSTALL_DIR="$(native_path "$INSTALL_DIR")"
-  USERDATA_DIR="$(native_path "$USERDATA_DIR")"
 }
 
 latest_backup_root() {
@@ -226,7 +212,7 @@ swap_tree() {
 resolve_hermes_exe() {
   local c
   for c in "$INSTALL_DIR/venv/bin/hermes" "$INSTALL_DIR/.hermes/bin/hermes" \
-           "$INSTALL_DIR/venv/Scripts/hermes.exe" "$HERMES_HOME/bin/hermes"; do
+           "$HERMES_HOME/bin/hermes"; do
     [ -x "$c" ] && { printf '%s' "$c"; return 0; }
   done
   return 1

@@ -85,7 +85,7 @@ def collect_orphan_install_states(installs: Path) -> list[Path]:
             logger.debug("orphan install state %s is still held; skipped", state.name)
             continue
         # The record goes last, and only once everything else is gone: the startup prune runs on
-        # a daemon thread and a removal can fail part-way (an open file on Windows, a read-only
+        # a daemon thread and a removal can fail part-way (a read-only
         # dir), and a dir that lost its record first would never be recognised again.
         for child in state.iterdir():
             if child.name == "inputs":

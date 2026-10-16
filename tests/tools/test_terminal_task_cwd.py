@@ -190,7 +190,6 @@ def test_host_local_background_command_bypasses_configured_backend(tmp_path, mon
             raise AssertionError("host-local command reached configured backend")
 
     import tools.process_registry as process_registry_mod
-    import tools.self_repo_guard as self_repo_guard
 
     task_id = "bot-delivery"
     monkeypatch.setattr(
@@ -219,7 +218,6 @@ def test_host_local_background_command_bypasses_configured_backend(tmp_path, mon
         "_check_all_guards",
         lambda command, env_type, **kwargs: {"approved": env_type == "local"},
     )
-    monkeypatch.setattr(self_repo_guard, "guard_active", lambda: False)
     monkeypatch.setattr(process_registry_mod, "process_registry", FakeRegistry())
 
     result = json.loads(

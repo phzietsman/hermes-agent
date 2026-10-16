@@ -6,7 +6,6 @@
  * consuming pipeline regenerates them before building:
  *   - website:  website/scripts/prebuild.mjs (docusaurus prebuild)
  *   - desktop:  apps/desktop/package.json prebuild + predev
- *   - installer: apps/bootstrap-installer/package.json prebuild
  *   - web:       web/package.json prebuild
  *
  * The renderer runs on the Hermes runtime interpreter (HERMES_PYTHON, else
@@ -33,7 +32,7 @@ export function generateIcons(args = [], { root = repoRoot, run = spawnSync, env
   const result = run(env.HERMES_PYTHON || 'python', [
     '-I', path.join(root, 'scripts', 'generate_icons.py'), '--source', source, '--out', out,
     ...(values.check ? ['--check'] : [])
-  ], { cwd: source, stdio: 'inherit', windowsHide: true, env: childEnv })
+  ], { cwd: source, stdio: 'inherit', env: childEnv })
   if (result.error) {
     console.error('[generate-icons] failed to launch icon generator:', result.error.message)
     console.error('[generate-icons] a Hermes runtime Python (HERMES_PYTHON or PATH) is required')

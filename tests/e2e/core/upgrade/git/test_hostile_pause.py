@@ -190,7 +190,7 @@ def _kill_born_after(host: NamespaceHost, before: set[int], keep: set[int] | fro
         for pid in live:
             host.kill(pid, signal.SIGSTOP)
         for pid in live:
-            host.kill(pid, signal.SIGKILL)  # windows-footgun: ok - linux-only (bwrap) module
+            host.kill(pid, signal.SIGKILL)
             if pid not in killed:
                 killed.append(pid)
         time.sleep(0.5)

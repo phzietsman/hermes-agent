@@ -26,9 +26,6 @@ publish an application selection. It does not enable plugins.
 
 Subsequent steps get `python`, `python3`, `node`, `npm` and `npx`
 for the selected toolchain on PATH. The pinned npm precedes Node's bundled npm.
-On Windows, PM selects the host architecture even if the bootstrap interpreter
-runs under x64 emulation. A disposable command environment supplies the missing
-`python3.exe` alias without changing the verified interpreter store.
 
 For Python dependencies, the action exports `HERMES_PYTHON` and `VIRTUAL_ENV`.
 Use `scripts/run_tests.sh`; do not activate `.venv`. The environment belongs to
@@ -38,7 +35,7 @@ CI environments with `python -m scripts.ci.python_packages package==version`.
 This exports the selected Python and tool entrypoints for subsequent steps;
 append `-- -m module ...` to run a Python command directly and preserve its exit
 status. Neither route modifies the cached tool store. Native builds still need their system libraries
-and compiler, such as OpenSSL for Windows ARM64 cryptography.
+and compiler.
 
 ## Caches
 
@@ -85,5 +82,5 @@ Use the version outputs in installed-tree cache keys instead of repeating pins.
 
 The tools cache key hashes `pm/**`, this action, and `scripts/ci/setup_toolchain.py`,
 so a provisioning change re-runs the cold path on every lane that uses the action
-(`tests-os.yml` covers macOS and both Windows architectures). `cache-suffix` is an
+(`tests-os.yml` covers macOS). `cache-suffix` is an
 optional namespace for isolated cache experiments; it changes lookup, not storage.

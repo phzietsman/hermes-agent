@@ -18,7 +18,6 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
-from hermes_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
 from utils import atomic_json_write
 
 logger = logging.getLogger(__name__)
@@ -71,7 +70,7 @@ def resolve_copilot_token() -> tuple[str, str]:
         logger.warning("Token from %s is not supported: %s", env_var, msg)
     # `gh auth token` fallback ONLY when no Copilot env var was set: an exported GITHUB_TOKEN
     # (even a classic PAT) means the user intends *that* token; skipping also avoids a slow
-    # subprocess (up to 5s on Windows) on every cold start.
+    # subprocess (up to 5s) on every cold start.
     if any_env_var_set:
         logger.debug("Copilot env var(s) set but none held a supported token; skipping `gh auth "
                      "token` fallback to honor explicit env-var intent (and avoid the subprocess "
@@ -132,14 +131,13 @@ def _probe_gh_cli_token() -> Optional[str]:
     clean_env = {k: v for k, v in os.environ.items() if k not in {"GITHUB_TOKEN", "GH_TOKEN"}}
     clean_env.setdefault("GH_PROMPT_DISABLED", "1")
     clean_env.setdefault("GH_NO_UPDATE_NOTIFIER", "1")
-    _popen_kwargs = {"creationflags": windows_hide_flags()} if IS_WINDOWS else {}
     host_args = ["--hostname", hostname] if hostname else []
     for gh_path in _gh_cli_candidates():
         cmd = [gh_path, "auth", "token", *host_args]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8',
                                     errors='replace', timeout=5, env=clean_env,
-                                    stdin=subprocess.DEVNULL, **_popen_kwargs)
+                                    stdin=subprocess.DEVNULL)
         except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
             logger.debug("gh CLI token lookup failed (%s): %s", gh_path, exc)
             continue
@@ -341,7 +339,7 @@ def _save_jwt_to_disk(fp: str, api_token: str, expires_at: float, base_url: Opti
 
 
 # urllib's ``timeout`` only bounds socket ops AFTER DNS; getaddrinfo ignores it, so a networkless
-# Windows host can hang for minutes (observed: a 17-minute event-loop stall).
+# host can hang for minutes (observed: a 17-minute event-loop stall).
 _DNS_GRACE_SECONDS = 5.0
 
 

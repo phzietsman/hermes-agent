@@ -25,7 +25,7 @@ from typing import Optional
 from hermes_constants import get_hermes_home
 from tools.environments.base import BaseEnvironment, EnvironmentConnectionError, _SHELL_ENV_NAME_RE
 from tools.terminal_tool_config import (
-    _host_path_key, _is_windows_drive_path, cwd_follows_host_mount,
+    _host_path_key, cwd_follows_host_mount,
 )
 from tools.environments.base_output import _popen_bash
 from tools.environments.docker_egress import (
@@ -142,8 +142,6 @@ def _is_volatile_mount_spec(spec: str) -> bool:
         return False  # the flag element itself, or a non-bind arg (tmpfs modes etc.)
     parsed = _split_volume_spec(spec)
     source = parsed[0] if parsed is not None else spec.split(":", 1)[0]
-    if _is_windows_drive_path(source):
-        return False  # drive-letter hosts can never be the POSIX process tempdir
     try:
         temp_root = os.path.realpath(tempfile.gettempdir())
         source_abs = os.path.realpath(os.path.abspath(os.path.expanduser(source)))
@@ -411,19 +409,6 @@ def _image_uses_init_entrypoint(docker_exe: str, image: str) -> bool:
     return str(entrypoint[0]).strip() in _S6_INIT_ENTRYPOINTS
 
 
-def _resolve_host_user_spec() -> Optional[str]:
-    """``<uid>:<gid>`` of the host user, or ``None`` without POSIX ids. Uses os.getuid/getgid
-    directly (not pwd/getpass) so nameless UIDs inside sandboxed launchers never raise."""
-    get_uid = getattr(os, "getuid", None)
-    get_gid = getattr(os, "getgid", None)
-    if get_uid is None or get_gid is None:
-        return None
-    try:
-        return f"{get_uid()}:{get_gid()}"
-    except Exception:  # pragma: no cover - defensive
-        return None
-
-
 _storage_opt_ok: Optional[bool] = None  # cached result across instances
 _cgroup_limits_ok: Optional[bool] = None  # cached result across instances
 
@@ -555,18 +540,12 @@ def _readonly_skill_mount_args() -> list[str]:
 
 
 def _host_user_args(run_as_host_user: bool) -> list[str]:
-    """``--user uid:gid`` so bind-mount writes are owned by the host user, not root. Without
-    POSIX ids fall back to the full cap set — the image's init may still need to drop privileges."""
+    """``--user uid:gid`` so bind-mount writes are owned by the host user, not root."""
     if not run_as_host_user:
         return []
-    user_spec = _resolve_host_user_spec()
-    if user_spec is not None:
-        logger.info("Docker: running container as host user %s", user_spec)
-        return ["--user", user_spec]
-    logger.warning(
-        "docker_run_as_host_user is enabled but this platform does "
-        "not expose POSIX uid/gid; container will start as its image default user.")
-    return []
+    user_spec = f"{os.getuid()}:{os.getgid()}"
+    logger.info("Docker: running container as host user %s", user_spec)
+    return ["--user", user_spec]
 
 
 _VOLUME_SPEC_RE = re.compile(r"^(?P<host>.+):(?P<container>/[^:]+)(?::[^:]*)?$")
@@ -575,7 +554,7 @@ _HOST_CWD_FALLBACK_MOUNTS = ("/host-cwd", "/host-cwd-2", "/host-cwd-3")
 
 
 def _split_volume_spec(spec: str) -> tuple[str, str] | None:
-    """``host:container[:mode]`` → ``(host, container)``. Drive-letter hosts keep their colon."""
+    """``host:container[:mode]`` → ``(host, container)``."""
     if not isinstance(spec, str):
         return None
     match = _VOLUME_SPEC_RE.match(spec.strip())
@@ -613,11 +592,8 @@ def _free_host_cwd_mount(volume_args: list[str]) -> str:
 
 
 def _abs_host_cwd(host_cwd: str) -> str:
-    """Absolute host path. A Windows drive path is not prefixed with the POSIX process cwd."""
-    expanded = os.path.expanduser(host_cwd)
-    if _is_windows_drive_path(expanded) and os.name != "nt":
-        return expanded
-    return os.path.abspath(expanded)
+    """Absolute host path."""
+    return os.path.abspath(os.path.expanduser(host_cwd))
 
 
 class DockerEnvironment(BaseEnvironment):
@@ -826,9 +802,7 @@ class DockerEnvironment(BaseEnvironment):
         A configured host working directory is bound even when another volume already
         claims ``/workspace``: at ``/workspace`` when that path is free, otherwise at
         a second mount. ``host_cwd`` / ``host_cwd_mount`` tell tools which container
-        path is that directory. A Windows drive path is bound whenever it exists on
-        the host — it can never be a path inside the Linux container, and the check
-        is the drive shape, not a username.
+        path is that directory.
         """
         volume_args: list[str] = []
         for vol in (volumes or []):
@@ -845,10 +819,9 @@ class DockerEnvironment(BaseEnvironment):
         workspace_explicitly_mounted = any(":/workspace" in v for v in volume_args)
 
         host_cwd_abs = _abs_host_cwd(host_cwd) if host_cwd else ""
-        windows_cwd = _is_windows_drive_path(host_cwd or "") or _is_windows_drive_path(host_cwd_abs)
         host_dir_exists = bool(host_cwd_abs) and os.path.isdir(host_cwd_abs)
-        should_bind = host_dir_exists and (auto_mount_cwd or windows_cwd)
-        if (auto_mount_cwd or windows_cwd) and host_cwd and not host_dir_exists:
+        should_bind = host_dir_exists and auto_mount_cwd
+        if auto_mount_cwd and host_cwd and not host_dir_exists:
             logger.debug("Skipping docker cwd mount: host_cwd is not a valid directory: %s", host_cwd)
 
         existing_mount = _existing_host_mount(volume_args, host_cwd_abs) if should_bind else None

@@ -3,7 +3,7 @@
 Provides ``start_gateway()`` (start all configured adapters) and ``GatewayRunner`` (lifecycle).
 Run via ``python -m gateway.run`` or ``python cli.py --gateway``."""
 
-# hermes_bootstrap must be the very first import (UTF-8 stdio on Windows; no-op on POSIX).
+# hermes_bootstrap must be the very first import (PM activation).
 try:
     import hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError as exc:  # a partial ``hermes update`` can leave the bootstrap unregistered
@@ -18,7 +18,6 @@ import logging
 import os
 import re
 import shlex
-import site
 import sys
 import signal
 import threading
@@ -396,7 +395,7 @@ _GATEWAY_RATE_LIMIT_RE = re.compile(
 _CONNECTION_ERROR_MARKERS = (
     r"(?:\w+\.)?(?:api\s*)?connection\s*(?:error|timeout)", r"(?:\w+\.)?connect\s*(?:error|timeout)",
     r"connection\s+refused", r"connection\s+reset", r"connection\s+aborted", r"actively\s+refused",
-    r"winerror\s+10061\b", r"errno\s+111\b", r"no\s+route\s+to\s+host", r"network\s+is\s+unreachable",
+    r"errno\s+111\b", r"no\s+route\s+to\s+host", r"network\s+is\s+unreachable",
     r"cannot\s+connect", r"failed\s+to\s+establish", r"could\s+not\s+connect")
 _GATEWAY_CONNECTION_ERROR_RE = re.compile("(" + "|".join(_CONNECTION_ERROR_MARKERS) + ")", re.IGNORECASE)
 
@@ -413,60 +412,11 @@ _GATEWAY_CONNECTION_INTERRUPTED_RE = re.compile(
 
 # Nothing accepted the connection / no path to the host: "the endpoint is not up" IS the diagnosis.
 _ENDPOINT_UNREACHABLE_MARKERS = (
-    r"connection\s+refused", r"actively\s+refused", r"winerror\s+10061\b", r"errno\s+111\b",
+    r"connection\s+refused", r"actively\s+refused", r"errno\s+111\b",
     r"no\s+route\s+to\s+host", r"network\s+is\s+unreachable", r"cannot\s+connect",
     r"failed\s+to\s+establish", r"could\s+not\s+connect", r"(?:\w+\.)?connect\s*(?:error|timeout)")
 _GATEWAY_ENDPOINT_UNREACHABLE_RE = re.compile(
     "(" + "|".join(_ENDPOINT_UNREACHABLE_MARKERS) + ")", re.IGNORECASE)
-
-def _ensure_windows_gateway_venv_imports() -> None:
-    """Make detached Windows gateway runs see the Hermes venv packages.
-
-    Patched before MCP discovery so tool injection does not depend on launchers preserving PYTHONPATH."""
-    if sys.platform != "win32":
-        return
-
-    project_root = Path(__file__).resolve().parent.parent
-    from pm.environments import committed_venv
-
-    # A PM install's store Python was already activated onto the committed generation by
-    # hermes_bootstrap; overlaying the leftover pre-PM venv loads a foreign ABI (#122183).
-    if committed_venv(project_root) is not None:
-        return
-    candidates: list[Path] = []
-    if os.environ.get("VIRTUAL_ENV"):
-        candidates.append(Path(os.environ["VIRTUAL_ENV"]))
-    candidates.append(project_root / "venv")
-
-    seen: set[str] = set()
-    for venv_dir in candidates:
-        try:
-            resolved_venv = venv_dir.resolve()
-        except OSError:
-            resolved_venv = venv_dir
-        venv_key = str(resolved_venv).lower()
-        if venv_key in seen:
-            continue
-        seen.add(venv_key)
-
-        site_packages = resolved_venv / "Lib" / "site-packages"
-        if not site_packages.exists():
-            continue
-
-        project_entry = str(project_root)
-        site_entry = str(site_packages)
-        if project_entry not in sys.path:
-            sys.path.insert(0, project_entry)
-        # addsitedir semantics matter: pywin32 (MCP SDK on Windows) needs .pth processing for pywintypes.
-        site.addsitedir(site_entry)
-        if site_entry in sys.path:
-            sys.path.remove(site_entry)
-        insert_at = 1 if sys.path and sys.path[0] == project_entry else 0
-        sys.path.insert(insert_at, site_entry)
-
-        os.environ["VIRTUAL_ENV"] = str(resolved_venv)
-        return
-
 
 def _gateway_platform_value(platform: Any) -> str:
     """Return a normalized gateway platform value for enums or raw strings."""
@@ -1395,7 +1345,7 @@ _JSON_MEDIA_TOOL_PATH_FIELDS = ("host_image", "image", "agent_visible_image")
 
 # Extension-anchored MEDIA: matcher (mirrors the dispatch site); a bare ``MEDIA:`` in prose never auto-appends.
 _TOOL_MEDIA_RE = re.compile(
-    r'MEDIA:((?:[A-Za-z]:[/\\]|/|~\/)\S+\.(?:png|jpe?g|gif|webp|'
+    r'MEDIA:((?:/|~\/)\S+\.(?:png|jpe?g|gif|webp|'
     r'mp4|mov|avi|mkv|webm|ogg|opus|mp3|wav|m4a|'
     r'flac|epub|pdf|zip|rar|7z|docx?|xlsx?|pptx?|'
     r'txt|csv|apk|ipa))',
@@ -1855,8 +1805,7 @@ async def _discover_gateway_mcp_tools(config: object) -> None:
     carry the scope into the executor thread with ``copy_context()`` (the same shape as
     ``_run_in_executor_with_context``). See #95518.
 
-    No gateway run can complete a browser OAuth flow (nobody watches its stdout; on Windows its
-    DEVNULL stdin even passes ``isatty``), so discovery runs with interactive OAuth suppressed — the
+    No gateway run can complete a browser OAuth flow (nobody watches its stdout), so discovery runs with interactive OAuth suppressed — the
     same gate the CLI's background discovery uses. An expired token then parks the server with an
     actionable ``hermes mcp login`` warning instead of opening an authorize tab.
     """
@@ -2742,7 +2691,7 @@ def _skill_slug_from_frontmatter(skill_md: Path) -> tuple[str | None, str | None
         content = skill_md.read_text(encoding="utf-8-sig", errors="replace")
     except Exception:
         return None, None
-    content = content.lstrip("\ufeff")  # tolerate UTF-8 BOM (Windows editors)
+    content = content.lstrip("\ufeff")  # tolerate a UTF-8 BOM some editors write
     if not content.startswith("---"):
         return None, None
     end = content.find("\n---", 3)
@@ -4451,15 +4400,11 @@ class GatewayRunner(
 def _run_planned_stop_watcher(
     stop_event: threading.Event, runner, loop: asyncio.AbstractEventLoop, shutdown_handler, *,
     poll_interval: float = 0.5) -> None:
-    """Poll for the planned-stop marker and trigger graceful shutdown (Windows lacks
-    ``add_signal_handler``, so ``hermes gateway stop`` would never drain). Runs everywhere; on POSIX
-    the signal handler consumes the marker first and ``_running``/``_draining`` guard re-triggers.
-
-    On Windows, ``asyncio.add_signal_handler`` raises NotImplementedError for SIGTERM/SIGINT, so the
-    standard signal-driven shutdown path never runs when ``hermes gateway stop`` signals the gateway. The
-    consequence is that the drain loop is skipped — in-flight agent sessions are killed mid-turn and
-    ``resume_pending`` is never set, so the next gateway boot has no idea those sessions need to be
-    auto-resumed (issue #33778, v0.13.0 session-resume feature broken on native Windows).
+    """Poll for the planned-stop marker and trigger graceful shutdown, so ``hermes gateway stop``
+    still drains where SIGTERM never reaches the handler (masked-signal sandboxes, no main thread).
+    Normally the signal handler consumes the marker first and ``_running``/``_draining`` guard
+    re-triggers. Without a drain, in-flight sessions are killed mid-turn and ``resume_pending`` is
+    never set (issue #33778).
     """
     from gateway.status import (
         _get_planned_stop_marker_path, planned_stop_marker_targets_self)
@@ -4892,19 +4837,16 @@ def _replace_target_belongs_to_other_profile(existing_pid: int) -> bool:
             return False
     except Exception:
         logger.debug("host served-set ownership probe failed for PID %s", existing_pid, exc_info=True)
-    # On Windows there is no systemd/launchd service query at all (_get_service_pids() returns an empty
-    # set), so a gateway supervised by a Scheduled Task / Startup VBS looks like an unsupervised orphan to
-    # the process scan (#86098). The same holds on every platform for a healthy gateway launched standalone
-    # (no service registration) whose PID the runtime record can see (#83683). Exempt the recorded healthy
-    # gateway PID and its parent chain: a recorded, liveness-verified gateway is by definition not an orphan
-    # "the pidfile/runtime record can't see", and the Scheduled-Task bootstrap's argv (``gateway run``)
-    # matches the gateway scan — killing that bootstrap takes the detached gateway it spawned down with it.
+    # A healthy gateway launched standalone (no service registration) whose PID the runtime record can see
+    # looks like an unsupervised orphan to the process scan (#83683). Exempt the recorded healthy gateway
+    # PID and its parent chain: a recorded, liveness-verified gateway is by definition not an orphan
+    # "the pidfile/runtime record can't see", and a bootstrap parent's argv (``gateway run``) matches the
+    # gateway scan — killing that bootstrap takes the detached gateway it spawned down with it.
     # Exclusion evidence comes from the RAW registration record, not the liveness-validated probe.
     # ``get_running_pid`` (any flags) returns None whenever a record fails validation — start-time mismatch
     # after PID-reuse checks, argv drift, lock hiccups — which is exactly when a healthy standalone gateway
-    # (no service supervisor — e.g. `hermes gateway run` on Windows) is at risk: its PID never joins the
-    # exclusion set and the sweep hard-kills it. On Windows SIGTERM is TerminateProcess, so the gateway's
-    # planned-stop watcher never gets a chance to drain. Reading the raw pidfile + lock records (no
+    # (no service supervisor — e.g. a bare `hermes gateway run`) is at risk: its PID never joins the
+    # exclusion set and the sweep hard-kills it. Reading the raw pidfile + lock records (no
     # validation, no unlink side effects) is strictly safer for a KILL exclusion list: a stale recorded PID
     # at worst spares one process this sweep, while a validation false-negative would kill a live gateway.
     # The validated probe is still consulted for the runtime-status fallback PID it can surface when no
@@ -5013,7 +4955,7 @@ def _clear_takeover_marker_quiet() -> None:
 
 async def _wait_for_pid_exit(pid: int, attempts: int, delay: float) -> bool:
     """Poll for process exit without blocking the loop (a blocking sleep freezes signal handlers and
-    health checks). ``os.kill(pid, 0)`` on Windows is NOT a no-op — use the handle-based check."""
+    health checks)."""
     from gateway.status import _pid_exists
     for _ in range(attempts):
         if not _pid_exists(pid):
@@ -5089,7 +5031,7 @@ async def _start_gateway_replace_existing_instance(existing_pid: int, replace: b
                 "aborting replacement to avoid a duplicate gateway.", existing_pid)
             _clear_takeover_marker_quiet()
             return False
-    # Reap orphaned children (POSIX; mirrors Windows taskkill /T) so they stop holding scoped token locks.
+    # Reap orphaned children so they stop holding scoped token locks.
     try:
         from gateway.status import reap_gateway_children
         reap_gateway_children(_old_gateway_children, parent_pid=existing_pid)
@@ -5766,26 +5708,17 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
     loop.set_exception_handler(_gateway_loop_exception_handler)
 
     if threading.current_thread() is threading.main_thread():
-        # add_signal_handler raises NotImplementedError on Windows; SIGUSR1 is POSIX-only.
         handlers = [(sig, shutdown_signal_handler, (sig,)) for sig in (signal.SIGINT, signal.SIGTERM)]
-        if hasattr(signal, "SIGUSR1"):
-            handlers.append((signal.SIGUSR1, restart_signal_handler, ()))  # windows-footgun: ok — hasattr-guarded
+        handlers.append((signal.SIGUSR1, restart_signal_handler, ()))
         for sig, handler, args in handlers:
-            with suppress(NotImplementedError):
-                loop.add_signal_handler(sig, handler, *args)  # windows-footgun: ok — suppress(NotImplementedError)
+            loop.add_signal_handler(sig, handler, *args)
     else:
         logger.info("Skipping signal handlers (not running in main thread).")
 
-    # Windows has no add_signal_handler, so `hermes gateway stop`'s SIGTERM would never drain; poll the
-    # planned-stop marker (written BEFORE the kill) instead. Runs everywhere so masked-SIGTERM drains.
-    # Windows fallback: asyncio.add_signal_handler raises NotImplementedError on Windows, so `hermes gateway
-    # stop`'s SIGTERM (which Python maps to TerminateProcess on Windows) never invokes
-    # shutdown_signal_handler. That means the drain loop never runs, mark_resume_pending never fires, and
-    # sessions are silently lost across restarts (issue #33778). The fix is a marker-polling thread: `hermes
-    # gateway stop` writes the planned-stop marker BEFORE killing, and this thread notices it and drives the
-    # same shutdown path the signal handler would have. Runs on every platform (cheap, defensive) so
-    # non-signal-bearing environments (Windows native, sandboxed CI runners that mask SIGTERM) still get a
-    # clean drain.
+    # `hermes gateway stop` writes the planned-stop marker BEFORE signalling; this thread notices it and
+    # drives the same shutdown path the signal handler would, so environments where SIGTERM never reaches
+    # the handler (sandboxed CI runners that mask it, no main thread) still drain and mark sessions
+    # resume_pending (issue #33778).
     _planned_stop_watcher_stop = threading.Event()
     _planned_stop_watcher_thread = threading.Thread(
         target=_run_planned_stop_watcher,
@@ -5820,7 +5753,6 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
 
     _best_effort(_lifecycle_record_startup, "Lifecycle ledger startup record failed: %s")
     _best_effort(_start_keepalive, "Nous auth keepalive did not start: %s")
-    _ensure_windows_gateway_venv_imports()
 
     # discover_mcp_tools() blocks up to 120s; on the loop thread it would freeze platform heartbeats.
     try:
@@ -5897,10 +5829,9 @@ def main():
     os.environ.setdefault("HERMES_AGENT", "true")
 
     def _register_identity() -> None:
-        # Ledger registration + Windows job-object attach so update-time reapers can identify this gateway.
-        from hermes_cli.process_identity import attach_self_to_kill_on_close_job, register_self
+        # Ledger registration so update-time reapers can identify this gateway.
+        from hermes_cli.process_identity import register_self
         register_self("gateway")
-        attach_self_to_kill_on_close_job()
 
     def _arm_watchdog() -> None:
         # Armed before config load / DB opens so a pre-loop deadlock is respawned by the supervisor instead
@@ -5908,12 +5839,7 @@ def main():
         from hermes_startup_watchdog import arm_startup_watchdog
         arm_startup_watchdog()
 
-    def _utf8_stdio() -> None:
-        # Windows: gateway logs and banner would UnicodeEncodeError on cp1252 consoles. No-op on POSIX.
-        from hermes_cli.stdio import configure_windows_stdio
-        configure_windows_stdio()
-
-    for _step in (_register_identity, _arm_watchdog, _utf8_stdio):
+    for _step in (_register_identity, _arm_watchdog):
         _best_effort(_step)
 
     # pm startup contract (PATH provisioning for the store's tools), then

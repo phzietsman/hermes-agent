@@ -5,7 +5,7 @@ version: 1.0.0
 author: Teknium (teknium1), Hermes Agent
 license: MIT
 tags: [gaming, pokemon, emulator, pyboy, gameplay, gameboy]
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 ---
 # Pokemon Player
 

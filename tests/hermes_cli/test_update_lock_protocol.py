@@ -22,7 +22,6 @@ import pytest
 from hermes_cli.update_lock import UpdateLock, marker_mutex_path, process_create_time
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-posix_only = pytest.mark.skipif(sys.platform == "win32", reason="POSIX signals / fd inheritance")
 
 
 def _script(tmp_path: Path, code: str) -> Path:
@@ -78,7 +77,6 @@ time.sleep(60)
 """
 
 
-@posix_only
 @pytest.mark.live_system_guard_bypass  # SIGCONTs only its own reader child; without psutil the guard cannot prove that
 def test_a_stale_reclaim_never_deletes_a_claim_published_after_its_read(tmp_path):
     """R3: the reader judged a dead marker, then paused right at its unlink. A second real
@@ -134,7 +132,6 @@ time.sleep(60)
 """
 
 
-@posix_only
 @pytest.mark.live_system_guard_bypass  # SIGCONTs only its own reader child; without psutil the guard cannot prove that
 def test_a_reader_reports_the_live_claim_that_replaced_its_stale_snapshot(tmp_path):
     """F2: the reader read a dead marker and paused before the locked recheck; a real marker-only
@@ -230,7 +227,6 @@ child.wait()
 """
 
 
-@posix_only
 def test_an_orphaned_delegate_removes_its_killed_owners_marker(tmp_path):
     """A7 rule 5 / Windows ``orphaned_update``: the hand-off script claims, names its `hermes
     update` child as delegate, and is killed alone. Pre-A7 the child adopted the claim without
@@ -253,7 +249,6 @@ def test_an_orphaned_delegate_removes_its_killed_owners_marker(tmp_path):
         owner.wait()
 
 
-@posix_only
 def test_owner_release_hands_the_claim_to_a_live_delegate(tmp_path):
     """A7 rule 5, the other half: the owner's release never deletes the claim a live delegate
     still runs under; it rewrites it with that delegate as owner (and keeps the run line)."""
@@ -289,7 +284,6 @@ def _git(root: Path, *args: str) -> str:
     return subprocess.check_output(["git", "-C", str(root), *args], text=True, env=env).strip()
 
 
-@posix_only
 def test_git_keeps_checkout_custody_after_its_updater_is_killed(tmp_path):
     """R2: `_git_run`'s git (and any program it runs) inherits the checkout lock. Pre-fix the
     killed updater's lock fell free while its git still wrote the index, and a contender acquired.
@@ -343,7 +337,6 @@ run_source_script(root, "build.mjs", env={**os.environ, "PATH": sys.argv[3]}, la
 """
 
 
-@posix_only
 def test_the_source_build_keeps_checkout_custody_after_its_updater_is_killed(tmp_path):
     """R2: the Node build `run_source_script` starts keeps the lock fd. A real `node` stand-in
     (an executable on the build's PATH) outlives the killed updater; the checkout stays locked."""
@@ -518,7 +511,6 @@ Path(sys.argv[3]).write_text(str(child.pid), encoding="utf-8")
 """
 
 
-@posix_only
 def test_a_refusal_over_a_dead_updaters_lock_uses_the_held_wording(tmp_path):
     """m6: `hermes update`, launch repair and source completion refuse through the lock's
     holder record. Its updater is dead and a child it started holds the lock: say so, never
@@ -566,7 +558,6 @@ print(n)
 """
 
 
-@posix_only
 def test_held_probe_never_fails_a_concurrent_acquire(tmp_path):
     from hermes_cli import update_lock
 

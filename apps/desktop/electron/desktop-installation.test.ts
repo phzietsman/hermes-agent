@@ -75,9 +75,7 @@ test('loadOrCreateInstallationId persists and reuses one installation ID', () =>
       ID_A
     )
 
-    if (process.platform !== 'win32') {
-      assert.equal(fs.statSync(filePath).mode & 0o777, 0o600)
-    }
+    assert.equal(fs.statSync(filePath).mode & 0o777, 0o600)
   }))
 
 test('loadOrCreateInstallationId tightens an existing identity file', () =>
@@ -89,9 +87,7 @@ test('loadOrCreateInstallationId tightens an existing identity file', () =>
       ID_A
     )
 
-    if (process.platform !== 'win32') {
-      assert.equal(fs.statSync(filePath).mode & 0o777, 0o600)
-    }
+    assert.equal(fs.statSync(filePath).mode & 0o777, 0o600)
   }))
 
 test('loadOrCreateInstallationId replaces a malformed existing record', () =>
@@ -107,10 +103,6 @@ test('loadOrCreateInstallationId replaces a malformed existing record', () =>
 
 test('loadOrCreateInstallationId replaces an existing symlink', () =>
   withTempDir(directory => {
-    if (process.platform === 'win32') {
-      return
-    }
-
     const target = path.join(directory, 'target.json')
     const filePath = path.join(directory, 'desktop-installation.json')
     fs.writeFileSync(target, JSON.stringify({ installationId: ID_B }), { mode: 0o600 })
@@ -254,8 +246,8 @@ test('a live holder with no creation time is live only within the v1 ceiling', a
   }
 })
 
-// Review (kshitijk4poor, P3): the repair lock ran a synchronous `ps` (macOS) /
-// PowerShell (Windows, up to 15 s) on the main thread for our OWN creation time,
+// Review (kshitijk4poor, P3): the repair lock ran a synchronous `ps` (macOS)
+// on the main thread for our OWN creation time,
 // which Electron already knows, and re-probed the holder's every 25 ms poll.
 test('the repair lock records our creation time from Electron, without a ps spawn', () =>
   withTempDir(directory => {

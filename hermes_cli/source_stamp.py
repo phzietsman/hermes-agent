@@ -77,14 +77,13 @@ BOOTSTRAP_RECEIPT = ".hermes-bootstrap-complete"
 def refresh_bootstrap_receipt(root: Path, stamp: dict) -> None:
     """Move the installers' bootstrap receipt to the commit ``stamp`` just published.
 
-    install.sh / install.ps1 write the receipt once, at the commit they installed;
+    install.sh writes the receipt once, at the commit they installed;
     an update that moves the checkout has to move it too, or it keeps naming the
     replaced release. Only an existing receipt is refreshed: its presence is what
     marks a script install, so a manual clone never grows one.
     """
     receipt_path = Path(root) / BOOTSTRAP_RECEIPT
     try:
-        # install.ps1 writes it with Windows PowerShell's UTF-8 BOM.
         previous = json.loads(receipt_path.read_text(encoding="utf-8-sig"))
     except FileNotFoundError:
         return

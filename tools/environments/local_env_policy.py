@@ -156,9 +156,8 @@ def _registered_adapter_secret_env() -> frozenset:
 
 def _is_provider_env_blocklisted(name: str, _registered: "frozenset | None" = None) -> bool:
     """``name`` is a blocklisted provider/tool credential or adapter secret, matched the way the
-    platform's environment resolves names: exact plus case-folded. On Windows the environment
-    block is case-insensitive, so ``openai_api_key`` IS ``OPENAI_API_KEY``; consistent with
-    ``_is_hermes_internal_secret``, which already folds (``key.upper()``). Loops pass
+    exact plus case-folded, so a variant casing of a credential name is treated as that
+    credential; consistent with ``_is_hermes_internal_secret`` (``key.upper()``). Loops pass
     ``_registered`` so the registry is read once per env, not once per key."""
     upper = name.upper()
     if name in _HERMES_PROVIDER_ENV_BLOCKLIST or upper in _HERMES_PROVIDER_ENV_BLOCKLIST:

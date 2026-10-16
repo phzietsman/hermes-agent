@@ -73,7 +73,6 @@ def _shared_prefix(root: Path, *, limit: int = 50_000) -> str:
     return ''
 
 
-@pytest.mark.platforms('windows', 'posix')
 def test_uv_refresh_uses_real_installed_tool_and_only_the_owned_project(tmp_path, monkeypatch, capsys):
     repo, caller, lock = project(tmp_path, monkeypatch)
     uv = Path(shutil.which('uv') or pytest.fail('canonical test environment requires uv'))
@@ -82,7 +81,7 @@ def test_uv_refresh_uses_real_installed_tool_and_only_the_owned_project(tmp_path
     managed.parent.mkdir(parents=True)
     shutil.copy2(uv, managed)
     python = Path(sys._base_executable).resolve()
-    python_root = python.parent if os.name == 'nt' else python.parents[1]
+    python_root = python.parents[1]
     shared = _shared_prefix(python_root)
     if shared:
         pytest.skip(f"host Python prefix {python_root} is not self-contained: {shared}")
@@ -126,10 +125,9 @@ def test_uv_refresh_uses_real_installed_tool_and_only_the_owned_project(tmp_path
     assert 'Python lock refresh failed' in capsys.readouterr().out
 
 
-@pytest.mark.platforms('windows', 'posix')
 def test_npm_refresh_uses_its_installed_entry_and_owned_project(monkeypatch, capsys):
     # Keep the real tool's argv clear of the harness's hermes-update guard.
-    temp_root = Path(os.environ['LOCALAPPDATA']) / 'Temp' if os.name == 'nt' else Path('/tmp')
+    temp_root = Path('/tmp')
     with tempfile.TemporaryDirectory(prefix='pm-deps-', dir=temp_root) as temporary, monkeypatch.context() as scoped:
         monkeypatch = scoped
         root = Path(temporary)
@@ -141,11 +139,10 @@ def test_npm_refresh_uses_its_installed_entry_and_owned_project(monkeypatch, cap
         target = current_target()
         runtime = root / 'store'
         node_entry = runtime / 'node-fixture'
-        node_binary = node_entry / ('node.exe' if os.name == 'nt' else 'bin/node')
+        node_binary = node_entry / 'bin/node'
         node_binary.parent.mkdir(parents=True)
-        node_binary.write_bytes(b'MZ' if os.name == 'nt' else b'#!/bin/sh\nexit 99\n')
-        if os.name != 'nt':
-            node_binary.chmod(0o755)
+        node_binary.write_bytes(b'#!/bin/sh\nexit 99\n')
+        node_binary.chmod(0o755)
         facts = Facts(runtime / 'facts.json')
         node, npm = Nodejs(), Npm()
         monkeypatch.setitem(registry._packages, 'node', node)
@@ -169,17 +166,13 @@ def test_npm_refresh_uses_its_installed_entry_and_owned_project(monkeypatch, cap
             "    raise SystemExit(str(error))\n",
             encoding='utf-8',
         )
-        if os.name == 'nt':
-            (npm_entry / 'npm.cmd').write_text(
-                f'@echo off\r\n"{sys.executable}" "%~dp0lib\\npm_cli.py" %*\r\n', encoding='utf-8')
-        else:
-            npm_binary = npm_entry / 'bin/npm'
-            npm_binary.parent.mkdir()
-            npm_binary.write_text(
-                f'#!/bin/sh\nexec "{sys.executable}" "{cli_script}" "$@"\n',
-                encoding='utf-8',
-            )
-            npm_binary.chmod(0o755)
+        npm_binary = npm_entry / 'bin/npm'
+        npm_binary.parent.mkdir()
+        npm_binary.write_text(
+            f'#!/bin/sh\nexec "{sys.executable}" "{cli_script}" "$@"\n',
+            encoding='utf-8',
+        )
+        npm_binary.chmod(0o755)
         version = 'fixture'
         lock.set_pin('npm', version, {target: {'url': 'https://example.invalid/npm', 'sha256': '2' * 64}})
         facts.record('npm', version, str(npm_entry), npm.env(npm_entry, target), runtime,
@@ -187,7 +180,7 @@ def test_npm_refresh_uses_its_installed_entry_and_owned_project(monkeypatch, cap
         lock.save()
         (repo / 'package.json').write_text(json.dumps({'name': 'pm-leg-proof', 'version': '1.0.0', 'private': True}), encoding='utf-8')
         (repo / '.npmrc').write_text('offline=true\naudit=false\nfund=false\nignore-scripts=true\n', encoding='utf-8')
-        monkeypatch.setenv('PATH', str(Path(os.environ.get('SYSTEMROOT', '/')) / 'System32') if os.name == 'nt' else '/usr/bin:/bin')
+        monkeypatch.setenv('PATH', '/usr/bin:/bin')
         monkeypatch.setenv('NODE_OPTIONS', '--invalid-option-to-be-scrubbed')
         monkeypatch.setenv('npm_config_cache', str(root / 'ambient-cache'))
         before = dict(os.environ)

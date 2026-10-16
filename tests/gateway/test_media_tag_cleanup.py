@@ -37,23 +37,23 @@ class TestMediaTagCleanup:
 class TestMediaTagCjkTerminators:
     """#88038: CJK full-width punctuation after a MEDIA path is a valid
     terminator, exactly like its ASCII counterparts. Chinese-language agent
-    output naturally writes ``MEDIA:D:\\...\\zhibao.pdf（782.6 KB）`` — the
+    output naturally writes ``MEDIA:/.../zhibao.pdf（782.6 KB）`` — the
     ASCII-only lookahead silently dropped the attachment."""
 
     def test_full_width_suffixes_terminate_the_path(self):
         from gateway.platforms.base import MEDIA_TAG_CLEANUP_RE
 
         cases = [
-            "MEDIA:D:/workspace/out/report.pdf（782.6 KB）",
-            "MEDIA:D:/workspace/out/report.pdf：内容",
-            "MEDIA:D:/workspace/out/report.pdf。",
-            "MEDIA:D:/workspace/out/report.pdf，下一条",
-            "MEDIA:D:/workspace/out/report.pdf；",
-            "MEDIA:D:/workspace/out/report.pdf！",
-            "MEDIA:D:/workspace/out/report.pdf？",
-            "MEDIA:D:/workspace/out/report.pdf、",
-            "MEDIA:D:/workspace/out/report.pdf”",
-            "MEDIA:D:/workspace/out/report.pdf’",
+            "MEDIA:/workspace/out/report.pdf（782.6 KB）",
+            "MEDIA:/workspace/out/report.pdf：内容",
+            "MEDIA:/workspace/out/report.pdf。",
+            "MEDIA:/workspace/out/report.pdf，下一条",
+            "MEDIA:/workspace/out/report.pdf；",
+            "MEDIA:/workspace/out/report.pdf！",
+            "MEDIA:/workspace/out/report.pdf？",
+            "MEDIA:/workspace/out/report.pdf、",
+            "MEDIA:/workspace/out/report.pdf”",
+            "MEDIA:/workspace/out/report.pdf’",
         ]
         for text in cases:
             m = MEDIA_TAG_CLEANUP_RE.search(text)
@@ -65,11 +65,11 @@ class TestMediaTagCjkTerminators:
 
         text = (
             "## 交付物\n\n- **PDF 早报**："
-            "MEDIA:D:/workspace/zaobao/output/早报_2026-08-16.pdf（782.6 KB）"
+            "MEDIA:/workspace/zaobao/output/早报_2026-08-16.pdf（782.6 KB）"
         )
         m = MEDIA_TAG_CLEANUP_RE.search(text)
         assert m is not None
-        assert m.group("path") == "D:/workspace/zaobao/output/早报_2026-08-16.pdf"
+        assert m.group("path") == "/workspace/zaobao/output/早报_2026-08-16.pdf"
 
     def test_ascii_terminators_still_work(self):
         from gateway.platforms.base import MEDIA_TAG_CLEANUP_RE

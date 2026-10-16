@@ -3,7 +3,6 @@
 import json
 import os
 import subprocess
-import sys
 import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -345,18 +344,7 @@ def test_real_temp_repo_and_home_install_e2e(served_repo, monkeypatch, tmp_path)
 
 
 def _make_skills_redirect(link: Path, target: Path) -> bool:
-    """Make *link* a directory redirect (Windows junction or POSIX symlink)
-    pointing at *target*. Junctions need no admin rights, unlike symlinks."""
-    if sys.platform == "win32":
-        try:
-            subprocess.run(
-                ["cmd", "/c", "mklink", "/J", str(link), str(target)],
-                check=True,
-                capture_output=True,
-            )
-            return True
-        except (subprocess.CalledProcessError, OSError):
-            return False
+    """Make *link* a directory symlink pointing at *target*."""
     try:
         link.symlink_to(target, target_is_directory=True)
         return True
@@ -364,9 +352,9 @@ def _make_skills_redirect(link: Path, target: Path) -> bool:
         return False
 
 
-def test_install_with_junctioned_skills_dir(served_repo, monkeypatch, tmp_path):
+def test_install_with_symlinked_skills_dir(served_repo, monkeypatch, tmp_path):
     """#86971: install must not mix resolved and unresolved paths when the
-    skills directory is a junction/symlink redirect.
+    skills directory is a symlink redirect.
 
     install_dir is resolved by _resolve_lock_install_path (following the
     redirect), so relative_to() must receive the resolved skills root or it
@@ -382,7 +370,7 @@ def test_install_with_junctioned_skills_dir(served_repo, monkeypatch, tmp_path):
     real_skills.mkdir()
     skills_link = home / "skills"
     if not _make_skills_redirect(skills_link, real_skills):
-        pytest.skip("Cannot create a junction/symlink in this environment")
+        pytest.skip("Cannot create a symlink in this environment")
 
     monkeypatch.setenv("HERMES_HOME", str(home))
     monkeypatch.setattr("tools.skills_hub.is_safe_url", lambda _url: True)
@@ -392,7 +380,7 @@ def test_install_with_junctioned_skills_dir(served_repo, monkeypatch, tmp_path):
     sink = StringIO()
     do_install(url, console=Console(file=sink, force_terminal=False), skip_confirm=True)
 
-    # Files landed in the real target, reached through the junction.
+    # Files landed in the real target, reached through the symlink.
     installed = real_skills / "demo-bundle"
     assert (installed / "SKILL.md").is_file()
     assert (installed / "references" / "guide.md").read_text() == "safe guide\n"

@@ -2242,7 +2242,7 @@ class TestCapturePayloadBudget:
         from tools.computer_use.tool import _MAX_ELEMENT_LABEL_CHARS, _element_to_dict
 
         e = UIElement(index=3, role="Document", label="m" * 5000,
-                      bounds=(0, 0, 100, 100), app="chrome.exe")
+                      bounds=(0, 0, 100, 100), app="Google Chrome")
         d = _element_to_dict(e)
         assert len(d["label"]) == _MAX_ELEMENT_LABEL_CHARS
         assert d["label_truncated"] is True
@@ -2323,11 +2323,11 @@ class TestElementSpillFile:
 
         elems = [
             UIElement(index=i, role="Document", label=f"msg {i}: " + "x" * 2000,
-                      bounds=(100 + i, 200, 3600, 60), app="chrome.exe")
+                      bounds=(100 + i, 200, 3600, 60), app="Google Chrome")
             for i in range(120)
         ]
         return CaptureResult(mode="som", width=1455, height=791, png_b64=None,
-                             elements=elems, app="chrome.exe",
+                             elements=elems, app="Google Chrome",
                              window_title="Discord", png_bytes_len=0)
 
     def test_spill_file_holds_full_untruncated_tree(self, tmp_path, monkeypatch):
@@ -2439,7 +2439,7 @@ class TestBoundsScaleField:
         elems = [UIElement(index=0, role="Button", label="Close",
                            bounds=(3730, 0, 69, 60), app="")]
         cap = CaptureResult(mode="som", width=1455, height=791, png_b64=None,
-                            elements=elems, app="chrome.exe",
+                            elements=elems, app="Google Chrome",
                             window_title="", png_bytes_len=0)
         out = json.loads(_capture_response(cap))
         assert out["bounds_scale"] == pytest.approx(3799 / 1455, abs=0.01)

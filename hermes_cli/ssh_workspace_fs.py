@@ -12,7 +12,6 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Iterator
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 from tools.environments.ssh import SSHEnvironment
 
 
@@ -195,7 +194,6 @@ printf '__HERMES_FS_SIZE__:%s\\n' "$size"
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
-            creationflags=windows_hide_flags(),
         )
         try:
             assert process.stdout is not None

@@ -45,8 +45,6 @@ def test_bundle_stages_git_tree_and_runs_native_children_before_manifest(tmp_pat
     # otherwise dominate each of the repeated admission digests below.
     if sys.platform == "linux":
         stage_host_python(source_python)
-    elif os.name == "nt":
-        shutil.copytree(Path(sys.base_prefix), source_python.parent, dirs_exist_ok=True)
     else:
         shutil.copytree(Path(getattr(sys, "_base_executable")).resolve().parents[1],
                         source_python.parents[1], dirs_exist_ok=True)
@@ -102,7 +100,7 @@ def test_bundle_stages_git_tree_and_runs_native_children_before_manifest(tmp_pat
     for name in ("agent-browser", "chromium"):
         package = get_package(name)
         entry = canonical / package.store_entry(lock.version(name), target)
-        binary = (entry / ("chrome.exe" if os.name == "nt" else "chrome")
+        binary = (entry / "chrome"
                   if name == "chromium" else package.binary(entry, target))
         binary.parent.mkdir(parents=True)
         binary.write_text("inert browser fixture", encoding="utf-8")
@@ -237,7 +235,7 @@ def test_bundle_stages_git_tree_and_runs_native_children_before_manifest(tmp_pat
         assert native.finish_native(prepared, {"web": frontend}) == 0
         (output / "hermes-agent/install-stamp.json").write_text('{"variant":"bundled"}', encoding="utf-8")
         (output / "manifest.json").write_text('{"variant":"bundled"}', encoding="utf-8")
-        launcher = output / ("bin/probe.exe" if os.name == "nt" else "bin/probe")
+        launcher = output / "bin/probe"
         launcher.rename(launcher.with_name("renamed-launcher"))
         (frontend / "index.html").write_text("store web", encoding="utf-8")
         assert native.finish_native(prepared, {"web": frontend}) == 0
@@ -277,7 +275,7 @@ def test_bundle_stages_git_tree_and_runs_native_children_before_manifest(tmp_pat
 
     manifest = json.loads((output / "manifest.json").read_text())
     assert manifest["repo"] == "hermes-agent"
-    command = "bin/probe.exe" if os.name == "nt" else "bin/probe"
+    command = "bin/probe"
     assert manifest["runtime"]["commands"] == {"probe": command}
     feature_file = output / "enabled-features.json"
     assert os.environ["HERMES_RUNTIME_DIR"] == str(user_store)
@@ -550,7 +548,7 @@ def test_staged_cache_ships_full_wheel_set_and_rebuilds_offline(tmp_path):
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
-    python = project / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = project / ".venv" / "bin/python"
     probe = subprocess.run(
         [str(python), "-I", "-c",
          "import cache_proof, wheel_proof; print(cache_proof.VALUE); print(wheel_proof.__version__)"],
@@ -560,9 +558,7 @@ def test_staged_cache_ships_full_wheel_set_and_rebuilds_offline(tmp_path):
 
 
 def test_native_dispatch_isolates_process_state_on_real_child_failure(tmp_path, monkeypatch):
-    # Compiler provisioning has its own native test; this probe must stop
-    # at the invalid revision without installing tools on a developer host.
-    monkeypatch.setattr("pm.native_build.prepare_windows_environment", lambda **kwargs: dict(kwargs["env"]))
+    # This probe must stop at the invalid revision without installing tools on a developer host.
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "user-home"))
     monkeypatch.setenv("HERMES_RUNTIME_DIR", str(tmp_path / "user-tools"))
     before = dict(os.environ)
@@ -597,7 +593,6 @@ def test_native_dispatch_child_environment(tmp_path, monkeypatch, cache_source, 
     from pm.packages import uv_cache_dir
 
     monkeypatch.setattr(Path, "home", lambda: tmp_path / "host")
-    monkeypatch.setattr("pm.native_build.prepare_windows_environment", lambda **kwargs: dict(kwargs["env"]))
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "user"))
     monkeypatch.delenv("UV_CACHE_DIR", raising=False)
     ambient = tmp_path / "ambient"

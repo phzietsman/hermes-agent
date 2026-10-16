@@ -1,5 +1,3 @@
-import { isWindowsAbsolutePath } from '@/lib/path-compare'
-
 const PREVIEW_MARKDOWN_RE = /\[Preview:[^\]]+\]\((?<href>#preview[:/][^)]+)\)/gi
 
 export function stripPreviewTargets(text: string): string {
@@ -39,11 +37,6 @@ export function previewTargetFromMarkdownHref(href?: string): string | null {
 }
 
 export function previewName(target: string): string {
-  // `new URL('C:\\...')` would read the drive letter as a URL scheme.
-  if (isWindowsAbsolutePath(target)) {
-    return target.split(/[\\/]/).filter(Boolean).pop() || target
-  }
-
   try {
     const url = new URL(target)
 

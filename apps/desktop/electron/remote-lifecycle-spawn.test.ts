@@ -206,7 +206,7 @@ async function reports(fixture: SpawnFixture): Promise<ChildReport[]> {
   )
 }
 
-test.skipIf(process.platform === 'win32').each(variants)(
+test.each(variants)(
   '$launcher spawn (ownership=$owned) returns only the detached child PID and preserves ownership',
   async ({ launcher, owned }: SpawnVariant): Promise<void> => {
     const fixture: SpawnFixture = await spawnFixture(launcher, owned)
@@ -292,7 +292,7 @@ test.skipIf(process.platform === 'win32').each(variants)(
   20_000
 )
 
-test.skipIf(process.platform === 'win32').each(variants)(
+test.each(variants)(
   '$launcher spawn (ownership=$owned) refuses live or malformed update markers without reserving an owner',
   async ({ launcher, owned }: SpawnVariant): Promise<void> => {
     const fixture: SpawnFixture = await spawnFixture(launcher, owned)
@@ -334,7 +334,7 @@ async function deadPid(): Promise<number> {
   return child.pid!
 }
 
-test.skipIf(process.platform === 'win32')(
+test(
   'v2 claims are judged by pid + creation time: a dead claim is cleared, a live delegate refuses',
   async (): Promise<void> => {
     const fixture: SpawnFixture = await spawnFixture(variants[0].launcher, false)
@@ -368,7 +368,7 @@ test.skipIf(process.platform === 'win32')(
   20_000
 )
 
-test.skipIf(process.platform === 'win32')(
+test(
   "spawn waits on the updaters' <marker>.lock, so a claim made under it is never raced",
   async (): Promise<void> => {
     const fixture: SpawnFixture = await spawnFixture(variants[0].launcher, false)

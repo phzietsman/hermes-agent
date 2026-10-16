@@ -1587,7 +1587,7 @@ class TestTranscribeCredentialReadGuard:
         assert result["error"] == expected
 
 
-@pytest.mark.platforms("posix", "windows")
+@pytest.mark.platforms("posix")
 @pytest.mark.parametrize("progress", [True, False])
 def test_command_stt_idle_timeout_preserves_transcription_contract(tmp_path, progress):
     import shlex
@@ -1606,7 +1606,7 @@ def test_command_stt_idle_timeout_preserves_transcription_contract(tmp_path, pro
         encoding="utf-8",
     )
     args = [sys.executable, "-u", str(script)]
-    command = subprocess.list2cmdline(args) if os.name == "nt" else shlex.join(args)
+    command = shlex.join(args)
     result = _transcribe_command_stt(str(audio), "probe", {
         "command": command + " {input_path} {output_path}", "timeout": 2,
     }, {})

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify the version stamp a bootstrap installer ships.
 
-The bootstrap installers (scripts/install.sh, scripts/install.ps1) finish
+The bootstrap installer (scripts/install.sh) finishes
 with a ``complete`` stage that writes ``.hermes-bootstrap-complete`` into the
 install dir: ``{"schemaVersion": 1, "pinnedCommit": <40-hex sha>,
 "pinnedBranch": <name>, "completedAt": <UTC ISO-8601>}``. That stamp is what
@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -47,30 +46,7 @@ from pathlib import Path
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
-def _git_exe() -> str:
-    """Resolve git to an executable CreateProcess can start.
-
-    On sandboxed hosts PATH can resolve ``git`` to a store-app payload copy
-    (e.g. under ``C:\\Program Files\\WindowsApps\\...``) that fails to exec
-    outside its package context; prefer a conventional install there.
-    """
-    candidates: list[str] = []
-    hit = shutil.which("git")
-    if hit:
-        candidates.append(hit)
-    if sys.platform == "win32":
-        base = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git"
-        for rel in (("cmd", "git.exe"), ("bin", "git.exe")):
-            p = base.joinpath(*rel)
-            if p.exists():
-                candidates.append(str(p))
-    for cand in candidates:
-        if "windowsapps" not in cand.lower():
-            return cand
-    return candidates[0] if candidates else "git"
-
-
-_GIT = _git_exe()
+_GIT = shutil.which("git") or "git"
 
 
 def _fail(errors: list[str], message: str) -> None:

@@ -143,7 +143,6 @@ export {
   type ThemePresetPalette
 } from './theme-presets'
 export {
-  backgroundMaterialFor,
   clampIntensity,
   DEFAULT_GLASS_MATERIAL,
   DEFAULT_GLASS_SCOPE,
@@ -151,8 +150,6 @@ export {
   GLASS_SCOPES,
   glassActive,
   type GlassMaterial,
-  glassMaterialForPicker,
-  glassMaterialsFor,
   type GlassScope,
   glassSupportedOn,
   glassSurfaceKeep,
@@ -169,10 +166,7 @@ export {
   type TranslucencyState,
   translucencySupportedOn,
   vibrancyFor,
-  windowOpacityFor,
-  WINDOWS_BACKGROUND_MATERIALS,
-  WINDOWS_GLASS_MIN_BUILD,
-  type WindowsBackgroundMaterial
+  windowOpacityFor
 } from './translucency'
 export { type UpdateDebt, updateDebt, type UpdateDebtReceipt, type UpdateDebtStep } from './update-debt'
 export {

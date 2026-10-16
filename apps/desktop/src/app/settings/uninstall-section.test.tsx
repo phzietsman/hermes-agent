@@ -111,26 +111,22 @@ it.each(['gui', 'lite', 'full'] as const)(
   }
 )
 
-it('shows native removal steps, data location, and Apps settings on a managed Windows install', async (): Promise<void> => {
+it('shows native removal steps and data location on a managed install', async (): Promise<void> => {
   const run: ReturnType<typeof vi.fn> = vi.fn()
-  const openAppsSettings: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue(undefined)
 
   vi.stubGlobal('hermesDesktop', {
     uninstall: {
       summary: async (): Promise<DesktopUninstallSummary> => ({
         ...summary(false),
-        platform: 'win32',
-        native_removal_instructions: 'To uninstall, go to Windows Settings → Apps → Installed apps.'
+        platform: 'linux',
+        native_removal_instructions: 'To uninstall, use your package manager.'
       }),
-      run,
-      openAppsSettings
+      run
     }
   })
   render(<UninstallSection />)
-  expect(await screen.findByText(/Installed apps/)).toBeTruthy()
+  expect(await screen.findByText(/package manager/)).toBeTruthy()
   expect(screen.getByText(/\/test\/home/)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Open Apps settings' }))
-  expect(openAppsSettings).toHaveBeenCalledOnce()
   expect(run).not.toHaveBeenCalled()
   expect(screen.queryByRole('button', { name: /Uninstall/ })).toBeNull()
 })

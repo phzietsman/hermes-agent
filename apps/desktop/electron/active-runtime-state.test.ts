@@ -44,7 +44,7 @@ test('classifyActiveRuntime refuses an unusable runtime even if a valid marker e
 })
 
 test('a CLI-installed runtime with no marker launches instead of re-running bootstrap', () => {
-  // The reported symptom (#60721): install.sh / install.ps1 produced a healthy
+  // The reported symptom (#60721): install.sh produced a healthy
   // repo+venv, no desktop-managed marker was ever written, and every launch
   // dropped the user back into the first-run installer.
   const state = classifyActiveRuntime(null, 1, true)

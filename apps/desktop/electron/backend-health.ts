@@ -6,7 +6,7 @@
 // responds, so fast machines see no change; 180s is deliberately generous.
 export const DEFAULT_BACKEND_READY_TIMEOUT_MS = 180_000
 export const DEFAULT_BACKEND_READY_POLL_MS = 500
-// A cold backend can stall its event loop for tens of seconds while Windows
+// A cold backend can stall its event loop for tens of seconds while the OS
 // scans and byte-compiles the gateway import tree. At the default 15s socket
 // timeout only three probes fit in the budget; a short one keeps retrying
 // across the stall. Health only — the legacy /api/status fallback is genuinely

@@ -634,11 +634,9 @@ class CLITerminalMixin:
         ``run_in_terminal`` cooked→raw restore leaves it line-buffering while prompt_toolkit
         believes it owns raw mode — CLI looks dead, process is healthy). Skipped while
         ``run_in_terminal`` legitimately holds cooked mode, while the agent runs
-        (approval/sudo prompts touch the tty), and on Windows (no termios).
+        (approval/sudo prompts touch the tty).
         """
         from cli import _DIM, _RST, _cprint, _heal_cooked_mode_drift, logger
-        if os.name == "nt":
-            return
         app = getattr(self, "_app", None)
         if app is None or not getattr(app, "_is_running", False):
             return

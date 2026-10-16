@@ -70,7 +70,7 @@ test('lookup adopts an owner-only desktop-serve token and ignores a world-readab
   fs.writeFileSync(path.join(directory, 'host-desktop-serve.json'), JSON.stringify(record), { mode: 0o600 })
   fs.writeFileSync(path.join(directory, 'host-desktop-serve.token'), `${token}\n`, { mode: 0o600 })
 
-  const env = { home: os.homedir(), lockDir: directory, platform: process.platform }
+  const env = { home: os.homedir(), lockDir: directory }
 
   const io = {
     lstat: (target: string) => fs.lstatSync(target),
@@ -81,7 +81,7 @@ test('lookup adopts an owner-only desktop-serve token and ignores a world-readab
   assert.equal(lookupPublishedSessionToken(RECORD, env, io), token)
 
   fs.chmodSync(path.join(directory, 'host-desktop-serve.token'), 0o644)
-  assert.equal(process.platform === 'win32' ? token : null, lookupPublishedSessionToken(RECORD, env, io))
+  assert.equal(lookupPublishedSessionToken(RECORD, env, io), null)
   fs.rmSync(directory, { recursive: true, force: true })
 })
 
@@ -120,7 +120,7 @@ test('a withheld dashboard token adopts the on-disk published token instead of s
       publishedTokenFor: record =>
         lookupPublishedSessionToken(
           record,
-          { home: os.homedir(), lockDir: directory, platform: process.platform },
+          { home: os.homedir(), lockDir: directory },
           {
             lstat: target => fs.lstatSync(target),
             readFile: target => fs.readFileSync(target, 'utf8'),

@@ -5,14 +5,14 @@
  * The Ozone backend (not the login session) is the normalizer: Electron 20+
  * prefers a native Wayland surface on a Wayland session, so `setBounds`
  * position is a no-op there and ignore-mouse restore works. X11 is the
- * inverse. macOS and Windows keep the click-through + renderer-drag design.
+ * inverse. macOS keeps the click-through + renderer-drag design.
  *
  * Capabilities are derived once. Callers ask the profile, they do not
  * re-derive "linux && click-through".
  */
 
 export type HudOzoneBackend = 'wayland' | 'x11'
-export type HudWindowingBackend = 'cocoa' | 'win32' | HudOzoneBackend
+export type HudWindowingBackend = 'cocoa' | HudOzoneBackend
 export type HudInput = 'click-through' | 'solid'
 export type HudMove = 'native-drag' | 'renderer'
 
@@ -88,9 +88,9 @@ export function linuxOzoneBackend(env: NodeJS.ProcessEnv, argv: readonly string[
   return sessionIsWayland(env) ? 'wayland' : 'x11'
 }
 
-function desktopWindowing(backend: 'cocoa' | 'win32'): HudWindowing {
+function cocoaWindowing(): HudWindowing {
   return {
-    backend,
+    backend: 'cocoa',
     ignoreMouse: true,
     input: 'click-through',
     move: 'renderer',
@@ -103,11 +103,7 @@ function desktopWindowing(backend: 'cocoa' | 'win32'): HudWindowing {
 
 export function resolveHudWindowing(platform: string, env: NodeJS.ProcessEnv, argv: readonly string[]): HudWindowing {
   if (platform === 'darwin') {
-    return desktopWindowing('cocoa')
-  }
-
-  if (platform === 'win32') {
-    return desktopWindowing('win32')
+    return cocoaWindowing()
   }
 
   const backend = linuxOzoneBackend(env, argv)

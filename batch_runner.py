@@ -6,7 +6,7 @@ checkpointing for ``--resume``, trajectories in from/value format, and tool-usag
 statistics aggregated across all batches. See ``main`` (fire CLI) for usage.
 """
 
-# hermes_bootstrap must be the very first import — UTF-8 stdio on Windows, no-op on POSIX.
+# hermes_bootstrap must be the very first import.
 try:
     import hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError as exc:

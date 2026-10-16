@@ -26,7 +26,6 @@ from hermes_cli.observability import shared_metrics_process as process_metrics
 
 ROOT = Path(__file__).resolve().parents[2]
 INSTALL_SH = ROOT / "scripts" / "install.sh"
-INSTALL_PS1 = ROOT / "scripts" / "install.ps1"
 SCHEMA = ROOT / "hermes_cli" / "observability" / "schemas" / "hermes.shared_metrics.v4.schema.json"
 
 
@@ -75,24 +74,17 @@ def test_schema_and_installers_match_the_contract_exactly():
     assert set(dims["required"]) == set(dims["properties"])
     assert {"$ref": "#/$defs/install_run_counter"} in schema["properties"]["metrics"]["items"]["oneOf"]
 
-    sh, ps1 = INSTALL_SH.read_text(encoding="utf-8-sig"), INSTALL_PS1.read_text(encoding="utf-8-sig")
-    # Initialize-ResolvedPaths runs before the ladder's try, so its Fail can never write a receipt and
-    # carries no class (a class there would be dead); every ladder call site must carry one.
-    pre_ladder = re.search(r"\nfunction Initialize-ResolvedPaths \{\r?\n.*?\r?\n\}\r?\n", ps1, re.S).group(0)
-    assert re.search(r'Fail "[^\n]*-InstallDir\."\r?\n', pre_ladder)
-    ps1 = ps1.replace(pre_ladder, "\n")
-    # Every fail()/Fail call site passes a class from the contract, and every class is used somewhere.
+    sh = INSTALL_SH.read_text(encoding="utf-8-sig")
+    # Every fail() call site passes a class from the contract, and every class is used somewhere.
     sh_sites = re.findall(r'(?<![-\w])fail "(?:[^"\\$]|\\.|\$\([^)]*\)|\$)*" ?([a-z_]*)', sh)
-    ps1_sites = re.findall(r'(?<![-\w])Fail "(?:[^"`$]|`.|\$\([^)]*\)|\$)*" ?([a-z_$(]*)', ps1)
-    assert sh_sites and ps1_sites
+    assert sh_sites
     assert "" not in sh_sites, "an install.sh fail() call site passes no failure class"
-    assert "" not in ps1_sites, "an install.ps1 Fail call site passes no failure class"
-    used = {c for c in sh_sites + ps1_sites if not c.startswith("$")} | {"setup_failed", "gateway_failed"}
-    assert used | {"interrupted", "none", "other"} == contract.INSTALL_RUN_FAILURE_CLASSES
+    used = {c for c in sh_sites if not c.startswith("$")} | {"setup_failed", "gateway_failed"}
+    # Classes only the retired Windows installer wrote; kept so its leftover receipts still parse.
+    retired = {"git_extract_failed"}
+    assert used | retired | {"interrupted", "none", "other"} == contract.INSTALL_RUN_FAILURE_CLASSES
     stage_names = re.search(r"stage_names\(\) \{\n\s+printf '%s\\n' ([a-z -]+)\n", sh).group(1).split()
     assert {s.replace("-", "_") for s in stage_names} == contract.INSTALL_RUN_STAGES
-    ps1_stages = re.findall(r'@\{ name = "([a-z-]+)"', ps1)
-    assert {s.replace("-", "_") for s in ps1_stages} == contract.INSTALL_RUN_STAGES
 
 
 def test_receipt_is_reported_once_out_of_contract_ones_dropped(marks):
@@ -136,7 +128,6 @@ def test_start_with_collection_off_purges_receipts_unreported(marks, monkeypatch
     assert marks.rows == []
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="runs the real install.sh")
 def test_real_install_sh_ladder_leaves_only_closed_tokens(tmp_path):
     """The real ladder with git missing from PATH fails in prerequisites and parks one closed receipt."""
     tools = tmp_path / "bin"
@@ -307,16 +298,15 @@ def _ctrl_c_ladder(tmp_path: Path, child_exit: int) -> tuple[int, str, list[dict
             time.sleep(0.05)
         assert ready.exists(), "the stage child never started"
         time.sleep(0.2)  # the child is inside its sleep
-        os.killpg(proc.pid, signal.SIGINT)  # windows-footgun: ok (POSIX-only test)
+        os.killpg(proc.pid, signal.SIGINT)
         out, _ = proc.communicate(timeout=30)
     finally:
         if proc.poll() is None:
-            os.killpg(proc.pid, signal.SIGKILL)  # windows-footgun: ok (POSIX-only test)
+            os.killpg(proc.pid, signal.SIGKILL)
     receipts = [json.loads(p.read_text(encoding="utf-8-sig")) for p in install_run.pending_installs_dir(home).glob("*.json")]
     return proc.returncode, out.decode("utf-8", "replace"), receipts
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="runs the real install.sh")
 def test_a_ctrl_c_the_stage_handles_lets_the_install_finish(tmp_path):
     """The receipt's signal traps must never change the installer's control flow: before them, bash's
     cooperative exit let the ladder carry on when the child caught Ctrl-C and succeeded."""
@@ -327,7 +317,6 @@ def test_a_ctrl_c_the_stage_handles_lets_the_install_finish(tmp_path):
     assert [(r["outcome"], r["failed_stage"], r["failure_class"]) for r in receipts] == [("success", "none", "none")]
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="runs the real install.sh")
 def test_a_user_abort_the_child_turns_into_exit_1_is_recorded_as_interrupted(tmp_path):
     """pm.cli / source_completion / `hermes setup` catch KeyboardInterrupt and exit 1, which reaches the
     stage's `|| fail ... deps_install_failed`; the receipt must still say the user stopped it."""

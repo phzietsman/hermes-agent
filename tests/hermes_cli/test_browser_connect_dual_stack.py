@@ -1,6 +1,6 @@
 """Dual-stack loopback discovery + port-squatter handling for /browser connect.
 
-Regression context: on Windows, an IDE debugger (VS Code js-debug) holding
+Regression context: an IDE debugger (VS Code js-debug) holding
 127.0.0.1:9222 pushes a Chrome launched with --remote-debugging-port=9222
 onto [::1]:9222 only. The old IPv4-only probe missed the live browser AND
 hung against the squatter (accepts TCP, never answers HTTP), driving the

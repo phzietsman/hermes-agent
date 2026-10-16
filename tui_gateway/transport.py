@@ -24,8 +24,7 @@ from typing import Any, Callable, Optional, Protocol, runtime_checkable
 # outside this set re-raises so it surfaces in the crash log instead of looking like a clean disconnect.
 _PEER_GONE_ERRNOS = frozenset({
     errno.EPIPE, errno.ECONNRESET, errno.EBADF, errno.ESHUTDOWN,
-    getattr(errno, "WSAECONNRESET", -1), getattr(errno, "WSAESHUTDOWN", -1),  # win32 (no-op on POSIX)
-} - {-1})
+})
 
 logger = logging.getLogger(__name__)
 

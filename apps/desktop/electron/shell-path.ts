@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 
-import { appendUniquePathEntries, delimiterForPlatform, pathEnvKey } from './backend-env'
+import { appendUniquePathEntries, PATH_DELIMITER, PATH_ENV_KEY } from './backend-env'
 
 // Login-shell PATH resolution for GUI launches.
 //
@@ -89,7 +89,7 @@ function runProbe(shell, flags, execFileFn, timeoutMs): Promise<string | null> {
       const child = execFileFn(
         shell,
         [...flags, PROBE_COMMAND],
-        { encoding: 'utf8', timeout: timeoutMs, windowsHide: true },
+        { encoding: 'utf8', timeout: timeoutMs },
         (_error, stdout) => {
           // A profile script may exit nonzero after the sentinel already
           // printed — trust the sentinel, not the exit code.
@@ -128,12 +128,6 @@ async function captureLoginShellPath({
   execFileFn = execFile,
   timeoutMs = ATTEMPT_TIMEOUT_MS
 }: any = {}) {
-  if (platform === 'win32') {
-    // GUI apps on Windows inherit the user PATH from the registry env block;
-    // the launchd-minimal-PATH problem is POSIX-only.
-    return null
-  }
-
   const shell = loginShellExecutable(env, platform)
 
   // -l sources ~/.zprofile / ~/.profile (where `brew shellenv` lives); -i
@@ -158,18 +152,14 @@ async function applyLoginShellPath({
   execFileFn = execFile,
   timeoutMs = ATTEMPT_TIMEOUT_MS
 }: any = {}) {
-  if (platform === 'win32') {
-    return { applied: false, reason: 'win32' }
-  }
-
   const loginPath = await captureLoginShellPath({ env, platform, execFileFn, timeoutMs })
 
   if (!loginPath) {
     return { applied: false, reason: 'unresolved' }
   }
 
-  const key = pathEnvKey(env, platform)
-  const delimiter = delimiterForPlatform(platform)
+  const key = PATH_ENV_KEY
+  const delimiter = PATH_DELIMITER
   const merged = mergeLoginShellPath(loginPath, env?.[key] || '', { delimiter })
 
   if (!merged || merged === env?.[key]) {

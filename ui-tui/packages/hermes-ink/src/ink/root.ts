@@ -50,7 +50,7 @@ export type RenderOptions = {
    * plain-text URL the renderer detects on the same row). The host owns
    * the actual open — `child_process.spawn` with an argv array (NOT
    * shell-mode) to the platform's native opener: `open` on macOS,
-   * `xdg-open` on Linux/BSD, `explorer.exe` on Windows. Avoid
+   * `xdg-open` on Linux/BSD. Avoid
    * `cmd.exe /c start` — `start` is a cmd builtin that reparses the URL
    * through cmd's tokenizer (`&` / `|` / `^` / `<` / `>` get split or
    * reinterpreted as command syntax), which both breaks plain URLs with

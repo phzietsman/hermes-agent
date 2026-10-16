@@ -3,9 +3,8 @@
 import { spawn } from 'node:child_process'
 
 import { buildDesktopBackendEnv } from './backend-env'
-import { windowsShellCommand } from './windows-child-options'
 
-/** Default probe budget. 5s false-negativeed healthy Windows cold starts (#61764). */
+/** Default probe budget. 5s false-negativeed healthy cold starts (#61764). */
 const DEFAULT_PROBE_TIMEOUT_MS = 15_000
 
 /**
@@ -66,8 +65,6 @@ async function execProbe(
     env?: NodeJS.ProcessEnv
     stdio: 'ignore'
     timeout: number
-    shell?: boolean
-    windowsHide?: boolean
   }
 ): Promise<void> {
   const run = () =>
@@ -122,8 +119,7 @@ async function canImportHermesCli(
         cwd: opts.cwd,
         env: { ...env, ...buildDesktopBackendEnv({ currentEnv: env }) },
         stdio: 'ignore',
-        timeout: PROBE_TIMEOUT_MS,
-        windowsHide: true
+        timeout: PROBE_TIMEOUT_MS
       }
     )
 
@@ -137,7 +133,7 @@ async function canImportHermesCli(
  * Return true iff `<hermesCommand> --version` exits 0.
  *
  * Used to gate the "existing `hermes` on PATH" rung. Without this, a
- * stale hermes.cmd shim left behind by an uninstalled pip install (or
+ * stale hermes shim left behind by an uninstalled pip install (or
  * a half-built venv whose `hermes` entry-point points at a deleted
  * Python) survives findOnPath() and gets selected as the backend.
  *
@@ -147,10 +143,6 @@ async function canImportHermesCli(
  *
  * @param {string} hermesCommand - Resolved absolute path to a hermes
  *   executable (or an interpreter+script wrapper).
- * @param {boolean} [opts.shell] - Whether to run through a shell. For
- *   .cmd/.bat shims on Windows spawn needs shell:true to find
- *   the cmd interpreter; mirrors the same flag isCommandScript() drives
- *   in resolveHermesBackend.
  * @returns {boolean}
  */
 /**
@@ -163,17 +155,15 @@ function shouldTrustHermesOverride(hermesOverride?: string) {
   return typeof hermesOverride === 'string' && hermesOverride.trim().length > 0
 }
 
-async function verifyHermesCli(hermesCommand: string, opts?: { shell?: boolean }) {
+async function verifyHermesCli(hermesCommand: string) {
   if (!hermesCommand) {
     return false
   }
 
   try {
-    await execProbe(windowsShellCommand(hermesCommand, Boolean(opts?.shell)), ['--version'], {
+    await execProbe(hermesCommand, ['--version'], {
       stdio: 'ignore',
-      timeout: PROBE_TIMEOUT_MS,
-      shell: Boolean(opts?.shell),
-      windowsHide: true
+      timeout: PROBE_TIMEOUT_MS
     })
 
     return true

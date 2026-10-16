@@ -50,14 +50,9 @@ def _run_waiter(home, envelope):
 
     bash = resolve_bash()
     assert bash, "PM must resolve a runnable shell for the waiter"
-    env = os.environ.copy()
-    if os.name == "nt":
-        env.setdefault("SystemRoot", r"C:\Windows")
-        env.setdefault("ComSpec", r"C:\Windows\system32\cmd.exe")
-        env.setdefault("PATHEXT", ".COM;.EXE;.BAT;.CMD")
     return subprocess.run(
         [bash, "-c", cmd],
-        capture_output=True, text=True, timeout=30, env=env, cwd=home,
+        capture_output=True, text=True, timeout=30, env=os.environ.copy(), cwd=home,
     )
 
 
@@ -79,7 +74,7 @@ def _envelope(home):
     )
 
 
-@pytest.mark.platforms("posix", "windows")
+@pytest.mark.platforms("posix")
 def test_waiter_surfaces_reason_tag_to_sending_agent(home, monkeypatch):
     """The waiter's stdout — the sending agent's completion notification —
     carries the typed reason so the agent can branch without parsing prose."""

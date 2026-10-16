@@ -17,7 +17,7 @@ from gateway.session import SessionSource
 # Strip these when detecting slash commands so a media-ref prefix does not hide
 # a slash token from MessageEvent.is_command() / get_command().
 # The pattern matches to end-of-line (not just whitespace-bounded) to handle
-# Windows paths that may contain spaces (e.g. "C:\Users\John Doe\image.png").
+# paths that may contain spaces (e.g. "/Users/John Doe/image.png").
 _ATTACHMENT_REF_RE = re.compile(r"^(?:@(?:image|file|url):[^\n]+\n?)+", re.IGNORECASE)
 
 

@@ -28,8 +28,7 @@ TARGET="linux-arm64-bionic"
 
 # Stage (idempotent: an already-published verifying entry is a no-op) and
 # print the entry path -- pm's own resolvers, no layout guessing here.
-# Resolve a real interpreter: some hosts alias python3 to a Store stub
-# (Windows App Execution Aliases). The stdlib client bootstraps PM's separate
+# Resolve a real interpreter (>= 3.11). The stdlib client bootstraps PM's separate
 # locked runtime; staging never imports PM's dependencies into this process.
 PM_PY="$(command -v python3 || true)"
 if [ -n "$PM_PY" ] && "$PM_PY" -c "import sys; assert sys.version_info >= (3, 11)" 2>/dev/null; then

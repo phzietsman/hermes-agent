@@ -106,7 +106,7 @@ export function checkDistBuilt(distDir) {
 //
 // The parsing itself runs in ONE child process (`check-chunks-parse.mjs`,
 // vm.SourceTextModule), not one spawn per chunk: with ~1000 chunks, a single
-// stalled process creation on Windows (AV, memory pressure) used to abort the
+// stalled process creation (AV, memory pressure) used to abort the
 // whole update — the guard must not be the least reliable step in the build.
 function verifyChunksParse(assetsDir) {
   const nodeBin = process.env.NODE || process.execPath || "node"
@@ -171,7 +171,7 @@ function main() {
       // The check could not run — the bundle is not implicated. Saying "re-run the build" here
       // sent a past update investigation after a bundle defect that did not exist.
       console.error("  This is a failure of the CHECK, not of the bundle: node did not run to")
-      console.error("  completion. On Windows that is usually a stalled process creation")
+      console.error("  completion. That is usually a stalled process creation")
       console.error("  (antivirus/EDR interference, memory pressure) and clears on a retry.")
       console.error("  If it repeats, check the node binary and any AV exclusion for the")
       console.error(`    build tree, then re-run: cd ${desktopRoot} && npm run build\n`)

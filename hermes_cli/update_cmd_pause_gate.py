@@ -1,4 +1,4 @@
-"""The paused gateways' tree gate for the update's checkout-writing steps (Windows pause, #132338).
+"""The paused gateways' tree gate for the update's checkout-writing steps (#132338).
 
 ``_checkout_move`` binds one git step (switch, merge, reset, upstream sync, rollback, stash, churn
 cleanup) to the pause record BEFORE git writes a file; ``update_cmd`` re-exports these names.

@@ -23,7 +23,7 @@ the `┊` activity feed. `load_cli_config()` in `cli.py` merges CLI defaults + u
 generation/refresh, command dispatch); topical siblings re-exported by the facade include
 `gateway_launchd.py` (macOS LaunchAgent backend), `gateway_setup_wizard.py`
 (`hermes gateway setup`: `_PLATFORMS` registry, status table, per-platform prompts, service offer),
-`gateway_windows*.py`, `gateway_supervised_restart.py`, `gateway_migrate*.py`, `gateway_multiplex_*.py`,
+`gateway_supervised_restart.py`, `gateway_migrate*.py`, `gateway_multiplex_*.py`,
 `gateway_enroll.py`, `gateway_command_errors.py`. Sibling bodies read facade names through `_gw()`
 (late binding on `hermes_cli.gateway`), so monkeypatch on the facade; mutable state such as
 `_resolved_launchd_domain` stays a facade global.
@@ -132,8 +132,6 @@ The stage-by-stage contract: `website/docs/developer-guide/cli-internals.md` § 
 
 - Snapshots cover EVERY profile with one identical file set (never partial or tiered); they are
   file-loss recovery, `--backup` owns rollback.
-- The Windows ZIP fallback fires only when git itself failed, refuses a dirty tree, and grafts the
-  `_ZIP_PRESERVED_NESTED` build outputs into the swap.
 - Restarts are fleet-wide and drain-first, bounded by the home each unit runs on
   (`update_fleet_scope.py`); another install's runtime is never restarted.
 - Post-commit failures are owed follow-ups, exit 0 (stash left 1, Ctrl-C 130);
@@ -201,7 +199,7 @@ run_as_user=)` (systemd unit generation / `systemd_unit_is_current` / `refresh_s
 never a dir-owner fallback), `gateway_launchd.py::generate_launchd_plist` (`gui/<uid>` then `user/<uid>` domains, never a
 `~/Library/LaunchAgents` glob; the whole launchd backend — plist refresh, `launchctl` bootstrap/kickstart,
 `launchd_start/stop/restart/status`, detached-process degrade — lives in that sibling, with the domain cache
-`_resolved_launchd_domain` staying a facade global), Windows Scheduled Task and the Desktop-spawned backend all carry the
+`_resolved_launchd_domain` staying a facade global), the Desktop-spawned backend all carry the
 profile's `HERMES_HOME` (and `HOME` for the service user) explicitly — a supervisor starts with an
 empty environment, so the env override that makes `-p` work interactively does not exist there. A
 change to install/restart/status regenerates and diffs every kind; both user and system units are

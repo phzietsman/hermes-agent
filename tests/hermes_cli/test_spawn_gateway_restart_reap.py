@@ -48,7 +48,7 @@ def test_cli_restart_reaps_after_the_refusal_guard(monkeypatch):
     monkeypatch.setattr(gw, "_refuse_from_inside_gateway", lambda *a, **k: None)
     monkeypatch.setattr(gw, "_guard_named_profile_under_multiplexer", lambda **k: order.append("guard"))
     monkeypatch.setattr(gw, "_dispatch_via_service_manager_if_s6", lambda *a, **k: False)
-    monkeypatch.setattr(gw, "_installed_service_kind_for", lambda windows: "launchd")
+    monkeypatch.setattr(gw, "_installed_service_kind", lambda: "launchd")
     monkeypatch.setattr(gw, "_reap_unsupervised_gateway_orphans", lambda *a, **k: order.append("reap"))
     monkeypatch.setattr(gw, "_service_call", lambda *a, **k: order.append("restart"))
 
@@ -63,7 +63,7 @@ def test_cli_restart_reap_failure_does_not_block_restart(monkeypatch):
     monkeypatch.setattr(gw, "_refuse_from_inside_gateway", lambda *a, **k: None)
     monkeypatch.setattr(gw, "_guard_named_profile_under_multiplexer", lambda **k: None)
     monkeypatch.setattr(gw, "_dispatch_via_service_manager_if_s6", lambda *a, **k: False)
-    monkeypatch.setattr(gw, "_installed_service_kind_for", lambda windows: "launchd")
+    monkeypatch.setattr(gw, "_installed_service_kind", lambda: "launchd")
 
     def _boom(*a, **k):
         raise OSError("permission denied")

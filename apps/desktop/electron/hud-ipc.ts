@@ -51,7 +51,7 @@ export function registerHudIpc({
   // switch shortcut. Clearing sticky on release makes Chromium assign the
   // window to `_NET_CURRENT_DESKTOP`, exactly like releasing a native titlebar
   // drag on the destination desktop. Native Wayland owns its move loop and
-  // Windows/macOS stay out of this Linux-specific bridge.
+  // macOS stays out of this Linux-specific bridge.
   ipcMain.on('hermes:hud:workspace-transfer', (event, transferring) => {
     const hudWindow = getHudWindow()
 
@@ -87,9 +87,7 @@ export function registerHudIpc({
   // margins for that reason, and it only turns on while the band is showing
   // (idle HUD mode must be the bar and nothing else).
   //
-  // macOS ONLY. Windows' equivalent (setBackgroundMaterial → the DWM backdrop)
-  // is mutually exclusive with window transparency, so it is not called at all
-  // here — see the note at the bottom of this function.
+  // macOS ONLY.
   //
   // Diffed before issuing: `setVibrancy` carries a 150ms animation that restarts
   // if re-issued, so a repeated call would keep the material from ever settling
@@ -111,7 +109,7 @@ export function registerHudIpc({
     }
 
     const frost = hudFrostFor(getTranslucencyState(), bandShowing)
-    const signature = `${frost.vibrancy ?? 'off'}:${frost.backgroundMaterial}`
+    const signature = frost.vibrancy ?? 'off'
 
     if (applied === signature && appliedTo === hudWindow) {
       return
@@ -123,15 +121,6 @@ export function registerHudIpc({
     if (isMac && typeof hudWindow.setVibrancy === 'function') {
       hudWindow.setVibrancy(frost.vibrancy)
     }
-
-    // Windows: never touch setBackgroundMaterial on the HUD. Live-verified on
-    // Win11 (Electron 40.10.2, RTX 4090): ANY setBackgroundMaterial call on a
-    // transparent window — including 'none', which is what the idle HUD asks
-    // for — permanently kills per-pixel alpha, and every transparent pixel
-    // composites as opaque white. Neither 'auto' nor a follow-up
-    // setBackgroundColor('#00000000') restores it. The DWM backdrop and window
-    // transparency are mutually exclusive, so the Windows HUD keeps the CSS
-    // tint the sheet already paints and skips the native frost entirely.
   }
 
   ipcMain.handle('hermes:hud:open', async (_event, request) => {
@@ -164,7 +153,7 @@ export function registerHudIpc({
 
     // On X11 ignore-mouse is a one-way door: setIgnoreMouseEvents(false)
     // cannot restore the input region afterwards. Veto the request there so
-    // the HUD stays a normal solid window. Native Wayland and macOS/Windows
+    // the HUD stays a normal solid window. Native Wayland and macOS
     // keep the per-element path.
     if (Boolean(ignore) && !hudWindowing().ignoreMouse) {
       return
@@ -220,8 +209,8 @@ export function registerHudIpc({
     }
 
     // Cursor − grab offset in Electron DIP (see hud-drag.ts). setBounds —
-    // NOT setPosition: on Windows, a transparent frameless window silently
-    // grows ~1px per setPosition call (worse at >100% DPI). The renderer
+    // NOT setPosition: a transparent frameless window can silently
+    // grow per setPosition call. The renderer
     // snapshots outerWidth/outerHeight when the composer drag arms and
     // re-pins to that size on every move (same pattern as the pet overlay).
     hudWindow.setBounds({
@@ -234,7 +223,7 @@ export function registerHudIpc({
 
   // Resize from the HUD's edge/corner handles. The window is created non-resizable
   // (see spawnHudWindow — a transparent frameless window must not expose a
-  // system resize hot-zone, or dragging grows it), which on Windows/Linux also
+  // system resize hot-zone, or dragging grows it), which on Linux also
   // blocks programmatic setBounds sizing — so briefly flip resizable on while
   // the size actually changes, exactly like the pet overlay's wheel-scale does.
   ipcMain.on('hermes:hud:set-bounds', (event, bounds) => {

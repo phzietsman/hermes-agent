@@ -58,8 +58,6 @@ def _minimal_env(**extra) -> dict:
     env = {
         "PATH": os.environ.get("PATH", ""),
         "HOME": os.environ.get("HOME", ""),
-        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),  # Windows needs it
-        "LOCALAPPDATA": os.environ.get("LOCALAPPDATA", ""),
     }
     env = {k: v for k, v in env.items() if v}
     env.update(extra)

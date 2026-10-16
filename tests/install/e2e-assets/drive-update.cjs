@@ -93,7 +93,7 @@ async function main() {
   const child = app.process()
 
   const waitForProcessClose = observeProcessClose(child)
-  // On Windows Playwright's child is a shell wrapper, not Hermes.exe.
+  // Playwright's child may be a launcher wrapper, not the Electron main process.
   const appPid = await app.evaluate(() => process.pid)
   log(`launched Electron pid=${appPid}`)
 

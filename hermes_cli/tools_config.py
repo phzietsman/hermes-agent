@@ -17,7 +17,7 @@ from hermes_cli.toolset_scope import (
 from hermes_cli.toolset_validation import parse_platform_toolsets_value
 # Re-exports: keep ``hermes_cli.tools_config.X`` callers and test patch targets resolving.
 from hermes_cli.tools_config_cua import (  # noqa: F401
-    _post_setup_no_window_flags, _cua_driver_cmd, _cua_version_summary, _resolved_cua_driver_cmd, _cua_driver_env,
+    _cua_driver_cmd, _cua_version_summary, _resolved_cua_driver_cmd, _cua_driver_env,
     _cua_driver_contract_status, _cua_driver_install_ready)
 from hermes_cli.tools_config_post_setup import (  # noqa: F401
     _ensure_browser_use_cli, _run_post_setup, valid_post_setup_keys, run_post_setup_command, _POST_SETUP_INSTALLED,
@@ -90,7 +90,7 @@ CONFIGURABLE_TOOLSETS = [
     ("spotify",          "🎵 Spotify",                  "playback, search, playlists, library"),
     ("discord",         "💬 Discord (read/participate)", "fetch messages, search members, create thread"),
     ("discord_admin",   "🛡️  Discord Server Admin",    "list channels/roles, pin, assign roles"),
-    ("computer_use",     "🖱️  Computer Use (macOS/Windows/Linux)", "background desktop control via cua-driver"),
+    ("computer_use",     "🖱️  Computer Use (macOS/Linux)", "background desktop control via cua-driver"),
 ]
 
 
@@ -349,9 +349,9 @@ TOOL_CATEGORIES = {
         "providers": [_row("Spotify Web API", tag="PKCE OAuth — opens the setup wizard", post_setup="spotify")],
     },
     "computer_use": {
-        "name": "Computer Use (macOS/Windows/Linux)", "icon": "🖱️",
-        # Runtime backends ship for macOS, Windows, Linux (X11; Wayland via XWayland). Gaps surface via `computer-use doctor`.
-        "platform_gate": ["darwin", "win32", "linux"],
+        "name": "Computer Use (macOS/Linux)", "icon": "🖱️",
+        # Runtime backends ship for macOS, Linux (X11; Wayland via XWayland). Gaps surface via `computer-use doctor`.
+        "platform_gate": ["darwin", "linux"],
         # cua-driver reads HOME/TMPDIR from the process env; HERMES_CUA_DRIVER_CMD selects a specific
         # binary (e.g. a local build). There is no version-pin env var.
         "providers": [

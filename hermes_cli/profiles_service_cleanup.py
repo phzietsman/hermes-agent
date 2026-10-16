@@ -22,7 +22,7 @@ def remove_system_systemd_unit() -> bool:
     unit = gateway._SYSTEM_UNIT_DIR / f"{svc_name}.service"
     if not unit.exists():
         return False
-    if os.geteuid() != 0:  # windows-footgun: ok — called only from the Linux arm of profiles._cleanup_gateway_service
+    if os.geteuid() != 0:
         print(f"⚠ System service {svc_name} remains at {unit}; it will restart the removed profile at boot.")
         print(f"  Remove it with: sudo systemctl disable --now {svc_name} && sudo rm {unit} && sudo systemctl daemon-reload")
         return False
@@ -38,27 +38,3 @@ def remove_system_systemd_unit() -> bool:
         return True
     print(f"✓ System service {svc_name} removed")
     return True
-
-
-def remove_windows_task() -> bool:
-    """Delete the profile's Scheduled Task and Startup-folder login item. Direct ``schtasks
-    /Delete`` rather than ``gateway_windows.uninstall()``: that verb may open a UAC prompt,
-    which a dashboard DELETE or a scripted rename must never block on."""
-    from hermes_cli import gateway_windows as gw
-    task_name = gw.get_task_name()
-    removed = False
-    if gw.is_task_registered():
-        code, _out, err = gw._exec_schtasks(["/Delete", "/F", "/TN", task_name])
-        if code == 0:
-            removed = True
-            print(f"✓ Removed Scheduled Task {task_name!r}")
-        else:
-            print(f"⚠ Scheduled Task {task_name!r} remains (schtasks code {code}): {err.strip()}")
-    for path in (gw.get_startup_entry_path(), gw._legacy_startup_entry_path()):
-        try:
-            path.unlink()
-        except FileNotFoundError:
-            continue
-        removed = True
-        print(f"✓ Removed Windows login item: {path}")
-    return removed

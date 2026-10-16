@@ -210,15 +210,7 @@ def test_replay_reports_unmeasured_prs_and_fails(tmp_path, monkeypatch, capsys):
 # --- a blob's line endings never move a hit, its scope or its waiver ---
 
 
-def _windows_write_text(self, data, encoding=None, errors=None, newline=None):
-    """``Path.write_text`` as on Windows, where ``newline=None`` turns each "\n" into "\r\n"."""
-    if newline is None:
-        data = data.replace("\n", "\r\n")
-    with open(self, "w", encoding=encoding, errors=errors, newline="") as fh:
-        return fh.write(data)
-
-
-def test_crlf_blob_measures_like_lf(tmp_path, monkeypatch):
+def test_crlf_blob_measures_like_lf(tmp_path):
     waived = _SWALLOW.replace("except Exception:", "except Exception:  # health: allow BLE001 S110 -- boundary")
     results = {}
     for name, eol in (("lf", "\n"), ("crlf", "\r\n")):
@@ -228,10 +220,8 @@ def test_crlf_blob_measures_like_lf(tmp_path, monkeypatch):
         head = _commit(repo, {})
         assert (eol == "\r\n") == (b"\r\n" in subprocess.run(
             ["git", "show", f"{head}:pkg/b.py"], cwd=repo, capture_output=True, timeout=60, check=True).stdout)
-        with monkeypatch.context() as patch:
-            patch.setattr(Path, "write_text", _windows_write_text)
-            measurer = Measurer(repo, resolve_ruff(repo), known_env=set())
-            base_m, head_m = measurer.measure(base, []), measurer.measure(head, ["pkg/b.py"])
+        measurer = Measurer(repo, resolve_ruff(repo), known_env=set())
+        base_m, head_m = measurer.measure(base, []), measurer.measure(head, ["pkg/b.py"])
         findings = compare(base_m, head_m, gitio.changed_files(repo, base, head))
         apply_allows(findings, head_m)
         results[name] = sorted((f.rule, f.scope, f.line, f.allowed_reason) for f in findings)

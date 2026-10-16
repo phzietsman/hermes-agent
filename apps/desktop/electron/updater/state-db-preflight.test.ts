@@ -96,17 +96,9 @@ test('a managed installation runs the snapshot through the installation launcher
   // Stand-in for the installation launcher under `.hermes/bin`: it must accept
   // exactly what the runtime passes it — `--run-module hermes_cli.backup_sqlite
   // <home>` — and publish the snapshot like the real launcher does.
-  const shim: string = path.join(shims, process.platform === 'win32' ? 'hermes.cmd' : 'hermes')
-  fs.writeFileSync(
-    shim,
-    process.platform === 'win32'
-      ? `@echo off\r\n"${python}" -I -S "${script}" %3\r\n`
-      : `#!/bin/sh\nexec "${python}" -I -S "${script}" "$3"\n`
-  )
-
-  if (process.platform !== 'win32') {
-    fs.chmodSync(shim, 0o755)
-  }
+  const shim: string = path.join(shims, 'hermes')
+  fs.writeFileSync(shim, `#!/bin/sh\nexec "${python}" -I -S "${script}" "$3"\n`)
+  fs.chmodSync(shim, 0o755)
 
   const logs: string[] = []
 

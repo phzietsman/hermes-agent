@@ -118,9 +118,8 @@ def test_sealing_strips_bom_and_absolute_build_paths(tmp_path):
     python.parent.mkdir(parents=True)
     python.write_bytes(b"interpreter")
     runtime = root / "pm-runtime"
-    (runtime / "Lib/site-packages").mkdir(parents=True)
+    (runtime / "lib/python3.14/site-packages").mkdir(parents=True)
     (runtime / "bin").mkdir()
-    (runtime / "Scripts").mkdir()
     cfg = runtime / "pyvenv.cfg"
     cfg.write_bytes("\ufeffhome = /private/builder\nexecutable = /private/python\nversion = 3.14\n".encode("utf-8"))
     payload.seal_pm_runtime(root, python)

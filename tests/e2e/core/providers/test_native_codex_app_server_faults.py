@@ -7,7 +7,6 @@ Hermes must answer (approval in single-query mode, permissions) plus process-tre
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 
@@ -18,7 +17,6 @@ from tests.e2e.core.providers._native_helpers import KnownSymptom, messages, wai
 from tests.fakes.providers.codex_app_server import CodexRun, pid_alive, run_codex_scenario
 
 pytestmark = [
-    pytest.mark.skipif(sys.platform == "win32", reason="POSIX sh wrapper + /proc PID checks"),
     # The orphaned own-session grandchild (#121298) is released cooperatively by CodexRun.cleanup(); the
     # bypass covers its SIGKILL fallback for anything still alive (reparented to init by then).
     pytest.mark.live_system_guard_bypass,

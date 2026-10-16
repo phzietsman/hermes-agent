@@ -90,7 +90,7 @@ def test_node_sidecar_retains_output_and_exit_status(
     completed = []
     npm_dir = tmp_path / "pm-bin"
     npm_dir.mkdir()
-    npm = npm_dir / ("npm.cmd" if os.name == "nt" else "npm")
+    npm = npm_dir / "npm"
     npm.write_text("process boundary fixture", encoding="utf-8")
     npm.chmod(0o755)
     context = Runner("npm", dict(os.environ, PATH=str(npm_dir)))

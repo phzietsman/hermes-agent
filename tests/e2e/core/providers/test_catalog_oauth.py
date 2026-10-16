@@ -32,8 +32,6 @@ from tests.e2e.core.providers._catalog_helpers import Known, gate, known_gate
 from tests.fakes.providers.catalog_fake import CatalogFake
 from tests.fakes.providers.catalog_oauth import NOUS_INVOKE_SCOPE, OAuthFake, make_jwt
 
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX harness")
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PROD_NOUS_INFERENCE = "https://inference-api.nousresearch.com/v1"
 TURN_TIMEOUT = 120.0

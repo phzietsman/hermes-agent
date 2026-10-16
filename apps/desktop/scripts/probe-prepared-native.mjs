@@ -15,10 +15,7 @@ async function probeChild(nativeDeps) {
   /** @type {typeof import('node-pty')} */
   const pty = createRequire(import.meta.url)(path.join(nativeDeps, 'node-pty'))
   const marker = `hermes-pty-${randomUUID()}`
-  const windows = process.platform === 'win32'
-  const shell = windows ? (process.env.ComSpec || 'cmd.exe') : '/bin/sh'
-  const args = windows ? ['/d', '/s', '/c', `echo ${marker}`] : ['-c', `echo ${marker}`]
-  const terminal = pty.spawn(shell, args, { cols: 80, rows: 24, cwd: process.cwd(), env: process.env })
+  const terminal = pty.spawn('/bin/sh', ['-c', `echo ${marker}`], { cols: 80, rows: 24, cwd: process.cwd(), env: process.env })
   let output = ''
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -47,13 +44,13 @@ export function probePreparedNative({ source, nativeDeps, packaging, out, native
   fs.mkdirSync(out, { recursive: true })
   const work = fs.mkdtempSync(path.join(path.resolve(out), 'electron-probe-'))
   const bin = path.join(inputs.toolsets.sevenZip, 'bin')
-  const archiveTool = fs.readdirSync(bin).find(name => /^(7zz|7za|7z)(\.exe)?$/.test(name))
+  const archiveTool = fs.readdirSync(bin).find(name => /^(7zz|7za|7z)$/.test(name))
   if (!archiveTool) throw new Error('Prepared 7zip executable is missing')
   const extract = spawnSync(path.join(bin, archiveTool), ['x', '-y', `-o${work}`, inputs.electron], {
     encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'],
   })
   if (extract.error || extract.status !== 0) throw new Error(`Electron extraction failed: ${extract.error?.message || extract.stderr}`)
-  const executable = new Map([['win32', 'electron.exe'], ['darwin', 'Electron.app/Contents/MacOS/Electron'], ['linux', 'electron']]).get(process.platform)
+  const executable = new Map([['darwin', 'Electron.app/Contents/MacOS/Electron'], ['linux', 'electron']]).get(process.platform)
   if (!executable) throw new Error(`Unsupported native probe platform: ${process.platform}`)
   const child = spawnSync(path.join(work, executable), [fileURLToPath(import.meta.url), '--child', admitted], {
     cwd: work, encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL',

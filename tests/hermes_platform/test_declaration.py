@@ -1,7 +1,6 @@
 """Declaration parser, availability, and skill-gate contracts.
 
-Fixtures are dicts passed to ``parse_declaration`` (never YAML files); fixture paths satisfy the
-OS rule they test under (`C:/x/y.exe` for win32, `/x` elsewhere).
+Fixtures are dicts passed to ``parse_declaration`` (never YAML files); fixture paths are absolute.
 """
 
 from __future__ import annotations
@@ -30,18 +29,17 @@ def _bundle(tmp_path: Path, version: str) -> Path:
 def test_app_block_parses_into_one_appdef_per_os():
     decl = parse_declaration("thing-mcp", {
         "darwin": {"presence": "bundle", "location": "/Applications/Thing.app", "version": {"kind": "plist"}},
-        "win32": {
+        "linux": {
             "presence": "executable",
-            "location": "%ProgramFiles%/Thing/thing.exe",
-            "version": {"kind": "uninstall_registry", "display_name_prefix": "Thing"},
-            "liveness": {"kind": "server_json", "path": "%LOCALAPPDATA%/Thing/server.json", "endpoint_path": "/rpc"},
+            "location": "/opt/thing/thing",
+            "liveness": {"kind": "server_json", "path": "~/.config/thing/server.json", "endpoint_path": "/rpc"},
         },
     }, {"app": True, "min_version": "2.3.0"}, where=WHERE)
-    assert decl.app is not None and set(decl.app.per_os) == {"darwin", "win32"}
-    mac, win = decl.app_for("darwin"), decl.app_for("win32")
-    assert mac is not None and win is not None
+    assert decl.app is not None and set(decl.app.per_os) == {"darwin", "linux"}
+    mac, linux = decl.app_for("darwin"), decl.app_for("linux")
+    assert mac is not None and linux is not None
     assert mac.presence == "bundle" and mac.version_kind == "plist" and mac.liveness_kind == "none"
-    assert win.version_arg == "Thing" and win.endpoint_path == "/rpc" and win.liveness_pid_key == "pid"
+    assert linux.endpoint_path == "/rpc" and linux.liveness_pid_key == "pid"
     assert decl.requires_app is True and decl.min_version == "2.3.0"
 
 
@@ -50,19 +48,18 @@ def test_app_block_parses_into_one_appdef_per_os():
     (None, {"min_version": "1.0\n"}, "dotted numeric"),
     ({"linux": {"presence": "executable", "location": "/x/y", "version": {"kind": "plist"}}}, None,
      "only valid under app.darwin"),
-    ({"win32": {"presence": "executable", "location": "C:/x/y.exe", "version": {"kind": "uninstall_registry"}}}, None,
-     "display_name_prefix"),
     ({"freebsd": {"presence": "executable", "location": "/x"}}, None, "unknown OS keys"),
-    ({"win32": {"presence": "executable", "location": "C:/x/y.exe"}}, {"min_version": "1.0"},
+    ({"darwin": {"presence": "executable", "location": "/x/y"}}, {"min_version": "1.0"},
      "needs requires.app"),
-    ({"win32": {"presence": "executable", "location": "C:/x/y.exe"}}, {"app": True, "min_version": "latest"},
+    ({"darwin": {"presence": "executable", "location": "/x/y"}}, {"app": True, "min_version": "latest"},
      "dotted numeric"),
-    ({"win32": {"presence": "executable", "location": "C:/x/y.exe"}}, {"app": True, "min_version": "1.0"},
+    ({"darwin": {"presence": "executable", "location": "/x/y"}}, {"app": True, "min_version": "1.0"},
      "needs a version source"),
     ({"darwin": {"presence": "bundle", "location": "../Up/Thing.app"}}, None, "must be absolute"),
     ({"darwin": {"presence": "bundle", "location": "Relative/Thing.app"}}, None, "must be absolute"),
     ({"darwin": {"presence": "bundle", "location": "https://example.test/Thing.app"}}, None, "must be absolute"),
-    ({"win32": {"presence": "executable", "location": "Thing/thing.exe"}}, None, "must be absolute"),
+    ({"linux": {"presence": "executable", "location": "Thing/thing"}}, None, "must be absolute"),
+    ({"linux": {"presence": "executable", "location": "%ProgramFiles%/thing"}}, None, "must be absolute"),
     (None, {"gpu": "amd"}, "requires.gpu must be one of"),
     ({"darwin": {"presence": "bundle", "location": "/Applications/Thing */**/Thing.app"}}, None, "must be absolute"),
     ({"linux": {"presence": "executable", "location": []}}, None, "location is required"),
@@ -74,8 +71,6 @@ def test_app_block_parses_into_one_appdef_per_os():
      "needs app.darwin.presence executable"),
     ({"linux": {"presence": "executable", "location": [{"kind": "snap", "name": "../thing"}]}}, None,
      "location\\[0\\].name must be a bare name"),
-    ({"win32": {"presence": "executable", "location": [{"kind": "uninstall_registry", "display_name_prefix": "Thing"}]}},
-     None, "location\\[0\\].file must be a relative path"),
     ({"linux": {"presence": "executable", "location": "/usr/bin/thing"}}, {"app": True, "min_version": "1.0"},
      "needs a version source under app.linux"),
 ])
@@ -103,11 +98,11 @@ def test_requires_gpu_gates_on_the_host_gpu_class(monkeypatch, gpu_class, state)
 
     monkeypatch.setattr(facts, "gpu_class", lambda: gpu_class)
     decl = parse_declaration("thing-mcp", None, {"gpu": "nvidia"}, where=WHERE)
-    result = availability(decl, os_family="win32")
+    result = availability(decl, os_family="linux")
     assert result.state == state and result.offerable == (state == "no_requirements")
 
     monkeypatch.setattr(facts, "gpu_class", lambda: pytest.fail("the OS gate must not read the GPU"))
-    both = parse_declaration("thing-mcp", {"win32": {"presence": "executable", "location": "C:/x/y.exe"}},
+    both = parse_declaration("thing-mcp", {"linux": {"presence": "executable", "location": "/x/y"}},
                              {"app": True, "gpu": "nvidia"}, where=WHERE)
     assert availability(both, os_family="darwin").state == "unsupported_os"
 
@@ -115,7 +110,7 @@ def test_requires_gpu_gates_on_the_host_gpu_class(monkeypatch, gpu_class, state)
 def test_availability_unsupported_os_when_no_block_for_host():
     decl = parse_declaration(
         "thing-mcp",
-        {"win32": {"presence": "executable", "location": "C:/x/y.exe"}},
+        {"linux": {"presence": "executable", "location": "/x/y"}},
         {"app": True},
         where=WHERE,
     )
@@ -145,18 +140,16 @@ def test_availability_missing_then_present_then_version_gate(tmp_path):
 
 def test_location_list_parses_each_kind_in_order():
     decl = parse_declaration("thing-mcp", {
-        "win32": {"presence": "executable", "location": [
-            {"kind": "uninstall_registry", "display_name_prefix": "Thing", "file": "bin/thing.exe"},
-            "%ProgramFiles%/Thing */thing.exe",
+        "darwin": {"presence": "bundle", "location": [
+            {"kind": "app_bundle", "name": "Thing.app"}, "$THINGROOT/Thing */Thing.app",
         ]},
         "linux": {"presence": "executable", "location": [
             {"kind": "command", "name": "thing"}, {"kind": "flatpak", "app_id": "org.thing.Thing"},
         ]},
     }, None, where=WHERE)
-    win, linux = decl.app_for("win32"), decl.app_for("linux")
-    assert win is not None and linux is not None
-    assert win.locations == (AppLocation("uninstall_registry", "Thing", "bin/thing.exe"),
-                             AppLocation("path", "%ProgramFiles%/Thing */thing.exe"))
+    mac, linux = decl.app_for("darwin"), decl.app_for("linux")
+    assert mac is not None and linux is not None
+    assert mac.locations == (AppLocation("app_bundle", "Thing.app"), AppLocation("path", "$THINGROOT/Thing */Thing.app"))
     assert linux.locations == (AppLocation("command", "thing"), AppLocation("flatpak", "org.thing.Thing"))
 
 
@@ -206,7 +199,7 @@ def test_version_at_least_accepts_only_bounded_ascii_components(found, minimum, 
 
 def test_unexpanded_locations_are_missing_even_when_cwd_contains_them(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    for location in ("%HERMES_TEST_UNSET_VAR%/x.exe", "$HERMES_TEST_UNSET_VAR/x"):
+    for location in ("$HERMES_TEST_UNSET_VAR/x",):
         path = tmp_path / location
         path.parent.mkdir(exist_ok=True)
         path.write_text("fixture", encoding="utf-8")
@@ -251,3 +244,14 @@ def test_skill_requires_apps_gate(tmp_path, monkeypatch):
         assert skill_utils.skill_matches_apps({"requires_apps": ["thing-mcp"]}) is True
     finally:
         declaration.clear()
+
+
+def test_a_windows_block_in_a_third_party_manifest_parses_and_is_never_detected():
+    """Catalog manifests are pinned in other repos and may still declare a ``win32`` app; the rest of
+    the declaration must keep working on the hosts Hermes runs on."""
+    decl = parse_declaration("thing-mcp", {
+        "darwin": {"presence": "executable", "location": "/x/y"},
+        "win32": {"presence": "executable", "location": "C:/x/y.exe", "version": {"kind": "pe_resource"}},
+    }, {"app": True}, where=WHERE)
+    assert decl.app_for("darwin") is not None
+    assert decl.app_for("win32") is None

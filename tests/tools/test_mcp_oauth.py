@@ -97,7 +97,6 @@ class TestHermesTokenStorage:
         data = json.loads(token_path.read_text())
         assert data["access_token"] == "abc123"
 
-    @pytest.mark.platforms("posix")  # POSIX mode bits not enforced on Windows
     def test_token_file_created_with_0o600(self, tmp_path, monkeypatch):
         """Tokens must land on disk at 0o600 with no umask-default exposure window.
 
@@ -303,8 +302,7 @@ class TestUtilities:
 
     def test_can_open_browser_true_with_display(self, monkeypatch):
         # No ``os.name`` pin: on Linux this exercises the DISPLAY branch for
-        # real, and on macOS/Windows the function early-returns True anyway —
-        # the assertion holds on every host without faking one.
+        # real, and on macOS the function early-returns True anyway.
         monkeypatch.delenv("SSH_CLIENT", raising=False)
         monkeypatch.delenv("SSH_TTY", raising=False)
         monkeypatch.setenv("DISPLAY", ":0")

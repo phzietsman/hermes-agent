@@ -51,12 +51,10 @@ def require_owned(request: BuildRequest, paths: list[Path]) -> None:
 
 
 def require_output_roots(source: Path) -> None:
-    from pm.filesystem import is_junction
-
     for relative in (".build", "apps", "apps/desktop", "apps/desktop/build", "apps/desktop/dist", "apps/desktop/release"):
         path = source / relative
-        if path.is_symlink() or (path.exists() and is_junction(path)):
-            raise ValueError(f"desktop output root must not be a symlink or junction: {path}")
+        if path.is_symlink():
+            raise ValueError(f"desktop output root must not be a symlink: {path}")
 
 
 def selected_tool_inputs(request: BuildRequest) -> list[Path]:
@@ -75,12 +73,6 @@ def validate_channel_request(value: dict) -> dict:
 
     validate_request(value)
     validate(value["bundleEnv"])
-    identity = value["identity"]
-    for field in ("cliName", "windowsExecutableName", "appNamePascal", "artifactNamePascal"):
-        if re.fullmatch(r"(?i:con|prn|aux|nul|com[0-9]|lpt[0-9])", identity[field].split(".")[0]):
-            raise ValueError(f"reserved channel native identity {field}")
-    if identity["windowsExecutableName"].endswith((".", " ")):
-        raise ValueError("invalid channel native identity windowsExecutableName")
     if not value["publicBase"].startswith("https://"):
         raise ValueError("channel publicBase must be HTTPS for packaged clients")
     return deepcopy(value)
@@ -270,8 +262,8 @@ def prepare(request: BuildRequest) -> Path:
     from scripts.bundles.desktop_inputs import build_lock
 
     request.validate_channel()
-    if request.channel_request is not None and not request.target.startswith(("darwin-", "win32-")):
-        raise ValueError("channel builds require a supported native macOS or Windows target")
+    if request.channel_request is not None and not request.target.startswith("darwin-"):
+        raise ValueError("channel builds require a supported native macOS target")
     require_source(request.source, request.commit)
     with build_lock(request.source):
         return _prepare(request)

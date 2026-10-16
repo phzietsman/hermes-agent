@@ -38,9 +38,6 @@ on:
       - 'scripts/bundles/**'
       - 'scripts/ci/desktop_build_cache.py'
       - '.github/actions/desktop-build-cache/**'
-      - 'scripts/windows-build-deps.ps1'
-      - 'scripts/build/windows-deps.ps1'
-      - '.github/actions/setup-windows-build-deps/**'
       - 'uv.lock'
       - 'pyproject.toml'
       - '.github/workflows/pm-bundle.yml'
@@ -76,10 +73,6 @@ jobs:
             runner: macos-15
           - label: darwin-x64
             runner: macos-15-intel
-          - label: win32-x64
-            runner: windows-latest-32-core
-          - label: win32-arm64
-            runner: windows-latest-32-arm-core
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
         with:
@@ -114,7 +107,7 @@ jobs:
           PAYLOAD_CACHE: ${{ runner.temp }}/payload-inputs
           PYTHONUTF8: '1'
         run: |
-          if [ "$RUNNER_OS" = Windows ]; then bootstrap=python; else bootstrap=python3; fi
+          bootstrap=python3
           "$bootstrap" -S -B scripts/bundles/native_build.py --prepare-only \
             --source "$GITHUB_WORKSPACE" --work "$PAYLOAD_WORK" --cache "$PAYLOAD_CACHE" \
             --out "$GITHUB_WORKSPACE/build/agent-payload" --ref HEAD
@@ -134,7 +127,7 @@ jobs:
       - name: Assemble the prepared payload without dependency acquisition
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = Windows ]; then bootstrap=python; else bootstrap=python3; fi
+          bootstrap=python3
           "$bootstrap" -S -B scripts/bundles/native_build.py \
             --prepared "$GITHUB_WORKSPACE/build/agent-payload.prepared.json"
 

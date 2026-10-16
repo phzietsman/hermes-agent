@@ -528,7 +528,7 @@ def local_models_status():
 def _nvidia_smi_facts() -> dict:
     """GPU identity + live utilization (NVIDIA only; other vendors degrade to {} and the UI hides those readouts).
 
-    Reads the shared cached query: one nvidia-smi spawn per poll window, hidden on Windows,
+    Reads the shared cached query: one nvidia-smi spawn per poll window,
     instead of a second bare one per request (#101895, #120262)."""
     query = hardware._cached_nvidia_gpu_query()
     if query is None:

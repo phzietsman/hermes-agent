@@ -46,7 +46,6 @@ import {
   withRetry
 } from './api-transport'
 import { appIconCandidates, resolveAppIcon, shouldOverrideDockIcon } from './app-icon'
-import { stageAppInstallerFile } from './app-installer-file'
 import {
   appVersionInfo,
   type AppVersionInfo,
@@ -54,7 +53,6 @@ import {
   nativeAboutVersion,
   packagedReleaseChannel
 } from './app-version'
-import { runAppInstallerChecker } from './appinstaller-checker'
 import { installApplicationMenuAfterFirstWindow } from './application-menu-startup'
 import { stopBackendChild as stopBackendChildImpl, waitForBackendExit } from './backend-child'
 import {
@@ -82,10 +80,9 @@ import {
   createBackendOwnership,
   createBackendShutdownCoordinator
 } from './backend-ownership'
-import { canImportHermesCli, PROBE_TIMEOUT_MS, shouldTrustHermesOverride, verifyHermesCli } from './backend-probes'
+import { shouldTrustHermesOverride, verifyHermesCli } from './backend-probes'
 import { waitForDashboardPortAnnouncement } from './backend-ready'
 import { recycleOwnedBackend } from './backend-recycle'
-import { isPidAliveWindows, waitForBackendRelease } from './backend-release-gate'
 import { createInstalledRuntimeGate } from './backend-resolution'
 import { createBackendServeSupportResolver } from './backend-serve-support'
 import {
@@ -104,7 +101,6 @@ import {
 import { describeBootstrapFailure } from './bootstrap-failure-copy'
 import {
   detectRemoteDisplay,
-  isWindowsBinaryPathInWsl,
   isWslEnvironment,
   resolveLinuxPasswordStore
 } from './bootstrap-platform'
@@ -128,7 +124,6 @@ import {
 import { CHALLENGE_PARTITION } from './challenge-window'
 import { registerChallengeWindowIpc } from './challenge-window-ipc'
 import { provisionCliLinks } from './cli-provision'
-import { closeStopFailureMessage, finishWindowsCloseStop, type RuntimeLock } from './close-stop-kill'
 import { shouldAttemptCloudBootCascade } from './cloud-boot-cascade'
 import { discoverWithTeamFallback } from './cloud-discovery'
 import { createCloudSessionRecovery } from './cloud-session-recovery'
@@ -234,7 +229,6 @@ import { registryPrimaryBootRoute, resolveDesktopRemoteRoute, v1SshTerminalPoolK
 import { type DesktopSharedMetrics, registerDesktopSharedMetrics } from './desktop-shared-metrics'
 import {
   buildPosixCleanupScript,
-  buildWindowsCleanupScript,
   type DesktopUninstallResult,
   modeRemovesAgent,
   modeRemovesUserData,
@@ -281,11 +275,10 @@ import {
   saveGatewayDownload
 } from './gateway-file-download'
 import { downloadViaOauthSessionToFile, downloadViaTokenToFile } from './gateway-file-download-transport'
-import { stopGatewayBeforeUpdate } from './gateway-stop-before-update'
 import { resolveGatewayVersion } from './gateway-version'
 import { probeGatewayWebSocket, spawnedBackendProbeOptions } from './gateway-ws-probe'
-import { windowsGitCandidates } from './git-binary-candidates'
 import { registerGitIpc } from './git-ipc'
+import { alreadyHasDisableGpu, buildDisableGpuRelaunchArgs, isHermesDesktopGpuOverrideOff } from './gpu-flags'
 import { desktopBackendSpawnEnv, guestOnboardingEnabled } from './guest-onboarding'
 import {
   assertExistingPathForOpen,
@@ -361,7 +354,6 @@ import {
   writeNvidiaEglMarker
 } from './linux-nvidia-egl-fallback'
 import { createLocalBackendLifecycle, waitForTeardown } from './local-backend-lifecycle'
-import { resolveIpcFileReadPath, resolveMediaStreamFile, resolvePreviewTargetPath } from './local-read-path'
 import { localSkinProfileKey, readLocalSkinPayload } from './local-skin'
 import { ACTIVE_LOG_POLL_MS, planLogRotation, reclaimActiveLogIfOversized } from './log-rotation'
 import { registerMachineProfile } from './machine-profile'
@@ -408,7 +400,7 @@ import {
 } from './native-oauth'
 import { runNativeLogin } from './native-oauth-login'
 import { loadNativeTokenSet, type NativeTokenStoreIo, persistNativeTokenSet } from './native-token-store'
-import { execGit, killTimedGitChildren, setNoConsoleGitRoots } from './no-console-git'
+import { execGit, killTimedGitChildren } from './no-console-git'
 import { registerNativeNotifications } from './notification-ipc'
 import { isExpectedOauthNavigationAbort } from './oauth-navigation'
 import { serializeJsonBody, setJsonRequestHeaders } from './oauth-net-request'
@@ -421,9 +413,8 @@ import {
   withoutInteractiveOauthLogin
 } from './oauth-rest-request'
 import { wireOauthSessionResponse } from './oauth-session-response'
-import { listWindowsProcesses, reapPackageRootedProcesses } from './package-process-reap'
 import { createParentStartMarkerResolver, parentWatchdogEnv } from './parent-process-identity'
-import { bundledPayload, installIdForRoot, type PayloadInfo, payloadPythonPath } from './payload-backend'
+import { bundledPayload, installIdForRoot } from './payload-backend'
 import { petOverlayClickThrough, shouldPopInOnOverlayClosed } from './pet-overlay'
 import { placePetOverlay, registerPetOverlayIpc } from './pet-overlay-ipc'
 import {
@@ -471,7 +462,7 @@ import {
 } from './primary-backend-startup'
 import { rehomePrimaryConnection } from './primary-connection-rehome'
 import { PrimaryProfilePin, resolveLaunchProfile } from './primary-profile-pin'
-import { applyDesktopIdentity, PRODUCT_IDENTITY } from './product-identity'
+import { applyDesktopIdentity } from './product-identity'
 import {
   assertLocalProfileCanStart,
   decideProfileDeleteAction,
@@ -509,7 +500,6 @@ import {
   quickEntryWindowBounds,
   sanitizeQuickEntrySettings
 } from './quick-entry'
-import { createQuitFinalization } from './quit-finalization'
 import {
   type ActiveWork,
   backendOwnedByApp,
@@ -554,6 +544,16 @@ import { attachRendererConsoleCapture, formatRendererBoundaryReport } from './re
 import { fetchRosterSourceData } from './roster-source-fetch'
 import { rosterSourceStatus } from './roster-source-status'
 import {
+  alreadyHasNoSandbox,
+  buildNoSandboxRelaunchArgs,
+  decideSandboxLaunch,
+  fallbackMarker,
+  markerAfterSuccessfulBoot,
+  readSandboxMarker,
+  type SandboxFallbackReason,
+  writeSandboxMarker
+} from './sandbox-fallback'
+import {
   classifyStoredSecret,
   readSecretStoragePolicy,
   SECRET_STORAGE_POLICY_FILE,
@@ -575,7 +575,6 @@ import { ensureLoginShellPath } from './shell-path'
 import { removeStaleSingletonLock } from './singleton-lock'
 import { createSourcePythonBackend, resolveSourceInstallationBackend, type SourceBackend } from './source-backend'
 import { resolveSourcePython } from './source-python'
-import { resolveSshBinary } from './ssh-binary'
 import { createBootstrapCoordinator, sshConfigFingerprint } from './ssh-bootstrap-coordinator'
 import { collectSshConfigHosts, parseSshGOutput } from './ssh-config'
 import { createSshProbeConnection, pickLocalPort, redactSecrets, SshConnection } from './ssh-connection'
@@ -586,7 +585,6 @@ import { installSystemCaTrust } from './system-ca'
 import { registerTerminalIpc } from './terminal-ipc'
 import { nativeOverlayWidth as computeNativeOverlayWidth, titleBarOverlayOptions } from './titlebar-overlay-width'
 import {
-  backgroundMaterialFor,
   defaultTranslucencyState,
   glassActive,
   glassSupportedOn,
@@ -594,7 +592,6 @@ import {
   opacityNeedsSetting,
   translucencySupportedOn,
   vibrancyFor as vibrancyForTranslucency,
-  windowBackgroundMaterialOptions,
   windowBackingOptions,
   windowOpacityFor,
   windowOpacityOptions
@@ -615,10 +612,7 @@ import {
   waitForPoolUpdateClearance
 } from './update-hold-wiring'
 import {
-  describeSkippedPrewrite,
-  readLiveUpdateMarker,
-  updateHandoffConflict,
-  writeUpdateMarker
+  readLiveUpdateMarker
 } from './update-marker'
 import { heldWaitMessage, holdTicker } from './update-marker-gate'
 import { updateConnectionsBeforeLocal } from './update-order'
@@ -629,40 +623,21 @@ import {
   type UpdaterStrategy
 } from './updater'
 import {
-  observeUpdaterHandoff,
-  repairMacUpdaterHelper,
   resolveInstallationLauncher,
-  resolveStagedUpdaterBinary,
-  resolveVenvDir,
-  spawnUpdaterProcess,
-  stagedUpdaterSupportsPrewrittenMarker,
   userLauncherInstallRoot
 } from './updater-process'
-import { AppInstallerStrategy } from './updater/app-installer'
-import { createChannelAppInstallerStrategy } from './updater/app-installer'
 import { ChannelResolver, type ChannelTarget } from './updater/channel'
 import { inspectRunningChannelApp } from './updater/channel-native'
 import { ChannelStrategy } from './updater/channel-strategy'
-import { verifyPreparedChannelInstaller } from './updater/channel-windows-host'
 import { createCheckoutStrategy } from './updater/checkout'
 import { readSourceUpdate, type SourceUpdate } from './updater/checkout-source'
 import { ExternalStrategy } from './updater/external'
 import { readUpdatesFeedBaseFromConfig, resolveFeedBaseUrl } from './updater/feed-config'
 import { createChannelMacStrategy, createMacStrategy } from './updater/mac-client'
 import { UpdateOperation } from './updater/operation'
-import {
-  type ConsumedRelaunch,
-  consumePendingRelaunch,
-  registerUpdateRelaunch,
-  type RelaunchRegistration
-} from './updater/relaunch'
-import { startUpdateRelaunchWaiter } from './updater/relaunch-waiter'
 import { preflightStateDb } from './updater/state-db-preflight'
-import { createStoreStrategy } from './updater/store-client'
-import { isExternalVenvHolder, isHermesOwnedVenvDaemon } from './venv-holder-select'
 import { fetchMarketplaceThemes, searchMarketplaceThemes } from './vscode-marketplace'
 import { createWakeIndicatorWindowController } from './wake-indicator-window'
-import { guardedWatch } from './watch-storm-breaker'
 import { windowAcceleratorAction } from './window-accelerator'
 import { enumerateWindowsFrontToBack, enumerationFailed, readWindowBelow } from './window-below'
 import { bindWindowChromeEvents } from './window-chrome-events'
@@ -688,45 +663,7 @@ import {
   MIN_WIDTH as WINDOW_MIN_WIDTH,
   windowSize
 } from './window-state'
-import { hiddenWindowsChildOptions, windowsShellCommand } from './windows-child-options'
-import { buildPathExtCandidates, chooseUpdaterArgs, resolveVenvHermesCommand } from './windows-hermes-path'
-import {
-  connectWindowsRemote,
-  detectRemotePlatform,
-  helper,
-  probeWindowsRemote,
-  terminateOwnedWindowsDashboardForUpdate
-} from './windows-remote-lifecycle'
-import {
-  alreadyHasNoSandbox,
-  buildNoSandboxRelaunchArgs,
-  decideWindowsSandboxLaunch,
-  fallbackMarker,
-  grantAllApplicationPackagesAcl,
-  markerAfterSuccessfulBoot,
-  readSandboxMarker,
-  type SandboxFallbackReason,
-  shouldAttemptAclRepair,
-  shouldRelaunchForGpuSandboxCrash,
-  shouldRelaunchForRendererSandboxCrashLoop,
-  writeSandboxMarker
-} from './windows-sandbox-fallback'
-import {
-  alreadyHasDisableGpu,
-  buildDisableGpuRelaunchArgs,
-  decideWindowsGpuStackCookieLaunch,
-  gpuStackCookieFallbackMarker,
-  isHermesDesktopGpuOverrideOff,
-  markerAfterSuccessfulGpuStackCookieBoot,
-  readGpuStackCookieMarker,
-  shouldRelaunchForRendererStackCookieCrashLoop,
-  shouldSurfaceErrorForRendererStackCookieCrashLoop,
-  writeGpuStackCookieMarker
-} from './windows-stack-cookie-fallback'
-import { readWindowsUserEnvVar } from './windows-user-env'
 import { isPackagedInstallPath as isPackagedInstallPathUnderRoots } from './workspace-cwd'
-import { readWslWindowsClipboardImage } from './wsl-clipboard-image'
-import { resolvePickerDefaultPath, setActiveGatewayProfile, setWslBridgeProfileState } from './wsl-path-bridge'
 
 const IDENTITY_APP_NAME: string | null = applyDesktopIdentity(app)
 const USER_DATA_OVERRIDE: string | undefined = process.env.HERMES_DESKTOP_USER_DATA_DIR
@@ -740,14 +677,13 @@ if (USER_DATA_OVERRIDE || process.env.HERMES_DATA_DIR_SUFFIX) {
 const DEV_SERVER = process.env.HERMES_DESKTOP_DEV_SERVER
 const IS_PACKAGED = app.isPackaged || Boolean(process.env.HERMES_DESKTOP_IS_PACKAGED)
 const IS_MAC = process.platform === 'darwin'
-const IS_WINDOWS = process.platform === 'win32'
 const IS_WSL = isWslEnvironment()
 // Truthful macOS kernel major (Tahoe = 25). Product version lies (16 vs 26) per
 // build SDK, so gate Tahoe workarounds on Darwin instead.
 const DARWIN_MAJOR = IS_MAC ? Number.parseInt(os.release(), 10) || 0 : 0
-// Glass: macOS vibrancy, or Windows 11 22H2+ system backdrop. Computed once
+// Glass: macOS vibrancy. Computed once
 // so the renderer, the persisted default, and every chat window agree.
-const GLASS_SUPPORTED = glassSupportedOn(process.platform, os.release())
+const GLASS_SUPPORTED = glassSupportedOn(process.platform)
 // Clear rides setOpacity, a documented no-op on Linux, so neither mode works
 // there and Settings drops the row entirely.
 const TRANSLUCENCY_SUPPORTED = translucencySupportedOn(process.platform)
@@ -766,7 +702,7 @@ const PREVIEW_GUEST_PRELOAD_PATH = path.join(APP_ROOT, 'dist', 'preview-guest-pr
 // Remote displays (SSH X11 forwarding, VNC, RDP) make Chromium's GPU
 // compositor flicker — accelerated layers can't be presented cleanly over the
 // wire, so the window flashes during scroll/streaming/animation. Local
-// Windows/macOS (and WSLg, which renders locally via vGPU) composite on the
+// macOS (and WSLg, which renders locally via vGPU) composite on the
 // GPU and never see it. Fall back to software rendering when a remote display
 // is detected; it's rock-steady over the wire and the CPU cost is negligible
 // next to the connection's latency. Must run before app `ready` — these
@@ -791,43 +727,6 @@ if (REMOTE_DISPLAY_REASON) {
   console.log(
     `[hermes] remote display detected (${REMOTE_DISPLAY_REASON}); disabling GPU hardware acceleration to prevent flicker`
   )
-}
-
-// #108047: a local Windows renderer crash loop with STATUS_STACK_BUFFER_OVERRUN
-// (0xC0000409) is recovered by disabling GPU — NOT by dropping the sandbox
-// (that path stays owned by STATUS_BREAKPOINT / #38216). Must run before app
-// `ready`. Skip applying switches when the remote-display block above already
-// did; still honor a sticky per-version marker so Start Menu launches recover.
-let windowsGpuStackCookieFallbackActive = false
-let windowsGpuStackCookieFallbackSticky = false
-let windowsGpuStackCookieRelaunchAttempted = false
-
-if (IS_WINDOWS) {
-  const windowsGpuUserData = app.getPath('userData')
-
-  const gpuStackCookieDecision = decideWindowsGpuStackCookieLaunch({
-    argv: process.argv,
-    marker: readGpuStackCookieMarker(windowsGpuUserData),
-    env: process.env,
-    appVersion: app.getVersion()
-  })
-
-  windowsGpuStackCookieFallbackActive = gpuStackCookieDecision.enable
-  windowsGpuStackCookieFallbackSticky = gpuStackCookieDecision.nextMarker.state === 'fallback'
-
-  try {
-    writeGpuStackCookieMarker(windowsGpuUserData, gpuStackCookieDecision.nextMarker)
-  } catch {
-    void 0
-  }
-
-  if (gpuStackCookieDecision.enable && !REMOTE_DISPLAY_REASON) {
-    app.disableHardwareAcceleration()
-    app.commandLine.appendSwitch('disable-gpu-compositing')
-    console.log(
-      `[hermes] Windows GPU stack-cookie fallback enabled (${gpuStackCookieDecision.reason}); disabling GPU hardware acceleration (0xC0000409 / #108047)`
-    )
-  }
 }
 
 // Renderer debugging port. On for dev-server runs (`hgui` / `npm run dev`) so
@@ -1034,136 +933,73 @@ if (PASSWORD_STORE.store) {
   console.log(`[hermes] using password-store backend: ${PASSWORD_STORE.store}`)
 }
 
-// Windows sandbox / GPU breakpoint crash recovery (#38216).
+// Linux sandbox / GPU child crash recovery (#121954).
 //
-// Some hosts (AMD RX 6000 drivers, orphan AppContainer SIDs under %LOCALAPPDATA%,
-// missing S-1-15-2-2 ACEs) kill Chromium's sandboxed GPU/renderer children with
-// 0x80000003. After enough GPU deaths the browser process FATAL-exits before the
-// UI is usable. Must run before app `ready` so `--no-sandbox` applies to child
-// processes. The sticky marker recovers Start Menu / shortcut launches that
-// never go through `hermes desktop`; it is version-scoped so an app update
-// re-probes the sandbox instead of degrading forever.
+// On Linux hosts where the sandboxed GPU child cannot start, Chromium
+// FATAL-exits before the UI is usable. Must run before app `ready` so
+// `--no-sandbox` applies to child processes. The sticky marker recovers
+// launches that never go through `hermes desktop`; it is version-scoped so an
+// app update re-probes the sandbox instead of degrading forever.
 //
-// `windowsSandboxFallbackActive` = this process runs without the Chromium
-// sandbox (any cause, including a manual --no-sandbox flag) — guards the
-// relaunch handlers. `windowsSandboxFallbackSticky` = the fallback machinery
-// engaged and the marker must stay `fallback` after a successful boot; a
-// manual flag alone is honored but never made sticky.
-let windowsSandboxFallbackActive = false
-let windowsSandboxFallbackSticky = false
-let windowsSandboxFallbackReason: SandboxFallbackReason = 'boot-loop'
-let windowsNoSandboxRelaunchAttempted = false
+// `sandboxFallbackActive` = this process runs without the Chromium sandbox
+// (any cause, including a manual --no-sandbox flag) — guards the relaunch
+// handlers. `sandboxFallbackSticky` = the fallback machinery engaged and the
+// marker must stay `fallback` after a successful boot; a manual flag alone is
+// honored but never made sticky.
+let sandboxFallbackActive = false
+let sandboxFallbackSticky = false
+let sandboxFallbackReason: SandboxFallbackReason = 'boot-loop'
+let noSandboxRelaunchAttempted = false
 
-// #121954: the two-strike boot-abort ladder now also covers Linux. On Linux
-// hosts where the sandboxed GPU child cannot start (dies pre-main on an
-// FD-ownership violation), Chromium prints "GPU process isn't usable.
-// Goodbye." and aborts — a 100% crash loop; the host isolation matrix in
-// #121954 shows only `--no-sandbox` reaches the UI. Same sticky per-version
-// recovery as #38216: two consecutive mid-boot aborts engage `--no-sandbox`,
-// an app update re-probes the sandbox once. Windows-only extras (ACL repair,
-// renderer crash-loop relaunch) stay inside the IS_WINDOWS branch.
-if (IS_WINDOWS || process.platform === 'linux') {
-  const windowsUserData = app.getPath('userData')
-  const priorMarker = readSandboxMarker(windowsUserData)
+// #121954: two consecutive mid-boot aborts engage `--no-sandbox` (sticky per
+// app version); an app update re-probes the sandbox once.
+if (process.platform === 'linux') {
+  const sandboxUserData = app.getPath('userData')
+  const priorMarker = readSandboxMarker(sandboxUserData)
 
-  // Best-effort ACL repair, only when the last boot aborted or the fallback is
-  // engaged — icacls /T recurses the whole install tree, so healthy launches
-  // skip it (the installer already granted the ACE at install time). Repair
-  // targets the install dir only: granting AppContainer read on userData would
-  // expose Hermes sessions/config to every packaged app on the machine.
-  if (shouldAttemptAclRepair(priorMarker)) {
-    const exeDir = path.dirname(process.execPath)
-    const acl = grantAllApplicationPackagesAcl(exeDir, { execFileSync })
-
-    if (acl.ok) {
-      console.log(`[hermes] granted ALL APPLICATION PACKAGES RX on ${exeDir} (#38216)`)
-    } else if (acl.error && acl.error !== 'missing-target-or-exec') {
-      console.warn(`[hermes] AppContainer ACL grant failed on ${exeDir}: ${acl.error}`)
-    }
-  }
-
-  const sandboxDecision = decideWindowsSandboxLaunch({
+  const sandboxDecision = decideSandboxLaunch({
     argv: process.argv,
     env: process.env,
     marker: priorMarker,
     appVersion: app.getVersion()
   })
 
-  windowsSandboxFallbackActive = sandboxDecision.enable
-  windowsSandboxFallbackSticky = sandboxDecision.nextMarker.state === 'fallback'
+  sandboxFallbackActive = sandboxDecision.enable
+  sandboxFallbackSticky = sandboxDecision.nextMarker.state === 'fallback'
 
   if (sandboxDecision.nextMarker.state === 'fallback' && sandboxDecision.nextMarker.reason) {
-    windowsSandboxFallbackReason = sandboxDecision.nextMarker.reason
+    sandboxFallbackReason = sandboxDecision.nextMarker.reason
   }
 
   if (sandboxDecision.enable && sandboxDecision.reason !== 'already-enabled') {
     app.commandLine.appendSwitch('no-sandbox')
     process.env.ELECTRON_DISABLE_SANDBOX = '1'
-    console.log(
-      `[hermes] sandbox fallback enabled (${sandboxDecision.reason}); launching with --no-sandbox (#38216, #121954)`
-    )
+    console.log(`[hermes] sandbox fallback enabled (${sandboxDecision.reason}); launching with --no-sandbox (#121954)`)
   }
 
-  writeSandboxMarker(windowsUserData, sandboxDecision.nextMarker)
+  writeSandboxMarker(sandboxUserData, sandboxDecision.nextMarker)
 
   // One coalesced Linux GPU-child recovery (#86073, #124843, #121954): the
   // sandbox signature is tried first (that host's matrix shows --disable-gpu
   // still crashes), then the software ladder — including the relapse after a
-  // --no-sandbox boot died again. One death, one bounded relaunch; Windows
-  // keeps its breakpoint-signature fast path unchanged.
+  // --no-sandbox boot died again. One death, one bounded relaunch.
   app.on('child-process-gone', (_event, details) => {
-    if (IS_WINDOWS) {
-      if (
-        !shouldRelaunchForGpuSandboxCrash({
-          details,
-          alreadyNoSandbox: windowsSandboxFallbackActive || alreadyHasNoSandbox(process.argv, process.env),
-          relaunchAttempted: windowsNoSandboxRelaunchAttempted
-        })
-      ) {
-        return
-      }
-
-      windowsNoSandboxRelaunchAttempted = true
-      windowsSandboxFallbackActive = true
-      windowsSandboxFallbackSticky = true
-      windowsSandboxFallbackReason = 'gpu-breakpoint'
-
-      try {
-        writeSandboxMarker(app.getPath('userData'), fallbackMarker('gpu-breakpoint', app.getVersion()))
-      } catch {
-        void 0
-      }
-
-      console.warn(
-        `[hermes] GPU child died with the sandbox signature (exit=${details?.exitCode}); relaunching once with --no-sandbox (#38216)`
-      )
-
-      try {
-        app.relaunch({ args: buildNoSandboxRelaunchArgs(process.argv.slice(1)) })
-        void exitAfterBackendShutdown(0)
-      } catch (error) {
-        console.error(`[hermes] --no-sandbox relaunch failed: ${error?.message || error}`)
-      }
-
-      return
-    }
-
     const alreadySoftware =
       LINUX_GPU_SOFTWARE_ACTIVE || linuxGpuFallbackActive || alreadyHasDisableGpu(process.argv, process.env)
 
     const path = linuxGpuChildDeathPath({
       details,
-      alreadyNoSandbox: windowsSandboxFallbackActive || alreadyHasNoSandbox(process.argv, process.env),
+      alreadyNoSandbox: sandboxFallbackActive || alreadyHasNoSandbox(process.argv, process.env),
       alreadySoftware,
-      sandboxRelaunchAttempted: windowsNoSandboxRelaunchAttempted,
+      sandboxRelaunchAttempted: noSandboxRelaunchAttempted,
       softwareRelaunchAttempted: linuxGpuRelaunchAttempted
     })
 
     if (path === 'no-sandbox') {
-      windowsNoSandboxRelaunchAttempted = true
-      windowsSandboxFallbackActive = true
-      windowsSandboxFallbackSticky = true
-      windowsSandboxFallbackReason = 'gpu-breakpoint'
+      noSandboxRelaunchAttempted = true
+      sandboxFallbackActive = true
+      sandboxFallbackSticky = true
+      sandboxFallbackReason = 'gpu-breakpoint'
 
       try {
         writeSandboxMarker(app.getPath('userData'), fallbackMarker('gpu-breakpoint', app.getVersion()))
@@ -1289,9 +1125,7 @@ if (process.env.HERMES_DESKTOP_TMPDIR) {
 }
 
 const HERMES_HOME: string = resolveDesktopHermesHome({
-  home: app.getPath('home'),
-  directoryExists,
-  readWindowsHome: (): string | null => readWindowsUserEnvVar('HERMES_HOME')
+  home: app.getPath('home')
 })
 
 // #77311: `desktop.electron_flags` and the renderer heap ceiling
@@ -1300,10 +1134,6 @@ const HERMES_HOME: string = resolveDesktopHermesHome({
 // Start-menu / .desktop entry ran with no `--js-flags` at all. Apply them here
 // from config.yaml, before `ready` — Chromium copies `js-flags` to renderer
 // processes only from the browser's pre-launch command line.
-// `desktop.ssh_path` (#103288) rides the same pre-window read: an explicit
-// Windows ssh client for when the in-box OpenSSH is missing or broken.
-let desktopSshPathOverride = ''
-
 {
   let desktopLaunchYaml: string = ''
 
@@ -1314,7 +1144,6 @@ let desktopSshPathOverride = ''
   }
 
   const desktopLaunchConfig = readDesktopLaunchConfig(desktopLaunchYaml)
-  desktopSshPathOverride = desktopLaunchConfig.sshPath || ''
 
   // `desktop.renderer_accessibility: false` must reach packaged launches too,
   // not only the `hermes desktop` launcher's env bridge (#118271).
@@ -1339,18 +1168,17 @@ let desktopSshPathOverride = ''
 }
 
 // ACTIVE_HERMES_ROOT — the canonical mutable Hermes install. Same path
-// install.ps1 / install.sh use, so a desktop-only user and a CLI-only user end
+// install.sh uses, so a desktop-only user and a CLI-only user end
 // up with identical layouts and can share one install.
 const ACTIVE_HERMES_ROOT = path.join(HERMES_HOME, 'hermes-agent')
-setNoConsoleGitRoots([!IS_PACKAGED ? SOURCE_REPO_ROOT : null, ACTIVE_HERMES_ROOT])
-// VENV_ROOT — venv lives inside the repo, exactly like install.ps1 does it.
+// VENV_ROOT — venv lives inside the repo, exactly like install.sh does it.
 const VENV_ROOT = path.join(ACTIVE_HERMES_ROOT, 'venv')
 // BOOTSTRAP_COMPLETE_MARKER — written by the first-launch bootstrap runner
-// (Phase 1D) after install.ps1 has completed all stages and the user has
+// (Phase 1D) after install.sh has completed all stages and the user has
 // finished initial configuration. Presence of this marker means the install
 // is in a known-good state and we can skip the bootstrap flow on subsequent
 // boots, going straight to `resolveHermesBackend()`. Missing or stale marker
-// means we re-run the bootstrap; install.ps1's stages are idempotent so a
+// means we re-run the bootstrap; install.sh's stages are idempotent so a
 // re-run on an already-good install just discovers everything in place.
 //
 // We deliberately put the marker INSIDE ACTIVE_HERMES_ROOT (not alongside)
@@ -1449,18 +1277,11 @@ const WINDOW_BUTTON_POSITION = {
 // (pure + unit-testable); computeNativeOverlayWidth() applies it per platform.
 // It's only the pre-layout fallback — the renderer measures the exact overlay
 // width live via the Window Controls Overlay API.
-// The apple-touch PNG bakes in the macOS-style ~10% margin, which is correct
-// for the dock but renders visibly smaller than neighboring taskbar icons on
-// Windows, where icons are full-bleed. Windows prefers the full-bleed
-// assets/icon.ico (shipped to resources/ via extraResources) and only falls
-// back to the padded PNG if the ico is missing.
 // The ladder is BUILT once here but each window factory RE-RESOLVES through
 // resolveAppIcon (decoding probe): existence alone is not proof the bytes
 // decode, and an undecodable icon must never take the main process down.
 const APP_ICON_PATHS = appIconCandidates({
-  isWindows: IS_WINDOWS,
   appRoot: APP_ROOT,
-  resourcesPath: process.resourcesPath,
   unpackedPathFor
 })
 
@@ -1508,10 +1329,9 @@ nativeTheme.themeSource = readPersistedThemeSource()
 // store/translucency): 'clear' maps it to the native window opacity so the
 // desktop shows through the whole window; 'glass' keeps the window opaque
 // and lets the renderer thin its surfaces over a platform material instead
-// — a matte blur with full-contrast text. macOS uses vibrancy; Windows 11
-// uses DWM acrylic/mica/tabbed. Persisted so a cold launch applies it at
+// — a matte blur with full-contrast text. macOS uses vibrancy. Persisted so a cold launch applies it at
 // window creation, before the renderer reports its value.
-// macOS + Windows only; `setOpacity` is a no-op on Linux.
+// macOS only; `setOpacity` is a no-op on Linux.
 const TRANSLUCENCY_CONFIG_PATH = path.join(app.getPath('userData'), 'translucency.json')
 
 function readPersistedTranslucency() {
@@ -1523,7 +1343,7 @@ function readPersistedTranslucency() {
     // opaque cannot reliably be swapped to glass afterwards (see
     // windowBackingOptions). nativeTheme is the only appearance signal main
     // has this early; the renderer's first resolved send corrects it.
-    return defaultTranslucencyState(nativeTheme.shouldUseDarkColors ? 'dark' : 'light', GLASS_SUPPORTED, IS_WINDOWS)
+    return defaultTranslucencyState(nativeTheme.shouldUseDarkColors ? 'dark' : 'light', GLASS_SUPPORTED)
   }
 }
 
@@ -1569,8 +1389,7 @@ function applyWindowOpacity(win) {
 // anything native — the tint is painted by the renderer and windowOpacityFor
 // answers off `fade`, not `intensity`, there. Re-issuing setVibrancy on every
 // tick restarts its 150ms animation before macOS can settle the material,
-// which reads as jank and flattens the frost levels into each other. Windows
-// setBackgroundMaterial is instantaneous but still skipped on tint-only ticks.
+// which reads as jank and flattens the frost levels into each other.
 // The glass Fade lever is the one glass drag that does reach main, and it
 // costs exactly what a Clear drag costs: one setOpacity.
 //
@@ -1597,14 +1416,9 @@ function applyWindowTranslucency(win, changed = { backing: true, material: true,
       if (changed.material) {
         // Glass frost level = the platform material. Animate the macOS hop so
         // a deliberate frost switch feels continuous — which only works if we
-        // don't re-issue it on unrelated updates. Windows has no equivalent
-        // animation option; setBackgroundMaterial is instantaneous.
+        // don't re-issue it on unrelated updates.
         if (IS_MAC && typeof win.setVibrancy === 'function') {
           win.setVibrancy(vibrancyForTranslucency(translucencyState), { animationDuration: 150 })
-        }
-
-        if (IS_WINDOWS && GLASS_SUPPORTED && typeof win.setBackgroundMaterial === 'function') {
-          win.setBackgroundMaterial(backgroundMaterialFor(translucencyState))
         }
       }
     }
@@ -1639,21 +1453,6 @@ function chatWindowSurfaceOptions() {
     // user's frost choice whenever they click elsewhere. Only observable
     // under glass — everywhere else the page buries the material.
     visualEffectState: IS_MAC ? ('active' as const) : undefined,
-    // NOT `transparent: true` on Windows. The backdrop material already makes
-    // the window translucent on its own: `IsTranslucent` answers yes off
-    // `background_material_` alone, which is what gives the page its transparent
-    // default backing, and `SetBackgroundMaterial` flips widget translucency
-    // live, so a Clear→Glass toggle needs no recreate either way. Its one gate
-    // is a frameless window, and `titleBarStyle: 'hidden'` already makes
-    // `has_frame()` false here.
-    //
-    // What `transparent` adds on top is permanent and unwanted: it pins the
-    // widget to kTranslucent for the window's whole life, so even glass-OFF
-    // windows pay a DirectComposition redraw per frame (electron#39895), and it
-    // opts into the documented transparent-window limits — including that a
-    // RESIZABLE transparent window is unsupported and breaks (electron#48421).
-    // Every chat window is resizable.
-    ...windowBackgroundMaterialOptions(translucencyState, IS_WINDOWS, GLASS_SUPPORTED),
     ...windowOpacityOptions(translucencyState),
     ...windowBackingOptions(translucencyState, getWindowBackgroundColor())
   }
@@ -1684,7 +1483,7 @@ const TITLEBAR_OVERLAY_COLOR = 'rgba(1, 0, 0, 0)'
 // hermes:window-control IPC channel. See titleBarOverlayOptions.
 function getTitleBarOverlayOptions(win?) {
   return titleBarOverlayOptions({
-    platform: IS_MAC ? 'mac' : IS_WINDOWS ? 'windows' : IS_WSL ? 'wslg' : 'linux',
+    platform: IS_MAC ? 'mac' : IS_WSL ? 'wslg' : 'linux',
     darwinMajor: DARWIN_MAJOR,
     titlebarHeight: TITLEBAR_HEIGHT,
     color: TITLEBAR_OVERLAY_COLOR,
@@ -1839,17 +1638,6 @@ app.setName(APP_NAME)
 // an installed menu. The real menu lands in installApplicationMenuAfterFirstWindow.
 Menu.setApplicationMenu(null)
 
-// Windows toast notifications silently no-op unless an AppUserModelID is set:
-// `new Notification().show()` returns without error and nothing appears. The
-// AUMID must match the installed Start Menu shortcut's AUMID, which
-// electron-builder derives from the build `appId` (com.nousresearch.hermes) —
-// keep this string in sync with package.json `build.appId`. macOS/Linux don't
-// need this, so gate it on Windows. (Fixes: desktop approval/turn notifications
-// never firing on Windows.)
-if (IS_WINDOWS) {
-  app.setAppUserModelId(IDENTITY_APP_NAME ? PRODUCT_IDENTITY.appId : 'com.nousresearch.hermes')
-}
-
 // Seed the native About panel with the best-known Hermes version. This is
 // refreshed on every open via showAboutPanelFresh, so an in-place
 // `hermes update` mid-session is reflected without an app restart; the seed
@@ -1905,12 +1693,9 @@ function registerMediaProtocol(): void {
       })
     },
     resolveLocalFile: async filePath => {
-      // On a Windows host with a WSL backend the media path arrives as a
-      // WSL/POSIX path (`/home/...`, `/mnt/c/...`) the Windows fs can't open
-      // as-is; bridge it to a UNC/drive form first, same as directory reads.
-      // The protocol handler already percent-decoded the pathname, so this
-      // boundary bridges only — re-decoding/stripping would corrupt the path.
-      const { resolvedPath } = await resolveReadableFileForIpc(resolveMediaStreamFile(filePath), {
+      // The protocol handler already percent-decoded the pathname, so re-decoding
+      // or stripping here would corrupt the path.
+      const { resolvedPath } = await resolveReadableFileForIpc(String(filePath ?? ''), {
         purpose: 'Media stream'
       })
 
@@ -1934,11 +1719,11 @@ const backendConnectionState = createBackendConnectionState<ReturnType<typeof sp
 const localBackendLifecycle = createLocalBackendLifecycle<ChildProcess>({
   stopChild: (child: ChildProcess): void => {
     if (child.exitCode === null && child.signalCode === null) {
-      stopBackendChildImpl(child, { forceKillProcessTree, isWindows: IS_WINDOWS })
+      stopBackendChildImpl(child, {})
     }
   },
   waitForExit: (child: ChildProcess): Promise<void> =>
-    waitForBackendExit(child, { forceKillProcessTree, isWindows: IS_WINDOWS }),
+    waitForBackendExit(child, {}),
   cancelSetup: (): void => {
     firstRunSetupGate?.resetForRetry()
     bootstrapAbortController?.abort()
@@ -2202,7 +1987,7 @@ const rendererReloadTimesRef: { current: number[] } = { current: [] }
 // Latched bootstrap failure: when the first-launch install fails, we hold
 // onto the error so subsequent startHermes() calls (e.g. the renderer's
 // ensureGatewayOpen retrying after the WS won't open) return the same error
-// instead of re-running install.ps1 in a hot loop. Cleared explicitly by
+// instead of re-running the installer in a hot loop. Cleared explicitly by
 // the renderer's "Reload and retry" path or by quitting the app.
 let bootstrapFailure = null
 // Latched non-bootstrap backend spawn failure — stops getConnection() from
@@ -2415,8 +2200,8 @@ function rememberLog(chunk) {
 }
 
 // Main-process stalls leave renderer-scoped lifecycle logging unable to run.
-// When the loop resumes, retain the delayed timer's timing in desktop.log so a
-// Windows AppHang report can be correlated without changing tray semantics.
+// When the loop resumes, retain the delayed timer's timing in desktop.log so
+// stalls can be correlated without changing tray semantics.
 const mainProcessLagWatchdog = createMainProcessLagWatchdog({
   cadenceMs: 1_000,
   thresholdMs: 2_000,
@@ -2470,7 +2255,7 @@ async function openPreviewInBrowser(rawUrl: string) {
 // `file://` URLs come from the artifacts panel (the renderer can't open them
 // itself because Chromium blocks that navigation). Reveal the file in the
 // system file manager instead of dispatching to the OS file association:
-// on Windows, archive artifacts (.gz/.tar) have no usable association, and
+// archive artifacts (.gz/.tar) can lack a usable association, and
 // handing the path back to the OS shell bounces the open through the default
 // (Chromium) handler, which re-downloads the file — an infinite download loop
 // (issue #53170). Reveal-in-folder never re-opens the file, so it can't loop.
@@ -2570,7 +2355,7 @@ async function openLocalFilesystemPath(rawPath: string): Promise<boolean> {
     }
 
     // Include the path so "Failed to open path" is diagnosable (hermes-agent
-    // 84361), then reveal: on Windows archive artifacts have no usable
+    // 84361), then reveal: archive artifacts can lack a usable
     // association, and the reveal never re-opens so it can't loop (#53170).
     rememberLog(`[file] openPath failed: ${errorMessage}; path=${localPath}; revealing in folder instead`)
 
@@ -2602,53 +2387,6 @@ function broadcastOpenFailed(url: string, message: string, code?: 'missing-file'
 
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send('hermes:external-open-failed', { url, message, ...(code ? { code } : {}) })
-  }
-}
-
-function ensureWslWindowsFonts() {
-  if (!IS_WSL) {
-    return
-  }
-
-  const fontsDir = ['/mnt/c/Windows/Fonts', '/mnt/c/windows/fonts'].find(candidate => {
-    try {
-      return fs.statSync(candidate).isDirectory()
-    } catch {
-      return false
-    }
-  })
-
-  if (!fontsDir) {
-    return
-  }
-
-  try {
-    const confDir = path.join(app.getPath('home'), '.config', 'fontconfig', 'conf.d')
-    const confPath = path.join(confDir, '99-hermes-wsl-windows-fonts.conf')
-    let existing = ''
-
-    try {
-      existing = fs.readFileSync(confPath, 'utf8')
-    } catch {
-      existing = ''
-    }
-
-    if (existing.includes(fontsDir)) {
-      return
-    }
-
-    fs.mkdirSync(confDir, { recursive: true })
-    fs.writeFileSync(
-      confPath,
-      `<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n<fontconfig>\n  <dir>${fontsDir}</dir>\n</fontconfig>\n`
-    )
-    rememberLog(`[fonts] wired WSL Windows fonts for renderer: ${fontsDir}`)
-
-    const cache = spawn('fc-cache', ['-f', fontsDir], { detached: true, stdio: 'ignore' })
-    cache.on('error', () => undefined)
-    cache.unref()
-  } catch (error) {
-    rememberLog(`[fonts] WSL font setup skipped: ${error.message}`)
   }
 }
 
@@ -2972,12 +2710,12 @@ function directoryExists(filePath) {
 }
 
 // --- in-app update mutual exclusion (#50238) -------------------------------
-// The Tauri updater writes HERMES_HOME/.hermes-update-in-progress for the whole
-// duration of an `--update` run (see update.rs UpdateMarkerGuard). If the user
+// The updater writes HERMES_HOME/.hermes-update-in-progress for the whole
+// duration of an update run. If the user
 // relaunches the desktop mid-update — because the window vanished with no
 // progress and looks crashed — a fresh instance must NOT spawn its own local
-// backend: that backend re-locks the venv shim, the updater's straggler cleanup
-// (`force_kill_other_hermes`, taskkill /IM hermes.exe) kills it, the launch
+// backend: that backend re-locks the venv, the updater's straggler cleanup
+// kills it, the launch
 // fails with the 45s "backend didn't come up" error, and the relaunch/kill
 // cycle loops. Instead the fresh instance parks until the update finishes, then
 // brings the backend up itself (it is the surviving instance — the updater's
@@ -2991,13 +2729,12 @@ function directoryExists(filePath) {
 // A marker-only gate lets the renderer's reconnect respawn a backend during
 // that critical section, racing the update and leaving a live process on the
 // runtime being replaced.
-// The hand-off state closes the later Windows `cmd start` wrapper gap: the
-// wrapper exits 0 before the real PowerShell script claims the marker, and
-// `finally` clears updateInFlight immediately after the hand-off is accepted.
+// The hand-off state covers the gap after `finally` clears updateInFlight
+// immediately after the hand-off is accepted.
 function updateGateDeps(callbacks: MarkerGateCallbacks = {}) {
   return {
     hasLiveMarker: markerGateProbe(
-      { hermesHome: HERMES_HOME, isWindows: IS_WINDOWS, log: rememberLog, updateRoot: resolveUpdateRoot },
+      { hermesHome: HERMES_HOME, log: rememberLog, updateRoot: resolveUpdateRoot },
       callbacks
     ),
     isUpdateInFlight: () => updateInFlight,
@@ -3151,12 +2888,8 @@ function findOnPath(command) {
     return null
   }
 
-  if (path.isAbsolute(command) || command.includes(path.sep) || (IS_WINDOWS && command.includes('/'))) {
+  if (path.isAbsolute(command) || command.includes(path.sep)) {
     if (!fileExists(command)) {
-      return null
-    }
-
-    if (isWindowsBinaryPathInWsl(command, { isWsl: IS_WSL })) {
       return null
     }
 
@@ -3167,45 +2900,15 @@ function findOnPath(command) {
     .split(path.delimiter)
     .filter(Boolean)
 
-  // On Windows, try PATHEXT extensions BEFORE the bare (empty-extension) name.
-  // A real command must resolve via its .exe/.cmd (Windows command-resolution
-  // semantics consult PATHEXT); an extensionless file — e.g. a Git-Bash
-  // shell-script shim named `hermes` — must not shadow `hermes.cmd`/`hermes.exe`.
-  // The empty entry is kept LAST so callers that already include the extension
-  // (py.exe, pwsh.exe, powershell.exe) still resolve.
-  const extensions = buildPathExtCandidates(process.env.PATHEXT, IS_WINDOWS)
-
   for (const entry of pathEntries) {
-    for (const extension of extensions) {
-      const candidate = path.join(entry, `${command}${extension}`)
+    const candidate = path.join(entry, command)
 
-      if (fileExists(candidate)) {
-        return candidate
-      }
+    if (fileExists(candidate)) {
+      return candidate
     }
   }
 
   return null
-}
-
-function isCommandScript(command) {
-  return IS_WINDOWS && /\.(cmd|bat)$/i.test(command || '')
-}
-
-async function unwrapWindowsVenvHermesCommand(command, backendArgs) {
-  return resolveVenvHermesCommand(command, backendArgs, {
-    isWindows: IS_WINDOWS,
-    isCommandScript,
-    fileExists,
-    directoryExists,
-    canImportHermesCli,
-    getVenvPython,
-    buildDesktopBackendEnv,
-    resolvePath: (...segments) => path.resolve(...segments),
-    dirname: p => path.dirname(p),
-    basename: p => path.basename(p),
-    rememberLog
-  })
 }
 
 // Does the resolved runtime understand the `serve` subcommand? The desktop
@@ -3223,51 +2926,6 @@ async function getBackendArgsForRuntime(backend) {
   return (await backendSupportsServe(backend)) ? backend.args : dashboardFallbackArgs(backend.args)
 }
 
-function normalizeExecutablePathForCompare(commandPath) {
-  if (!commandPath) {
-    return null
-  }
-
-  let resolved = path.resolve(String(commandPath))
-
-  try {
-    resolved = fs.realpathSync.native ? fs.realpathSync.native(resolved) : fs.realpathSync(resolved)
-  } catch {
-    // Fallback to path.resolve() above.
-  }
-
-  return IS_WINDOWS ? resolved.toLowerCase() : resolved
-}
-
-function looksLikeDesktopAppBinary(commandPath) {
-  if (!IS_WINDOWS || !commandPath) {
-    return false
-  }
-
-  const normalizedCandidate = normalizeExecutablePathForCompare(commandPath)
-  const normalizedCurrentExec = normalizeExecutablePathForCompare(process.execPath)
-
-  if (normalizedCandidate && normalizedCurrentExec && normalizedCandidate === normalizedCurrentExec) {
-    return true
-  }
-
-  let resolved = path.resolve(String(commandPath))
-
-  try {
-    resolved = fs.realpathSync.native ? fs.realpathSync.native(resolved) : fs.realpathSync(resolved)
-  } catch {
-    // Keep resolved path fallback.
-  }
-
-  const resourcesDir = path.join(path.dirname(resolved), 'resources')
-
-  // existsSync for the archive: Electron's asar shim stats app.asar itself as a directory (so
-  // fileExists was always false) and constructs the deprecated fs.Stats doing it (#96857).
-  return (
-    fs.existsSync(path.join(resourcesDir, 'app.asar')) || directoryExists(path.join(resourcesDir, 'app.asar.unpacked'))
-  )
-}
-
 function isHermesSourceRoot(root) {
   return directoryExists(root) && fileExists(path.join(root, 'hermes_cli', 'main.py'))
 }
@@ -3275,173 +2933,25 @@ function isHermesSourceRoot(root) {
 async function findPythonForRoot(root: string): Promise<string | null> {
   return resolveSourcePython(root, {
     override: process.env.HERMES_DESKTOP_PYTHON,
-    isWindows: IS_WINDOWS,
     fileExists
   })
 }
 
 async function findSystemPython() {
-  if (!IS_WINDOWS) {
-    // POSIX systems: PATH lookup is safe.
-    for (const command of ['python3', 'python']) {
-      const candidate = findOnPath(command)
+  for (const command of ['python3', 'python']) {
+    const candidate = findOnPath(command)
 
-      if (candidate) {
-        return candidate
-      }
-    }
-
-    return null
-  }
-
-  // Windows: PATH-based detection has TWO landmines we have to dodge.
-  //
-  //  (1) The Microsoft Store "Python stub" lives at
-  //      %LOCALAPPDATA%\Microsoft\WindowsApps\python.exe and is on PATH
-  //      by default on modern Windows. It's a redirector that opens the
-  //      Store window if no Store Python is installed. Running it for
-  //      `-m venv` would either succeed (real Store install — fine) or
-  //      pop the Store dialog (bad UX during boot).
-  //  (2) `py.exe` (Python launcher) is missing from per-user installs
-  //      that didn't check the launcher option, so PATH-only checks
-  //      miss real Python 3.13 installs (user-reported case).
-  //
-  // We also restrict ourselves to Python 3.11–3.13. 3.14 is the latest
-  // CPython but several Hermes deps (notably pywinpty's Rust-built
-  // windows_x86_64_msvc crate) don't yet publish 3.14 wheels, and
-  // `pip install -e .` falls back to source-build, which fails without
-  // a Rust toolchain. install.ps1 sidesteps this by pinning to 3.11
-  // via uv; until we add the same uv-managed Python pathway here, the
-  // simplest fix is to refuse 3.14 detection and let the NSIS prereq
-  // page offer to install 3.11 alongside.
-  //
-  // Strategy: probe in three passes, in order from most-precise to
-  // least-precise, and ONLY use PATH lookup as a last resort after
-  // confirming the candidate isn't the WindowsApps redirector.
-  //
-  //  Pass 1: PEP 514 registry — every standards-compliant Python
-  //          installer registers itself at SOFTWARE\Python\PythonCore.
-  //          The MS Store stub does NOT register here, so a hit means
-  //          a real Python install. Versions are explicit so we
-  //          inherently filter 3.14 out.
-  //  Pass 2: Filesystem probe of standard install locations
-  //          (Program Files, LocalAppData\Programs\Python). Same
-  //          version filtering by directory name.
-  //  Pass 3: PATH lookup of `py.exe` (the launcher itself never
-  //          triggers the Store) — but call it with a version flag so
-  //          we resolve to a SPECIFIC supported version, not whatever
-  //          py.exe's default is (which on a 3.14-only box would be
-  //          3.14).
-
-  const SUPPORTED_VERSIONS = ['3.11', '3.12', '3.13']
-  const SUPPORTED_VERSIONS_NO_DOT = ['311', '312', '313']
-
-  // Pass 1: registry. Use `reg query` since main process doesn't have
-  // a reliable in-process registry API across all electron versions.
-  for (const hive of ['HKLM', 'HKCU']) {
-    for (const version of SUPPORTED_VERSIONS) {
-      try {
-        const out = await execText(
-          'reg',
-          ['query', `${hive}\\SOFTWARE\\Python\\PythonCore\\${version}\\InstallPath`, '/ve', '/reg:64'],
-          { timeout: 5_000 }
-        )
-
-        // Output format: "    (Default)    REG_SZ    C:\Path\To\Python\"
-        const match = out.match(/REG_SZ\s+(.+?)\s*$/m)
-
-        if (match) {
-          const installPath = match[1].trim()
-          const pythonExe = path.join(installPath, 'python.exe')
-
-          if (fileExists(pythonExe)) {
-            return pythonExe
-          }
-        }
-      } catch {
-        // Key not present — try next.
-      }
+    if (candidate) {
+      return candidate
     }
   }
 
-  // Pass 2: filesystem probe of standard locations.
-  const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files'
-  const localAppData = process.env.LOCALAPPDATA || ''
-
-  for (const versionDir of SUPPORTED_VERSIONS_NO_DOT) {
-    const systemWide = path.join(programFiles, `Python${versionDir}`, 'python.exe')
-
-    if (fileExists(systemWide)) {
-      return systemWide
-    }
-
-    if (localAppData) {
-      const perUser = path.join(localAppData, 'Programs', 'Python', `Python${versionDir}`, 'python.exe')
-
-      if (fileExists(perUser)) {
-        return perUser
-      }
-    }
-  }
-
-  // Pass 3: py.exe with explicit version flag. The launcher itself is
-  // safe to invoke (no Store popup) and `py -3.13 -c "import sys;
-  // print(sys.executable)"` resolves to the actual python.exe path of
-  // the requested version. We try in version-priority order so the
-  // first hit wins.
-  const pyExe = findOnPath('py.exe')
-
-  if (pyExe) {
-    for (const version of SUPPORTED_VERSIONS) {
-      try {
-        const out = await execText(pyExe, [`-${version}`, '-c', 'import sys; print(sys.executable)'], {
-          timeout: PROBE_TIMEOUT_MS
-        })
-
-        const candidate = out.trim()
-
-        if (candidate && fileExists(candidate)) {
-          return candidate
-        }
-      } catch {
-        // py couldn't find that version — try next.
-      }
-    }
-  }
-
-  // We deliberately do NOT fall back to plain `python.exe` on PATH.
-  // Without a way to verify the version safely (running `python -V`
-  // risks the Microsoft Store popup), accepting whatever's there
-  // could land us on 3.14 and trigger the Rust-build-from-source
-  // failure. Better to return null and let the NSIS prereq page
-  // offer to install a known-good 3.11 via winget.
   return null
 }
 
 function getVenvPython(venvRoot) {
-  return path.join(venvRoot, IS_WINDOWS ? path.join('Scripts', 'python.exe') : path.join('bin', 'python'))
+  return path.join(venvRoot, 'bin', 'python')
 }
-
-// Windows console-window flashes are governed by the *parent's* console, not by
-// each child spawn. A GUI-subsystem parent (pythonw.exe) has no console, so every
-// console-subsystem child it spawns (git, gh, cmd, ...) must allocate its own —
-// which flashes a window. A console-subsystem parent (python.exe) instead owns a
-// single console that all of its children inherit, so none of them flash.
-//
-// Note this change adds no new creationflag: the backend spawn is ALREADY wrapped
-// in hiddenWindowsChildOptions() (windowsHide: true), but that setting is INERT
-// against pythonw.exe — a GUI-subsystem process has no console for it to act on.
-// Switching the backend to the venv's console python.exe is what makes the
-// existing wrapper load-bearing: with windowsHide the process comes up owning a
-// *windowless* console (verified at runtime — it has an attachable console whose
-// window handle is NULL), and its children inherit that one windowless console
-// instead of each allocating a visible one.
-//
-// This makes "no flashing windows" a property of the one backend launch rather
-// than a flag that has to be remembered at every descendant spawn site. Restoring
-// console python also restores stdout, so the backend announces its port on the
-// normal HERMES_DASHBOARD_READY stdout line and no ready-file side channel is
-// needed.
 
 function makeDashboardReadyFile() {
   const dir = path.join(app.getPath('userData'), 'backend-ready')
@@ -3450,12 +2960,7 @@ function makeDashboardReadyFile() {
   return path.join(dir, `dashboard-${process.pid}-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.json`)
 }
 
-// resolveGitBinary — locate git.exe on Windows. A fresh installer-driven
-// install only has PortableGit under %LOCALAPPDATA%\hermes\git (never on
-// PATH), so a bare spawn('git') ENOENTs and self-update checks fail with
-// "Couldn't check for updates". PortableGit first, then UGit's bundled copy
-// (see ./git-binary-candidates), then standard Git-for-Windows locations,
-// then PATH. Cached after first probe.
+// resolveGitBinary — locate a runnable git. Cached after first probe.
 let _gitBinaryCache = null
 
 // A binary can exist on disk and still be unlaunchable — on macOS an
@@ -3468,8 +2973,7 @@ function binaryRuns(candidate) {
   try {
     execFileSync(candidate, ['--version'], {
       stdio: 'ignore',
-      timeout: 5000,
-      windowsHide: true
+      timeout: 5000
     })
 
     return true
@@ -3501,36 +3005,15 @@ function resolveGitBinary() {
     return _gitBinaryCache
   }
 
-  if (!IS_WINDOWS) {
-    // Every PATH hit, probed — the first entry that merely exists can be
-    // unlaunchable while a working system git sits later on the same PATH.
-    const selected = selectRunnableBinary({
-      candidates: findPathCandidates('git'),
-      fileExists,
-      binaryRuns
-    })
+  // Every PATH hit, probed — the first entry that merely exists can be
+  // unlaunchable while a working system git sits later on the same PATH.
+  const selected = selectRunnableBinary({
+    candidates: findPathCandidates('git'),
+    fileExists,
+    binaryRuns
+  })
 
-    _gitBinaryCache = selected || 'git'
-
-    return _gitBinaryCache
-  }
-
-  const localAppData = process.env.LOCALAPPDATA || ''
-
-  // Fixed candidates + the UGit-bundled glob (a UGit install moves with every
-  // app-* version, so it can only be found by enumerating the dir). UGit's
-  // git.exe is usually on PATH, but an Explorer-launched Electron inherits the
-  // login-time environment block and can miss it (#61494).
-  const candidates = windowsGitCandidates(
-    {
-      localAppData,
-      programFiles: process.env['ProgramFiles'] || 'C:\\Program Files',
-      programFilesX86: process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'
-    },
-    { existsSync: fileExists, readdirSync: dir => fs.readdirSync(dir) }
-  )
-
-  _gitBinaryCache = candidates.find(fileExists) || findOnPath('git') || 'git'
+  _gitBinaryCache = selected || 'git'
 
   return _gitBinaryCache
 }
@@ -3546,21 +3029,13 @@ function resolveGhBinary() {
     return _ghBinaryCache
   }
 
-  const candidates = []
+  const home = app.getPath('home')
 
-  if (IS_WINDOWS) {
-    candidates.push(path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'GitHub CLI', 'gh.exe'))
+  const candidates = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh', path.join(home, '.local', 'bin', 'gh')]
 
-    if (process.env.LOCALAPPDATA) {
-      candidates.push(path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links', 'gh.exe'))
-    }
-  } else {
-    const home = app.getPath('home')
-    candidates.push('/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh', path.join(home, '.local', 'bin', 'gh'))
-    // PATH hits go through the same probe: a bare findOnPath fallback would
-    // re-select an unlaunchable first hit when none of the fixed locations exist.
-    candidates.push(...findPathCandidates('gh'))
-  }
+  // PATH hits go through the same probe: a bare findOnPath fallback would
+  // re-select an unlaunchable first hit when none of the fixed locations exist.
+  candidates.push(...findPathCandidates('gh'))
 
   // Same selection rule as git: an existing-but-unlaunchable candidate (e.g.
   // an Intel-only build from a stale Homebrew) must not shadow a working one
@@ -3732,7 +3207,7 @@ async function checkUpdates(opts: { force?: boolean } = {}): Promise<UpdaterStat
 
 let updateInFlight = false
 
-// ── bundled / App Installer helpers ─────────────────────────────────────────
+// ── bundled helpers ─────────────────────────────────────────
 
 /**
  * Keep the native updater instance alive across check, download and install.
@@ -3748,27 +3223,22 @@ function resolvePackagedUpdateStrategy(): Promise<UpdaterStrategy | null> {
 
 async function createPackagedUpdateStrategy(): Promise<UpdaterStrategy | null> {
   const mechanism = resolveUpdaterMechanism({
-    platform: process.platform,
     updateMechanism: INSTALL_STAMP?.updateMechanism,
     source: INSTALL_STAMP?.source
   })
 
-  if (mechanism === 'windows-handoff' || mechanism === 'posix-handoff') {
+  if (mechanism === 'posix-handoff') {
     return null
   }
 
-  if (INSTALL_STAMP?.channelBuild && (mechanism === 'electron-updater' || mechanism === 'app-installer')) {
+  if (INSTALL_STAMP?.channelBuild && mechanism === 'electron-updater') {
     const build = INSTALL_STAMP.channelBuild
     const installed = await inspectRunningChannelApp(build)
 
     // Platform/arch/signing are the channel's own preconditions. The Python
     // payload is not: electron-updater swaps the .app without it, and the
-    // darwin Light channel build ships none (write-build-stamp.mjs). The
-    // strategy that consumes the payload (app-installer) demands it itself.
-    if (
-      (process.platform !== 'darwin' && process.platform !== 'win32') ||
-      (process.arch !== 'arm64' && process.arch !== 'x64')
-    ) {
+    // darwin Light channel build ships none (write-build-stamp.mjs).
+    if (process.platform !== 'darwin' || (process.arch !== 'arm64' && process.arch !== 'x64')) {
       throw new Error('Channel updates require a supported packaged application')
     }
 
@@ -3807,97 +3277,11 @@ function createNativePackagedStrategy(
     return target ? createChannelMacStrategy(deps, target) : createMacStrategy(deps)
   }
 
-  if (mechanism === 'app-installer') {
-    const payload: PayloadInfo = requireBundledPayload(mechanism)
-
-    const deps: ConstructorParameters<typeof AppInstallerStrategy>[0] = {
-      python: payload.storePython,
-      // The checker is bundled core code, run with the payload python.
-      module: 'hermes_cli.windows_appinstaller_update',
-      run: (python, module) =>
-        runAppInstallerChecker(python, module, {
-          env: { ...process.env, PYTHONPATH: payloadPythonPath(payload) },
-          onStderr: stderr => console.error(`[app-installer] checker stderr: ${stderr.slice(0, 400)}`)
-        }),
-      channel: resolveUpdaterChannelFromStamp(),
-      light: isLightVariant(),
-      feedBaseUrl: resolveDesktopFeedBaseUrl(),
-      installer: {
-        prepare: url => stageAppInstallerFile(url, path.join(app.getPath('userData'), 'updates')),
-        open: file => shell.openPath(file)
-      },
-      teardownBundledBackend,
-      restoreBundledBackend,
-      emitUpdateProgress,
-      appVersion: INSTALL_STAMP?.channelBuild?.windowsVersion ?? app.getVersion(),
-      quit: () => app.quit(),
-      registerPendingRelaunch: (fromVersion: string): Promise<RelaunchRegistration> =>
-        registerUpdateRelaunch(app, fromVersion, {
-          // The relaunch mechanism: a detached waiter, external to the dying
-          // process. It snapshots the OLD package, signals the handshake,
-          // waits for this process to exit and for the OS to swap the
-          // installed package version, then activates the NEW package.
-          // Electron's app.relaunch would re-execute the OLD package's
-          // binary and can hold the swap open, so it is not used. The
-          // script is staged to a temp dir and resolved absolutely so
-          // nothing inherited from the package holds the swap open.
-          relaunch: () =>
-            startUpdateRelaunchWaiter(PRODUCT_IDENTITY.msixAppIdWithOrg, process.resourcesPath, rememberLog)
-        })
-    }
-
-    return target
-      ? createChannelAppInstallerStrategy(deps, target, verifyPreparedChannelInstaller)
-      : new AppInstallerStrategy(deps)
-  }
-
-  if (mechanism === 'microsoft-store') {
-    const payload: PayloadInfo = requireBundledPayload(mechanism)
-
-    return createStoreStrategy({
-      python: payload.storePython,
-      module: 'hermes_cli.windows_store_update',
-      pythonPath: payloadPythonPath(payload),
-      env: process.env,
-      windowHandle: () => (BrowserWindow.getFocusedWindow() ?? mainWindow)?.getNativeWindowHandle() ?? null,
-      appVersion: app.getVersion(),
-      teardown: teardownBundledBackend,
-      restore: restoreBundledBackend,
-      emitProgress: emitUpdateProgress,
-      quit: () => app.quit(),
-      registerPendingRelaunch: (fromVersion: string): Promise<RelaunchRegistration> =>
-        registerUpdateRelaunch(app, fromVersion, {
-          relaunch: () =>
-            startUpdateRelaunchWaiter(
-              PRODUCT_IDENTITY.storeMsix!.identityName,
-              process.resourcesPath,
-              rememberLog,
-              1860
-            )
-        })
-    })
-  }
-
   return new ExternalStrategy(INSTALL_STAMP)
 }
 
 /**
- * The bundled Python payload for a strategy whose update check runs inside
- * it. A stamp that names such a mechanism without a payload is a broken
- * install; say so instead of failing on `payload.storePython`.
- */
-function requireBundledPayload(mechanism: UpdaterStrategy['mechanism']): PayloadInfo {
-  const payload: PayloadInfo | null = bundledPayload(process.resourcesPath)
-
-  if (!payload) {
-    throw new Error(`${mechanism} updates require the bundled application payload, which this install has none of`)
-  }
-
-  return payload
-}
-
-/**
- * The checkout updater strategy (windows-handoff / posix-handoff). The flow
+ * The checkout updater strategy (posix-handoff). The flow
  * lives in updater/checkout.ts; this is the composition root that hands it
  * the app shell's impure edges. The public checkUpdates/applyUpdates
  * entrypoints dispatch only through this strategy — there is no other
@@ -3906,7 +3290,6 @@ function requireBundledPayload(mechanism: UpdaterStrategy['mechanism']): Payload
 function resolveCheckoutUpdateStrategy(): UpdaterStrategy {
   return createCheckoutStrategy({
     hermesHome: HERMES_HOME,
-    isWindows: IS_WINDOWS,
     isMac: IS_MAC,
     defaultUpdateBranch: DEFAULT_UPDATE_BRANCH,
     updateHandoffDwellMs: UPDATE_HANDOFF_DWELL_MS,
@@ -3920,14 +3303,11 @@ function resolveCheckoutUpdateStrategy(): UpdaterStrategy {
         force: opts.force
       }),
     resolveUpdateRoot,
-    resolveUpdaterBinary,
     remoteGatewayActive: globalRemoteActive,
 
     emitUpdateProgress,
     rememberLog,
     startHermes,
-    stopBackendsForUpdate,
-    repairMacUpdaterHelper: updater => repairMacUpdaterHelper(updater, { isMac: IS_MAC, log: rememberLog }),
     preflightStateDb: async (home: string, log: (message: string) => void): Promise<void> => {
       const root: string = resolveUpdateRoot()
 
@@ -3950,7 +3330,7 @@ function resolveCheckoutUpdateStrategy(): UpdaterStrategy {
       // contract as readSourceUpdate and the hand-off script.
       const managed: boolean = directoryExists(path.join(root, 'pm'))
 
-      const launcher: string | null = managed ? resolveInstallationLauncher(root, IS_WINDOWS, HERMES_HOME) : null
+      const launcher: string | null = managed ? resolveInstallationLauncher(root, HERMES_HOME) : null
 
       if (managed && !launcher) {
         const message =
@@ -3978,9 +3358,8 @@ function resolveCheckoutUpdateStrategy(): UpdaterStrategy {
 }
 
 /**
- * The App Installer feed base URL for a bundled MSIX install: config.yaml's
- * `updates.desktop_feed_base_url`, else Windows' registered App Installer
- * source.
+ * The feed base URL for a bundled install: config.yaml's
+ * `updates.desktop_feed_base_url`, else the default feed.
  */
 function resolveDesktopFeedBaseUrl(): string {
   return resolveFeedBaseUrl(readUpdatesFeedBaseFromConfig(path.join(HERMES_HOME, 'config.yaml')))
@@ -4043,290 +3422,6 @@ let isQuittingForHandoff = false
 let quitPromptOpen = false
 let quitConfirmedWithActiveWork = false
 
-// Resolve the staged updater binary the desktop may hand an update to. On
-// Windows that binary owns ALL repo mutation — running `hermes update` +
-// rebuilding the desktop — so the desktop never touches its own bits while
-// running. macOS/Linux stage the same binary but deliberately do not use it;
-// see resolveStagedUpdaterBinary for the policy and for #74836. Returns null
-// whenever no hand-off applies; callers degrade gracefully.
-function resolveUpdaterBinary() {
-  return resolveStagedUpdaterBinary(HERMES_HOME, { fileExists, isWindows: IS_WINDOWS })
-}
-
-// Path to the venv shim whose lock decides whether `hermes update` can write
-// fresh entry points. On Windows this is the file the running backend
-// `hermes.exe` holds open; on POSIX it's never mandatory-locked.
-function venvHermesShimPath(updateRoot) {
-  const venvDir = resolveVenvDir(updateRoot)
-
-  return IS_WINDOWS ? path.join(venvDir, 'Scripts', 'hermes.exe') : path.join(venvDir, 'bin', 'hermes')
-}
-
-// Best-effort lock probe mirroring the Rust updater's is_locked(): a running
-// .exe on Windows refuses an O_RDWR open with a sharing violation. On POSIX
-// this practically always succeeds (no mandatory locking), so it returns false
-// — correct, since the shim-contention brick is Windows-only.
-function isShimLocked(shimPath) {
-  if (!IS_WINDOWS) {
-    return false
-  }
-
-  let fd
-
-  try {
-    fd = fs.openSync(shimPath, 'r+')
-
-    return false
-  } catch (err) {
-    // ENOENT ⇒ not there ⇒ nothing locking it. Anything else (EBUSY/EPERM/
-    // EACCES) on Windows means a live handle holds it.
-    return err && err.code !== 'ENOENT'
-  } finally {
-    if (fd !== undefined) {
-      try {
-        fs.closeSync(fd)
-      } catch {
-        void 0
-      }
-    }
-  }
-}
-
-// Kill only Hermes-OWNED venv daemons (the memory plugin's hindsight daemon:
-// exe under venv\Scripts AND cmdline referencing hindsight_api.main). The
-// daemon is spawned DETACHED, so it outlives the backend tree-kill and keeps
-// venv files mapped. External holders (a user terminal running `hermes`,
-// unrelated scripts) are NOT killed. The uninstall lock probe refuses a
-// held installation. Selection lives in the pure
-// venv-holder-select module (ordinal path-prefix, no PowerShell -like
-// wildcard hazards) so it's testable without Electron.
-function scanWindowsProcesses(): Array<{ ProcessId?: unknown; ExecutablePath?: string; CommandLine?: string }> {
-  const out = execFileSync(
-    'powershell',
-    [
-      '-NoProfile',
-      '-Command',
-      'Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.CommandLine } | Select-Object ProcessId, ExecutablePath, CommandLine | ConvertTo-Json -Compress'
-    ],
-    hiddenWindowsChildOptions({ encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 15_000 })
-  )
-
-  const parsed = JSON.parse(String(out || '[]'))
-
-  return Array.isArray(parsed) ? parsed : [parsed]
-}
-
-function killHermesOwnedVenvDaemons(updateRoot) {
-  if (!IS_WINDOWS) {
-    return
-  }
-
-  const scriptsDir = path.join(resolveVenvDir(updateRoot), 'Scripts')
-
-  let holders = []
-
-  try {
-    holders = scanWindowsProcesses().filter(p => isHermesOwnedVenvDaemon(p?.ExecutablePath, p?.CommandLine, scriptsDir))
-  } catch {
-    // Best-effort: the uninstall lock probe remains the backstop.
-    return
-  }
-
-  for (const holder of holders) {
-    const pid = Number(holder?.ProcessId)
-
-    if (Number.isInteger(pid) && pid > 0) {
-      rememberLog(`[updates] stopping Hermes-owned venv daemon (hindsight) PID ${pid} before hand-off`)
-
-      try {
-        forceKillProcessTree(pid)
-      } catch (error) {
-        // Update hand-off only. Close/stop must not swallow this; see
-        // windowsCloseStopOwnedBackends.
-        rememberLog(`[updates] taskkill PID ${pid} failed: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }
-  }
-}
-
-// Kill EXTERNAL Hermes processes that hold this install's venv shim (#62311):
-// the gateway Startup item and dashboard Scheduled Task are launched outside
-// this app (Task Scheduler / autostart), so the backend teardown above never
-// sees them — yet they map venv files and made every update hand-off abort
-// with "venv shim still locked". Selection is deliberately narrow
-// (isExternalVenvHolder: exe under venv\Scripts AND unambiguously a Hermes
-// program) — unrelated processes that merely mention the install root or use
-// the venv interpreter for their own scripts are never killed; the shim-lock
-// probe still aborts the hand-off for those. Called before the release gate
-// AND inside each gate pass, so a respawning autostart holder is re-killed
-// instead of winning the 15s race.
-function killExternalVenvHolders(updateRoot) {
-  if (!IS_WINDOWS) {
-    return
-  }
-
-  const scriptsDir = path.join(resolveVenvDir(updateRoot), 'Scripts')
-
-  let holders = []
-
-  try {
-    holders = scanWindowsProcesses().filter(p => isExternalVenvHolder(p?.ExecutablePath, p?.CommandLine, scriptsDir))
-  } catch {
-    // Best-effort: the shim-lock probe remains the backstop.
-    return
-  }
-
-  for (const holder of holders) {
-    const pid = Number(holder?.ProcessId)
-
-    if (Number.isInteger(pid) && pid > 0) {
-      rememberLog(
-        `[updates] stopping external Hermes venv holder (autostart gateway/dashboard) PID ${pid} before hand-off`
-      )
-
-      try {
-        forceKillProcessTree(pid)
-      } catch (error) {
-        rememberLog(`[updates] taskkill PID ${pid} failed: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }
-  }
-}
-
-// Force-kill the entire process TREE rooted at each PID. Node's child.kill()
-// only signals the direct child, so on Windows a backend `hermes.exe` that
-// spawned its own grandchildren (a `hermes` REPL, a pty terminal session, the
-// gateway) would survive and keep the venv shim locked. taskkill /T /F reaps
-// the whole tree synchronously. The command is not widened: one owned PID,
-// /T /F, nothing else. Failures propagate — close/stop must not discard them.
-// Windows-only: this is called solely from the Windows shim-unlock and
-// close/stop paths, and the backend is NOT spawned detached (so it's not a
-// process-group leader — a POSIX negative-pgid kill would be meaningless
-// here anyway). POSIX teardown stays with the existing before-quit SIGTERM.
-function forceKillProcessTree(pid) {
-  if (!IS_WINDOWS) {
-    return
-  }
-
-  if (!Number.isInteger(pid) || pid <= 0) {
-    return
-  }
-
-  execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], hiddenWindowsChildOptions({ stdio: 'ignore' }))
-}
-
-function holderPidsFromLockFile(lockPath: string): Pick<RuntimeLock, 'holderPids' | 'held'> {
-  try {
-    const raw = fs.readFileSync(lockPath, 'utf8').trim()
-
-    if (!raw) {
-      return { holderPids: [] }
-    }
-
-    let pid = Number(raw)
-
-    if (!Number.isInteger(pid)) {
-      const parsed = JSON.parse(raw) as { pid?: unknown }
-      pid = Number(typeof parsed === 'object' && parsed ? parsed.pid : parsed)
-    }
-
-    return Number.isInteger(pid) && pid > 0 ? { holderPids: [pid] } : { holderPids: [] }
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException | null)?.code
-
-    // Can't read the file: a live holder may be why. Do not clear it.
-    if (code === 'EBUSY' || code === 'EPERM' || code === 'EACCES') {
-      return { holderPids: [], held: true }
-    }
-
-    return { holderPids: [] }
-  }
-}
-
-function collectCloseStopLocks(): RuntimeLock[] {
-  const roots = [HERMES_HOME]
-  const profilesRoot = path.join(HERMES_HOME, 'profiles')
-
-  try {
-    for (const name of fs.readdirSync(profilesRoot)) {
-      roots.push(path.join(profilesRoot, name))
-    }
-  } catch {
-    // No profiles directory — the default home lock is enough.
-  }
-
-  const locks: RuntimeLock[] = []
-
-  for (const root of roots) {
-    const lockPath = path.join(root, 'gateway.lock')
-
-    try {
-      if (!fs.statSync(lockPath).isFile()) {
-        continue
-      }
-    } catch {
-      continue
-    }
-
-    locks.push({ path: lockPath, ...holderPidsFromLockFile(lockPath) })
-  }
-
-  return locks
-}
-
-// Captured before teardown drops the handles. Node keeps each process handle
-// open until exit is observed, so a PID read from a still-running child here
-// cannot have been reused by an unrelated process.
-function collectOwnedBackendChildren(): ChildProcess[] {
-  const children = [backendConnectionState.getProcess(), ...[...backendPool.values()].map(entry => entry?.process)]
-
-  return children.filter(
-    (child): child is ChildProcess => Boolean(child) && Number.isInteger(child.pid) && child.pid > 0
-  )
-}
-
-// Close/stop, after the graceful teardown, pool stop and straggler reap: the
-// same tree-kill for any owned child that is still running, an inventory of
-// those PIDs, and a clear of only the locks no live holder owns. Never throws;
-// returns the failure for the caller to surface once cleanup is done.
-function windowsCloseStopOwnedBackends(children: ChildProcess[]): Error | null {
-  if (!IS_WINDOWS) {
-    return null
-  }
-
-  try {
-    const running = children.filter(child => child.exitCode === null && child.signalCode === null)
-
-    const result = finishWindowsCloseStop(
-      running.map(child => child.pid as number),
-      collectCloseStopLocks(),
-      {
-        killTree: forceKillProcessTree,
-        isPidAlive: isPidAliveWindows,
-        clearLock: lockPath => {
-          fs.rmSync(lockPath, { force: true })
-        }
-      }
-    )
-
-    for (const failure of result.taskkillFailures) {
-      rememberLog(`[close-stop] taskkill PID ${failure.pid} failed: ${failure.error}`)
-    }
-
-    for (const failure of result.lockErrors) {
-      rememberLog(`[close-stop] could not clear unheld lock ${failure.path}: ${failure.error}`)
-    }
-
-    if (result.clearedLocks.length) {
-      rememberLog(`[close-stop] cleared unheld lock(s): ${result.clearedLocks.join(', ')}`)
-    }
-
-    return result.liveFailure ? new Error(closeStopFailureMessage(result)) : null
-  } catch (error) {
-    return error instanceof Error ? error : new Error(String(error))
-  }
-}
-
 function writeBackendOwnership(contents) {
   fs.mkdirSync(path.dirname(DESKTOP_BACKEND_OWNERSHIP_PATH), { recursive: true })
   const tempPath = `${DESKTOP_BACKEND_OWNERSHIP_PATH}.${process.pid}.tmp`
@@ -4344,23 +3439,11 @@ function writeBackendOwnership(contents) {
 }
 
 // execText and processStartMarker moved to backend-claim.ts (#93608) so the
-// claim/probe policy is testable — including on Windows CI with real
-// PowerShell — without booting Electron. main.ts calls through the module.
+// claim/probe policy is testable — without booting Electron. main.ts calls through the module.
 
 async function backendCommandForPid(pid) {
   try {
-    const command = IS_WINDOWS ? 'powershell.exe' : 'ps'
-
-    const args = IS_WINDOWS
-      ? [
-          '-NoProfile',
-          '-NonInteractive',
-          '-Command',
-          `(Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}').CommandLine`
-        ]
-      : ['-p', String(pid), '-o', 'command=']
-
-    return (await execText(command, args)) || null
+    return (await execText('ps', ['-p', String(pid), '-o', 'command='])) || null
   } catch {
     return null
   }
@@ -4432,48 +3515,33 @@ async function stopOwnedBackend(identity) {
     throw new Error(`Could not verify backend PID ${identity.pid} before stopping it.`)
   }
 
-  if (IS_WINDOWS) {
+  try {
+    process.kill(-identity.pid, 'SIGTERM')
+  } catch {
     try {
-      forceKillProcessTree(identity.pid)
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error)
-      const stillThere = await processIdentityMatches(identity, REAP_PROBE_TIMEOUT_MS)
-
-      if (stillThere !== false) {
-        throw new Error(`taskkill failed for backend PID ${identity.pid}: ${detail}`)
-      }
-
-      rememberLog(`taskkill reported failure for already-gone backend PID ${identity.pid}: ${detail}`)
-    }
-  } else {
-    try {
-      process.kill(-identity.pid, 'SIGTERM')
+      process.kill(identity.pid, 'SIGTERM')
     } catch {
-      try {
-        process.kill(identity.pid, 'SIGTERM')
-      } catch {
-        return
-      }
+      return
+    }
+  }
+
+  const deadline = Date.now() + 1500
+
+  while (Date.now() < deadline) {
+    if ((await processIdentityMatches(identity, REAP_PROBE_TIMEOUT_MS)) !== true) {
+      return
     }
 
-    const deadline = Date.now() + 1500
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
 
-    while (Date.now() < deadline) {
-      if ((await processIdentityMatches(identity, REAP_PROBE_TIMEOUT_MS)) !== true) {
-        return
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 50))
-    }
-
-    // Revalidate immediately before escalation so PID reuse cannot target a
-    // replacement process.
-    if ((await processIdentityMatches(identity, REAP_PROBE_TIMEOUT_MS)) === true) {
-      try {
-        process.kill(-identity.pid, 'SIGKILL')
-      } catch {
-        process.kill(identity.pid, 'SIGKILL')
-      }
+  // Revalidate immediately before escalation so PID reuse cannot target a
+  // replacement process.
+  if ((await processIdentityMatches(identity, REAP_PROBE_TIMEOUT_MS)) === true) {
+    try {
+      process.kill(-identity.pid, 'SIGKILL')
+    } catch {
+      process.kill(identity.pid, 'SIGKILL')
     }
   }
 
@@ -4616,121 +3684,6 @@ function reapOrphanedBackendsOnce() {
   return backendOrphanReapPromise
 }
 
-// Stop app-owned Windows backends before replacing application outputs.
-// PM generations can retain live readers. Gateway draining/restart belongs to
-// `hermes update`; neither venv scans nor a second fleet stop belong here.
-async function stopBackendsForUpdate(): Promise<void> {
-  if (IS_WINDOWS) {
-    await Promise.all([teardownPrimaryBackendAndWait(backendTeardownOptions('reconnect')), stopAllPoolBackends()])
-  }
-}
-
-// Uninstall still deletes the installation and its historical venv. Unlike
-// generation updates, deletion must wait for those old files to be released.
-async function releaseBackendLock(updateRoot: string, tag: string): Promise<{ unlocked: boolean }> {
-  if (!IS_WINDOWS) {
-    return { unlocked: true }
-  }
-
-  const hermesProcess = backendConnectionState.getProcess()
-
-  // Seed the release gate with every PID we are about to signal: the
-  // supervised primary backend and all pool backends. The gate waits for
-  // these to actually LEAVE the process table, not just for the shim to
-  // unlock — the shim probe only covers venv\Scripts\hermes.exe, but the
-  // backend is `python.exe -m hermes_cli.main serve`, which need not hold
-  // the shim at all (#74805 first-attempt race).
-  const initialPids = []
-
-  if (hermesProcess && Number.isInteger(hermesProcess.pid)) {
-    initialPids.push(hermesProcess.pid)
-  }
-
-  for (const entry of backendPool.values()) {
-    if (entry.process && Number.isInteger(entry.process.pid)) {
-      initialPids.push(entry.process.pid)
-    }
-  }
-
-  // No backend comes back after an uninstall: stay silent, like a quit.
-  await Promise.all([teardownPrimaryBackendAndWait(backendTeardownOptions('quit')), stopAllPoolBackends()])
-
-  // Uninstall deletes the whole runtime. Drain separately-running gateways
-  // through the CLI, rather than targeting a gateway worker by PID.
-  stopGatewayBeforeUpdate(venvHermesShimPath(updateRoot), HERMES_HOME)
-
-  // Reap Hermes-OWNED venv daemons the tree-kill above cannot reach: the
-  // memory plugin's hindsight daemon is spawned DETACHED (it outlives the
-  // backend) yet runs off venv\Scripts\pythonw.exe, keeping venv files
-  // mapped past the backend teardown (#75477/#75478). Narrowly scoped
-  // (venv-holder-select) — external holders are never killed here.
-  killHermesOwnedVenvDaemons(updateRoot)
-
-  // External autostart Hermes processes (gateway Startup item, dashboard
-  // Scheduled Task) also hold the venv shim and are invisible to the backend
-  // teardown (#62311). Kill them before the gate AND re-scan inside each gate
-  // pass, so a respawning holder loses the race instead of the update.
-  killExternalVenvHolders(updateRoot)
-
-  const shim = venvHermesShimPath(updateRoot)
-
-  const gate = await waitForBackendRelease(
-    initialPids,
-    {
-      isShimLocked: () => Boolean(isShimLocked(shim)),
-      isPidAlive: isPidAliveWindows,
-      collectStragglerPids: () => {
-        // Re-kill resurgent external holders (autostart gateway/dashboard) on
-        // every pass — #62311 — before collecting the desktop-owned stragglers.
-        killExternalVenvHolders(updateRoot)
-        const stragglers = []
-
-        const currentHermesProcess = backendConnectionState.getProcess()
-
-        if (currentHermesProcess && Number.isInteger(currentHermesProcess.pid)) {
-          stragglers.push(currentHermesProcess.pid)
-        }
-
-        for (const entry of backendPool.values()) {
-          if (entry.process && Number.isInteger(entry.process.pid)) {
-            stragglers.push(entry.process.pid)
-          }
-        }
-
-        return stragglers
-      },
-      killProcessTree: pid => {
-        try {
-          forceKillProcessTree(pid)
-        } catch (error) {
-          rememberLog(`[${tag}] taskkill PID ${pid} failed: ${error instanceof Error ? error.message : String(error)}`)
-        }
-      },
-      sleep: (ms: number) => new Promise(r => setTimeout(r, ms)),
-      now: () => Date.now(),
-      log: rememberLog
-    },
-    tag
-  )
-
-  if (gate.unlocked) {
-    return { unlocked: true }
-  }
-
-  // Do NOT proceed past a held lock: handing off to the updater while another
-  // process (a second desktop window, a user terminal, an unkillable child)
-  // still maps the venv's files guarantees a half-updated venv — the updater's
-  // dependency sync dies on access-denied partway through uninstalls, leaving
-  // imports broken (the July 2026 brotlicffi/_sodium.pyd incidents). Failing
-  // the update loudly and keeping the app running is strictly better than a
-  // bricked install that needs manual venv surgery.
-  rememberLog(
-    `[${tag}] venv shim still locked after 15s; aborting hand-off (something outside this app holds the venv)`
-  )
-
-  return { unlocked: false }
-}
-
 // applyUpdates — hand off to the installer's --update flow, then exit.
 //
 // The desktop is a pure consumer: it does NOT git pull / pip install / rebuild
@@ -4775,116 +3728,6 @@ async function applyUpdates(): Promise<UpdaterApplyResultWire> {
   })
 }
 
-async function handOffWindowsBootstrapRecovery(reason) {
-  if (!IS_WINDOWS || !IS_PACKAGED) {
-    return false
-  }
-
-  // A bundled install does not own %LOCALAPPDATA%\hermes — the updater
-  // would try to heal a tree the app never created. The payload IS the
-  // runtime; recovery means reinstalling the app, not spawning the
-  // updater. (ensureRuntime's bundled guard also short-circuits before
-  // this call; this is the belt-and-suspenders check.)
-  if (installShape() === 'bundled') {
-    rememberLog('[bootstrap] refusing updater recovery hand-off on a bundled install; reinstall the app')
-
-    return false
-  }
-
-  const updater = resolveUpdaterBinary()
-
-  if (!updater) {
-    return false
-  }
-
-  const handoffConflict = await updateHandoffConflict(HERMES_HOME)
-
-  if (handoffConflict) {
-    // Same hazard as applyUpdates (#75778): a live foreign updater already
-    // owns the marker. Spawning another here would overwrite its claim and
-    // race a second updater over the same install tree. The live updater
-    // is already working on this exact install and will restart us when
-    // it finishes, so treat this the same as a successful hand-off instead
-    // of clobbering it with our own.
-    rememberLog(`[bootstrap] refusing recovery hand-off: ${handoffConflict.message}`)
-    isQuittingForHandoff = true
-    setTimeout(() => {
-      app.quit()
-    }, UPDATE_HANDOFF_DWELL_MS)
-
-    return true
-  }
-
-  const updateRoot = resolveUpdateRoot()
-  const { branch: configuredBranch } = readDesktopUpdateConfig()
-
-  // Recovery can run without Python. Keep the chosen branch; do not guess a replacement.
-  const branch: string = configuredBranch || DEFAULT_UPDATE_BRANCH
-
-  const updaterArgs: string[] = chooseUpdaterArgs({ runtimeUsable: await isSourceRuntimeUsable(updateRoot) }, branch)
-
-  await stopBackendsForUpdate()
-
-  const child = spawnUpdaterProcess(updater, updaterArgs, {
-    cwd: HERMES_HOME,
-    env: {
-      ...process.env,
-      HERMES_HOME,
-      HERMES_INSTALL_ROOT: updateRoot
-    },
-    detached: true,
-    stdio: 'ignore'
-  })
-
-  // Same marker pre-write as applyUpdates — see comment there. The recovery
-  // hand-off has the same window where the renderer can respawn a backend
-  // before the updater writes its own marker, and the same stale-updater
-  // exclusion: a pre-#74782 binary would refuse its own pre-written claim and
-  // strand the very recovery meant to heal the install.
-  //
-  // Exclusive create only (A7 rule 3): over any existing marker the pre-write
-  // is skipped — the staged updater claims (and reclaims) for itself.
-  if (Number.isInteger(child.pid) && stagedUpdaterSupportsPrewrittenMarker(updater)) {
-    const prewrite = await writeUpdateMarker(HERMES_HOME, child.pid)
-
-    if (!prewrite.ok) {
-      rememberLog(`[bootstrap] skipping marker pre-write: ${describeSkippedPrewrite(prewrite)}`)
-    }
-  } else if (Number.isInteger(child.pid)) {
-    rememberLog(
-      `[bootstrap] skipping marker pre-write: staged updater predates self-adopt (${updater}); it would refuse its own claim`
-    )
-  }
-
-  rememberLog(
-    `[bootstrap] handed off ${reason} recovery to updater: ${updater} ${updaterArgs.join(' ')}; exiting desktop to release app.asar`
-  )
-  // Same dwell as the in-app update hand-off (#50419): give the updater's
-  // window time to appear before we vanish, so the recovery doesn't look like
-  // a crash and provoke a mid-recovery relaunch. The dwell doubles as the
-  // hand-off settle window (#66753): a spawn error or early updater death
-  // returns false so the caller falls through to its next recovery path
-  // instead of quitting into nothing.
-  const dwellStartedAt = Date.now()
-  const handoffOutcome = await observeUpdaterHandoff(child, UPDATE_HANDOFF_DWELL_MS)
-
-  if (!handoffOutcome.ok) {
-    rememberLog(`[bootstrap] recovery hand-off not viable, staying alive: ${handoffOutcome.message}`)
-
-    return false
-  }
-
-  isQuittingForHandoff = true
-  setTimeout(
-    () => {
-      app.quit()
-    },
-    Math.max(0, UPDATE_HANDOFF_DWELL_MS - (Date.now() - dwellStartedAt))
-  )
-
-  return true
-}
-
 // The running app's .app bundle (packaged macOS): execPath is
 // <App>.app/Contents/MacOS/<exe>; climb three levels to the bundle root.
 function runningAppBundle() {
@@ -4916,15 +3759,14 @@ function readJson(filePath) {
 }
 
 // Bootstrap-complete marker helpers. The marker is written by whichever
-// installer ran: install.ps1, install.sh, the Rust bootstrap installer, or the
-// first-launch bootstrap runner. It is provenance ("a bootstrap finished
+// installer ran: install.sh or the first-launch bootstrap runner. It is provenance ("a bootstrap finished
 // here"), NOT the launch gate -- activeRuntimeState() decides that, because a
 // healthy runtime can predate the marker or outlive a repair that cleared it.
 //
 // Marker schema (version 1):
 //   {
 //     schemaVersion: 1,
-//     pinnedCommit: "<40-char SHA>",       // what install.ps1 was driven against
+//     pinnedCommit: "<40-char SHA>",       // what install.sh was driven against
 //     pinnedBranch: "<branch name>" | null,
 //     completedAt:  "<ISO 8601>",
 //     desktopVersion: "<app.getVersion()>"  // for forensics
@@ -5124,8 +3966,8 @@ function resolveRendererIndex() {
 
 // True when `dir` lives inside the packaged app bundle / install tree.
 // Packaged Electron's process.cwd() (and npm's INIT_CWD when dev tooling
-// leaked into a release build) often resolve here — e.g. win-unpacked on
-// Windows — which is exactly where PR #37536 item 16 said we must NOT run.
+// leaked into a release build) often resolve here, which is exactly where
+// PR #37536 item 16 said we must NOT run.
 function isPackagedInstallPath(dir) {
   return isPackagedInstallPathUnderRoots(dir, {
     isPackaged: IS_PACKAGED,
@@ -5139,8 +3981,7 @@ function isPackagedInstallPath(dir) {
 
 function resolveHermesCwd() {
   // In a packaged build, `process.cwd()` resolves to the install root (e.g.
-  // `…/win-unpacked` on Windows or `/Applications/Hermes.app/Contents/...`
-  // on macOS). Sessions spawned there leave files inside the app bundle
+  // `/Applications/Hermes.app/Contents/...` on macOS). Sessions spawned there leave files inside the app bundle
   // and bewilder users when "where did my files go?" is the install dir.
   // The user-configurable default project directory wins over everything,
   // followed by env hints (only honored when packaged if they point at a
@@ -5241,9 +4082,7 @@ async function resolveHermesBackend(backendArgs: string[]): Promise<ResolvedHerm
   const payload = bundledPayload(process.resourcesPath)
 
   if (payload) {
-    if (!IS_WINDOWS) {
-      provisionCliLinks(payload.commands, path.join(os.homedir(), '.local', 'bin'), rememberLog)
-    }
+    provisionCliLinks(payload.commands, path.join(os.homedir(), '.local', 'bin'), rememberLog)
 
     return {
       kind: 'python',
@@ -5253,7 +4092,6 @@ async function resolveHermesBackend(backendArgs: string[]): Promise<ResolvedHerm
       env: { ...buildDesktopBackendEnv(), HERMES_RUNTIME_DIR: payload.toolsDir },
       root: payload.repoDir,
       bootstrap: false,
-      shell: false,
       local: 'bundled'
     }
   }
@@ -5303,51 +4141,34 @@ async function resolveHermesBackend(backendArgs: string[]): Promise<ResolvedHerm
 
     if (resolvedOverride) {
       hermesCommand = resolvedOverride
-    } else if (!isWindowsBinaryPathInWsl(hermesOverride, { isWsl: IS_WSL })) {
-      hermesCommand = hermesOverride
     } else {
-      rememberLog(`Ignoring Windows Hermes override under WSL: ${hermesOverride}`)
+      hermesCommand = hermesOverride
     }
 
     if (hermesCommand) {
-      if (looksLikeDesktopAppBinary(hermesCommand)) {
-        rememberLog(`Ignoring desktop app executable on PATH while resolving Hermes CLI: ${hermesCommand}`)
-        hermesCommand = null
-      } else {
-        const unwrapped: Awaited<ReturnType<typeof unwrapWindowsVenvHermesCommand>> =
-          await unwrapWindowsVenvHermesCommand(hermesCommand, backendArgs)
-
-        if (unwrapped) {
-          return unwrapped
+      if (
+        shouldTrustHermesOverride(hermesOverride) ||
+        (await verifyHermesCli(hermesCommand))
+      ) {
+        return {
+          label: `existing Hermes CLI at ${hermesCommand}`,
+          command: hermesCommand,
+          args: backendArgs,
+          bootstrap: false,
+          env: {},
+          kind: 'command',
+          local: 'installed'
         }
-
-        const shellForProbe: boolean = isCommandScript(hermesCommand)
-
-        if (
-          shouldTrustHermesOverride(hermesOverride) ||
-          (await verifyHermesCli(hermesCommand, { shell: shellForProbe }))
-        ) {
-          return {
-            label: `existing Hermes CLI at ${hermesCommand}`,
-            command: hermesCommand,
-            args: backendArgs,
-            bootstrap: false,
-            env: {},
-            kind: 'command',
-            shell: shellForProbe,
-            local: 'installed'
-          }
-        }
-
-        rememberLog(
-          `Ignoring existing Hermes CLI at ${hermesCommand}: --version probe failed; falling through to bootstrap.`
-        )
       }
+
+      rememberLog(
+        `Ignoring existing Hermes CLI at ${hermesCommand}: --version probe failed; falling through to bootstrap.`
+      )
     }
   }
 
   // 4. ACTIVE_HERMES_ROOT — the canonical install at
-  //    %LOCALAPPDATA%\\hermes\\hermes-agent (Windows) or ~/.hermes/hermes-agent.
+  //    ~/.hermes/hermes-agent.
   //    A valid bootstrap marker proves Desktop finished the first-run install
   //    flow, but marker provenance is NOT the same thing as runtime usability:
   //    the CLI can publish the same installation launcher, and older desktop
@@ -5379,7 +4200,7 @@ async function resolveHermesBackend(backendArgs: string[]): Promise<ResolvedHerm
     //    fixed user-bin location: a Finder/Dock launch inherits a PATH without
     //    ~/.local/bin. The reported root is then resolved and probed like any
     //    installed runtime; HERMES_DESKTOP_IGNORE_EXISTING=1 skips it too.
-    const userInstall: ReturnType<typeof userLauncherInstallRoot> = userLauncherInstallRoot(IS_WINDOWS, HERMES_HOME)
+    const userInstall: ReturnType<typeof userLauncherInstallRoot> = userLauncherInstallRoot(HERMES_HOME)
 
     if (userInstall) {
       const userBackend: SourceBackend | null = await installedRuntimeGate.resolve(userInstall.root, () =>
@@ -5400,7 +4221,7 @@ async function resolveHermesBackend(backendArgs: string[]): Promise<ResolvedHerm
 
   // 6. Nothing usable yet -- signal the bootstrap runner that we need to
   //    clone+install. Phase 1D's bootstrap-runner consumes this sentinel
-  //    and drives install.ps1 stages with a progress UI. Until 1D lands,
+  //    and drives installer stages with a progress UI. Until 1D lands,
   //    callers see the sentinel and surface it as a user-facing error
   //    explaining what's missing.
   //
@@ -5415,7 +4236,6 @@ async function resolveHermesBackend(backendArgs: string[]): Promise<ResolvedHerm
     args: backendArgs,
     bootstrap: true,
     env: {},
-    shell: false,
     // Hints for the bootstrap runner / UI layer:
     activeRoot: ACTIVE_HERMES_ROOT,
     installStamp: INSTALL_STAMP, // may be null in dev
@@ -5432,7 +4252,6 @@ interface ResolvedHermesBackend {
   args: string[]
   env: NodeJS.ProcessEnv
   bootstrap: boolean
-  shell: boolean
   local?: string
   root?: string
   installStamp?: Readonly<InstallStamp> | null
@@ -5481,23 +4300,12 @@ async function ensureRuntime(
   if (backend.kind === 'bootstrap-needed') {
     rememberLog('[bootstrap] no Hermes install found; starting first-launch bootstrap')
 
-    if (await handOffWindowsBootstrapRecovery('bootstrap-needed')) {
-      const handoffError: Error & { isBootstrapFailure?: boolean; bootstrapHandedOff?: boolean } = new Error(
-        'Hermes recovery was handed off to Hermes Setup. The desktop will restart when recovery completes.'
-      )
-
-      handoffError.isBootstrapFailure = true
-      handoffError.bootstrapHandedOff = true
-      bootstrapFailure = handoffError
-      throw handoffError
-    }
-
     // Eagerly flip the bootstrap UI state to 'active' so the renderer
     // shows the install overlay BEFORE the runner finishes fetching the
     // manifest (which on slow networks can take tens of seconds and would
     // otherwise leave the user staring at the generic 'Preparing' splash).
     // We emit a synthetic manifest with an empty stages list -- the real
-    // manifest event will overwrite it once install.ps1 -Manifest returns.
+    // manifest event will overwrite it once the installer -Manifest returns.
     try {
       broadcastBootstrapEvent({
         type: 'manifest',
@@ -5564,7 +4372,7 @@ async function ensureRuntime(
       bootstrapError.isBootstrapFailure = true
       bootstrapError.failedStage = bootstrapResult.failedStage || null
       // Latch the failure so subsequent startHermes() calls return this
-      // same error without re-running install.ps1.  Cleared by the
+      // same error without re-running the installer.  Cleared by the
       // hermes:bootstrap:reset IPC (renderer's "Reload and retry").
       bootstrapFailure = bootstrapError
       throw bootstrapError
@@ -5926,7 +4734,7 @@ async function saveImageFromUrl(rawUrl) {
   const extension = extensionForMimeType(mimeType) || '.png'
   // Generated-image URLs (fal.media etc.) usually end in an extensionless
   // content hash. Keep the name but always guarantee an extension — without
-  // one Windows saves an unopenable "All Files" blob (#image18 report).
+  // one some file managers save an unopenable "All Files" blob (#image18 report).
   const baseName = filenameFromUrl(rawUrl, `image${extension}`)
   const fallbackName = path.extname(baseName) ? baseName : `${baseName}${extension}`
 
@@ -6019,46 +4827,48 @@ function decodedPathIfMissing(resolvedPath) {
   return decoded !== resolvedPath ? decoded : null
 }
 
-async function previewFileTarget(rawTarget, baseDir) {
-  const raw = String(rawTarget || '').trim()
-  const base = baseDir ? path.resolve(expandUserPath(baseDir)) : resolveHermesCwd()
-
-  // A plain backend target is a WSL/POSIX path; bridge it to a Windows-
-  // accessible form before resolving so the existence checks below (and the
-  // final read) hit the real file rather than a drive-relative C:\home\... miss.
-  let resolved = resolveRequestedPathForIpc(resolvePreviewTargetPath(raw, expandUserPath), {
-    baseDir: base,
-    purpose: 'Preview target'
-  })
+// Fallbacks for a preview target that does not exist as first resolved: a
+// HOME-relative attachment ref, then the percent-decoded form of the path.
+function recoverMissingPreviewPath(resolved, raw) {
+  if (fileExists(resolved) || directoryExists(resolved)) {
+    return resolved
+  }
 
   // Attachment references stored in chat history are frequently HOME-relative
-  // (e.g. "AppData/Local/hermes/attachments/foo.xlsx" on Windows, or
-  // ".hermes/attachments/foo.xlsx" elsewhere) rather than relative to the
-  // agent's working directory. The primary resolution above only tries
-  // `base` (the working dir), so such a ref never exists there and the
-  // preview/download 404s even though the file is present on disk (#115609).
-  if (!fileExists(resolved) && !directoryExists(resolved)) {
-    for (const candidate of homeRelativeAttachmentCandidates(raw, app.getPath('home'), HERMES_HOME)) {
-      if (fileExists(candidate)) {
-        resolved = candidate
-
-        break
-      }
+  // (e.g. ".hermes/attachments/foo.xlsx") rather than relative to the
+  // agent's working directory. The primary resolution only tries `base` (the
+  // working dir), so such a ref never exists there and the preview/download
+  // 404s even though the file is present on disk (#115609).
+  for (const candidate of homeRelativeAttachmentCandidates(raw, app.getPath('home'), HERMES_HOME)) {
+    if (fileExists(candidate)) {
+      return candidate
     }
   }
 
   // Markdown hrefs must percent-encode spaces (`/my%20notes/x.md`), but the
   // on-disk path is the decoded form. When the encoded path misses, retry the
   // decoded form so chat links to paths with spaces still open in the preview
-  // rail (#102782) — before the directory/missing classification below, so a
+  // rail (#102782) — before the directory/missing classification, so a
   // decoded target is typed by what it actually is.
-  if (!fileExists(resolved) && !directoryExists(resolved)) {
-    const decoded = decodedPathIfMissing(resolved)
+  const decoded = decodedPathIfMissing(resolved)
 
-    if (decoded && (fileExists(decoded) || directoryExists(decoded))) {
-      resolved = decoded
-    }
+  if (decoded && (fileExists(decoded) || directoryExists(decoded))) {
+    return decoded
   }
+
+  return resolved
+}
+
+async function previewFileTarget(rawTarget, baseDir) {
+  const raw = String(rawTarget || '').trim()
+  const base = baseDir ? path.resolve(expandUserPath(baseDir)) : resolveHermesCwd()
+
+  let resolved = resolveRequestedPathForIpc(/^file:/i.test(raw) ? raw : expandUserPath(raw), {
+    baseDir: base,
+    purpose: 'Preview target'
+  })
+
+  resolved = recoverMissingPreviewPath(resolved, raw)
 
   // A directory is not a preview (#101683). Overloading it as
   // `<dir>/index.html` made a directory without one classify as missing, and
@@ -6173,35 +4983,21 @@ async function watchPreviewFile(owner, rawUrl) {
     )
   }
 
-  // guardedWatch: a win32 event storm closes the raw fs.watch and falls back
-  // to a slow stat poll instead of pinning the main thread (#118974).
-  const watcher = guardedWatch({
-    platform: process.platform,
-    watch: listener => fs.watch(watchDir, listener),
-    onEvent: (_eventType, filename) => {
-      const changedName = filename ? path.basename(String(filename)) : ''
+  const watcher = fs.watch(watchDir, (_eventType, filename) => {
+    const changedName = filename ? path.basename(String(filename)) : ''
 
-      if (changedName && changedName !== targetName) {
-        return
-      }
+    if (changedName && changedName !== targetName) {
+      return
+    }
 
-      if (timer) {
-        clearTimeout(timer)
-      }
+    if (timer) {
+      clearTimeout(timer)
+    }
 
-      timer = setTimeout(() => {
-        timer = null
-        emit()
-      }, PREVIEW_WATCH_DEBOUNCE_MS)
-    },
-    snapshot: () => {
-      const stat = fs.statSync(filePath)
-
-      return `${stat.mtimeMs}:${stat.size}`
-    },
-    onPollChange: emit,
-    onTrip: ({ events, windowMs }) =>
-      console.warn(`[hermes] fs.watch storm on ${watchDir} (${events} events within ${windowMs}ms); polling instead`)
+    timer = setTimeout(() => {
+      timer = null
+      emit()
+    }, PREVIEW_WATCH_DEBOUNCE_MS)
   })
 
   previewWatchers.set(id, {
@@ -6274,25 +5070,15 @@ function watchDirectory(owner, rawDir) {
     )
   }
 
-  // A win32 event storm here pinned a core at 100% (#118974): the breaker
-  // closes the raw watch and falls back to the readdir poll it replaced.
-  const watcher = guardedWatch({
-    platform: process.platform,
-    watch: listener => fs.watch(watchDir, listener),
-    onEvent: () => {
-      if (timer) {
-        clearTimeout(timer)
-      }
+  const watcher = fs.watch(watchDir, () => {
+    if (timer) {
+      clearTimeout(timer)
+    }
 
-      timer = setTimeout(() => {
-        timer = null
-        emit()
-      }, PREVIEW_WATCH_DEBOUNCE_MS)
-    },
-    snapshot: () => fs.readdirSync(watchDir).sort().join('\0'),
-    onPollChange: emit,
-    onTrip: ({ events, windowMs }) =>
-      console.warn(`[hermes] fs.watch storm on ${watchDir} (${events} events within ${windowMs}ms); polling instead`)
+    timer = setTimeout(() => {
+      timer = null
+      emit()
+    }, PREVIEW_WATCH_DEBOUNCE_MS)
   })
 
   previewWatchers.set(id, {
@@ -6453,7 +5239,7 @@ function getWindowButtonPosition(win = mainWindow) {
 }
 
 function getNativeOverlayWidth() {
-  return computeNativeOverlayWidth({ isWindows: IS_WINDOWS, isWsl: IS_WSL, isMac: IS_MAC })
+  return computeNativeOverlayWidth({ isWsl: IS_WSL, isMac: IS_MAC })
 }
 
 function getWindowState(win = mainWindow) {
@@ -6464,7 +5250,7 @@ function getWindowState(win = mainWindow) {
     nativeOverlayWidth: getNativeOverlayWidth(),
     windowButtonPosition: getWindowButtonPosition(win),
     darwinMajor: IS_MAC ? DARWIN_MAJOR : 0,
-    ...windowControlState(win, !IS_WINDOWS && IS_WSL)
+    ...windowControlState(win, IS_WSL)
   }
 }
 
@@ -6533,7 +5319,7 @@ function sendPreviewNavCommand(command: 'back' | 'forward' | 'reload') {
  * - macOS: a two/three-finger swipe. Chromium's own overscroll navigation is
  *   off in an Electron window, so the OS gesture surfaces as this event and
  *   nothing consumes it. Requires "Swipe between pages" in System Settings.
- * - Windows/Linux: the dedicated back/forward buttons on a mouse, delivered as
+ * - Linux: the dedicated back/forward buttons on a mouse, delivered as
  *   `WM_APPCOMMAND`.
  */
 function installBrowserNavGestures(window) {
@@ -6954,7 +5740,7 @@ function installPreviewShortcut(window) {
 
     // ⌘R rides here rather than on the View menu item for the same reason:
     // the application menu only exists on macOS (it is set to null elsewhere,
-    // see #77845), so a menu accelerator would leave Windows and Linux with no
+    // see #77845), so a menu accelerator would leave Linux with no
     // way to reload a page at all. ⇧⌘R is left alone — that is `forceReload`,
     // the unconditional whole-window escape hatch.
     if (action === 'reload') {
@@ -7062,7 +5848,7 @@ function restorePersistedZoomLevel(window) {
 function installZoomShortcuts(window) {
   // Override Ctrl/Cmd + +/-/0 with half Chromium's default zoom step (ZOOM_STEP
   // is 0.1 vs Chromium's 0.2). The menu items handle this on macOS (where the
-  // menu is always present), but on Linux/Windows the menu is null and
+  // menu is always present), but on Linux the menu is null and
   // Chromium's default handler would use the full 0.2 step, so we intercept
   // here for consistency. Ctrl/Cmd+0 resets to DEFAULT_ZOOM_LEVEL, not Chromium 0.
   window.webContents.on('before-input-event', (event, input) => {
@@ -7713,7 +6499,7 @@ function openOauthLoginWindow(
 // authed REST against a gated gateway, including minting WS tickets.
 //
 // #61457: the partition's Chromium jar is not a reliable cookie source — it can
-// drop the `hermes_session*` cookies (Windows %3A profile folders, lazy
+// drop the `hermes_session*` cookies (lazy
 // hydration, flush races) and `useSessionCookies: true` then intermittently
 // omits the cookie → 401 `no_cookie` right after a successful sign-in. Two
 // mitigations, both keyed by the request's resolved OAuth partition + origin
@@ -9868,8 +8654,6 @@ async function teardownSshConnection(profile) {
   // Kill the owned remote serve --isolated *before* closing the SSH
   // transport. Spawn detaches with setsid/nohup, so closing the tunnel
   // alone leaves the backend at pid 1 holding state.db (#91668).
-  // Windows remotes use a different lifecycle (connectWindowsRemote) and
-  // are left to a follow-up; POSIX is the leak that OOM'd gateways.
   await sshTeardowns.track(state.ssh, (): Promise<void> =>
     teardownSshState(
       {
@@ -9877,15 +8661,7 @@ async function teardownSshConnection(profile) {
         ownershipId: state.ownershipId || sshOwnershipKey(profile)
       },
       {
-        cleanupRemote:
-          state.remotePlatform === 'Windows'
-            ? async () => {
-                // connectWindowsRemote does not share POSIX lock/kill. Stay
-                // silent on the kill path, but leave a log so quit is not a
-                // mysterious no-op on Windows remotes.
-                sshRememberLog('[ssh] skip remote serve teardown on Windows remotes; POSIX disconnect does not apply')
-              }
-            : remoteLifecycle.disconnect
+        cleanupRemote: remoteLifecycle.disconnect
       }
     )
   )
@@ -10036,21 +8812,9 @@ async function reachablePreviewUrl(webContentsId: number, rawUrl: string): Promi
   }
 }
 
-// The ssh client every desktop spawn uses (#103288): `desktop.ssh_path`, then
-// the in-box System32 OpenSSH, then Git for Windows' ssh.exe, then PATH.
-// Bare `ssh` on every other platform.
+// The ssh client every desktop spawn uses: bare `ssh` resolved via PATH.
 function desktopSshBinary(): string {
-  return resolveSshBinary({
-    platform: process.platform,
-    override: desktopSshPathOverride,
-    env: {
-      systemRoot: process.env.SystemRoot || process.env.windir || 'C:\\Windows',
-      localAppData: process.env.LOCALAPPDATA || '',
-      programFiles: process.env['ProgramFiles'] || 'C:\\Program Files',
-      programFilesX86: process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'
-    },
-    fs: { existsSync: fileExists, readdirSync: dir => fs.readdirSync(dir) }
-  })
+  return 'ssh'
 }
 
 async function effectiveSshConfigFingerprint(sshConfig) {
@@ -10124,13 +8888,7 @@ async function rollbackSshBootstrapResult(ssh, result, profile, sshConfig, bound
       creationTime: result.creationTime
     }
 
-    if (result.platform?.os === 'Windows') {
-      await terminateOwnedWindowsDashboardForUpdate(
-        ssh,
-        { hermesPath: result.hermesPath, hermesHome: result.hermesHome, python: result.pythonPath },
-        expected
-      )
-    } else if (result.platform?.os === 'Linux' || result.platform?.os === 'Darwin') {
+    if (result.platform?.os === 'Linux' || result.platform?.os === 'Darwin') {
       await remoteLifecycle.terminateOwnedDashboardForUpdate(ssh, expected)
     } else {
       cleanupErrors.push(`unsupported remote platform ${result.platform?.os || 'unknown'}`)
@@ -10217,9 +8975,8 @@ async function bootstrapSshConnectionInner(profile, sshConfig, reuseToken, sourc
       managedConnectionUpdateGate.assertCanDial(metadata.registryConnectionId, metadata.managedUpdateCorrelation || '')
     }
 
-    const platform = await detectRemotePlatform(ssh, sshConfig.remoteHermesPath || '')
-    const lifecycle = platform.os === 'Windows' ? connectWindowsRemote : remoteLifecycle.connect
-    result = await lifecycle({
+    const platform = await remoteLifecycle.probeRemotePlatform(ssh)
+    result = await remoteLifecycle.connect({
       ssh,
       platform,
       profile: resolveRemoteSshDashboardProfile(sshConfig.remoteProfile, profile),
@@ -10302,7 +9059,6 @@ async function bootstrapSshConnectionInner(profile, sshConfig, reuseToken, sourc
         startedAt: result.startedAt,
         hermesPath: result.hermesPath,
         hermesHome: result.hermesHome,
-        pythonPath: result.pythonPath,
         remoteProfile: resolveRemoteSshDashboardProfile(sshConfig.remoteProfile, profile),
         registryConnectionId:
           metadata.registryConnectionId ||
@@ -10668,30 +9424,17 @@ async function testDesktopConnectionConfig(input: any = {}) {
     )
 
     try {
-      // One bounded retry on TIMEOUT only: a cold Windows backend's first
-      // PowerShell exec can exceed the budget (observed live), and a timeout is
-      // indeterminate — unlike auth/host-key/unreachable, which are verdicts.
+      // One bounded retry on TIMEOUT only: a timeout is indeterminate — unlike
+      // auth/host-key/unreachable, which are verdicts.
       let attempt = 0
 
       for (;;) {
         try {
           await ssh.open()
-          const platform: any = await detectRemotePlatform(ssh, sshConfig.remoteHermesPath || '')
-          let hermesPath
-          let hermesVersion
-          let supported
-
-          if (platform.os === 'Windows') {
-            const runtime = platform
-            hermesPath = runtime.hermesPath
-            const inspection = await helper(ssh, runtime, 'inspect', [runtime.hermesPath])
-            hermesVersion = inspection.version
-            supported = inspection.supported
-          } else {
-            hermesPath = await remoteLifecycle.locateHermes(ssh, sshConfig.remoteHermesPath || '')
-            hermesVersion = await remoteLifecycle.probeHermesVersion(ssh, hermesPath)
-            supported = await remoteLifecycle.remoteSupportsSshOwnership(ssh, hermesPath)
-          }
+          const platform: any = await remoteLifecycle.probeRemotePlatform(ssh)
+          const hermesPath = await remoteLifecycle.locateHermes(ssh, sshConfig.remoteHermesPath || '')
+          const hermesVersion = await remoteLifecycle.probeHermesVersion(ssh, hermesPath)
+          const supported = await remoteLifecycle.remoteSupportsSshOwnership(ssh, hermesPath)
 
           if (!supported) {
             return {
@@ -10960,7 +9703,6 @@ async function ensureBackend(
 
   if (route.backend === 'primary') {
     const connection = await startHermes()
-    setWslBridgeProfileState(key, connection.mode !== 'remote')
 
     // A shared backend still owes the caller its profile scope, so renderer-side
     // WebSocket, filesystem, and cache routing target the selected profile.
@@ -10995,7 +9737,6 @@ async function ensureBackend(
     }
 
     const connection = await existing.connectionPromise
-    setWslBridgeProfileState(key, connection.mode !== 'remote')
 
     return connection
   }
@@ -11039,7 +9780,6 @@ async function ensureBackend(
   startPoolIdleReaper()
 
   const connection = await entry.connectionPromise
-  setWslBridgeProfileState(key, connection.mode !== 'remote')
 
   return connection
 }
@@ -11355,13 +10095,6 @@ async function connectRegistryBackend(
 
     poolEntry.remoteBaseUrl = connection.baseUrl
 
-    // SSH backends always run on a remote host — their POSIX paths can never
-    // be opened through this machine's wsl.exe. Register the profile as
-    // bridge-inactive so file panels/dialogs don't spawn wsl.exe (visible
-    // black window on WSL-less Windows) for remote paths. The v1 path does
-    // this in ensureBackend(); the registry SSH path was missing it.
-    setWslBridgeProfileState(profileKey, false)
-
     return {
       ...connection,
       profile: profileKey,
@@ -11393,10 +10126,6 @@ async function connectRegistryBackend(
 
   await waitForRemoteHermes(connection)
   poolEntry.remoteBaseUrl = connection.baseUrl
-
-  // Remote/cloud backends live on another host too — disable the WSL path
-  // bridge for their profiles for the same reason as the SSH branch above.
-  setWslBridgeProfileState(profileKey, false)
 
   return {
     ...connection,
@@ -11618,7 +10347,7 @@ function remoteUpdateTargetFromState(state): RemoteUpdateTarget {
     throw new Error('The managed SSH scope does not carry a complete remote runtime identity.')
   }
 
-  if (!['Darwin', 'Linux', 'Windows'].includes(state.remotePlatform)) {
+  if (!['Darwin', 'Linux'].includes(state.remotePlatform)) {
     throw new Error(`Unsupported managed SSH update platform: ${state.remotePlatform || 'unknown'}.`)
   }
 
@@ -11626,8 +10355,7 @@ function remoteUpdateTargetFromState(state): RemoteUpdateTarget {
     ssh: state.ssh,
     platform: state.remotePlatform,
     hermesPath: state.hermesPath,
-    hermesHome: state.hermesHome,
-    ...(state.pythonPath ? { pythonPath: state.pythonPath } : {})
+    hermesHome: state.hermesHome
   }
 }
 
@@ -11648,22 +10376,7 @@ async function openManagedSshUpdateTransport(
   await ssh.open()
 
   try {
-    const platform: any = await detectRemotePlatform(ssh, config.remoteHermesPath || '')
-
-    if (platform.os === 'Windows') {
-      const runtime = platform.hermesPath ? platform : await probeWindowsRemote(ssh, config.remoteHermesPath || '')
-
-      return {
-        close: () => ssh.close(),
-        target: {
-          ssh,
-          platform: 'Windows',
-          hermesPath: runtime.hermesPath,
-          hermesHome: runtime.hermesHome,
-          pythonPath: runtime.python
-        }
-      }
-    }
+    const platform: any = await remoteLifecycle.probeRemotePlatform(ssh)
 
     const hermesPath = await remoteLifecycle.locateHermes(ssh, config.remoteHermesPath || '')
     const hermesHome = await remoteLifecycle.probeRemoteHermesHome(ssh)
@@ -11706,13 +10419,7 @@ async function drainManagedSshScope(scope) {
       creationTime: state.creationTime
     }
 
-    if (state.remotePlatform === 'Windows') {
-      await terminateOwnedWindowsDashboardForUpdate(
-        state.ssh,
-        { hermesPath: state.hermesPath, hermesHome: state.hermesHome, python: state.pythonPath },
-        expected
-      )
-    } else if (state.remotePlatform === 'Linux' || state.remotePlatform === 'Darwin') {
+    if (state.remotePlatform === 'Linux' || state.remotePlatform === 'Darwin') {
       await remoteLifecycle.terminateOwnedDashboardForUpdate(state.ssh, expected)
     } else {
       throw new Error(`Unsupported managed SSH update platform: ${state.remotePlatform || 'unknown'}.`)
@@ -12230,9 +10937,9 @@ async function runPoolBackendStart(
   assertPoolEntryStillOwned(poolKey, entry, backendPool, localBackendLifecycle.signal)
 
   const child = spawnOwnedBackend(
-    windowsShellCommand(backend.command, Boolean(backend.shell)),
+    backend.command,
     backend.args,
-    hiddenWindowsChildOptions({
+    {
       cwd: hermesCwd,
       env: desktopBackendSpawnEnv(
         {
@@ -12255,9 +10962,8 @@ async function runPoolBackendStart(
         },
         GUEST_ONBOARDING
       ),
-      shell: backend.shell,
       stdio: ['ignore', 'pipe', 'pipe']
-    })
+    }
   )
 
   entry.process = child
@@ -12457,49 +11163,8 @@ async function stopAllPoolBackends() {
   entries.forEach(releaseLocalBackendSlot)
 }
 
-/**
- * Last teardown act on Windows: kill orphaned tools still running out of
- * THIS install's artifact root, so no straggler pins the package silo
- * (0x80070020 on the next activation). The managed tool store is NOT a quit
- * root — it is machine-scoped and shared with the surviving gateway and
- * other installs; image locks there are the updater's pause/resume job.
- * Runs after the graceful backend teardown, skips the pids it owned and
- * every live Hermes runtime process, so it is only the net for what
- * detached. Best effort throughout; see package-process-reap.ts.
- */
-function reapInstallRootedStragglers(excludePids: number[]): void {
-  if (!IS_WINDOWS) {
-    return
-  }
-
-  const payloadRoot = installShape() === 'bundled' ? process.resourcesPath : null
-
-  try {
-    reapPackageRootedProcesses({
-      installRoots: [payloadRoot],
-      listProcesses: () =>
-        listWindowsProcesses(
-          (file, args, options) =>
-            execFileSync(file, args, {
-              ...hiddenWindowsChildOptions({ encoding: 'utf8', timeout: options.timeout }),
-              windowsHide: options.windowsHide
-            }) as unknown as string
-        ),
-      killProcess: pid => process.kill(pid, 'SIGKILL'),
-      selfPid: process.pid,
-      excludePids,
-      isWindows: true,
-      log: message => rememberLog(message)
-    })
-  } catch (err) {
-    rememberLog(`[package-reap] skipped: ${(err as Error).message}`)
-  }
-}
-
 const backendShutdown = createBackendShutdownCoordinator(async (): Promise<void> => {
-  const ownedChildren = IS_WINDOWS ? collectOwnedBackendChildren() : []
   const localShutdown = localBackendLifecycle.shutdown()
-  const primary = backendConnectionState.getProcess()
   const primaryStop = teardownPrimaryBackendAndWait(backendTeardownOptions('quit'))
   const pooledStops = stopAllPoolBackends()
 
@@ -12509,28 +11174,9 @@ const backendShutdown = createBackendShutdownCoordinator(async (): Promise<void>
   }
 
   await waitForTeardown([localShutdown, primaryStop, pooledStops], 7_000)
-
-  reapInstallRootedStragglers(Number.isInteger(primary?.pid) ? [primary.pid] : [])
-
-  // Verify last, so a surviving child cannot skip the teardown above.
-  const closeStopFailure = windowsCloseStopOwnedBackends(ownedChildren)
-
-  if (closeStopFailure) {
-    rememberLog(`[close-stop] ${closeStopFailure.message}`)
-
-    throw closeStopFailure
-  }
 })
 
 const quitTeardown = createQuitTeardownCoordinator(() => app.quit())
-
-const quitFinalization = createQuitFinalization({
-  isWindows: IS_WINDOWS,
-  hardExit: code => {
-    rememberLog(`[quit] forcing Windows process exit after Electron quit finalization stalled`)
-    app.exit(code)
-  }
-})
 
 async function teardownSshForQuit(): Promise<void> {
   for (const scope of sshConnections.keys()) {
@@ -12687,11 +11333,21 @@ function attachToRunningHostBackend(): Promise<AttachedBackend | null> {
     })
 }
 
+function isPidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+
+    return true
+  } catch (err: any) {
+    return Boolean(err) && err.code === 'EPERM'
+  }
+}
+
 function hostBackendAttachDeps() {
   return {
     // Skip ledger records whose backend is already gone before dialling
     // anything: the ledger survives the process it describes (#123586).
-    isPidAlive: isPidAliveWindows,
+    isPidAlive,
     // Attach only to a backend booted from this checkout's HEAD: a CLI/launchd
     // serve that outlived an update answers 503 "Restart required", and Restart
     // would re-adopt the same stale process forever.
@@ -12714,7 +11370,6 @@ function hostBackendAttachDeps() {
         {
           home: os.homedir(),
           lockDir: process.env.HERMES_GATEWAY_LOCK_DIR,
-          platform: process.platform,
           stateHome: process.env.XDG_STATE_HOME
         },
         {
@@ -12914,7 +11569,7 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
 
   // Latched-failure short-circuit: once bootstrap has failed in this
   // process, every subsequent startHermes() call re-throws the same error
-  // without re-running install.ps1. This prevents the renderer's
+  // without re-running the installer. This prevents the renderer's
   // ensureGatewayOpen retries (and any other getConnection callers) from
   // restarting a 5-10 minute install loop while the user is still reading
   // the failure overlay.
@@ -12974,8 +11629,6 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
 
   // Legacy path callers without an explicit profile belong to the primary
   // window backend. Profile-scoped callers still pass their key directly.
-  setActiveGatewayProfile(primaryProfile)
-
   // Classify this boot BEFORE the throwing resolve/mint runs: a remote failure
   // must NOT latch (it's transient — see shouldLatchBackendStartFailure), while
   // a local failure latches to break install-restart loops.
@@ -13021,14 +11674,14 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
 
     if (loginShellPath.applied) {
       rememberLog('[env] merged login-shell PATH into process.env for backend spawn')
-    } else if (loginShellPath.reason && !['win32', 'unchanged'].includes(loginShellPath.reason)) {
+    } else if (loginShellPath.reason && loginShellPath.reason !== 'unchanged') {
       rememberLog(`[env] login-shell PATH resolution unavailable (${loginShellPath.reason}); keeping inherited PATH`)
     }
 
     const token = crypto.randomBytes(32).toString('base64url')
     // Pin the desktop's chosen profile via the global --profile flag. A launch
     // override is persisted into active-profile.json before startHermes, so
-    // Hermes.exe --profile <name> and hermes -p <name> desktop both land here.
+    // `hermes --profile <name>` and hermes -p <name> desktop both land here.
     // Null (no stored preference, no launch flag) keeps the legacy bare serve
     // so the child still follows the sticky active_profile file.
     // `activeProfile` is the SAME decision that pinned routing above — never
@@ -13074,12 +11727,6 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
     backendConnectionState.assertCurrentAttempt(connectionAttempt)
 
     if (setup.kind === 'remote') {
-      // Paths from the remote backend belong to a host the Windows desktop
-      // cannot open via wsl.exe — disable WSL path bridging so native dialogs
-      // and file panels don't spawn wsl.exe (or the interactive install prompt
-      // on WSL-less machines) for unresolvable paths. (#66433)
-      setWslBridgeProfileState(primaryProfile, false)
-
       return setup.connection
     }
 
@@ -13089,7 +11736,6 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
     if (setup.kind === 'attached') {
       const attached = setup.attached
 
-      setWslBridgeProfileState(primaryProfile, true)
       startAttachedBackendMonitor(attached)
 
       updateBootProgress({
@@ -13113,9 +11759,6 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
         ...getWindowState()
       }
     }
-
-    // Local WSL backend — paths are bridgeable.
-    setWslBridgeProfileState(primaryProfile, true)
 
     stopAttachedBackendMonitor()
 
@@ -13144,9 +11787,9 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
     backendConnectionState.assertCurrentAttempt(connectionAttempt)
 
     const hermesProcess = spawnOwnedBackend(
-      windowsShellCommand(backend.command, Boolean(backend.shell)),
+      backend.command,
       backend.args,
-      hiddenWindowsChildOptions({
+      {
         cwd: hermesCwd,
         env: desktopBackendSpawnEnv(
           {
@@ -13154,12 +11797,9 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
             ...profileBackendParentEnv({ hermesHome: HERMES_HOME, profile: activeProfile }),
             // Explicitly pin HERMES_HOME for the child so Python's get_hermes_home()
             // resolves to the SAME location our resolveHermesHome() picked. Without
-            // this pin, Python falls back to ~/.hermes on every platform — fine on
-            // mac/linux (where our default matches), but on Windows our default is
-            // %LOCALAPPDATA%\hermes, which differs from C:\Users\<u>\.hermes.
-            // Mismatch would split config / sessions / .env / logs across two
-            // directories. install.ps1 sets HERMES_HOME via setx; the desktop
-            // can't reliably do that, so we set it inline for every spawn.
+            // this pin, Python falls back to ~/.hermes, which can differ from the
+            // directory the desktop picked and would split config / sessions /
+            // .env / logs across two directories.
             HERMES_HOME,
             ...backend.env,
             TERMINAL_CWD: hermesCwd,
@@ -13176,9 +11816,8 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
           },
           GUEST_ONBOARDING
         ),
-        shell: backend.shell,
         stdio: ['ignore', 'pipe', 'pipe']
-      })
+      }
     )
 
     // Buffer stdout+stderr from the instant of spawn (#93608): an early
@@ -13189,13 +11828,11 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
     primaryOutputTail.attach(hermesProcess)
 
     // Start watching for the READY announcement BEFORE any await (#60323):
-    // claimBackendChild can take seconds (its Windows Get-Process probe cold
-    // start alone runs 2-8s) and advanceBootProgress awaits renderer IPC.
+    // claimBackendChild can take seconds and advanceBootProgress awaits renderer IPC.
     // stdout is already flowing into the tail, and Node streams never replay
     // consumed chunks to late listeners, so a sentinel printed during that
     // window was lost forever — the wait then hit its 90s timeout and a
-    // healthy backend was killed (deterministic on Windows, racy on
-    // macOS/Linux). The tail-buffer accessor covers any residual gap.
+    // healthy backend was killed (racy). The tail-buffer accessor covers any residual gap.
     const portAnnouncement = waitForDashboardPortAnnouncement(hermesProcess, {
       bufferedOutput: () => primaryOutputTail.text(),
       describeOutputTail: () => primaryOutputTail.describe(),
@@ -13452,7 +12089,7 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
     // A dead local ssh client (`ssh -G` failed) is terminal too (#103288):
     // every retry re-runs the same local probe, so boot looped every ~2s and
     // the user never reached Settings. Latch it so the overlay holds still;
-    // reset/repair/apply-config release it (desktop.ssh_path needs a restart).
+    // reset/repair/apply-config release it .
     if (shouldLatchSshClientFailure({ attemptedRemote, isReauth: false, isSshClientFailed: sshClientFailed })) {
       backendStartFailure = error instanceof Error ? error : new Error(message)
     }
@@ -13514,7 +12151,7 @@ function wireCommonWindowHandlers(win, { zoom = true }: { zoom?: boolean } = {})
   // Claim Ctrl/Cmd+F in the main process — on Pop!_OS / GNOME-based Linux
   // distros the Ctrl+F keydown does not reach the renderer's `view.findInPage`
   // binding (#81727). Routing it through `before-input-event` forwards the
-  // intent at the earliest observable point. macOS / Windows keep the
+  // intent at the earliest observable point. macOS keep the
   // renderer's own rebindable keybind, so the hook is Linux-only: installing
   // it elsewhere would make Ctrl/Cmd+F un-rebindable and double-open.
   if (process.platform === 'linux') {
@@ -14031,7 +12668,7 @@ registerMachineProfile()
 // it. Control flows back (pop-in, composer submit) via hermes:pet-overlay:control.
 let petOverlayWindow = null
 // Set once the app is really exiting (before-quit, or the primary window's
-// close on Windows/Linux where closing it IS quitting). Distinct from
+// close on Linux where closing it IS quitting). Distinct from
 // isQuittingForHandoff, which is specific to the update/swap hand-off and is
 // reset when a hand-off is aborted: a quit latch must never reset. The pet
 // overlay's 'closed' handler reads it to suppress its pop-in echo so the
@@ -14068,7 +12705,7 @@ function spawnPetOverlayWindow(bounds) {
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    // Windows/Linux need this so the helper window does not get its own
+    // Linux need this so the helper window does not get its own
     // taskbar/alt-tab entry. On macOS, cmd-tab is app-level and this can make
     // the whole app look like it vanished when the only newly-created visible
     // window is a frameless overlay. Use NSPanel + Mission Control hiding below
@@ -14407,7 +13044,7 @@ function registerHudSnapShortcut() {
  *
  * Everywhere else the renderer learns this from mousemove, which keeps arriving
  * while the window ignores the mouse because we pass `{ forward: true }`. That
- * option is macOS/Windows only. Without it a Linux HUD stops hearing the
+ * option is macOS only. Without it a Linux HUD stops hearing the
  * pointer the moment it turns click-through, so it can never notice the pointer
  * coming back and stays transparent — the bar is there, and clicking it hits
  * whatever is behind. Main can still see the cursor, so it says so.
@@ -14593,7 +13230,7 @@ function spawnHudWindow(sessionId, profile) {
     // macOS AppKit's constrainFrameRect clamps setBounds to the current
     // display unless this is on. The HUD is moved by renderer-driven
     // setBounds (not a native titlebar drag), so without it the bar cannot
-    // be dragged onto another monitor. No-op on Windows/Linux.
+    // be dragged onto another monitor. No-op on Linux.
     enableLargerThanScreen: true,
     movable: true,
     minimizable: false,
@@ -14857,7 +13494,7 @@ function spawnQuickEntryWindow() {
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    // Same rationale as the pet overlay: on Windows/Linux keep the helper out
+    // Same rationale as the pet overlay: on Linux keep the helper out
     // of the taskbar/alt-tab list; on macOS use an NSPanel so the frameless
     // capture window never becomes the app's cmd-tab anchor.
     skipTaskbar: !IS_MAC,
@@ -15032,7 +13669,7 @@ function createWindow() {
     // Frameless title bar on every platform so the renderer can paint the
     // "hide sidebar" button (and other left-side titlebar tools) flush with
     // the top edge — matching the macOS layout where the traffic lights sit
-    // inside the same band. On Windows/Linux, titleBarOverlay tells Electron
+    // inside the same band. On Linux, titleBarOverlay tells Electron
     // to paint native min/max/close in the top-right of the renderer; on
     // macOS it just reserves a content inset alongside the traffic lights.
     titleBarStyle: 'hidden',
@@ -15125,30 +13762,18 @@ function createWindow() {
       // --no-sandbox so the next launcher click does not re-enter the GPU
       // FATAL crash loop. The marker records the app version so the next
       // update re-probes the sandbox.
-      if (IS_WINDOWS || process.platform === 'linux') {
+      if (process.platform === 'linux') {
         try {
           writeSandboxMarker(
             app.getPath('userData'),
             markerAfterSuccessfulBoot({
-              fallbackActive: windowsSandboxFallbackSticky,
-              reason: windowsSandboxFallbackReason,
+              fallbackActive: sandboxFallbackSticky,
+              reason: sandboxFallbackReason,
               appVersion: app.getVersion()
             })
           )
         } catch (error) {
           rememberLog(`[sandbox] marker update after main-window reveal failed: ${error?.message || error}`)
-        }
-
-        try {
-          writeGpuStackCookieMarker(
-            app.getPath('userData'),
-            markerAfterSuccessfulGpuStackCookieBoot({
-              fallbackActive: windowsGpuStackCookieFallbackSticky,
-              appVersion: app.getVersion()
-            })
-          )
-        } catch (error) {
-          rememberLog(`[gpu] stack-cookie marker update after main-window reveal failed: ${error?.message || error}`)
         }
       }
 
@@ -15242,7 +13867,7 @@ function createWindow() {
       return
     }
 
-    // On Windows/Linux, closing the primary window IS quitting (the
+    // On Linux, closing the primary window IS quitting (the
     // window-all-closed handler calls app.quit()). Latch the quit flag here,
     // before 'closed' fires closePetOverlay() — otherwise the overlay's
     // 'closed' handler echoes pop-in and wipes the persisted popped-out state
@@ -15268,8 +13893,7 @@ function createWindow() {
   wireCommonWindowHandlers(mainWindow, zoomWiringForWindowKind('chat'))
 
   // Per-window renderer lifecycle diagnostics + recovery (#81290). The reload
-  // policy (crashed/oom/killed → bounded reload via the shared rolling budget, then
-  // the #38216 Windows sandbox relaunch check on suppression) is the same
+  // policy (crashed/oom/killed → bounded reload via the shared rolling budget) is the same
   // policy this window used before it moved into the shared helper, so a
   // crashed peer renderer now logs and recovers exactly like the primary one.
   const mainContentsId = mainWindow.webContents.id
@@ -15279,101 +13903,6 @@ function createWindow() {
       log: rememberLog,
       reload: () => {
         mainWindow.webContents.reload()
-      },
-      onCrashLoopSuppressed: details => {
-        // #108047: STATUS_STACK_BUFFER_OVERRUN crash loops get a one-shot GPU
-        // disable relaunch. Checked BEFORE the sandbox path so 0xC0000409 never
-        // piggybacks --no-sandbox. If GPU fallback cannot run, surface the
-        // visible error page instead of leaving a blank window.
-        const stackCookieCrashLoop = {
-          reason: details?.reason,
-          exitCode: details?.exitCode,
-          alreadyGpuDisabled:
-            Boolean(REMOTE_DISPLAY_REASON) ||
-            windowsGpuStackCookieFallbackActive ||
-            alreadyHasDisableGpu(process.argv, process.env),
-          relaunchAttempted: windowsGpuStackCookieRelaunchAttempted,
-          gpuOverrideOff: isHermesDesktopGpuOverrideOff(process.env)
-        }
-
-        if (shouldRelaunchForRendererStackCookieCrashLoop(stackCookieCrashLoop)) {
-          windowsGpuStackCookieRelaunchAttempted = true
-          windowsGpuStackCookieFallbackActive = true
-          windowsGpuStackCookieFallbackSticky = true
-
-          try {
-            writeGpuStackCookieMarker(
-              app.getPath('userData'),
-              gpuStackCookieFallbackMarker('renderer-crash-loop', app.getVersion())
-            )
-          } catch {
-            void 0
-          }
-
-          rememberLog(
-            '[renderer] Windows stack-cookie crash loop (0xC0000409); relaunching once with GPU disabled (#108047)'
-          )
-
-          try {
-            app.relaunch({ args: buildDisableGpuRelaunchArgs(process.argv.slice(1)) })
-            void exitAfterBackendShutdown(0)
-          } catch (err) {
-            rememberLog(`[renderer] GPU-disable relaunch failed: ${err?.message || err}`)
-          }
-
-          return
-        }
-
-        if (shouldSurfaceErrorForRendererStackCookieCrashLoop(stackCookieCrashLoop)) {
-          rememberLog(
-            '[renderer] Windows stack-cookie crash loop (0xC0000409) with GPU fallback unavailable; surfacing error page (#108047)'
-          )
-          void loadRendererLoadErrorPage(mainWindow, {
-            errorCode: details?.exitCode,
-            errorDescription:
-              'The desktop renderer crashed repeatedly (Windows STATUS_STACK_BUFFER_OVERRUN / 0xC0000409). GPU fallback could not recover the window.',
-            repairHint: 'hermes desktop --force-build',
-            reloadUrl: DEV_SERVER || pathToFileURL(resolveRendererIndex()).toString()
-          })
-
-          return
-        }
-
-        // #38216 renderer flavor (same recovery as #56726, credit @Sahil-SS9):
-        // a deterministic Windows renderer crash loop with the sandbox
-        // breakpoint signature gets one --no-sandbox relaunch instead of a
-        // dead window. Gated on the exit code so unrelated crash loops don't
-        // silently drop the sandbox.
-        if (
-          !shouldRelaunchForRendererSandboxCrashLoop({
-            reason: details?.reason,
-            exitCode: details?.exitCode,
-            alreadyNoSandbox: windowsSandboxFallbackActive || alreadyHasNoSandbox(process.argv, process.env),
-            relaunchAttempted: windowsNoSandboxRelaunchAttempted
-          })
-        ) {
-          return
-        }
-
-        windowsNoSandboxRelaunchAttempted = true
-        windowsSandboxFallbackActive = true
-        windowsSandboxFallbackSticky = true
-        windowsSandboxFallbackReason = 'renderer-crash-loop'
-
-        try {
-          writeSandboxMarker(app.getPath('userData'), fallbackMarker('renderer-crash-loop', app.getVersion()))
-        } catch {
-          void 0
-        }
-
-        rememberLog('[renderer] Windows sandbox crash loop detected; relaunching once with --no-sandbox (#38216)')
-
-        try {
-          app.relaunch({ args: buildNoSandboxRelaunchArgs(process.argv.slice(1)) })
-          void exitAfterBackendShutdown(0)
-        } catch (err) {
-          rememberLog(`[renderer] --no-sandbox relaunch failed: ${err?.message || err}`)
-        }
       },
       // #95575: a renderer that repeatedly fails to load (torn bundle after
       // an update, file locked by AV, missing index.html) used to sit on a
@@ -15895,7 +14424,7 @@ ipcMain.handle('hermes:bootstrap:reset', async () => {
 ipcMain.handle('hermes:bootstrap:repair', async (): Promise<{ ok: boolean; bundled?: boolean; error?: string }> => {
   // A bundled install's payload is immutable and sealed at build time —
   // "repair" would re-run the installer against a separate
-  // %LOCALAPPDATA%\hermes tree the app doesn't own. The only repair for a
+  // tree the app doesn't own. The only repair for a
   // damaged bundle is reinstalling the app itself. Refuse without touching
   // bootstrapRepairRequested so a stale renderer can't drive an install.
   if (installShape() === 'bundled') {
@@ -16082,7 +14611,7 @@ ipcMain.handle('hermes:ssh-config:resolve', async (_event, host) => {
   const ssh = desktopSshBinary()
 
   return new Promise((resolve, reject) => {
-    const child = spawn(ssh, ['-G', '--', value], hiddenWindowsChildOptions({ stdio: ['ignore', 'pipe', 'pipe'] }))
+    const child = spawn(ssh, ['-G', '--', value], { stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
 
@@ -17762,9 +16291,7 @@ ipcMain.handle('hermes:data-url-read-max:set', (_event, maxMb) => {
 })
 
 ipcMain.handle('hermes:readFileDataUrl', async (_event, filePath) => {
-  // Backend-reported paths are WSL/POSIX (`/home/...`, `/mnt/c/...`); on a
-  // Windows host bridge them to a UNC/drive form, same as directory reads.
-  const bridgedPath = resolveIpcFileReadPath(filePath)
+  const bridgedPath = String(filePath ?? '')
 
   try {
     return await readFileDataUrlForIpc(bridgedPath, {
@@ -17786,7 +16313,7 @@ ipcMain.handle('hermes:readFileDataUrl', async (_event, filePath) => {
 // can exceed the default 16 MiB preview ceiling (and still fit the gateway
 // WebSocket frame limit after base64 expansion).
 ipcMain.handle('hermes:readFileDataUrlForAttach', async (_event, filePath) => {
-  const bridgedPath = resolveIpcFileReadPath(filePath)
+  const bridgedPath = String(filePath ?? '')
 
   try {
     return await readFileDataUrlForIpc(bridgedPath, {
@@ -17805,7 +16332,7 @@ ipcMain.handle('hermes:readFileDataUrlForAttach', async (_event, filePath) => {
 
 ipcMain.handle('hermes:readFileText', async (_event, filePath) => {
   try {
-    const { resolvedPath, stat } = await resolveReadableFileForIpc(resolveIpcFileReadPath(filePath), {
+    const { resolvedPath, stat } = await resolveReadableFileForIpc(String(filePath ?? ''), {
       maxBytes: TEXT_PREVIEW_SOURCE_MAX_BYTES,
       purpose: 'Text preview'
     })
@@ -17872,13 +16399,7 @@ ipcMain.handle('hermes:selectPaths', async (_event, options: any = {}) => {
 
   if (options?.defaultPath) {
     try {
-      // On a Windows host with a WSL backend the cwd may be a POSIX/WSL path;
-      // bridge it to a UNC/drive form the native dialog can actually open.
-      const bridged = IS_WINDOWS
-        ? resolvePickerDefaultPath(String(options.defaultPath), undefined, options?.profile)
-        : String(options.defaultPath)
-
-      resolvedDefaultPath = bridged ? path.resolve(bridged) : undefined
+      resolvedDefaultPath = path.resolve(String(options.defaultPath))
     } catch {
       resolvedDefaultPath = undefined
     }
@@ -18017,17 +16538,6 @@ ipcMain.handle('hermes:saveClipboardImage', async () => {
     return writeComposerImage(image.toPNG(), '.png')
   }
 
-  // WSL2/WSLg doesn't bridge clipboard *images* from the Windows host to the
-  // Linux clipboard Electron reads, so a host screenshot looks empty above.
-  // Pull it straight off the Windows clipboard via PowerShell as a fallback.
-  if (IS_WSL) {
-    const png = readWslWindowsClipboardImage()
-
-    if (png) {
-      return writeComposerImage(png, '.png')
-    }
-  }
-
   return ''
 })
 
@@ -18067,7 +16577,7 @@ function hasOtherChatWindows(window: BrowserWindow): boolean {
 // and fall back to Chromium's default throttling at idle. See stream-throttle.ts.
 const streamThrottle = createStreamThrottle(undefined, undefined, {
   // #94865 is specific to native Wayland fullscreen surfaces. Reuse the same
-  // Ozone resolver as the rest of Desktop so XWayland/macOS/Windows retain the
+  // Ozone resolver as the rest of Desktop so XWayland/macOS retain the
   // normal idle throttling contract.
   keepFullscreenPainting: process.platform === 'linux' && linuxOzoneBackend(process.env, process.argv) === 'wayland'
 })
@@ -18121,7 +16631,7 @@ ipcMain.on('hermes:titlebar-theme', (_event, payload) => {
     foreground: payload.foreground
   }
 
-  // Repaint the native (Windows/Linux) titlebar overlay on every open chat
+  // Repaint the native (Linux) titlebar overlay on every open chat
   // window, not just the primary — instance peers and session windows share the
   // one app theme. applyTitleBarOverlay no-ops on the frameless pet overlay.
   for (const win of BrowserWindow.getAllWindows()) {
@@ -18181,11 +16691,6 @@ app.on('will-quit', () => {
   sshIsolatedKeepalives.stopAll()
   destroyKeepaliveAgents()
   nativeNotifications.dispose()
-  quitFinalization.arm()
-})
-
-app.on('quit', () => {
-  quitFinalization.cancel()
 })
 
 // Answered synchronously so preload can publish the verdict before the
@@ -18198,7 +16703,7 @@ ipcMain.on('hermes:translucency:support', event => {
 // Feature-flag facts the renderer needs before first paint (same sendSync
 // pattern as translucency). Resolved in feature-flags.ts from the launch
 // argv and the artifact's channel: `--local` (from `hermes desktop --local`
-// or directly on Hermes.exe, a shortcut edit) gates the local-models GUI on
+// or directly on the executable, a shortcut edit) gates the local-models GUI on
 // stable builds, and canary builds get the same surfaces by default. Launch
 // flags survive self-relaunches because collectRelaunchArgs only strips
 // internal flags.
@@ -18632,13 +17137,10 @@ registerMcpOauthCallbackIpc()
 
 // Embedded terminal PTY host (hermes:terminal:*) — see terminal-ipc.ts.
 const terminalIpc = registerTerminalIpc({
-  isWindows: IS_WINDOWS,
   findOnPath,
   rememberLog,
   activeSshTerminalTarget,
-  sshBinary: desktopSshBinary,
-  ensureBackend: webContentsId => ensureTerminalBackend(webContentsId),
-  getSshConnectionState: scope => sshConnections.get(scope)
+  ensureBackend: webContentsId => ensureTerminalBackend(webContentsId)
 })
 
 const disposeTerminalSession = terminalIpc.disposeTerminalSession
@@ -18802,7 +17304,7 @@ function canonicalizeInstallPath(p: string): string {
 }
 
 /** True when the runtime checkout was created by a bootstrap installer
- *  (install.sh / install.ps1 / the desktop first-launch bootstrap): those all
+ *  (install.sh / the desktop first-launch bootstrap): those all
  *  finish by writing `.hermes-bootstrap-complete` into the checkout root, and
  *  `hermes update` preserves the file, so a manual clone never grows one. A
  *  missing checkout (sealed bundled payloads, remote backends) is not
@@ -18918,11 +17420,11 @@ async function probeUninstallSummary(): Promise<UninstallSummaryDetails> {
       const child: ChildProcess = spawn(
         py,
         ['-m', 'hermes_cli.main', 'uninstall', '--gui-summary'],
-        hiddenWindowsChildOptions({
+        {
           cwd: agentRoot,
           env: { ...process.env, HERMES_HOME, NO_COLOR: '1' },
           stdio: ['ignore', 'pipe', 'ignore']
-        })
+        }
       )
 
       child.stdout.on('data', (chunk: Buffer): void => {
@@ -18973,13 +17475,10 @@ async function runDesktopUninstall(mode: string): Promise<DesktopUninstallResult
   }
 
   // Interpreter choice (Finding 3): lite/full rmtree the venv that holds the
-  // running python.exe. On Windows a running .exe is mandatory-locked, so the
-  // rmtree must NOT be driven by the venv's own interpreter — use a system
-  // Python with PYTHONPATH=<agentRoot> so `import hermes_cli` resolves from
-  // source while the venv is torn down. gui-only doesn't touch the venv, so the
-  // venv python is fine there. If no system Python exists (the Windows edge
-  // case), fall back to the venv python — gui-only is unaffected; lite/full may
-  // leave venv remnants the user can delete, which we log.
+  // running python, so prefer a system Python with PYTHONPATH=<agentRoot> so
+  // `import hermes_cli` resolves from source while the venv is torn down.
+  // gui-only doesn't touch the venv, so the venv python is fine there. With no
+  // system Python, fall back to the venv python.
   let py = venvPy
   let pythonPath = null
 
@@ -18989,29 +17488,11 @@ async function runDesktopUninstall(mode: string): Promise<DesktopUninstallResult
     if (sysPy) {
       py = sysPy
       pythonPath = ACTIVE_HERMES_ROOT
-    } else if (IS_WINDOWS) {
-      rememberLog(
-        '[uninstall] no system Python found for lite/full on Windows; falling back ' +
-          'to the venv python — venv files locked by the running interpreter may ' +
-          'remain and need manual deletion.'
-      )
     }
   }
 
   const appPath = resolveRemovableAppPath(process.execPath, process.platform, process.env)
   const removeBundle = shouldRemoveAppBundle(IS_PACKAGED, appPath) ? appPath : null
-
-  // CRITICAL (Windows): tear down every backend the desktop owns and wait for
-  // the venv shim to unlock BEFORE the cleanup script runs. lite/full delete
-  // the venv, and even gui-only removes the install tree's GUI artifacts — a
-  // live backend grandchild (gateway / pty / REPL) holding a mandatory file
-  // lock would make the script's rmdir half-fail (#37532 for the update path).
-  // Reuses the incident-hardened update teardown; no-op on macOS/Linux.
-  try {
-    await releaseBackendLock(ACTIVE_HERMES_ROOT, 'uninstall')
-  } catch (error) {
-    rememberLog(`[uninstall] backend teardown errored (continuing): ${error.message}`)
-  }
 
   const scriptArgs = {
     desktopPid: process.pid,
@@ -19028,17 +17509,10 @@ async function runDesktopUninstall(mode: string): Promise<DesktopUninstallResult
   let runnerArgs
 
   try {
-    if (IS_WINDOWS) {
-      scriptPath = path.join(app.getPath('temp'), `hermes-uninstall-${Date.now()}.cmd`)
-      fs.writeFileSync(scriptPath, buildWindowsCleanupScript(scriptArgs))
-      runner = process.env.ComSpec || 'cmd.exe'
-      runnerArgs = ['/c', scriptPath]
-    } else {
-      scriptPath = path.join(app.getPath('temp'), `hermes-uninstall-${Date.now()}.sh`)
-      fs.writeFileSync(scriptPath, buildPosixCleanupScript(scriptArgs), { mode: 0o755 })
-      runner = '/bin/bash'
-      runnerArgs = [scriptPath]
-    }
+    scriptPath = path.join(app.getPath('temp'), `hermes-uninstall-${Date.now()}.sh`)
+    fs.writeFileSync(scriptPath, buildPosixCleanupScript(scriptArgs), { mode: 0o755 })
+    runner = '/bin/bash'
+    runnerArgs = [scriptPath]
   } catch (error) {
     return { ok: false, error: 'script-write-failed', message: error.message }
   }
@@ -19046,8 +17520,7 @@ async function runDesktopUninstall(mode: string): Promise<DesktopUninstallResult
   try {
     const child = spawn(runner, runnerArgs, {
       detached: true,
-      stdio: 'ignore',
-      windowsHide: true
+      stdio: 'ignore'
     })
 
     child.unref()
@@ -19074,8 +17547,7 @@ registerDesktopUninstallIpc({
   fallbackSummary: fallbackUninstallSummary,
   probeSummary: probeUninstallSummary,
   runUninstall: runDesktopUninstall,
-  removableAppPath: () => resolveRemovableAppPath(process.execPath, process.platform, process.env),
-  openAppsSettings: () => shell.openExternal('ms-settings:appsfeatures')
+  removableAppPath: () => resolveRemovableAppPath(process.execPath, process.platform, process.env)
 })
 
 // Download a VS Code Marketplace extension and return the raw color-theme JSON
@@ -19144,18 +17616,6 @@ function handleDeepLink(url) {
     params[k] = v
   })
   const payload = { kind, name, params }
-
-  // Route the Windows Copilot hardware key (registered by the MSIX
-  // copilotkeyprovider fragment). quick-entry is the eventual summon; for
-  // now it falls through to the renderer's deep-link listener. stop and
-  // unknown copilot-key paths are activation noise and must not reach the
-  // renderer (a tap fires start+stop nearly together; acting on stop would
-  // undo the summon).
-  if (kind === 'copilot-key' && name !== 'start') {
-    rememberLog(`[deeplink] ignoring copilot-key path: ${name}`)
-
-    return
-  }
 
   // hermes://close-preview — the out-of-band exit hatch for a preview pane
   // that fullscreened itself and now owns all input (#97213). Handled here
@@ -19293,7 +17753,7 @@ if (!isPrimaryInstance) {
       handleDeepLink(url)
     }
 
-    // #130810: a second Start-menu / shortcut / Hermes.exe launch must never
+    // #130810: a second launcher / shortcut launch must never
     // silently exit. Log it so a future silent exit stays diagnosable, then
     // restore a live primary with activation (restore + show + focus), or
     // re-create it when it was destroyed.
@@ -19316,17 +17776,6 @@ app.on('open-url', (event, url) => {
 })
 
 app.whenReady().then(() => {
-  // Post-update relaunch detection (App Installer arm): when the previous
-  // version wrote the one-shot pending-relaunch marker before quitting into
-  // an OS package swap, consume it here — the renderer toasts "Hermes
-  // updated to vX.Y.Z" once its bridge is up. Same-version markers (update
-  // never landed) are deleted silently.
-  const relaunchInfo: ConsumedRelaunch = consumePendingRelaunch(app, app.getVersion())
-
-  if (relaunchInfo.wasUpdateRelaunch) {
-    rememberLog(`[updates] post-update relaunch detected (from ${relaunchInfo.fromVersion})`)
-  }
-
   // Warm the login-shell PATH resolution immediately so it usually completes
   // before the backend start path awaits the same single-flight promise.
   void ensureLoginShellPath()
@@ -19359,8 +17808,7 @@ app.whenReady().then(() => {
   // connection resolution.
   migrateLegacyEncryptedSecretsOnce()
 
-  // Expose the renderer's accessibility tree to the OS (#118271, Windows
-  // twin #92607): dictation tools that insert text through the accessibility
+  // Expose the renderer's accessibility tree to the OS (#118271): dictation tools that insert text through the accessibility
   // APIs don't register as screen readers, so Chromium never builds the tree
   // and the composer stays invisible to them. Must run after `ready` (the
   // API's requirement). Opt out with desktop.renderer_accessibility: false
@@ -19381,7 +17829,6 @@ app.whenReady().then(() => {
   installPreviewGuestEscapeHatch()
   installPreviewGuestPreload()
 
-  ensureWslWindowsFonts()
   configureSpellChecker()
   registerPowerResumeListeners()
   keepAwakeMode = readPersistedKeepAwakeMode()
@@ -19393,8 +17840,6 @@ app.whenReady().then(() => {
   // startHermes() finishes resolving the configured backend.
   const primaryProfile = primaryProfileKey()
 
-  setActiveGatewayProfile(primaryProfile)
-  setWslBridgeProfileState(primaryProfile, !primaryBackendIsRemote())
   // Quick Entry's global chord — registered on ready so a cold launch restores
   // it without the renderer visiting Settings. A failed registration is logged
   // here and surfaced in Settings via the IPC state (never silent).
@@ -19466,7 +17911,7 @@ app.whenReady().then(() => {
 
 // Seed Chromium's spellchecker with the system locale (falling back to en-US).
 // On macOS Electron uses the native spellchecker which ignores this list, but
-// on Windows/Linux Chromium downloads Hunspell dictionaries on demand and
+// on Linux Chromium downloads Hunspell dictionaries on demand and
 // won't enable any without an explicit language.
 function configureSpellChecker() {
   try {
@@ -19583,7 +18028,7 @@ function heldQuitForActiveWork(event: Electron.Event): boolean {
 }
 
 // Intercept the close of the LAST chat window while the window and its
-// active-work report are still alive. On Windows/Linux the primary quit
+// active-work report are still alive. On Linux the primary quit
 // gesture is the title-bar close button: closing the final window destroys
 // its webContents (clearing the active-work map) BEFORE window-all-closed
 // reactively calls app.quit() — by the time before-quit runs, heldQuitForActiveWork
@@ -19656,8 +18101,7 @@ app.on('before-quit', event => {
   // deadline: join it first (BEFORE sealing the bootstrap coordinator, whose
   // shutdown would refuse the restore dials), then re-enter before-quit for
   // normal teardown. A crash still fails closed on next launch via the remote
-  // install-marker preflight in both POSIX and Windows lifecycle
-  // implementations.
+  // install-marker preflight.
   if (
     !managedUpdateQuitWaitDone &&
     (managedUpdateQuitWait || managedConnectionUpdates.size > 0 || managedConnectionRecoveries.size > 0)
@@ -19709,7 +18153,7 @@ app.on('before-quit', event => {
   // FATAL GPU aborts skip before-quit, leaving the `booting` marker in place.
   // Keyed on sticky (not active): a manual --no-sandbox run still records a
   // clean quit, while an engaged fallback keeps its sticky marker.
-  if ((IS_WINDOWS || process.platform === 'linux') && !windowsSandboxFallbackSticky) {
+  if (process.platform === 'linux' && !sandboxFallbackSticky) {
     try {
       writeSandboxMarker(app.getPath('userData'), markerAfterSuccessfulBoot({ fallbackActive: false }))
     } catch {

@@ -17,7 +17,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 from utils import is_truthy_value
 from tools.transcription_common import (
     COMMON_LOCAL_BIN_DIRS, LOCAL_NATIVE_AUDIO_FORMATS, MAX_FILE_SIZE, SUPPORTED_FORMATS,
@@ -46,7 +45,7 @@ def _run_quiet(command: list, *, timeout: float, env: Optional[dict] = None) -> 
     return subprocess.run(
         command, check=True, capture_output=True, text=True,
         encoding="utf-8", errors="replace", timeout=timeout,
-        stdin=subprocess.DEVNULL, env=env, creationflags=windows_hide_flags())
+        stdin=subprocess.DEVNULL, env=env)
 
 
 # Shared encode profile for every STT-bound m4a (transcode and silence-trim):

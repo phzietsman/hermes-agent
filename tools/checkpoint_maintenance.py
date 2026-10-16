@@ -44,7 +44,7 @@ def _workdir_is_observably_gone(
     ``Path.exists()`` returns False for a deleted directory AND for one whose
     storage simply is not attached right now — an unplugged external drive, a
     network share behind a downed VPN, a bind-mount absent from this
-    container, an offline Windows mapped drive. Orphan pruning deletes the
+    container. Orphan pruning deletes the
     project's entire checkpoint history, so treating that ambiguity as
     "deleted" throws away the user's restore points over a transient mount
     state, unattended, at startup.

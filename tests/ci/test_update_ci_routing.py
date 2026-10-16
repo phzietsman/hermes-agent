@@ -8,9 +8,8 @@ Two failure modes this file pins (independent review R15):
   update entry points' real imports are read from the source (Python AST, ESM
   ``import``/``step()`` literals) and every module they reach must start the
   suite that runs it, or be one of the classifier's declared shared hubs.
-* **Dead dispatch.** A lane the classifier sets can still never reach its job:
-  ``desktop_updater=true`` with ``python=false`` used to skip ``tests-os``
-  entirely. Here the REAL classifier's output is replayed through the REAL
+* **Dead dispatch.** A lane the classifier sets can still never reach its job
+  when a parent ``if:`` keys on another lane alone. Here the REAL classifier's output is replayed through the REAL
   workflow files (composite action -> ``ci.yaml`` detect outputs -> job
   ``if:``/``with:`` -> the called workflow's job ``if:`` -> the rendered step),
   so a gate that does not consume a lane fails here, not on a PR.
@@ -32,7 +31,6 @@ from typing import Any
 
 import pytest
 
-from hermes_platform.host.facts import native_arch
 from tests.ci import _gha_expr as gha
 from tests.ci import workflow_steps
 
@@ -44,25 +42,6 @@ cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
 
 
-# -- native Windows lane -------------------------------------------------------------------
-# tests.yml runs on Ubuntu; tests-os[windows] imports only list_os_marked_tests.py's files and
-# keeps ``-m platforms`` tests its host admits. Python 3 there is a venv holding python.exe alone,
-# bash is Git Bash: the replay, its dispatch chain and the ineffective-step controls carry this
-# marker so a green Windows job has run them on that layout (review F81-R). Not "any": macOS
-# bash 3.2 is not a host the replay has been run on.
-_NATIVE_WINDOWS_PLATFORMS = pytest.mark.platforms("linux", "windows")
-# Not Windows on arm64: Git for Windows ships an x86-64 MSYS bash.exe there, run under emulation,
-# and with the os-tests lane's 16 workers it dies with 0xC000026F (STATUS_WX86_INTERNAL_ERROR) or
-# 0xC0000005 before running a line, on replays of unchanged workflows: one copy of this file red
-# in ~3 when 16 run at once, against 0/64 on x64 Windows under the same load. The emulator's
-# crash is not the replay's to assert on; the x64 Windows row runs the same layout natively.
-_EMULATED_BASH = pytest.mark.skipif(
-    sys.platform == "win32" and native_arch() == "arm64",
-    reason="Git Bash is x86-64 under emulation on Windows arm64 and crashes under parallel load")
-
-
-def _NATIVE_WINDOWS_TOO(test):
-    return _NATIVE_WINDOWS_PLATFORMS(_EMULATED_BASH(test))
 _lister_spec = importlib.util.spec_from_file_location("list_os_marked", _REPO / "scripts/ci/list_os_marked_tests.py")
 assert _lister_spec is not None and _lister_spec.loader is not None
 lister = importlib.util.module_from_spec(_lister_spec)
@@ -185,7 +164,7 @@ def _reached(run: dict, *path: str) -> dict | None:
     return node
 
 
-def _selected_test_files(node: dict, name: str, *, windows_only: bool = False) -> set[str]:
+def _selected_test_files(node: dict, name: str) -> set[str]:
     body, ctx = node["body"], node["ctx"]
     steps = [s for s in body["steps"] if s.get("name", "").startswith(name)]
     assert len(steps) == 1, f"missing/ambiguous required step: {name}"
@@ -194,14 +173,12 @@ def _selected_test_files(node: dict, name: str, *, windows_only: bool = False) -
         cells = [{"shard": s} for s in gha.render(matrix["shard"], ctx)]
     else:
         cells = matrix.get("include", [{}])
-    if windows_only:
-        cells = [cell for cell in cells if cell.get("marker") == "windows"]
     assert cells, f"{name}: empty matrix"
     selected = set()
     for cell in cells:
         runner = gha.render(body["runs-on"], {**ctx, "matrix": cell})
         context = {**ctx, "matrix": cell, "runner": {
-            "os": "Windows" if "windows" in runner else "Linux",
+            "os": "macOS" if "macos" in runner else "Linux",
             "arch": "ARM64" if "arm" in runner else "X64",
         }}
         workflow_steps.required(body, context)
@@ -209,34 +186,18 @@ def _selected_test_files(node: dict, name: str, *, windows_only: bool = False) -
     return selected
 
 
-def _windows_desktop_updater_tests_selected(run: dict) -> bool:
-    """tests-os os-tests runs, and its Windows step keeps the desktop-update hand-off files."""
-    os_tests = _reached(run, "tests-os", "os-tests")
-    if os_tests is None:
-        return False
-    selected = _selected_test_files(os_tests, "Run ${{ matrix.marker }} tests", windows_only=True)
-    expected = {p.relative_to(_REPO).as_posix() for p in
-                (_REPO / "tests/scripts/desktop_update").glob("test_desktop_update_windows_*.py")}
-    assert expected, "no Windows hand-off consumers exist"
-    return expected <= selected
-
-
 # Each real consumer of a lane, as a path of job names from ci.yaml down.
 _CONSUMERS: dict[str, tuple[tuple[str, ...], ...]] = {
     "e2e_upgrade": (
         ("tests", "e2e-upgrade-plan"),
         ("tests", "e2e-upgrade"),
-        ("tests-os", "install-update-e2e", "install-update"),
     ),
-    "e2e": (("tests", "e2e"), ("tests-os", "e2e-windows")),
+    "e2e": (("tests", "e2e"),),
     "e2e_desktop_update": (("e2e-desktop-update", "update"),),
 }
 
 
 def _consumers_reached(run: dict, lane: str) -> dict[str, bool]:
-    if lane == "desktop_updater":
-        return {"tests-os/os-tests[windows] keeps test_desktop_update_windows_*":
-                _windows_desktop_updater_tests_selected(run)}
     reached = {}
     for path in _CONSUMERS[lane]:
         node = _reached(run, *path)
@@ -248,7 +209,7 @@ def _consumers_reached(run: dict, lane: str) -> dict[str, bool]:
     return reached
 
 
-_GATED = ("python", "desktop_updater", "e2e", "e2e_upgrade", "e2e_desktop_update")
+_GATED = ("python", "e2e", "e2e_upgrade", "e2e_desktop_update")
 
 
 def test_replay_evaluator_follows_actions_semantics():
@@ -266,16 +227,16 @@ def test_replay_evaluator_follows_actions_semantics():
 @pytest.mark.parametrize("combo", list(itertools.product((False, True), repeat=len(_GATED))),
                          ids=lambda c: "-".join(n for n, on in zip(_GATED, c) if on) or "none")
 def test_every_set_lane_reaches_its_consumer_whatever_the_other_lanes_say(combo):
-    """The R15 hole was a parent ``if:`` keyed on ``python`` alone: a TypeScript-only
-    change to the hand-off's marker reader set ``desktop_updater`` and nothing ran it."""
+    """The R15 hole was a parent ``if:`` keyed on ``python`` alone: a lane set by a
+    TypeScript-only change reached no job."""
     lanes = {k: False for k in cc.classify(["README.md"])}
     lanes.update(zip(_GATED, combo))
     run = _ci_run(lanes)
-    for lane in ("desktop_updater", "e2e", "e2e_upgrade", "e2e_desktop_update"):
+    for lane in ("e2e", "e2e_upgrade", "e2e_desktop_update"):
         reached = _consumers_reached(run, lane)
         if lanes[lane]:
             assert all(reached.values()), f"{lane}=true but not dispatched: {reached}"
-        elif lane != "desktop_updater":
+        else:
             assert not any(reached.values()), f"{lane}=false but ran anyway: {reached}"
 
 
@@ -289,12 +250,11 @@ _R15_CASES = {
     "hermes_cli/memory_provider_migration.py": ("e2e_upgrade", "e2e_desktop_update"),
     "hermes_cli/source_build.py": ("e2e_upgrade", "e2e_desktop_update"),
     "hermes_cli/source_completion.py": ("e2e_upgrade", "e2e_desktop_update"),
-    "apps/desktop/electron/update-marker.ts": ("desktop_updater", "e2e_desktop_update"),
-    "apps/desktop/electron/handoff-result.ts": ("desktop_updater", "e2e_desktop_update"),
+    "apps/desktop/electron/update-marker.ts": ("e2e_desktop_update",),
+    "apps/desktop/electron/handoff-result.ts": ("e2e_desktop_update",),
 }
 
 
-@_NATIVE_WINDOWS_TOO
 @pytest.mark.parametrize("path,lanes", list(_R15_CASES.items()))
 def test_update_owner_change_dispatches_its_suites_end_to_end(path, lanes):
     assert (_REPO / path).is_file(), f"{path} moved: update this table"
@@ -309,13 +269,10 @@ def test_update_owner_change_dispatches_its_suites_end_to_end(path, lanes):
 # Review R6 m11: update-path files whose suites the classifier left off. Some land in a sibling
 # PR of the update stack (update-marker-gate.ts), so the table routes paths, not files on disk.
 _R6_CASES = {
-    # The Desktop gate's marker reader: the hand-off script's contract (desktop_updater) and the
-    # Desktop update E2E that drives the gate.
-    "apps/desktop/electron/update-marker-gate.ts": ("desktop_updater", "e2e_desktop_update"),
-    # Stops the backend before a remote update: typecheck/vitest and the hand-off script tests.
-    "apps/desktop/electron/remote-lifecycle.ts": ("frontend", "desktop_updater"),
-    # The Tauri updater's marker claim: cargo, the only CI that builds it (review CI3).
-    "apps/bootstrap-installer/src-tauri/src/marker.rs": ("rust",),
+    # The Desktop gate's marker reader: the Desktop update E2E drives the gate.
+    "apps/desktop/electron/update-marker-gate.ts": ("e2e_desktop_update",),
+    # Stops the backend before a remote update: typecheck/vitest.
+    "apps/desktop/electron/remote-lifecycle.ts": ("frontend",),
     # The launchers reach the launch repair: the Desktop update relaunches through them too.
     "hermes_cli/_launchers.py": ("e2e_upgrade", "e2e_desktop_update"),
 }
@@ -330,36 +287,21 @@ def test_update_path_change_selects_every_suite_that_exercises_it(path, lanes):
         if lane.startswith("e2e"):
             reached = _consumers_reached(run, lane)
             assert all(reached.values()), f"{path}: {lane}=true never reaches {reached}"
-        if lane == "desktop_updater":
-            assert _windows_desktop_updater_tests_selected(run), f"{path}: desktop_updater never reaches its tests"
 
 
 # Review CI2/CI3: update-path files the classifier sent to the wrong suites.
 _CI3_CASES = {
     # /api/health `commit`: host-backend-attach compares it before attaching after an update.
     "hermes_cli/web_routers/status.py": ("python", "e2e_desktop_update"),
-    # The SSH remote's marker judge/gate: typecheck/vitest and the marker contract's script tests.
-    "apps/desktop/electron/remote-update-marker-programs.ts": ("frontend", "desktop_updater"),
-    "apps/desktop/electron/remote-update-marker-programs.test.ts": ("frontend", "desktop_updater"),
+    # The SSH remote's marker judge/gate: typecheck/vitest.
+    "apps/desktop/electron/remote-update-marker-programs.ts": ("frontend",),
+    "apps/desktop/electron/remote-update-marker-programs.test.ts": ("frontend",),
 }
 
 
 @pytest.mark.parametrize("path,lanes", list(_CI3_CASES.items()))
 def test_update_path_change_reaches_the_suites_that_consume_it(path, lanes):
     test_update_path_change_selects_every_suite_that_exercises_it(path, lanes)
-
-
-_TAURI_UPDATER = tuple(f"apps/bootstrap-installer/src-tauri/src/{name}.rs" for name in ("marker", "update", "paths"))
-
-
-@pytest.mark.parametrize("path", _TAURI_UPDATER)
-def test_tauri_updater_routes_as_one_unit_to_the_lane_that_builds_it(path):
-    """No slow lane builds the bootstrap installer: starting one for its updater runs nothing of it."""
-    assert (_REPO / path).is_file(), f"{path} moved: update this table"
-    classified = _real_classifier([path])
-    assert classified["rust"], f"{path}: cargo test never runs"
-    started = [lane for lane in ("e2e", "e2e_upgrade", "e2e_desktop_update", "e2e_desktop_core") if classified[lane]]
-    assert not started, f"{path}: starts {started}, which never build the Tauri installer"
 
 
 def test_gateway_status_routing_names_the_stamp_not_its_prefix_siblings():
@@ -383,11 +325,10 @@ def test_every_detect_output_a_lane_sets_is_consumed_by_some_job():
 # The job (path from ci.yaml down) that runs each lane's consumers of a shared fixture.
 _FIXTURE_LANE_JOBS: dict[str, tuple[str, ...]] = {
     "python": ("tests", "test"),  # pytest on Linux (marker.sh corpus included)
-    "rust": ("rust-tests", "bootstrap-installer"),  # cargo test of the Tauri crate
     "frontend": ("js-tests", "check"),  # apps/desktop `check` -> vitest --project electron
 }
 _CORPUS = "tests/fixtures/update_marker_corpus.json"
-_TEST_FILE = re.compile(r"(^tests/(?!ci/).*\.py$)|(_tests?\.rs$)|(\.test\.[cm]?[jt]sx?$)")
+_TEST_FILE = re.compile(r"(^tests/(?!ci/).*\.py$)|(\.test\.[cm]?[jt]sx?$)")
 
 
 def _fixture_lanes_reached(fixture: str) -> dict[str, bool]:
@@ -395,15 +336,13 @@ def _fixture_lanes_reached(fixture: str) -> dict[str, bool]:
     run = _ci_run(classified)
     reached = {lane: classified[lane] and _reached(run, *job) is not None
                for lane, job in _FIXTURE_LANE_JOBS.items()}
-    reached["desktop_updater"] = classified["desktop_updater"] and _windows_desktop_updater_tests_selected(run)
     return reached
 
 
 def test_marker_corpus_change_runs_every_language_that_reads_it():
-    """The corpus is A7 rule 7's single source of truth for four readers. Classified by
-    path alone it selected ``python`` only: cargo (marker_tests.rs), vitest
-    (update-marker-corpus.test.ts) and the PowerShell corpus test (desktop_updater on
-    the Windows lane) never ran on the PR that edited their expected answers."""
+    """The corpus is A7 rule 7's single source of truth for several readers. Classified by
+    path alone it selected ``python`` only: vitest (update-marker-corpus.test.ts) never
+    ran on the PR that edited its expected answers."""
     reached = _fixture_lanes_reached(_CORPUS)
     assert all(reached.values()), f"{_CORPUS}: a corpus consumer's lane never runs: {reached}"
 
@@ -460,27 +399,12 @@ def test_sibling_allowance_expires_once_its_consumer_is_in_the_tree(monkeypatch)
         test_every_test_that_reads_a_shared_fixture_is_routed_by_it()
 
 
-def test_native_windows_lane_selects_the_replay_and_its_controls():
-    selected = {p.resolve() for p in lister.find_marked_files("windows", _REPO / "tests")}
-    assert Path(__file__).resolve() in selected, "tests-os[windows] never imports this file"
-    admitted = {name for name, fn in globals().items() if name.startswith("test_") and any(
-        m.name == "platforms" and any("windows" in lister.spec_hosts(str(a).lower()) for a in m.args)
-        for m in getattr(fn, "pytestmark", []))}
-    native = {"test_replay_starts_the_python_and_tools_hosted_steps_call",
-              "test_update_owner_change_dispatches_its_suites_end_to_end",
-              "test_replay_rejects_ineffective_required_step", "test_replay_uses_executed_gate_output"}
-    assert native <= admitted, f"skipped on native Windows: {sorted(native - admitted)}"
-
-
 # -- replay guard sensitivity: mutate data, not the replay implementation ------------------
 
 _REQUIRED_STEP_CASES = (
     ("e2e_desktop_update", ".github/workflows/e2e-desktop-update.yml", "update", "Run the update suite under xvfb"),
     ("e2e_upgrade", ".github/workflows/tests.yml", "e2e-upgrade", "Run upgrade e2e tests"),
-    ("e2e_upgrade", ".github/workflows/windows-install-update-e2e.yml", "install-update", "Run Windows install + update E2E"),
-    ("desktop_updater", ".github/workflows/tests-os.yml", "os-tests", "Run ${{ matrix.marker }} tests"),
     ("e2e", ".github/workflows/tests.yml", "e2e", "Run e2e tests"),
-    ("e2e", ".github/workflows/tests-os.yml", "e2e-windows", "Run Windows E2E suite"),
 )
 
 
@@ -493,7 +417,6 @@ def _mutated_yaml(monkeypatch, rel):
     return changed
 
 
-@_NATIVE_WINDOWS_TOO
 @pytest.mark.parametrize("lane,rel,job,name", _REQUIRED_STEP_CASES)
 @pytest.mark.parametrize("mutation", ["disabled", "advisory", "no-command", "empty-selection"])
 def test_replay_rejects_ineffective_required_step(monkeypatch, lane, rel, job, name, mutation):
@@ -508,8 +431,6 @@ def test_replay_rejects_ineffective_required_step(monkeypatch, lane, rel, job, n
     elif mutation == "no-command":
         # Keep every old substring/regex check satisfied, but execute no tests.
         step["run"] = "if false; then\n" + step["run"] + "\nfi\n"
-    elif job == "os-tests":
-        step["run"] = step["run"].replace('"${{ matrix.marker }}"', '"macos"')
     elif job == "update":
         for cell in workflow["jobs"][job]["strategy"]["matrix"]["include"]:
             cell["specs"] = "e2e/update/absent.spec.ts"
@@ -532,17 +453,16 @@ def test_selection_receipt_does_not_require_the_native_jobs_venv(tmp_path):
     assert workflow_steps.selected_files(step, ctx, tmp_path) == {rel}
 
 
-@_NATIVE_WINDOWS_TOO
 def test_replay_uses_executed_gate_output(monkeypatch):
     path = "apps/desktop/electron/handoff-result.ts"
-    assert all(_consumers_reached(_ci_run(_real_classifier([path])), "desktop_updater").values())
+    assert all(_consumers_reached(_ci_run(_real_classifier([path])), "e2e_desktop_update").values())
     workflow = _mutated_yaml(monkeypatch, ".github/workflows/ci.yaml")
     gate = next(s for s in workflow["jobs"]["detect"]["steps"] if s.get("id") == "gate-lanes")
     needle = "    for lane, value in values.items():"
     assert needle in gate["run"]
-    gate["run"] = gate["run"].replace(needle, "    values['desktop_updater'] = 'false'\n" + needle)
+    gate["run"] = gate["run"].replace(needle, "    values['e2e_desktop_update'] = 'false'\n" + needle)
     with pytest.raises(AssertionError):
-        test_update_owner_change_dispatches_its_suites_end_to_end(path, ("desktop_updater",))
+        test_update_owner_change_dispatches_its_suites_end_to_end(path, ("e2e_desktop_update",))
 
 
 _PROBE_STEP = {"run": r'''python3 -c 'import sys; print("py3=" + sys.executable)' >> "$GITHUB_OUTPUT"
@@ -551,19 +471,17 @@ echo "tools=$(printf 'b\na\n' | sort | tr -d '\r' | paste -sd , -)$(find . -maxd
 '''}
 
 
-@_NATIVE_WINDOWS_TOO
 def test_replay_starts_the_python_and_tools_hosted_steps_call():
-    """Every host (native Windows included) runs python3/python and the coreutils selection steps use."""
+    """Every host runs python3/python and the coreutils selection steps use."""
     out = workflow_steps.outputs(_PROBE_STEP, {})
     assert (out["py"], out["tools"]) == (sys.prefix, "a,b.")
     assert subprocess.run([out["py3"], "-c", "import sys; print(sys.prefix)"], capture_output=True,
                           text=True, check=True, timeout=60).stdout.strip() == sys.prefix
 
 
-@pytest.mark.platforms("posix")
 def test_replay_python3_is_the_replay_interpreter_when_its_dir_has_only_python(tmp_path):
-    """A Windows venv dir holds only ``python``: python3 must not fall through to a host interpreter."""
-    interpreter = tmp_path / "Scripts" / "python"
+    """An interpreter dir holding only ``python``: python3 must not fall through to a host interpreter."""
+    interpreter = tmp_path / "bin" / "python"
     interpreter.parent.mkdir()
     interpreter.symlink_to(os.path.realpath(sys.executable))
     probe = ("import json, sys; from tests.ci import workflow_steps; "
@@ -732,7 +650,7 @@ def test_shared_hubs_are_real_hubs_still_on_the_update_path():
 
 # -- ownership: the JavaScript compilers an update runs -------------------------------------
 
-_SCRIPT_LITERAL = re.compile(r"""["']((?:scripts/build|apps/desktop/scripts)/[\w./-]+\.(?:mjs|js|py|ps1))["']""")
+_SCRIPT_LITERAL = re.compile(r"""["']((?:scripts/build|apps/desktop/scripts)/[\w./-]+\.(?:mjs|js|py))["']""")
 _ESM_IMPORT = re.compile(r"""(?:from|import)\s*\(?\s*['"](\.{1,2}/[^'"]+)['"]""")
 _STEP = re.compile(r"""step\(\s*['"]([\w./-]+\.mjs)['"]""")
 
@@ -791,9 +709,6 @@ def test_desktop_build_scripts_start_the_desktop_update_suite():
 _STRICT_STEPS = (
     (("tests", "e2e"), ".github/workflows/tests.yml", "e2e", "Run e2e tests"),
     (("tests", "e2e-upgrade"), ".github/workflows/tests.yml", "e2e-upgrade", "Run upgrade e2e tests"),
-    (("tests-os", "e2e-windows"), ".github/workflows/tests-os.yml", "e2e-windows", "Run Windows E2E suite"),
-    (("tests-os", "install-update-e2e", "install-update"), ".github/workflows/windows-install-update-e2e.yml",
-     "install-update", "Run Windows install + update E2E"),
 )
 
 
@@ -819,15 +734,6 @@ def test_pull_requests_never_run_strict():
     run = _ci_run(cc.classify([]))
     for path, rel, job, step in _STRICT_STEPS:
         assert _strict_env(run, path, rel, job, step) == "", "/".join(path)
-
-
-def test_windows_install_update_dispatch_alone_sets_strict():
-    jobs = _run_workflow(".github/workflows/windows-install-update-e2e.yml",
-                         inputs={"strict_acceptance": "upd-txn"})
-    assert _strict_env({"w": {"jobs": jobs}}, ("w", "install-update"),
-                       ".github/workflows/windows-install-update-e2e.yml", "install-update",
-                       "Run Windows install + update E2E") == "upd-txn"
-    assert "workflow_dispatch" in _on(_yaml(".github/workflows/windows-install-update-e2e.yml"))
 
 
 def test_run_tests_forwards_the_strict_switch():

@@ -73,7 +73,7 @@ function isolatedEnv(home: string, hermesHome: string): Record<string, string> {
 function pythonBinary(): string {
   const python =
     process.env.HERMES_DESKTOP_PYTHON ??
-    path.join(REPO_ROOT, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python')
+    path.join(REPO_ROOT, '.venv', 'bin/python')
 
   if (!fs.existsSync(python)) {
     throw new Error('Set HERMES_DESKTOP_PYTHON to an isolated dependency-complete interpreter')

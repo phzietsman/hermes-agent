@@ -563,22 +563,6 @@ describe('liveSessionProjectId', () => {
     ).toBe('p_www')
   })
 
-  it('matches a mixed-case/separator Windows cwd to its explicit project in the live overlay', () => {
-    // The bug: a fresh Windows session drops into the overlay before the next
-    // backend refresh; case-sensitive matching missed its project until then.
-    const id = liveSessionProjectId(makeCwdSession('c:/work/notes/SUB'), [makeProject('p_notes', ['C:\\Work\\Notes'])])
-
-    expect(id).toBe('p_notes')
-  })
-
-  it('matches a root-relative WSL cwd (single backslash) case-insensitively', () => {
-    const id = liveSessionProjectId(makeCwdSession('//wsl.localhost/Ubuntu/home/alice/PROJ'), [
-      makeProject('p_proj', ['\\wsl.localhost\\Ubuntu\\home\\alice\\proj'])
-    ])
-
-    expect(id).toBe('p_proj')
-  })
-
   it('keeps POSIX cwd matching case-sensitive (no false project match)', () => {
     // Distinct case on POSIX is a distinct path → falls back to its own auto id.
     expect(liveSessionProjectId(makeCwdSession('/work/notes'), [makeProject('p_notes', ['/Work/Notes'])])).toBe(
@@ -594,14 +578,6 @@ describe('liveSessionProjectId', () => {
 
     expect(nfd).not.toBe(nfc) // premise: distinct byte strings
     expect(liveSessionProjectId(makeCwdSession(nfd), [makeProject('p_bistand', [nfc])])).toBe('p_bistand')
-  })
-
-  it('matches a Windows cwd differing in both case and normalization form (#65014)', () => {
-    const id = liveSessionProjectId(makeCwdSession('d:/projects/sv/bist\u00e5nd'.normalize('NFD')), [
-      makeProject('p_sv', ['D:\\Projects\\SV\\Bist\u00e5nd'.normalize('NFC')])
-    ])
-
-    expect(id).toBe('p_sv')
   })
 })
 

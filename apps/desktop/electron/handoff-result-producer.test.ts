@@ -22,7 +22,7 @@ async function stop(child: ChildProcess) {
   await exited
 }
 
-test.skipIf(process.platform === 'win32').each(['legacy', 'protocol-2'])(
+test.each(['legacy', 'protocol-2'])(
   '%s POSIX producer receipt survives heartbeat and a newly opened gate',
   async mode => {
     const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'handoff-correlation-'))

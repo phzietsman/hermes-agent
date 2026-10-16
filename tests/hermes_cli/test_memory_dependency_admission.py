@@ -102,7 +102,7 @@ def test_setup_requires_dependencies_and_keeps_the_existing_union(tmp_path, monk
     setup()
     assert yaml.safe_load(config.read_text(encoding='utf-8'))['memory']['provider'] == 'candidate'
     selected = selected_venv(core)
-    python = selected / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    python = selected / 'bin/python'
     result = subprocess.run([str(python), '-I', '-c', 'import existing_dep, provider_dep, other_dep; print("both")'],
                             env=env, cwd=tmp_path, capture_output=True, text=True, check=True, timeout=30)
     assert result.stdout.strip() == 'both'
@@ -119,7 +119,7 @@ def test_setup_requires_dependencies_and_keeps_the_existing_union(tmp_path, monk
     monkeypatch.setattr(memory_setup, '_get_available_providers', lambda: [('modern', 'local', SimpleNamespace())])
     memory_setup.cmd_setup_provider('modern')
     selected = selected_venv(core)
-    python = selected / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    python = selected / 'bin/python'
     result = subprocess.run([str(python), '-I', '-c', 'import existing_dep, provider_dep, modern_dep, other_dep; print("all")'],
                             env=env, cwd=tmp_path, capture_output=True, text=True, check=True, timeout=30)
     assert result.stdout.strip() == 'all'

@@ -61,7 +61,7 @@ function ChipList({ label, items, mono = true }: { label: string; items?: string
 }
 
 function platformLabel(p: string): string {
-  return p === "macos" ? "macOS" : p === "linux" ? "Linux" : p === "windows" ? "Windows" : p;
+  return p === "macos" ? "macOS" : p === "linux" ? "Linux" : p;
 }
 
 export default function PluginPage({ data }: { data: PluginPageData }) {
@@ -255,7 +255,7 @@ export default function PluginPage({ data }: { data: PluginPageData }) {
                   <code>hermes {plugin.requiresHermes || "(any version)"}</code>
                 </Fact>
                 <Fact label="Platforms">
-                  {plugin.platforms?.length ? plugin.platforms.map(platformLabel).join(", ") : "Linux, macOS, Windows"}
+                  {plugin.platforms?.length ? plugin.platforms.map(platformLabel).join(", ") : "Linux, macOS"}
                 </Fact>
                 <Fact label="Category">
                   <Link to="/plugins">{category.label}</Link>

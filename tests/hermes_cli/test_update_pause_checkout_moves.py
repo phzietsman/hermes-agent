@@ -110,7 +110,7 @@ def test_a_torn_first_branch_switch_stays_held_after_a_ref_only_fetch(repo, monk
         with repair_blocked(repo, monkeypatch), pytest.raises(SystemExit):
             update_cmd._prepare_checkout_for_update(
                 ["git"], "main", "feature", is_fork=False, assume_yes=True, gateway_mode=False,
-                gw_input_fn=None, switch_branch=False, _windows_gateway_resume=token)
+                gw_input_fn=None, switch_branch=False, _gateway_pause=token)
     finally:
         (repo / ".git" / "refs" / "heads").chmod(0o755)
     assert git(repo, "rev-parse", "HEAD") == a and (repo / "a.py").read_text() == "A=2\n", "fixture: not torn"
@@ -130,7 +130,7 @@ def test_a_torn_early_upstream_sync_stays_held_after_a_ref_only_fetch(repo, tmp_
     with repair_blocked(repo, monkeypatch):
         update_cmd._prepare_checkout_for_update(
             ["git"], "main", "main", is_fork=True, assume_yes=True, gateway_mode=False,
-            gw_input_fn=None, switch_branch=False, _windows_gateway_resume=token)
+            gw_input_fn=None, switch_branch=False, _gateway_pause=token)
     assert git(repo, "rev-parse", "HEAD") == a and (repo / "a.py").read_text() == "A=2\n", "fixture: not torn"
     git(tmp_path / "upstream.git", "update-ref", "refs/heads/main", a)  # upstream moves on (here: back)
     git(repo, "fetch", "-q", "upstream", "+refs/heads/main:refs/remotes/upstream/main")  # a later real fetch
@@ -156,7 +156,7 @@ def test_a_second_move_is_gated_from_the_head_the_first_one_reached(repo, tmp_pa
     with repair_blocked(repo, monkeypatch) if second_move == "torn" else contextlib.nullcontext():
         update_cmd._pull_updates(
             ["git"], "main", None, prompt_for_restore=False, gw_input_fn=None, discard_local_changes=False,
-            keep_stash=False, sync_upstream=True, assume_yes=True, _windows_gateway_resume=token)
+            keep_stash=False, sync_upstream=True, assume_yes=True, _gateway_pause=token)
     head = git(repo, "rev-parse", "HEAD")
     if second_move == "torn":
         assert head == o and (repo / "a.py").read_text() == "A=2\n", "fixture: not torn"

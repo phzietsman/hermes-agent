@@ -35,7 +35,7 @@ def _needed(root, desktop):
 @pytest.mark.parametrize("stale", ["prebuilds/{platform}-x64/", "prebuilds/{other}-x64/pty.node"])
 def test_current_stamp_does_not_hide_missing_native_binary(packaged, stale):
     root, desktop, pty = packaged
-    other = "linux" if sys.platform == "win32" else "win32"
+    other = "linux" if sys.platform == "darwin" else "darwin"
     path = pty / stale.format(platform=sys.platform, other=other)
     if stale.endswith("/"):
         path.mkdir(parents=True)

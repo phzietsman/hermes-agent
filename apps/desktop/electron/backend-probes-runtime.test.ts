@@ -11,7 +11,7 @@ import { canImportHermesCli } from './backend-probes'
 const REPO: string = path.resolve(import.meta.dirname, '../../..')
 
 const PYTHON: string =
-  process.env.HERMES_PYTHON || process.env.UV_PYTHON || (process.platform === 'win32' ? 'python' : 'python3')
+  process.env.HERMES_PYTHON || process.env.UV_PYTHON || 'python3'
 
 interface RuntimeFixture {
   python: string
@@ -60,7 +60,7 @@ site.mkdir(parents=True)
 (site / 'selected-dependencies.pth').write_text(str(dependencies) + '\\n', encoding='utf-8')
 from pm.lock import Facts
 Facts(runtime_facts_path(root)).record_state('venv', 'fixture', [], environment=selected)
-python = seed / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+python = seed / 'bin/python'
 print(json.dumps({'python': str(python), 'site': str(site), 'dependencies': str(dependencies)}))
 `
 
@@ -70,8 +70,7 @@ print(json.dumps({'python': str(python), 'site': str(site), 'dependencies': str(
         cwd: temp,
         env,
         encoding: 'utf8',
-        timeout: 90_000,
-        windowsHide: true
+        timeout: 90_000
       })
     ) as RuntimeFixture
 
@@ -87,7 +86,7 @@ print(json.dumps({'python': str(python), 'site': str(site), 'dependencies': str(
 
     fs.unlinkSync(path.join(fixture.site, 'selected-dependencies.pth'))
     const foreign: string = path.join(temp, 'foreign-packages')
-    fs.symlinkSync(fixture.dependencies, foreign, process.platform === 'win32' ? 'junction' : 'dir')
+    fs.symlinkSync(fixture.dependencies, foreign, 'dir')
     assert.equal(
       await canImportHermesCli(fixture.python, {
         cwd: REPO,

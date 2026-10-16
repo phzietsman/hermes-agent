@@ -1,8 +1,8 @@
 """Find desktop release workflow jobs by what they do, not by their ids.
 
 Job ids in desktop-bundled-release.yml change whenever the build graph is
-reshaped (one ``build-win32-commit`` job became four per-arch legs). Tests that
-index ``jobs['build-win32-x64-commit']`` break on every such rename while the
+reshaped (one ``build-darwin-commit`` job became per-arch legs). Tests that
+index ``jobs['build-darwin-x64-commit']`` break on every such rename while the
 property they protect still holds. These lookups key each role on a stable
 structural fact: the action a job uses, the receipt it stages, the jobs it
 needs. A lookup that finds no match or more than one fails loudly, so a real
@@ -23,7 +23,7 @@ SMOKE_WORKFLOW = "./.github/workflows/desktop-bundle-smoke.yml"
 BUILD_CACHE_ACTION = "./.github/actions/desktop-build-cache"
 SHA = "a" * 40
 CANARY_TAG = "v0.28.0+canary.20260818T101010Z"
-PLATFORMS = ("darwin", "win32")
+PLATFORMS = ("darwin",)
 ARCHES = ("arm64", "x64")
 NATIVE_TARGETS = tuple(f"{platform}-{arch}" for platform in PLATFORMS for arch in ARCHES)
 # The release branch may write the shared dependency cache; commit and channel
@@ -89,11 +89,6 @@ def _stages(job: dict, receipt: str) -> bool:
                for step in job.get("steps", []))
 
 
-def universal_assembler(jobs: dict) -> str:
-    return _only([name for name, job in jobs.items() if _stages(job, "windows-universal")],
-                 "universal bundle assembly")
-
-
 def termux_builder(jobs: dict) -> str:
     return _only([name for name, job in jobs.items() if _stages(job, "termux")], "termux deb")
 
@@ -101,15 +96,18 @@ def termux_builder(jobs: dict) -> str:
 def updater_publishers(jobs: dict) -> dict[str, str]:
     """platform -> the job that publishes that platform's updater feed.
 
-    It is the job gated on exactly that platform's smokes; channel publication
-    and summaries need every platform's smoke.
+    It is the job gated on exactly that platform's builds and smokes, other than
+    the channel publisher (which renders the channel build table).
     """
-    smokes = smoke_callers(jobs)
+    smokes, gates = smoke_callers(jobs), selection_gates(jobs)
+    channel = channel_publisher(jobs)
     publishers = {}
     for platform in PLATFORMS:
-        own = {smokes[f"{platform}-{arch}"] for arch in ARCHES}
+        targets = [f"{platform}-{arch}" for arch in ARCHES]
+        own = {smokes[target] for target in targets}
+        allowed = own | {gates[target] for target in targets} | {"validate"}
         publishers[platform] = _only(
-            [name for name, job in jobs.items() if set(needs_of(job)) & set(smokes.values()) == own],
+            [name for name, job in jobs.items() if name != channel and own <= set(needs_of(job)) <= allowed],
             f"{platform} updater publisher")
     return publishers
 

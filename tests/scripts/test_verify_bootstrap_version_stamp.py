@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -19,35 +18,11 @@ from pathlib import Path
 import pytest
 
 
-def _git_exe() -> str:
-    """A git CreateProcess can start. conftest blanks SystemRoot/ComSpec and
-    this host's PATH can resolve `git` to the MSIX payload copy under
-    ``C:\\Program Files\\WindowsApps\\...`` — WinError 5 outside its package
-    context. Prefer a conventional install."""
-    candidates = [hit for hit in (shutil.which("git"),) if hit]
-    if sys.platform == "win32":
-        base = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git"
-        for rel in (("cmd", "git.exe"), ("bin", "git.exe")):
-            p = base.joinpath(*rel)
-            if p.exists():
-                candidates.append(str(p))
-    for cand in candidates:
-        if "windowsapps" not in cand.lower():
-            return cand
-    return candidates[0]
-
-
-_GIT = _git_exe()
+_GIT = shutil.which("git") or "git"
 
 
 def _git(repo: Path, *args: str) -> str:
-    env = os.environ.copy()
-    if sys.platform == "win32":
-        env.setdefault("SystemRoot", r"C:\Windows")
-        env.setdefault("ComSpec", r"C:\Windows\system32\cmd.exe")
-    out = subprocess.run(
-        [_GIT, *args], cwd=repo, capture_output=True, text=True, check=True, env=env
-    )
+    out = subprocess.run([_GIT, *args], cwd=repo, capture_output=True, text=True, check=True)
     return out.stdout.strip()
 
 _SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "verify-bootstrap-version-stamp.py"
@@ -105,11 +80,7 @@ def test_verifier_cli(tmp_path, changes, expect, error):
         (repo / "install-stamp.json").write_text(json.dumps(canonical), encoding="utf-8")
     if not error:
         expect = ["--expect-commit", stamp["pinnedCommit"], "--expect-branch", "main", *expect]
-    env = dict(os.environ)
-    if os.name == "nt":
-        env.setdefault("SystemRoot", r"C:\Windows")
-        env.setdefault("ComSpec", r"C:\Windows\system32\cmd.exe")
     result = subprocess.run([sys.executable, str(_SCRIPT), "--repo", str(repo), "--stamp", str(path), *expect],
-                            env=env, capture_output=True, text=True, timeout=30)
+                            capture_output=True, text=True, timeout=30)
     assert result.returncode == (1 if error else 0), result.stderr
     assert error in result.stderr if error else "stamp verified" in result.stdout

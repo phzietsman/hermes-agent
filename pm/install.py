@@ -15,7 +15,6 @@ from typing import Optional
 
 from pm import paths
 from pm.downloader import DownloadPaused, ProgressFn
-from pm.filesystem import native, remove_tree, retry_held
 from pm.lock import Facts, Lockfile
 from pm.package import InstallError, Package, Runner, StatePackage, compose_env
 from pm.plugin_inputs import Candidates, Members, PluginInput, Selection, StagedUpdate
@@ -72,7 +71,7 @@ def _heal_exec_bit(binary: Path) -> bool:
     """agent-browser entries staged before stage() set the exec bit sit at 0644 and fail every
     launch with PermissionError. Modes are not part of the pinned digest, so restore it in place;
     an entry we cannot chmod (sealed store) is treated as not installed."""
-    if os.name == "nt" or os.access(binary, os.X_OK):
+    if os.access(binary, os.X_OK):
         return True
     try:
         binary.chmod(binary.stat().st_mode | 0o111)
@@ -129,9 +128,7 @@ def installed_package(name: str, *, allow_outdated: bool = False) -> InstalledPa
     fact = facts.get(name)
     entry = store.entry(fact["entry"])
     binary = package.binary(entry, target)
-    # Callers execute and compare these paths outside PM: the ordinary spelling, not the store's.
-    return InstalledPackage(Path(native(entry)), fact["version"],
-                            Path(native(binary)) if binary is not None else None)
+    return InstalledPackage(entry, fact["version"], binary)
 
 
 def uv_launcher(name: str) -> Path | None:
@@ -148,7 +145,7 @@ def uv_launcher(name: str) -> Path | None:
     facts, store = location
     binary = package.binary(store.entry(facts.get("uv")["entry"]), target)
     launcher = binary.with_name(name + binary.suffix) if binary is not None else None
-    return Path(native(launcher)) if launcher is not None and launcher.is_file() else None
+    return launcher if launcher is not None and launcher.is_file() else None
 
 
 def _identity(lockfile: Lockfile, name: str, target: str):
@@ -221,28 +218,20 @@ def _refuse_lazy(name: str, what: str) -> InstallError:
     return error
 
 
-def _remove_entry(store: Store, entry_name: str, *, attempts: int = 5) -> None:
-    """Remove a replaced or failed entry, retrying transient Windows holds.
+def _remove_entry(store: Store, entry_name: str) -> None:
+    """Remove a replaced or failed entry.
 
     Corruption may leave a file where the directory belonged. Failure
     must propagate so recovery never claims to have removed surviving bytes.
     """
-    import time
-
     entry = store.entry(entry_name)
-    for attempt in range(attempts):
-        try:
-            if entry.is_symlink() or not entry.is_dir():
-                entry.unlink(missing_ok=True)
-            else:
-                remove_tree(entry)
-            return
-        except FileNotFoundError:
-            return
-        except OSError:
-            if attempt == attempts - 1:
-                raise
-            time.sleep(0.2 * (attempt + 1))
+    try:
+        if entry.is_symlink() or not entry.is_dir():
+            entry.unlink(missing_ok=True)
+        else:
+            shutil.rmtree(entry)
+    except FileNotFoundError:
+        return
 
 
 _SET_ASIDE_PREFIX = ".reclaim-"
@@ -251,11 +240,9 @@ _SET_ASIDE_PREFIX = ".reclaim-"
 def _discard_entry(store: Store, entry_name: str) -> None:
     """Drop a tree a finished publish or restore left behind as garbage.
 
-    A running Hermes process can keep the replaced interpreter's DLLs mapped
-    far past the retry window, and failing here reports a completed install
-    as broken (#124807). Windows still allows renaming a tree with mapped
-    images, so it moves to a `.reclaim-*` name: its slot is free for the next
-    publish, no restore ever picks it up, and the next install or
+    Failing here would report a completed install as broken (#124807), so a
+    tree that cannot be removed moves to a `.reclaim-*` name: its slot is free
+    for the next publish, no restore ever picks it up, and the next install or
     `hermes pm gc` deletes it once the hold is gone.
     """
     import uuid
@@ -279,7 +266,7 @@ def _reclaim_set_aside(store: Store) -> int:
     removed = 0
     for item in sorted(store.root.glob(f"{_SET_ASIDE_PREFIX}*")):
         try:
-            _remove_entry(store, item.name, attempts=1)
+            _remove_entry(store, item.name)
         except OSError:
             continue
         removed += 1
@@ -308,12 +295,12 @@ def _restore_previous_entry(store: Store, entry, previous) -> None:
     displaced = store.entry(f".displaced-{uuid.uuid4().hex}")
     had_entry = entry.exists() or entry.is_symlink()
     if had_entry:
-        retry_held(lambda: entry.rename(displaced))
+        entry.rename(displaced)
     try:
-        retry_held(lambda: previous.rename(entry))
+        previous.rename(entry)
     except BaseException:
         if had_entry:
-            retry_held(lambda: displaced.rename(entry))
+            displaced.rename(entry)
         raise
     if had_entry:
         _discard_entry(store, displaced.name)
@@ -323,7 +310,7 @@ def _restore_previous_entry(store: Store, entry, previous) -> None:
 def _publish_entry(package, store, staged, entry, previous_entry, target):
     """Keep rollback live through the caller's native facts commit, if any."""
     if entry.exists() or entry.is_symlink():
-        retry_held(lambda: entry.rename(previous_entry))
+        entry.rename(previous_entry)
     try:
         store.publish(staged, entry.name)
         reason = package.verify(entry, target)
@@ -939,8 +926,8 @@ def _store_path_dirs() -> list[str]:
         if isinstance(path_dirs, str):
             path_dirs = [path_dirs]
         for directory in path_dirs:
-            if directory and native(directory) not in dirs:
-                dirs.append(native(directory))
+            if directory and str(directory) not in dirs:
+                dirs.append(str(directory))
     return dirs
 
 

@@ -28,7 +28,7 @@ function readInstallationId(filePath) {
       return ''
     }
 
-    if (process.platform !== 'win32' && (stat.mode & 0o777) !== 0o600) {
+    if ((stat.mode & 0o777) !== 0o600) {
       fs.chmodSync(filePath, 0o600)
     }
 
@@ -57,7 +57,7 @@ type RepairLockHolderJudge = (pid: number, recordedCt: number | null, writtenAtS
 /**
  * The repair lock holder's liveness for ONE wait: liveness is re-read every
  * 25 ms poll, but each pid's creation time is probed once — on macOS a `ps`,
- * on Windows a PowerShell of up to 15 s, both blocking the main thread at
+ * blocking the main thread at
  * module init. Scoped to the wait like `cachedCreateTimeProbe`.
  */
 function repairLockHolderJudge(): RepairLockHolderJudge {

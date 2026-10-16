@@ -6,7 +6,7 @@
  *
  * Covers the cold-start port-announcement deadline (issue #50209): the clock
  * starts before the backend binds its port, so a tight 45s deadline killed a
- * healthy-but-still-compiling backend on cold Windows installs. The default is
+ * healthy-but-still-compiling backend on cold installs. The default is
  * now cold-start tolerant and overridable via
  * HERMES_DESKTOP_PORT_ANNOUNCE_TIMEOUT_MS, clamped to a 45s floor.
  */

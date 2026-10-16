@@ -14,7 +14,6 @@ import difflib
 import json
 import logging
 import os
-import platform
 import re
 import shlex
 import shutil
@@ -74,7 +73,6 @@ class InvalidUserConfigError(RuntimeError):
     """Raised when a run that cannot repair config finds invalid user YAML."""
 
 
-_IS_WINDOWS = platform.system() == "Windows"
 _ENV_VAR_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 # Env var names that influence how the next subprocess executes — never writable through
@@ -133,19 +131,11 @@ _ENV_VAR_NAME_DENYLIST: frozenset[str] = frozenset({
     "HERMES_SESSION_KEY", "HERMES_SESSION_PLATFORM"})
 
 
-def _env_var_policy_name(key: str, *, is_windows: Optional[bool] = None) -> str:
-    """Name used for env policy comparisons: Windows env names are case-insensitive, POSIX not.
-    The override keeps both semantics testable on any host."""
-    windows = _IS_WINDOWS if is_windows is None else is_windows
-    return key.upper() if windows else key
-
-
 def validate_env_var_name_for_write(key: str) -> None:
     """Validate an env name before a generic persistence write (exposed for batch callers)."""
     if not _ENV_VAR_NAME_RE.match(key):
         raise ValueError(f"Invalid environment variable name: {key!r}")
-    policy_name = _env_var_policy_name(key)
-    if policy_name in _ENV_VAR_NAME_DENYLIST or policy_name.startswith(_ENV_VAR_NAME_DENY_PREFIXES):
+    if key in _ENV_VAR_NAME_DENYLIST or key.startswith(_ENV_VAR_NAME_DENY_PREFIXES):
         raise ValueError(
             f"Environment variable {key!r} is on the writer denylist. "
             "Names that influence subprocess execution (LD_PRELOAD, PYTHONPATH, PATH, EDITOR, ...) "
@@ -1007,8 +997,7 @@ def _validate_timezone(config: Dict[str, Any], issues: List[ConfigIssue]) -> Non
     ``hermes_time._get_zoneinfo()`` swallows an invalid name behind a single WARNING in the
     gateway log, then runs the agent clock AND every cron schedule on server-local time.
     Surface it here, where doctor and the startup check both look. Silent when the
-    interpreter has no tz database at all (bare Windows without ``tzdata``) — nothing can be
-    judged there.
+    interpreter has no tz database at all — nothing can be judged there.
     """
     if "timezone" not in config:
         return
@@ -2540,8 +2529,8 @@ def sanitize_env_file() -> int:
 
 
 def _read_env_lines(env_path: Path) -> list:
-    """Read ``.env`` lines, normalized. Explicit UTF-8 (Windows defaults to cp1252) with BOM
-    tolerance (Notepad adds one)."""
+    """Read ``.env`` lines, normalized. Explicit UTF-8 (never the locale codec) with BOM
+    tolerance (some editors add one)."""
     with open(env_path, encoding="utf-8-sig", errors="replace") as f:
         return _sanitize_env_lines(f.readlines())
 
@@ -2568,7 +2557,7 @@ def _env_write_lock(env_path: Path):
     snapshot the pre-write file and the loser's replace silently drops the
     winner's key. ``_CONFIG_LOCK`` cannot help: it guards in-memory config only.
 
-    Reuses ``hermes_cli.auth._file_lock`` (fcntl flock / msvcrt byte lock,
+    Reuses ``hermes_cli.auth._file_lock`` (fcntl flock,
     cross-process, reentrant per thread) rather than growing a second kernel-lock
     implementation. The import is call-time: ``hermes_cli.auth`` imports this
     module at import time, so a module-level import would be circular. Nothing
@@ -2652,7 +2641,7 @@ def _quote_env_value(value: str) -> str:
     return f'"{escaped}"'
 
 
-def _env_line_defines_key(line: str, key: str, *, is_windows: Optional[bool] = None) -> bool:
+def _env_line_defines_key(line: str, key: str) -> bool:
     """True when a .env line assigns ``key`` — plain, ``export``-prefixed, or ``KEY = value``.
     Must match exactly the shapes ``load_env()`` parses; otherwise a hand-added line is invisible
     to save (duplicate appended) and remove (line survives -> the value resurrects on next load).
@@ -2669,9 +2658,7 @@ def _env_line_defines_key(line: str, key: str, *, is_windows: Optional[bool] = N
     # load_env() strips whitespace around the parsed name, so `KEY = value` IS a live assignment. The
     # writers must match the same shape, or a hand-edited spaced line is invisible to save (duplicate
     # appended) and remove (line survives -> value resurrects on next load). #67488.
-    return _env_var_policy_name(
-        assigned_key.strip(), is_windows=is_windows
-    ) == _env_var_policy_name(key, is_windows=is_windows)
+    return assigned_key.strip() == key
 
 
 def _publish_env_value(key: str, value: Optional[str]) -> None:
@@ -3155,10 +3142,8 @@ def edit_config():
         seed_config_file(config_path)
         print(f"Created {config_path}")
 
-    # Windows lands on notepad even without Git Bash/nano; POSIX prefers nano/vim, which headless
-    # servers are more likely to have.
-    candidates = (['notepad', 'code', 'vim', 'vi', 'nano'] if sys.platform == "win32"
-                  else ['nano', 'vim', 'vi', 'code', 'notepad'])
+    # nano/vim first: headless servers are more likely to have them.
+    candidates = ['nano', 'vim', 'vi', 'code']
     editor = os.getenv('EDITOR') or os.getenv('VISUAL') or next(
         (cmd for cmd in candidates if shutil.which(cmd)), None)
     if not editor:

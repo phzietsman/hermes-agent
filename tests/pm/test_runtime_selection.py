@@ -42,7 +42,7 @@ def test_boot_uses_one_selected_dependency_tree_in_fresh_process(tmp_path, monke
     state = runtime_paths.install_state_dir(root)
     selected = state / "environments" / "new" / "venv"
     def site_of(venv):
-        return venv / ("Lib/site-packages" if os.name == "nt" else f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages")
+        return venv / f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
     for venv, version in [(base, "old"), (selected, "new")]:
         site = site_of(venv)
         site.mkdir(parents=True)
@@ -79,7 +79,7 @@ def test_boot_puts_the_checkout_launcher_ahead_of_the_venvs_own_console_script(t
     state = runtime_paths.install_state_dir(root)
     selected = state / "environments" / "new" / "venv"
     def site_of(venv):
-        return venv / ("Lib/site-packages" if os.name == "nt" else f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages")
+        return venv / f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
     site_of(selected).mkdir(parents=True)
     (selected / "pyvenv.cfg").write_text("home = test")
     venv_bin = runtime_paths.venv_bin_dir(selected)

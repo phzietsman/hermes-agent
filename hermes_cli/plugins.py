@@ -1156,7 +1156,7 @@ class PluginManager(PluginLoaderMixin, PluginDispatchMixin, PluginLedgerMixin):
         # Capture the home immutably. Unload can run from a different ambient
         # profile context, but every inverse must target the registration's
         # original scope.  Normalize through hermes_home_key so the scope
-        # matches the key the registries store under (normcase on Windows).
+        # matches the key the registries store under.
         self.scope_key = hermes_home_key(scope_key)
         self.home_path = Path(self.scope_key)
         self._discovery_lock = threading.RLock()

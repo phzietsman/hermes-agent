@@ -12,8 +12,8 @@ dashboard surface, mounted by `hermes_cli/web_server.py` (+ `web_server_*.py` si
   (container-driven resize) and `@xterm/addon-unicode11` (wide-character widths).
 - `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST,
   passed as a query param because browsers cannot set `Authorization` on a WS upgrade.
-- The server spawns exactly what `hermes --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL
-  works, native Windows does not).
+- The server spawns exactly what `hermes --tui` would spawn, through `ptyprocess` (POSIX PTY; works on
+  Linux, macOS, and WSL).
 - Frames are raw PTY bytes each way; resize travels as `\x1b[RESIZE:<cols>;<rows>]`, intercepted
   on the server and applied with `TIOCSWINSZ`.
 

@@ -84,7 +84,6 @@ class TestPathTraversalBlocked:
         assert result["success"] is False
         assert "traversal" in result["error"].lower()
 
-    @pytest.mark.platforms("posix", "windows")
     def test_legitimate_file_still_works(self, fake_skills):
         """Valid paths within the skill directory should work normally."""
         result = json.loads(skill_view("test-skill", file_path="references/api.md"))

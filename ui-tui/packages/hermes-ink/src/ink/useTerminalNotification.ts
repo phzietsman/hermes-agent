@@ -17,7 +17,7 @@ export type TerminalNotification = {
   notifyBell: () => void
   /**
    * Report progress to the terminal via OSC 9;4 sequences.
-   * Supported terminals: ConEmu, Ghostty 1.2.0+, iTerm2 3.6.6+
+   * Supported terminals: Ghostty 1.2.0+, iTerm2 3.6.6+
    * Pass state=null to clear progress.
    */
   progress: (state: Progress['state'] | null, percentage?: number) => void

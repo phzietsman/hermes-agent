@@ -147,7 +147,7 @@ For long-lived processes: Hermes gateway, tui_gateway, a daemon, a process that'
 For Hermes, use a separate development checkout and data home, not a live
 production generation. Follow the
 [PM developer workflow](https://hermes-agent.nousresearch.com/docs/reference/package-management#developer-workflow)
-and activate that checkout — PowerShell: `. .\activate.ps1`. The declared `dev`
+and activate that checkout. The declared `dev`
 extra includes debugpy, which PM activation does not sync (`all` excludes it).
 Through `terminal`, build a fresh, caller-owned debug/test environment with the
 prepared checkout's Python:

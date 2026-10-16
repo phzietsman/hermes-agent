@@ -21,7 +21,6 @@ import re
 import secrets
 import sqlite3
 import subprocess
-import sys
 import logging
 import time
 from contextvars import ContextVar, Token
@@ -131,7 +130,6 @@ def normalize_reasoning_effort(effort: Optional[str]) -> Optional[str]:
 
 
 KNOWN_TOOLSET_NAMES = frozenset(name.casefold() for name in get_toolset_names())
-_IS_WINDOWS = sys.platform == "win32"
 KANBAN_ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024  # one cap for dashboard, tools and CLI
 
 

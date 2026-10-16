@@ -50,9 +50,8 @@ def test_delivery_is_idempotent_fenced_and_permanent(tmp_path, terminal_status):
         mailbox.complete_delivery(tmp_path, delivery_id, status=terminal_status, reply="rewrite")
     assert mailbox.deliver_to_live_owner(tmp_path, owner, "héllo 世界", delivery_id=delivery_id) == receipt
     assert mailbox.claim_pending_delivery(tmp_path, owner) is None
-    if os.name != "nt":
-        for path in (tmp_path / "runtime" / mailbox.DELIVERY_DIR_NAME).iterdir():
-            assert path.stat().st_mode & 0o077 == 0
+    for path in (tmp_path / "runtime" / mailbox.DELIVERY_DIR_NAME).iterdir():
+        assert path.stat().st_mode & 0o077 == 0
 
 
 def test_cancel_queued_delivery_fences_claim_and_preserves_terminal_result(tmp_path):

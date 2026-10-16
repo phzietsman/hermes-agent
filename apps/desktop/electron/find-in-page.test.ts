@@ -259,12 +259,12 @@ describe('installFindShortcut', () => {
     return { webContents: asWC(wc) } as unknown as BrowserWindow
   }
 
-  test('sends hermes:open-find-bar on Ctrl+F (Linux/Windows) and prevents default', () => {
+  test('sends hermes:open-find-bar on Ctrl+F (Linux) and prevents default', () => {
     const wc = makeFakeWebContents()
     const win = makeFakeWindow(wc)
     const uninstall = installFindShortcut(win)
 
-    // Ctrl+F on Linux/Windows (no meta, no alt, no shift).
+    // Ctrl+F on Linux (no meta, no alt, no shift).
     const result = wc.emit(
       'before-input-event',
       {},
@@ -338,10 +338,10 @@ describe('installFindShortcut', () => {
     uninstall()
   })
 
-  // Cross-check: a bare Ctrl+F WITHOUT meta must NOT open on Linux/Windows,
+  // Cross-check: a bare Ctrl+F WITHOUT meta must NOT open on Linux,
   // where only `control` counts (the macOS `meta || control` widening must not
   // leak across the platform boundary).
-  test('does NOT fire for Ctrl+F with meta only on Linux/Windows', () => {
+  test('does NOT fire for Ctrl+F with meta only on Linux', () => {
     const wc = makeFakeWebContents()
     const win = makeFakeWindow(wc)
     const uninstall = installFindShortcut(win, () => false)

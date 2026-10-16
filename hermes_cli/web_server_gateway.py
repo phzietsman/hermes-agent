@@ -7,13 +7,11 @@ import json
 import os
 import re
 import subprocess
-import sys
 import threading
 import time
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from hermes_cli._subprocess_compat import windows_detach_flags
 from hermes_cli.config import get_hermes_home
 
 # Same logger the code used before extraction (record parity).
@@ -258,32 +256,10 @@ def _collect_profile_gateway_topology_cached() -> Dict[str, Any]:
 
 def _load_configured_gateway_platforms() -> set[str]:
     """Connected platform names; synchronous by design — the first ``load_gateway_config()`` does
-    platform discovery and can outlast Desktop's WS connect timeout on Windows, so ``get_status``
+    platform discovery and can outlast Desktop's WS connect timeout, so ``get_status``
     runs this in Starlette's worker pool."""
     from gateway.config import load_gateway_config
     return {platform.value for platform in load_gateway_config().get_connected_platforms()}
-
-
-_WINDOWS_11_MIN_BUILD = 22000
-
-
-def _windows_build_number(version: str, platform_label: str) -> Optional[int]:
-    """Extract the Windows NT build number from stdlib platform strings."""
-    for value in (version or "", platform_label or ""):
-        match = re.search(r"(?:^|[^\d])10\.0\.(\d{5,})(?:[^\d]|$)", value)
-        if match:
-            return int(match.group(1))
-    return None
-
-
-def _display_system_platform(*, system: str, release: str, version: str, platform_label: str) -> Dict[str, str]:
-    """Host OS fields for display; Windows 10 builds >= 22000 are relabelled Windows 11."""
-    if system == "Windows" and release == "10":
-        build = _windows_build_number(version, platform_label)
-        if build is not None and build >= _WINDOWS_11_MIN_BUILD:
-            platform_label = re.sub(r"^Windows-10(?=-)", "Windows-11", platform_label, count=1)
-            release = "11"
-    return {"os": system, "os_release": release, "os_version": version, "platform": platform_label}
 
 
 # Gateway + update actions (invoked from the Status page). Spawned detached so the request
@@ -514,10 +490,9 @@ def _spawn_hermes_action(
     # Named-profile actions get a scrubbed, pinned environment so the child cannot inherit the
     # dashboard profile's credentials; see _profile_action_environment (also drops _HERMES_GATEWAY).
     action_env = _profile_action_environment(subcommand, env_overrides)
-    detach = {"creationflags": windows_detach_flags()} if sys.platform == "win32" else {"start_new_session": True}
     proc = subprocess.Popen(
         cmd, cwd=str(PROJECT_ROOT), stdin=subprocess.DEVNULL, stdout=log_file, stderr=subprocess.STDOUT,
-        env=action_env, **detach,
+        env=action_env, start_new_session=True,
     )
     log_file.close()  # child holds its own dup'd fd; keeping ours leaks one per action
     _ACTION_RESULTS.pop(name, None)

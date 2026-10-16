@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 from pathlib import Path
 
 from hermes_cli.steward import UPDATE_MECHANISMS
@@ -255,16 +254,14 @@ def clear_completion(root: Path) -> None:
 
 def refuse_foreign_owned_venv(project_root: Path) -> None:
     """Refuse cross-user mutation before PM changes the selected environment (#83529)."""
-    if not hasattr(os, "geteuid"):
-        return
-    uid = os.geteuid()  # windows-footgun: ok — guarded POSIX ownership check
+    uid = os.geteuid()
     root = Path(project_root)
     # A root-run update on a user's checkout is not safe even if a fresh
     # generation would be allocated: it publishes root-owned state for them.
     from pm.environments import selected_venv
     candidates = [root, root / "venv", root / ".venv", root / ".hermes", selected_venv(root)]
     for venv in (root / "venv", root / ".venv", candidates[-1]):
-        for directory in (venv / ("Scripts" if os.name == "nt" else "bin"),
+        for directory in (venv / "bin",
                           *venv.glob("lib/python*/site-packages")):
             if directory.is_dir():
                 candidates.append(directory)
@@ -315,8 +312,8 @@ def _tree_matches_completed_stamp(root: Path) -> bool:
     Every finished tail records its tree in install-stamp.json (write_source_stamp);
     when that commit is a clean HEAD, the products in the tree were built for it, so a
     stale venv only needs re-provisioning and a marker armed BEFORE that stamp is a
-    leftover from a previous home/install, never a rebuild of the same SHA (fresh
-    Windows installs and pristine HERMES_HOMEs hit exactly this: #123314). A marker
+    leftover from a previous home/install, never a rebuild of the same SHA (pristine
+    HERMES_HOMEs hit exactly this: #123314). A marker
     armed after the stamp is newer debt (a same-commit ``hermes update`` that failed
     or was killed) and is still owed. Boot-time adoption also stamps HEAD but builds
     nothing, so its stamp (``adoptedAt``) is not evidence; neither is a dirty tree.
@@ -524,23 +521,17 @@ def _finish_source_update(root: Path, *, current: bool, pending: Path) -> None:
     # The tail's progress lines go to stderr: this is an automatic repair in
     # front of whatever command the user ran, and that command may be
     # emitting machine-readable stdout (a JSON probe, a piped query).
-    from hermes_cli.update_custody import CustodyRefused, run
+    from hermes_cli.update_custody import run
 
-    # The completion child stays in this launch's checkout custody (POSIX: it inherits the lock
-    # fd; Windows: created suspended and bound to the lock owner's kill-on-close job), so a
-    # contender never sees the checkout free while it builds. A child the job refuses never runs:
-    # the tail stays owed.
-    try:
-        code = run(
-            [sys.executable, "-I", "-B", "-u",
-             str(root / "hermes_cli/source_completion.py"),
-             "--source", str(root), "--finish-update",
-             *(("--desktop",) if desktop else ())],
-            inherit_lock=True, cwd=root, env=activation_environment(root), stdout=sys.__stderr__,
-        ).returncode
-    except CustodyRefused as exc:
-        print(f"hermes: {exc.reason}", file=sys.stderr, flush=True)
-        code = 1
+    # The completion child stays in this launch's checkout custody (it inherits the lock fd), so
+    # a contender never sees the checkout free while it builds.
+    code = run(
+        [sys.executable, "-I", "-B", "-u",
+         str(root / "hermes_cli/source_completion.py"),
+         "--source", str(root), "--finish-update",
+         *(("--desktop",) if desktop else ())],
+        inherit_lock=True, cwd=root, env=activation_environment(root), stdout=sys.__stderr__,
+    ).returncode
     if code != 0:
         _record_completion_attempt(root, failed=True)
         raise RuntimeError(

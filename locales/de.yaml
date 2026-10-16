@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ Beenden wird erzwungen..."
     interrupting_again_hint: "⚡ Agent wird unterbrochen... (Ctrl+C erneut drücken, um das Beenden zu erzwingen)"
     interrupting: "⚡ Agent wird unterbrochen..."
-    suspend_unsupported: "Anhalten (Ctrl+Z) wird unter Windows nicht unterstützt."
     suspended: "{agent_name} wurde angehalten. Führen Sie `fg` aus, um {agent_name} zurückzuholen."
     steer_failed_queued: "Steuern fehlgeschlagen ({error}) — für den nächsten Zug eingereiht."
     steered: "⏩ Gesteuert: '{preview}'"

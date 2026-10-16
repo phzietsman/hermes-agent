@@ -1,6 +1,6 @@
 """Tests for the strict gateway command-line matcher.
 
-Regression guard for the Windows ``hermes gateway restart`` silent-outage bug:
+Regression guard for the ``hermes gateway restart`` silent-outage bug:
 the previous loose substring match (``"... gateway" in cmdline``) false-matched
 ``gateway status``/``dashboard`` siblings and unrelated processes such as
 ``python -m tui_gateway``, which let ``restart()`` race a still-draining old
@@ -19,13 +19,12 @@ from gateway.status import (
 
 
 ACCEPT = [
-    "pythonw.exe -m hermes_cli.main gateway run",
-    r"C:\Users\me\hermes\venv\Scripts\pythonw.exe -m hermes_cli.main gateway run",
+    "/home/me/hermes/venv/bin/python -m hermes_cli.main gateway run",
     "python -m hermes_cli.main --profile work gateway run",
     "python -m hermes_cli.main gateway run --replace",
     "python -m hermes_cli/main.py gateway run",
     "python gateway/run.py",
-    "hermes-gateway.exe",
+    "hermes-gateway",
     "hermes gateway",          # bare `hermes gateway` defaults to run
     "hermes gateway run",
     # profile selector AFTER the `gateway` token (argv is profile-position
@@ -36,10 +35,10 @@ ACCEPT = [
     # a profile literally NAMED "gateway"
     "hermes -p gateway gateway run",
     "python -m hermes_cli.main --profile gateway gateway run",
-    # quoted Windows paths with spaces (shlex-aware tokenization)
-    r'"C:\Program Files\Hermes\hermes-gateway.exe"',
-    r'"C:\Program Files\Hermes\gateway\run.py" run',
-    r'"C:\Program Files\Py\pythonw.exe" -m hermes_cli.main gateway run',
+    # quoted paths with spaces (shlex-aware tokenization)
+    '"/opt/Hermes Agent/bin/hermes-gateway"',
+    '"/opt/Hermes Agent/gateway/run.py" run',
+    '"/opt/Hermes Agent/venv/bin/python" -m hermes_cli.main gateway run',
 ]
 
 REJECT = [
@@ -70,8 +69,8 @@ def test_rejects_non_gateway_run(cmd):
 # the watcher instead of a gateway (#107002).
 INLINE_SOURCE_REJECT = [
     'python -c "import time; time.sleep(1)" 14980 python -m hermes_cli.main gateway run',
-    r'"C:\Users\me\hermes\venv\Scripts\python.exe" -c "import os" 14980 '
-    r'"C:\Users\me\hermes\venv\Scripts\python.exe" -m hermes_cli.main gateway run',
+    '"/opt/Hermes Agent/venv/bin/python" -c "import os" 14980 '
+    '"/opt/Hermes Agent/venv/bin/python" -m hermes_cli.main gateway run',
     'python -u -c "import os" 14980 python -m hermes_cli.main --profile work gateway run',
     'python -uc "import os" 14980 hermes gateway run',
     # Options that take a SEPARATE operand must not end the option walk before ``-c`` (the operand

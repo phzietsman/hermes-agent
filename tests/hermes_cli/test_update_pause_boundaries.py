@@ -1,4 +1,4 @@
-"""Real-process pause/consume/recovery contracts, not native Windows SCM evidence."""
+"""Real-process pause/consume/recovery contracts."""
 from __future__ import annotations
 
 import json
@@ -79,21 +79,18 @@ def test_consumption_checkpoints_debt_before_unlink_and_producer_death(cell, cla
     ''', base / "ready", base / "consume", base / "consumed")
     _wait(base / "ready", consumer)
     owner = launch('''
-        from hermes_cli import update_cmd_windows as w
-        from types import SimpleNamespace
+        from hermes_cli.update_cmd_posix_pause import _write_update_planned_stop_marker
         pid = int(sys.argv[2])
         home = Path(os.environ["HERMES_HOME"])
         token = r.record_pause({"resume_needed": True, "profiles": {"default": pid},
                                "identities": {str(pid): r.identity(pid)["ct"]}}, None, [])
         # Discovery and the gateway can spell the same profile path differently.
         r.mark_stop_requested(token, [pid], {pid: home / ".." / ".hermes" / ".gateway-planned-stop.json"})
-        # The real callback is the first operation after marker publication. Hold it
-        # before its checkpoint while another interpreter runs the actual consumer.
-        def on_request(pid):
-            Path(sys.argv[3]).touch()
-            while True: time.sleep(.05)
-        w._request_socket_pauses([pid], {pid: SimpleNamespace(profile="default", path=home)},
-                                 set(), on_request=on_request)
+        # Publish the request, then hold before the producer's checkpoint while another
+        # interpreter runs the actual consumer.
+        assert _write_update_planned_stop_marker(home, pid)
+        Path(sys.argv[3]).touch()
+        while True: time.sleep(.05)
     ''', consumer.pid, base / "published")
     _wait(base / "published", owner)
     recovery = None
@@ -134,7 +131,7 @@ def test_failed_consumer_checkpoint_keeps_request_and_user_stop_is_not_update_de
     _, _, launch = cell
     result = _result(launch('''
         from gateway import status
-        from hermes_cli.update_cmd_windows import _write_update_planned_stop_marker
+        from hermes_cli.update_cmd_posix_pause import _write_update_planned_stop_marker
         pid = os.getpid()
         home = Path(os.environ["HERMES_HOME"])
         path = home / ".gateway-planned-stop.json"
@@ -178,7 +175,7 @@ def test_a_busy_pause_mutex_never_turns_a_planned_stop_into_an_unplanned_one(cel
     try:
         result = _result(launch('''
             from gateway import status
-            from hermes_cli.update_cmd_windows import _write_update_planned_stop_marker
+            from hermes_cli.update_cmd_posix_pause import _write_update_planned_stop_marker
             pid = os.getpid()
             home = Path(os.environ["HERMES_HOME"])
             assert _write_update_planned_stop_marker(home, pid)

@@ -1,7 +1,6 @@
 """Build adapters consume selected Python environments, never install commands."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -109,18 +108,15 @@ def test_termux_gate_checks_real_offline_wheels_and_application_uses_same_graph(
     resolved = tmp_path / "resolved.txt"
     resolved.write_text(
         'native-probe\t==1.0\t\t\n'
-        'missing-windows-only\t==1.0\tsys_platform == "win32"\t\n'
+        'missing-legacy-only\t==1.0\tpython_version < "3"\t\n'
         'nemo-relay\t==1.0\t\t\n', encoding="utf-8",
     )
-    # This adapter runs on the actual host; no platform faking is needed.
-    if os.name == "nt":
-        resolved.write_text('native-probe\t==1.0\t\t\n', encoding="utf-8")
     build_wheels.wheelhouse_gates(resolved, wheels, ["native-probe"])
     requirements = tmp_path / "requirements.txt"
     build_wheels.write_reqs_file(resolved, requirements)
     requirements.write_bytes(b"\xef\xbb\xbf" + requirements.read_bytes())
     build_environment.application(tmp_path, requirements, Path(sys.executable))
-    python = tmp_path / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = tmp_path / "venv" / "bin/python"
     subprocess.run([str(python), "-I", "-c", "import native_probe"], check=True)
     for wheel in wheels.iterdir():
         wheel.unlink()

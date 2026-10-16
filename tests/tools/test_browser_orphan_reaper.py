@@ -80,8 +80,7 @@ class TestReapOrphanedBrowserSessions:
         """Alive, untracked, legacy (no owner_pid) daemon is reaped.
 
         Post-#21561 the liveness probe goes through
-        ``gateway.status._pid_exists`` (which wraps ``psutil.pid_exists``
-        because ``os.kill(pid, 0)`` is a footgun on Windows — bpo-14484).
+        ``gateway.status._pid_exists`` (which wraps ``psutil.pid_exists``).
         With no owner_pid file and no tracked-name entry, the reaper
         terminates the daemon (and its process tree) and removes its socket
         dir regardless of whether termination succeeded (best-effort

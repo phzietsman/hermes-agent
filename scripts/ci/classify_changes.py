@@ -8,7 +8,7 @@ booleans (one per lane) to ``$GITHUB_OUTPUT`` and stdout. The
 
 Lanes:
 
-* ``python``      — pytest / ruff / ty / footguns.
+* ``python``      — pytest / ruff / ty.
 * ``python_prod`` — Python changes OUTSIDE tests/. A tests-only PR keeps
   ``python`` (pytest must run) while this stays off.
 * ``docker_meta`` — Dockerfiles etc.
@@ -28,17 +28,6 @@ Lanes:
   PyPI, so a diff that touches neither ``pyproject.toml`` nor ``uv.lock``
   must not run it.
 * ``npm_lock``    — semantic package-lock.json diff PR comment.
-* ``bootstrap``   — the bootstrap installer lane: install.sh sandbox install,
-  pin-fragment drift check, and shipped version-stamp verification.
-* ``desktop_updater`` — the Windows desktop-update hand-off script and the
-  tests that drive the REAL ``windows.ps1`` (``-SelfTestUi`` / pipe drain /
-  retry policy). These are integration tests of a PowerShell process on a
-  shared runner; running them on every Python PR made their timing noise
-  everyone's problem. They still run on push (fail-open) and whenever the
-  script, its siblings, or their tests change.
-* ``rust``        — ``cargo test`` for the Tauri bootstrap installer. ``.rs``
-  lives under ``apps/``, so without this lane a Rust change matched ``frontend``
-  and only the TypeScript matrix ran.
 
 ``docker``, ``nix`` and the E2E lanes take most of the larger-runner minutes.
 An ordinary product change does not start them on a pull request. Every push
@@ -68,8 +57,8 @@ must never skip one a change could break:
   reason: the docs tree generates ``llms.txt``, and
   ``tests/website/test_generate_llms_txt.py`` asserts every page reaches it.
 * A cross-language fixture (``_SHARED_FIXTURE_CONSUMERS``) selects the test
-  lanes of every consumer that reads it: the update-marker corpus runs pytest,
-  cargo, vitest and the Windows hand-off tests, not only ``python``.
+  lanes of every consumer that reads it: the update-marker corpus runs pytest
+  and vitest, not only ``python``.
 """
 
 from __future__ import annotations
@@ -124,50 +113,18 @@ _PY_RELEVANT_CONTRACT_FILES = {
 _SCAN_EXTS = (".py", ".pth")
 _SCAN_FILES = {"setup.cfg", "pyproject.toml"}
 
-# Bootstrap installer: the POSIX shell installer, the dev-checkout wrapper
-# that carries the same pin fragment, and the Tauri app's non-Rust sources
-# (the .rs/Cargo files are the ``rust`` lane's job). Changes here get the
-# bootstrap-installer.yml lane — a real sandboxed install + stamp check.
-_BOOTSTRAP_PATHS = ("apps/bootstrap-installer/",)
-_BOOTSTRAP_FILES = {"scripts/install.sh", "setup-hermes.sh"}
-# Windows desktop-update hand-off (scripts/desktop-update/windows.ps1 + the
-# Electron side that launches it) and the pytest files that spawn it.
-# tests/_fixtures/ holds the conftest's platform gating, so it re-arms the lane too.
-_DESKTOP_UPDATER_PATHS = ("scripts/desktop-update/", "tests/_fixtures/")
-_DESKTOP_UPDATER_TEST_PREFIX = "tests/scripts/desktop_update/"
-_DESKTOP_UPDATER_FILES = {
-    "apps/desktop/electron/updater-process.ts",
-    "apps/desktop/electron/managed-ssh-update.ts",
-    # The other half of the marker / result contract the script implements.
-    "apps/desktop/electron/update-marker.ts",
-    "apps/desktop/electron/update-marker-gate.ts",  # the gate's live-marker probe
-    "apps/desktop/electron/handoff-result.ts",
-    # Stops a remote backend for the update the hand-off script then runs.
-    "apps/desktop/electron/remote-lifecycle.ts",
-    # The SSH remote's marker judge/gate programs: marker.sh/marker.ps1's contract, run remotely.
-    "apps/desktop/electron/remote-update-marker-programs.ts",
-    "apps/desktop/electron/remote-update-marker-programs.test.ts",
-    # Python the script runs: the post-update verify and the staged app swap.
-    "hermes_cli/desktop_update_verify.py",
-    "hermes_cli/main_desktop.py",
-    "tests/conftest.py",
-    "pyproject.toml",
-}
-
 # Cross-language fixtures: one data file that tests in several languages read as
 # their shared contract. Editing it is editing every consumer, so it selects each
 # lane that runs one (a path-prefix rule would see only ``tests/`` -> python, and
-# the cargo / vitest / PowerShell readers of the same cases would never run).
+# the vitest readers of the same cases would never run).
 # tests/ci/test_update_ci_routing.py finds the consumers in the tree and fails
 # until every one is listed here.
 _SHARED_FIXTURE_CONSUMERS: dict[str, tuple[str, ...]] = {
     # A7 rule 7: the update-marker parse / judge / release corpus.
     "tests/fixtures/update_marker_corpus.json": (
         "tests/hermes_cli/test_update_marker_corpus.py",  # Python: update_lock
-        "apps/bootstrap-installer/src-tauri/src/marker_tests.rs",  # Rust: cargo test
         "apps/desktop/electron/update-marker-corpus.test.ts",  # Electron: vitest
         "tests/scripts/desktop_update/test_desktop_update_posix_marker_corpus.py",  # marker.sh
-        "tests/scripts/desktop_update/test_desktop_update_windows_marker_corpus.py",  # marker.ps1
         "apps/desktop/electron/remote-update-marker-programs.test.ts",  # SSH remote judge
         "apps/desktop/electron/remote-lifecycle-v2-marker.test.ts",  # SSH relaunch/spawn gate
     ),
@@ -175,14 +132,7 @@ _SHARED_FIXTURE_CONSUMERS: dict[str, tuple[str, ...]] = {
 # What a fixture inherits from its consumers: the lanes that run them as tests.
 # Not the slow suites a consumer's path also matches (an Electron test file under
 # electron/update-* starts the Desktop update E2E, which never reads the corpus).
-_FIXTURE_CONSUMER_LANES = ("python", "rust", "frontend", "desktop_updater")
-
-# Rust crates — currently just the Tauri bootstrap installer (Hermes-Setup).
-# These live under ``apps/``, so before this lane existed a ``.rs`` edit matched
-# ``frontend`` and nothing more: the TypeScript matrix built, cargo never ran,
-# and the crate's unit tests had never executed in CI at all.
-_RUST_PATHS = ("apps/bootstrap-installer/src-tauri/",)
-_RUST_FILENAMES = {"Cargo.toml", "Cargo.lock"}
+_FIXTURE_CONSUMER_LANES = ("python", "frontend")
 
 # The slow lanes and the paths that start each one on a pull request. A path
 # belongs here when the lane is the only CI that exercises it for real: the
@@ -212,15 +162,11 @@ _DESKTOP_E2E_SHARED = (
     "apps/desktop/e2e/fix-electron-tracing",
     "apps/desktop/e2e/run-tmp",
 )
-# The Tauri updater (update.rs, its marker claim marker.rs, the paths.rs both resolve) is
-# compiled and tested by ``cargo test`` alone (the ``rust`` lane, via ``.rs``): no slow lane
-# builds the bootstrap installer, so none of the three starts one.
 # What `hermes update` runs outside the update_* module family: the steps of the
 # pipeline (entry, lock, early recovery, completion tail, launchers, fleet
-# restart/verify, Windows pause/resume) and the lock / marker / recovery state
-# the update_* modules import. Editing any of these changes what a real update
-# does, so the real-update suites (Linux e2e-upgrade and the Windows
-# install + update journey, including its crash cells) must run on the PR.
+# restart/verify) and the lock / marker / recovery state the update_* modules
+# import. Editing any of these changes what a real update does, so the
+# real-update suite (e2e-upgrade) must run on the PR.
 _UPDATE_PIPELINE = (
     "hermes_cli/main.py",  # cmd_update: lock, pre-update backup, receipt boundary
     "hermes_cli/main_dashboard.py",  # hangup protection + update.log mirror
@@ -241,9 +187,7 @@ _UPDATE_PIPELINE = (
     "hermes_cli/npm_engine.py",
     "hermes_cli/_scan_venv_blockers.py",
     "hermes_cli/dashboard_procs.py",
-    "hermes_cli/desktop_update",  # desktop_update_verify
     "hermes_cli/gateway.py",  # fleet restart / verify
-    "hermes_cli/gateway_windows",  # Windows pause / resume
     "hermes_cli/gateway_launchd.py",
     "hermes_cli/gateway_migrate",
     "hermes_cli/gateway_supervised_restart.py",
@@ -251,7 +195,7 @@ _UPDATE_PIPELINE = (
     "hermes_bootstrap.py",  # every launch's prepare_launch
     "hermes_constants.py",  # root home = update marker location
     "gateway/status.py",  # code_sha stamp the fleet verify reads
-    "gateway/status_inline_source.py",  # the Windows pause identifies inline-bootstrapped gateways
+    "gateway/status_inline_source.py",  # holder classification the update's process scan reads
     "gateway/control_socket.py",  # pause-for-update verb
     "gateway/code_skew.py",
     "gateway/host_rendezvous.py",
@@ -275,7 +219,6 @@ _UPDATE_ENTRY_POINTS = (
     "hermes_cli/venv_sync.py",
     "hermes_cli/_early_recovery",
     "hermes_cli/main_desktop.py",
-    "hermes_cli/desktop_update_verify.py",
     "hermes_cli/desktop_build_lock.py",
     "hermes_cli/subcommands/update",
 )
@@ -285,7 +228,6 @@ _DESKTOP_BUILD_ENTRY_POINTS = (
     "hermes_cli/source_build.py",
     "hermes_cli/source_completion.py",
     "hermes_cli/main_desktop.py",
-    "hermes_cli/desktop_update_verify.py",
     "hermes_cli/desktop_build_lock.py",
 )
 # What the entry points import, outside the update_* family and the pipeline above.
@@ -377,7 +319,6 @@ _E2E_LANES: dict[str, tuple[str, ...]] = {
         *_PY_TEST_HARNESS,
         *_DEP_MANIFESTS,
         "tests/e2e/core/upgrade/",
-        "tests/e2e/core/windows_update/",
         "tests/compat/",
         "pm/",
         "scripts/install.",
@@ -470,7 +411,7 @@ for _lane in ("e2e_upgrade", "e2e_desktop_update"):
 # The upgrade journeys are their own lane; editing one does not start ``e2e``.
 # The update suite shares apps/desktop/e2e/ with the core suite but not its specs.
 _E2E_LANE_EXCLUDES = {
-    "e2e": ("tests/e2e/core/upgrade/", "tests/e2e/core/windows_update/"),
+    "e2e": ("tests/e2e/core/upgrade/",),
     "e2e_desktop_core": ("apps/desktop/e2e/update/",),
 }
 _DOCKER_PATHS = (*_DOCKER_META, *_DEP_MANIFESTS, *_NPM_MANIFESTS, "pm/", "tests/docker/")
@@ -517,22 +458,6 @@ def _is_scan(p: str) -> bool:
     return p.endswith(_SCAN_EXTS) or p in _SCAN_FILES
 
 
-def _is_desktop_updater(p: str) -> bool:
-    return (
-        p.startswith(_DESKTOP_UPDATER_PATHS)
-        or p.startswith(_DESKTOP_UPDATER_TEST_PREFIX)
-        or p in _DESKTOP_UPDATER_FILES
-    )
-
-
-def _is_rust(p: str) -> bool:
-    return (
-        p.endswith(".rs")
-        or p.startswith(_RUST_PATHS)
-        or os.path.basename(p) in _RUST_FILENAMES
-    )
-
-
 def _slow_lanes(files: list[str]) -> dict[str, bool]:
     """The slow lanes a pull request with this diff runs; see ``_E2E_LANES``."""
     lanes = {
@@ -576,11 +501,6 @@ def classify(files: list[str], run_e2e: bool = False) -> dict[str, bool]:
         "deps": deps,
         "uv_lock": any(f in ("pyproject.toml", "uv.lock") for f in files),
         "npm_lock": npm_lock,
-        "bootstrap": any(
-            f.startswith(_BOOTSTRAP_PATHS) or f in _BOOTSTRAP_FILES for f in files
-        ),
-        "desktop_updater": any(_is_desktop_updater(f) for f in files),
-        "rust": any(_is_rust(f) for f in files),
         **{lane: run_e2e or on for lane, on in _slow_lanes(files).items()},
     }
     consumers = [c for f in files for c in _SHARED_FIXTURE_CONSUMERS.get(f, ())]
@@ -598,9 +518,6 @@ def classify(files: list[str], run_e2e: bool = False) -> dict[str, bool]:
         ret["deps"] = True
         ret["uv_lock"] = True
         ret["npm_lock"] = True
-        ret["bootstrap"] = True
-        ret["desktop_updater"] = True
-        ret["rust"] = True
         ret.update(dict.fromkeys(_slow_lanes([]), True))
     return ret
 

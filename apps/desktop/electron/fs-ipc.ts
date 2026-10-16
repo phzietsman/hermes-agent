@@ -70,7 +70,7 @@ export function registerFsIpc({
 
   // Open a DIRECTORY in the OS file manager, creating it first if needed. Unlike
   // `reveal` (which selects an existing item and silently no-ops on a missing
-  // path — the "Open plugins folder" Windows bug), this is for the plugins door,
+  // path), this is for the plugins door,
   // which often doesn't exist on first use. `shell.openPath` returns '' on
   // success or an error string; both mkdir + openPath failures are surfaced.
   ipcMain.handle('hermes:fs:openDir', async (_event, dirPath) => {

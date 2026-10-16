@@ -1,6 +1,5 @@
 """Tests for tools/file_operations.py — deny list, result dataclasses, helpers."""
 
-import base64
 import os
 import pytest
 import shutil
@@ -9,7 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from tests.tools.file_ops_fakes import READ_SENTINEL_RE, compound_read_output
-from tools.environments.local import _find_bash, LocalEnvironment
+from tools.environments.local import LocalEnvironment
 from agent.file_safety import is_write_denied as _is_write_denied
 from tools.file_operations_common import SearchMatch
 from tools.file_operations import (
@@ -208,29 +207,11 @@ def make_real_subprocess_env(cwd: str, include_stderr: bool = False) -> MagicMoc
     env.cwd = cwd
 
     def execute(command, **kwargs):
-        stdin_data = kwargs.get("stdin_data")
-        is_windows = os.name == "nt"
-        if is_windows:
-            # Match LocalEnvironment: commands are POSIX scripts executed by
-            # Git Bash, and stdin bytes must bypass Windows newline rewriting.
-            command = [_find_bash(), "-c", command]
         completed = subprocess.run(
-            command,
-            shell=not is_windows,
-            text=not is_windows,
-            capture_output=True,
-            input=(stdin_data.encode("utf-8", "surrogateescape")
-                   if is_windows and stdin_data is not None else stdin_data),
-        )
-        output = (
-            completed.stdout.decode("utf-8", "replace")
-            if is_windows else completed.stdout
-        )
+            command, shell=True, text=True, capture_output=True, input=kwargs.get("stdin_data"))
+        output = completed.stdout
         if include_stderr:
-            output += (
-                completed.stderr.decode("utf-8", "replace")
-                if is_windows else completed.stderr
-            )
+            output += completed.stderr
         return {
             "output": output,
             "returncode": completed.returncode,
@@ -248,16 +229,6 @@ class TestShellFileOpsHelpers:
         assert normalize_read_pagination(offset=2, limit=999999) == (2, 2000)
 
 
-
-
-    @pytest.mark.platforms("windows")
-    def test_escape_shell_arg_rewrites_forward_slash_native_paths(self, file_ops):
-        """Windows-only: ``_bash_safe_path`` only rewrites drive paths to the
-        Git Bash form on Windows, where the MSYS path mangling it works around
-        actually happens."""
-        assert file_ops._escape_shell_arg(
-            "C:/Users/alice/notes.txt"
-        ) == "'/c/Users/alice/notes.txt'"
 
 
     def test_is_likely_binary_by_extension(self, file_ops):
@@ -847,86 +818,3 @@ class TestByteLayerBinaryDetection:
         ops = ShellFileOperations(mock_env)
         result = ops.read_file("/tmp/a.out")
         assert result.is_binary is True
-
-
-
-class TestEscapeNativeToolArg:
-    """Regression tests for _escape_native_tool_arg (Windows native-binary paths).
-
-    Live failure (Windows, Aug 2026): search_files passed rg the MSYS form
-    (/c/Users/...) that _escape_shell_arg produces, but Hermes sets
-    MSYS_NO_PATHCONV=1 / MSYS2_ARG_CONV_EXCL=* for its bash subprocesses,
-    so nothing converted the path back for the native (winget) ripgrep
-    binary — every search on a drive-letter path failed with
-    "The system cannot find the path specified. (os error 3)". Native
-    Windows binaries need C:/... (forward-slash native), which bash also
-    passes through untouched.
-    """
-
-    def _ops(self, mock_env):
-        return ShellFileOperations(mock_env)
-
-    @pytest.mark.platforms("windows")
-    def test_windows_native_path_kept_native(self, mock_env):
-        ops = self._ops(mock_env)
-        out = ops._escape_native_tool_arg(r"C:\Users\alice\project")
-        assert out == "'C:/Users/alice/project'"
-
-    @pytest.mark.platforms("windows")
-    def test_msys_path_translated_back_to_native(self, mock_env):
-        ops = self._ops(mock_env)
-        out = ops._escape_native_tool_arg("/c/Users/alice/project")
-        assert out == "'C:/Users/alice/project'"
-
-    @pytest.mark.platforms("windows")
-    def test_posix_path_untouched_on_windows(self, mock_env):
-        """Multi-segment POSIX paths (/home/x, /tmp/y) are not drive paths."""
-        ops = self._ops(mock_env)
-        assert ops._escape_native_tool_arg("/tmp/workdir") == "'/tmp/workdir'"
-
-    @pytest.mark.platforms("windows")
-    def test_rg_content_search_uses_native_form(self, mock_env):
-        """The call site, not just the helper: search must hand the native rg
-        binary C:/..., never the MSYS /c/... form (the live os-error-3 failure)."""
-        commands = []
-
-        def side_effect(command, **kwargs):
-            commands.append(command)
-            if "test -e" in command:
-                return {"output": "exists", "returncode": 0}
-            if "command -v" in command:
-                return {"output": "yes", "returncode": 0}
-            return {"output": "", "returncode": 0}
-
-        mock_env.execute.side_effect = side_effect
-        ops = self._ops(mock_env)
-        ops.search("needle", path=r"C:\Users\alice\project")
-        rg_cmds = [c for c in commands if "rg " in c or c.startswith("rg")]
-        assert rg_cmds, f"no rg command captured in: {commands}"
-        assert any("'C:/Users/alice/project'" in c for c in rg_cmds), rg_cmds
-        assert all("/c/Users" not in c for c in rg_cmds), rg_cmds
-
-    @pytest.mark.platforms("windows")
-    def test_shell_linter_uses_native_form(self, mock_env):
-        """_check_lint must hand node/python/etc. the native C:/ path.
-
-        Regression for the double-prefix failure (#84303): node given the
-        MSYS /c/Users/... form resolves it as C:\\c\\Users\\... and every
-        .js write reports a phantom ENOENT lint error.
-        """
-        commands = []
-
-        def side_effect(command, **kwargs):
-            commands.append(command)
-            if "command -v" in command:
-                return {"output": "yes", "returncode": 0}
-            return {"output": "", "returncode": 0}
-
-        mock_env.execute.side_effect = side_effect
-        ops = self._ops(mock_env)
-        result = ops._check_lint(r"C:\Users\alice\app\main.js")
-        assert result.skipped is False
-        node_cmds = [c for c in commands if "node --check" in c]
-        assert node_cmds, f"no node command captured in: {commands}"
-        assert "'C:/Users/alice/app/main.js'" in node_cmds[0]
-        assert "/c/Users" not in node_cmds[0]

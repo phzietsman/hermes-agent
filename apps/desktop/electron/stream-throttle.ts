@@ -18,7 +18,7 @@
 // On native Wayland only, a fullscreen chat may be misclassified as occluded
 // after sitting idle (#94865). The caller can opt into keeping the fleet
 // unthrottled while any registered window is fullscreen. The policy is
-// deliberately opt-in so macOS/Windows/X11 keep the idle-CPU contract.
+// deliberately opt-in so macOS/X11 keep the idle-CPU contract.
 //
 // Pure and Electron-free (timers + the WebContents surface are injected) so it
 // can be unit-tested, mirroring session-windows.ts.

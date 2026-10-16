@@ -20,8 +20,6 @@ from contextlib import contextmanager
 import faulthandler
 import logging
 import os
-import subprocess
-import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -40,17 +38,8 @@ __all__ = [
 # ``Thread.join(timeout=...)`` deadlines to an absolute timestamp; very large
 # relative timeouts overflow ``time_t`` on macOS and raise
 # ``OverflowError: timestamp out of range for platform time_t`` (#83220).
-# On Windows the binding constraint is narrower: the underlying
-# ``WaitForSingleObject`` takes a DWORD *milliseconds* argument, so any
-# wait above ~49.7 days (0xFFFFFFFF ms) raises OverflowError rather than
-# waiting (verified live: 4294967.0s ok, 4294967.3s overflows). One year
-# is the semantic "unbounded" on platforms that can express it; Windows
-# takes the DWORD-ms cap, which is still semantically "unbounded" for
-# every wait in this codebase.
-_WINDOWS_MAX_WAIT_S = (0xFFFFFFFF - 1000) / 1000.0  # DWORD ms, minus a 1s rounding guard
-MAX_SAFE_TIMEOUT_S = (
-    _WINDOWS_MAX_WAIT_S if sys.platform == "win32" else 31_536_000.0
-)  # 365 days off-Windows
+# One year is the semantic "unbounded".
+MAX_SAFE_TIMEOUT_S = 31_536_000.0
 
 # Grace after a deadline fires before concluding the loop thread is blocked and dumping stacks.
 _LOOP_BLOCKED_DUMP_GRACE_S = 5.0
@@ -416,29 +405,11 @@ def _process_tree_snapshot(pid: int, *, hard_kill: bool):
 def kill_process_tree(pid: int, *, sig: Optional[int] = None) -> bool:
     """Terminate ``pid`` and all its descendants, portably; True when anything was signalled.
 
-    Windows: ``taskkill /F /T`` (``sig`` ignored). POSIX: snapshot descendants via
-    psutil; for SIGKILL, stop and rescan the live tree so a concurrent fork cannot
+    Snapshot descendants via psutil; for SIGKILL, stop and rescan the live tree so a concurrent fork cannot
     escape a stale snapshot. Signal identity-checked descendants before their
     parent, then its group when ``pid`` leads one. Stopping is best-effort with a
     bounded wait; unavailable psutil still leaves process-group cleanup. Other
     signals do not suspend recipients. ``sig`` defaults to ``SIGKILL``."""
-    if sys.platform == "win32":
-        try:
-            from hermes_cli._subprocess_compat import windows_hide_flags
-            creationflags = windows_hide_flags()
-        except Exception:
-            creationflags = 0
-        try:
-            proc = subprocess.run(
-                ["taskkill", "/F", "/T", "/PID", str(pid)],
-                stdin=subprocess.DEVNULL, capture_output=True, timeout=15, check=False, creationflags=creationflags,
-            )
-            # taskkill exits non-zero for not-found / access-denied (False = nothing terminated).
-            return proc.returncode == 0
-        except Exception:
-            logger.debug("kill_process_tree: taskkill failed for pid %s", pid, exc_info=True)
-            return False
-
     import signal as _signal
     if sig is None:
         sig = _signal.SIGKILL
@@ -463,7 +434,7 @@ def kill_process_tree(pid: int, *, sig: Optional[int] = None) -> bool:
         try:
             if pgid is not None and pgid == pid:
                 # pid leads its own group (the == check avoids signalling the caller's group).
-                os.killpg(pgid, sig)  # windows-footgun: ok — POSIX-only branch (win32 returns above)
+                os.killpg(pgid, sig)
             else:
                 os.kill(pid, sig)
             signalled = True

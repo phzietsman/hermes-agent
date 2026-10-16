@@ -88,7 +88,7 @@ APT 移除软件包和命令链接，但保留用户配置、会话、技能和�
 ## Gateway 和限制
 
 使用 `hermes gateway run` 在 Termux 会话中运行 gateway。
-当前 APT 路径不提供 systemd、launchd 或 Windows 计划任务。
+当前 APT 路径不提供 systemd 或 launchd。
 Android 可能挂起或终止后台进程；唤醒锁不保证持续运行。
 
 该包不包含 `nemo-relay` 导出器，也不包含 Electron 桌面应用。

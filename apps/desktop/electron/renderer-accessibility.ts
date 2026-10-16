@@ -6,10 +6,10 @@
  * accessibility APIs (Wispr Flow and similar) do not register the way a
  * screen reader does, so the tree never appears: the window exposes only its
  * chrome and the contenteditable composer is invisible to them, on macOS
- * (#118271) and on Windows (#92607) alike. Electron's manual switch for that
+ * (#118271). Electron's manual switch for that
  * is `app.setAccessibilitySupportEnabled(true)` once the app is ready.
  *
- * Default ON for the platforms where the typed API exists (darwin, win32) —
+ * Default ON for the platforms where the typed API exists (darwin) —
  * the composer being reachable by every accessibility-driven input method is
  * the point of the bug fix; the tree's rendering cost is the price. A
  * perf-sensitive setup can opt out with `desktop.renderer_accessibility:
@@ -37,8 +37,8 @@ export function shouldEnableRendererAccessibility(
   env: { HERMES_DESKTOP_RENDERER_ACCESSIBILITY?: string | undefined } = process.env,
   platform: NodeJS.Platform = process.platform
 ): boolean {
-  if (platform !== 'darwin' && platform !== 'win32') {
-    // The typed Electron API is darwin/win32. Linux accessibility flows
+  if (platform !== 'darwin') {
+    // The typed Electron API is darwin-only here. Linux accessibility flows
     // through the platform's own ATK stack and needs no manual enable here.
     return false
   }

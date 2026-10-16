@@ -149,8 +149,8 @@ class TestDoctorExitCodes:
         assert code == 1
 
     def test_spawn_denied_exits_2_with_diagnosis(self, capsys):
-        """The runtime interpreter cannot execute the resolved binary (Windows WinError 5 on a
-        `WindowsApps` install): a diagnosis + exit 2, never a raw traceback."""
+        """The runtime interpreter cannot execute the resolved binary: a diagnosis + exit 2, never a
+        raw traceback."""
         from tools.computer_use import doctor
 
         with _pm_driver("/protected/cua-driver"), \
@@ -356,8 +356,8 @@ class TestHealthReportFallback:
 
 class TestDoctorVersionIdentity:
     def test_header_prefers_cli_version_on_mismatch(self):
-        """Windows has been observed reporting 0.8.3 via health_report while
-        the resolved binary is 0.12.6 — doctor must surface the real version."""
+        """health_report has been observed reporting 0.8.3 while the resolved
+        binary is 0.12.6 — doctor must surface the real version."""
         from tools.computer_use import doctor
 
         proc = _fake_proc_with_responses(

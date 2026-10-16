@@ -17,7 +17,6 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
@@ -29,16 +28,16 @@ def fake_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """A venv whose pyvenv.cfg points at a uv-managed base interpreter."""
     venv = tmp_path / "hermes-agent" / "venv"
     venv.mkdir(parents=True)
-    exe_dir = venv / ("Scripts" if sys.platform == "win32" else "bin")
+    exe_dir = venv / "bin"
     exe_dir.mkdir()
-    exe = exe_dir / ("python.exe" if sys.platform == "win32" else "python")
+    exe = exe_dir / "python"
     exe.write_text("", encoding="utf-8")
 
-    uv_base = tmp_path / "uv" / "python" / "cpython-3.11.9-windows-x86_64-none"
+    uv_base = tmp_path / "uv" / "python" / "cpython-3.11.9-linux-x86_64-gnu"
     uv_base.mkdir(parents=True)
-    base_exe_dir = uv_base / ("Scripts" if sys.platform == "win32" else "bin")
+    base_exe_dir = uv_base / "bin"
     base_exe_dir.mkdir()
-    (base_exe_dir / ("python.exe" if sys.platform == "win32" else "python")).write_text("", encoding="utf-8")
+    (base_exe_dir / "python").write_text("", encoding="utf-8")
 
     home_dir = str(base_exe_dir)
     (venv / "pyvenv.cfg").write_text(
@@ -98,14 +97,6 @@ def test_rm_of_unrelated_venv_is_allowed(fake_runtime, tmp_path):
     other = tmp_path / "project" / ".venv"
     other.mkdir(parents=True)
     assert rsp.command_deletes_runtime(f"rm -rf {other}") is None
-
-
-def test_windows_del_and_powershell_spellings(fake_runtime, monkeypatch):
-    with mock.patch.object(os, "name", "nt"):
-        exe = fake_runtime["exe"]
-        assert rsp.command_deletes_runtime(f'del "{exe}"') is not None
-        assert rsp.command_deletes_runtime(f'Remove-Item -Recurse -Force "{exe}"') is not None
-        assert rsp.command_deletes_runtime(f"rd /s /q {fake_runtime['venv']}") is not None
 
 
 def test_mkdir_over_protected_path_not_flagged_as_delete(fake_runtime):

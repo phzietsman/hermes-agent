@@ -16,10 +16,6 @@ import {
 // (use-window-controls-overlay-width.ts) and uses these values only when the WCO
 // API is unavailable.
 
-test('Windows reserves the overlay fallback width', () => {
-  assert.equal(nativeOverlayWidth({ isWindows: true }), OVERLAY_FALLBACK_WIDTH)
-})
-
 test('WSLg custom controls reserve the same fallback width', () => {
   // The original bug: WSL fell through to 0, so the right tools sat under the
   // controls and the title overran into them.
@@ -39,11 +35,11 @@ test('WSLg disables the undersized native overlay in favor of renderer controls'
   )
 })
 
-test('native Windows and Linux keep the same window-controls overlay', () => {
+test('native Linux keeps the same window-controls overlay', () => {
   const input = { titlebarHeight: 34, color: 'transparent', foreground: '#ffffff', dark: false }
   const expected = { color: 'transparent', height: 34, symbolColor: '#ffffff' }
 
-  for (const platform of ['windows', 'linux'] as const) {
+  for (const platform of ['linux'] as const) {
     assert.deepEqual(titleBarOverlayOptions({ platform, ...input }), expected)
   }
 })
@@ -65,7 +61,7 @@ test('plain Linux paints the WCO too, so it reserves the fallback width', () => 
   // Regression #53185: re-enabling the overlay on plain Linux (KDE/GNOME)
   // without reserving its width left the native min/max/close buttons painting
   // on top of the app's right-edge titlebar tools.
-  assert.equal(nativeOverlayWidth({ isWindows: false, isWsl: false }), OVERLAY_FALLBACK_WIDTH)
+  assert.equal(nativeOverlayWidth({ isWsl: false }), OVERLAY_FALLBACK_WIDTH)
   assert.equal(nativeOverlayWidth(), OVERLAY_FALLBACK_WIDTH)
   assert.equal(nativeOverlayWidth({}), OVERLAY_FALLBACK_WIDTH)
 })
@@ -107,15 +103,15 @@ test('scaledOverlayHeight never returns a zero-height overlay', () => {
   assert.equal(scaledOverlayHeight(34, 0.01), 1)
 })
 
-test('titleBarOverlayOptions scales the Windows/Linux overlay height with zoom', () => {
+test('titleBarOverlayOptions scales the Linux overlay height with zoom', () => {
   const base = { titlebarHeight: 34, color: 'transparent', foreground: '#ffffff', dark: false }
 
-  assert.deepEqual(titleBarOverlayOptions({ platform: 'windows', ...base, zoomFactor: 1 }), {
+  assert.deepEqual(titleBarOverlayOptions({ platform: 'linux', ...base, zoomFactor: 1 }), {
     color: 'transparent',
     height: 34,
     symbolColor: '#ffffff'
   })
-  assert.deepEqual(titleBarOverlayOptions({ platform: 'windows', ...base, zoomFactor: 1.2 }), {
+  assert.deepEqual(titleBarOverlayOptions({ platform: 'linux', ...base, zoomFactor: 1.2 }), {
     color: 'transparent',
     height: 41,
     symbolColor: '#ffffff'
@@ -143,7 +139,7 @@ test('titleBarOverlayOptions keeps WSLg and macOS untouched by zoom', () => {
 test('default zoom leaves the overlay byte-identical to today', () => {
   // zoomFactor defaults to 1: no caller change, no height change.
   const base = { titlebarHeight: 34, color: 'transparent', foreground: '#ffffff', dark: false }
-  assert.deepEqual(titleBarOverlayOptions({ platform: 'windows', ...base }), {
+  assert.deepEqual(titleBarOverlayOptions({ platform: 'linux', ...base }), {
     color: 'transparent',
     height: 34,
     symbolColor: '#ffffff'

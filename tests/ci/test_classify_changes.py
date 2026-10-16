@@ -44,15 +44,12 @@ DEFAULT = {
     "deps": True,
     "uv_lock": True,
     "npm_lock": True,
-    "bootstrap": True,
-    "desktop_updater": True,
-    "rust": True,
 }
 
 SLOW_LANES = {"docker", "nix", "e2e", "e2e_upgrade", "e2e_desktop_core", "e2e_desktop_update"}
 
 
-def _lanes(python=False, frontend=False, site=False, scan=False, deps=False, uv_lock=False, npm_lock=False, bootstrap=False, desktop_updater=False, rust=False, docker_meta=False, python_prod=None, nix=False, docker=None, e2e=False, e2e_upgrade=False, e2e_desktop_core=False, e2e_desktop_update=False) -> dict[str, bool]:
+def _lanes(python=False, frontend=False, site=False, scan=False, deps=False, uv_lock=False, npm_lock=False, docker_meta=False, python_prod=None, nix=False, docker=None, e2e=False, e2e_upgrade=False, e2e_desktop_core=False, e2e_desktop_update=False) -> dict[str, bool]:
     # python_prod tracks python except for tests-only diffs; default it to
     # python so the majority of cases don't need to spell it out.
     #
@@ -77,9 +74,6 @@ def _lanes(python=False, frontend=False, site=False, scan=False, deps=False, uv_
         "deps": deps,
         "uv_lock": uv_lock,
         "npm_lock": npm_lock,
-        "bootstrap": bootstrap,
-        "desktop_updater": desktop_updater,
-        "rust": rust,
     }
 
 
@@ -93,13 +87,11 @@ CASES = {
     "root JS tests → frontend": (["tests-js/product-builders.test.mjs"], _lanes(python=True, frontend=True)),
     "docs-only → nothing heavy": (["README.md", "docs/guide.md"], _lanes()),
     "python source → python": (["run_agent.py"], _lanes(python=True, scan=True)),
-    # pyproject.toml declares the pytest markers the OS lanes select on, so it
-    # also re-arms the desktop_updater integration tests (fail-open).
     # The dependency manifests are inputs to the image, the flake and every
     # install, so they start those slow lanes on the PR itself.
     "dep manifest → python": (
         ["pyproject.toml"],
-        _lanes(python=True, scan=True, deps=True, uv_lock=True, desktop_updater=True, docker=True, nix=True, e2e_upgrade=True),
+        _lanes(python=True, scan=True, deps=True, uv_lock=True, docker=True, nix=True, e2e_upgrade=True),
     ),
     "uv.lock → python": (["uv.lock"], _lanes(python=True, uv_lock=True, docker=True, nix=True, e2e_upgrade=True)),
     "ts package → frontend": (["apps/desktop/src/app.tsx"], _lanes(frontend=True)),
@@ -173,54 +165,15 @@ CASES = {
     ),
     # Prose cannot change the closure or the binary.
     "docs-only → no nix": (["README.md"], _lanes()),
-    # install.ps1 and its PowerShell suites are exercised by platforms("windows")
-    # pytest files, so they must turn on python (which gates tests-os).
-    "install.ps1 → python + e2e_upgrade": (["scripts/install.ps1"], _lanes(python=True, e2e_upgrade=True)),
-    "installer suite → python": (["scripts/tests/test-install-ps1-longpath.ps1"], _lanes(python=True)),
-    # The Windows desktop-update hand-off is a PowerShell integration surface:
-    # its tests spawn the real script and poll its loopback server. They run
-    # when the script, the Electron side that launches it, or their own test
-    # files change — not on every hermes_state.py PR. The script runs a real
-    # `hermes update`, and the Windows crash cells that kill it mid-run live in
-    # the install + update journey, so it starts e2e_upgrade as well.
-    "windows.ps1 → desktop_updater": (
-        ["scripts/desktop-update/windows.ps1"],
-        _lanes(python=True, desktop_updater=True, e2e_upgrade=True, e2e_desktop_update=True),
-    ),
     # The shipped updater page is exercised by the desktop Electron suite;
     # a page-only change must run that suite as well as the server tests.
-    "updater ui.html → frontend + desktop_updater": (
+    "updater ui.html → frontend + update suites": (
         ["scripts/desktop-update/ui.html"],
-        _lanes(python=True, frontend=True, desktop_updater=True, e2e_upgrade=True, e2e_desktop_update=True),
+        _lanes(python=True, frontend=True, e2e_upgrade=True, e2e_desktop_update=True),
     ),
-    "desktop-update test → desktop_updater": (
-        ["tests/scripts/desktop_update/test_desktop_update_windows_progress.py"],
-        _lanes(python=True, python_prod=False, scan=True, desktop_updater=True),
-    ),
-    "updater-process.ts → desktop_updater": (
+    "updater-process.ts → desktop update": (
         ["apps/desktop/electron/updater-process.ts"],
-        _lanes(frontend=True, desktop_updater=True, e2e_desktop_update=True),
-    ),
-    "python source alone → no desktop_updater lane": (["gateway/run.py"], _lanes(python=True, scan=True)),
-    # `.rs` lives under apps/, so it matches `frontend` too. That lane builds
-    # TypeScript and cannot notice a Rust error — before `rust` existed it was
-    # the ONLY lane a Rust change ran, and the crate's tests never executed.
-    "rust source → rust": (
-        ["apps/bootstrap-installer/src-tauri/src/powershell.rs"],
-        _lanes(frontend=True, bootstrap=True, rust=True),
-    ),
-    "cargo lockfile → rust": (
-        ["apps/bootstrap-installer/src-tauri/Cargo.lock"],
-        _lanes(frontend=True, bootstrap=True, rust=True),
-    ),
-    # Non-.rs files in the crate still change what cargo builds.
-    "tauri config → rust": (
-        ["apps/bootstrap-installer/src-tauri/tauri.conf.json"],
-        _lanes(frontend=True, bootstrap=True, rust=True),
-    ),
-    "ts source alone → no rust lane": (
-        ["apps/bootstrap-installer/src/main.tsx"],
-        _lanes(frontend=True, bootstrap=True),
+        _lanes(frontend=True, e2e_desktop_update=True),
     ),
     # Unknown top-level file keeps Python on rather than risk a silent skip.
     "unknown toplevel → python": (["Makefile"], _lanes(python=True)),
@@ -232,16 +185,14 @@ CASES = {
         ["tests/agent/test_foo.py"],
         _lanes(python=True, python_prod=False, scan=True),
     ),
-    # conftest.py owns the _OS_MARKS skip logic, so it re-arms the
-    # desktop_updater integration tests too (fail-open).
     # The shared harness can break every Python E2E suite.
-    "conftest → python + desktop_updater + python e2e": (
+    "conftest → python + python e2e": (
         ["tests/conftest.py"],
-        _lanes(python=True, python_prod=False, scan=True, desktop_updater=True, e2e=True, e2e_upgrade=True),
+        _lanes(python=True, python_prod=False, scan=True, e2e=True, e2e_upgrade=True),
     ),
-    "conftest fixture module → python + desktop_updater + python e2e": (
+    "conftest fixture module → python + python e2e": (
         ["tests/_fixtures/platform_gating.py"],
-        _lanes(python=True, python_prod=False, scan=True, desktop_updater=True, e2e=True, e2e_upgrade=True),
+        _lanes(python=True, python_prod=False, scan=True, e2e=True, e2e_upgrade=True),
     ),
     "tests + prod source → both lanes": (
         ["tests/agent/test_foo.py", "agent/x.py"],
@@ -287,10 +238,6 @@ CASES = {
         ["apps/shared/eslint.config.mjs"],
         _lanes(frontend=True),
     ),
-    "bootstrap-installer eslint config → frontend + bootstrap": (
-        ["apps/bootstrap-installer/eslint.config.mjs"],
-        _lanes(frontend=True, bootstrap=True),
-    ),
     "prettier config → python": (
         [".prettierrc"],
         _lanes(python=True),
@@ -299,19 +246,13 @@ CASES = {
         [".github/workflows/typecheck.yml"],
         DEFAULT,
     ),
-    # The bootstrap installer lane: shell installer, dev-checkout wrapper,
-    # and the Tauri app's non-Rust sources.
-    "install.sh → bootstrap lane": (
+    "install.sh → update suites": (
         ["scripts/install.sh"],
-        _lanes(python=True, bootstrap=True, python_prod=True, e2e_upgrade=True, e2e_desktop_update=True),
+        _lanes(python=True, python_prod=True, e2e_upgrade=True, e2e_desktop_update=True),
     ),
-    "setup-hermes.sh → bootstrap lane": (
+    "setup-hermes.sh → e2e_upgrade": (
         ["setup-hermes.sh"],
-        _lanes(python=True, bootstrap=True, python_prod=True, e2e_upgrade=True),
-    ),
-    "tauri installer source → bootstrap + rust": (
-        ["apps/bootstrap-installer/src-tauri/src/lib.rs"],
-        _lanes(frontend=True, bootstrap=True, rust=True),
+        _lanes(python=True, python_prod=True, e2e_upgrade=True),
     ),
     "composite action → fail-open all": (
         [".github/actions/retry/action.yml"],
@@ -346,17 +287,13 @@ CASES = {
         ["hermes_cli/main.py"], _lanes(python=True, scan=True, e2e_upgrade=True, e2e_desktop_update=True),
     ),
     "gateway status stamp → e2e_upgrade": (["gateway/status.py"], _lanes(python=True, scan=True, e2e_upgrade=True)),
-    "desktop verify → desktop_updater + both update suites": (
-        ["hermes_cli/desktop_update_verify.py"],
-        _lanes(python=True, scan=True, desktop_updater=True, e2e_upgrade=True, e2e_desktop_update=True),
-    ),
     "electron main → desktop update": (
         ["apps/desktop/electron/main.ts"],
         _lanes(frontend=True, e2e_desktop_update=True),
     ),
-    "handoff result reader → desktop_updater + desktop update": (
+    "handoff result reader → desktop update": (
         ["apps/desktop/electron/handoff-result.ts"],
-        _lanes(frontend=True, desktop_updater=True, e2e_desktop_update=True),
+        _lanes(frontend=True, e2e_desktop_update=True),
     ),
     "desktop backend spawn → desktop core": (
         ["apps/desktop/electron/backend-child.ts"],
@@ -435,7 +372,7 @@ def test_every_slow_lane_path_matches_a_tracked_file():
 # tables of the updater audit's cli-update and desktop-update code maps). A
 # PR that edits only one of these must start the real-update suite that would
 # catch the regression; before, main.py / _early_recovery.py / relaunch.py /
-# gateway/ / hermes_bootstrap.py skipped both the Linux and Windows journeys.
+# gateway/ / hermes_bootstrap.py skipped the real-update journey.
 _UPDATE_PATH_FILES = (
     "hermes_cli/main.py",
     "hermes_cli/main_dashboard.py",
@@ -445,8 +382,6 @@ _UPDATE_PATH_FILES = (
     "hermes_cli/update_lock.py",
     "hermes_cli/update_cmd.py",
     "hermes_cli/update_completion.py",
-    "hermes_cli/update_cmd_windows.py",
-    "hermes_cli/update_cmd_zip.py",
     "hermes_cli/_update_takeover.py",
     "hermes_cli/source_completion.py",
     "hermes_cli/source_build.py",
@@ -456,15 +391,12 @@ _UPDATE_PATH_FILES = (
     "hermes_cli/process_identity.py",
     "hermes_cli/relaunch.py",
     "hermes_cli/gateway.py",
-    "hermes_cli/gateway_windows.py",
     "hermes_cli/gateway_migrate.py",
-    "hermes_cli/desktop_update_verify.py",
     "hermes_bootstrap.py",
     "hermes_constants.py",
     "gateway/status.py",
     "gateway/control_socket.py",
     "gateway/code_skew.py",
-    "scripts/desktop-update/windows.ps1",
     "scripts/desktop-update/posix.sh",
 )
 _DESKTOP_UPDATE_PATH_FILES = (
@@ -477,9 +409,7 @@ _DESKTOP_UPDATE_PATH_FILES = (
     "apps/desktop/electron/desktop-installation.ts",
     "apps/desktop/electron/backend-discovery.ts",
     "apps/desktop/electron/host-backend-attach.ts",
-    "scripts/desktop-update/windows.ps1",
     "scripts/desktop-update/posix.sh",
-    "hermes_cli/desktop_update_verify.py",
     "hermes_cli/main_desktop.py",
 )
 
@@ -554,9 +484,7 @@ def _iter_if_expressions(job: object):
 # suite: each runs on a PR exactly when its lane fires and then gates the merge.
 _REAL_UPDATE_LANES = (
     ("ci.yaml", "tests", "tests.yml", "e2e_upgrade"),
-    ("ci.yaml", "tests-os", "tests-os.yml", "e2e_upgrade"),
     ("ci.yaml", "e2e-desktop-update", "e2e-desktop-update.yml", "e2e_desktop_update"),
-    ("tests-os.yml", "install-update-e2e", "windows-install-update-e2e.yml", "e2e_upgrade"),
 )
 
 
@@ -577,15 +505,6 @@ def test_real_update_suites_gate_the_merge_when_their_lane_fires(caller, job, ca
     assert root in ci["jobs"]["all-checks-pass"]["needs"]
     for name, body in _yaml(f".github/workflows/{called}")["jobs"].items():
         assert not body.get("continue-on-error"), f"{called}::{name} cannot fail the merge"
-
-
-def test_windows_venv_e2e_runs_only_test_files_that_exist():
-    """``run_tests.sh`` drops a missing path (or a ``::node`` selector) without
-    a word, so a stale entry silently stops running on every wine2e push."""
-    text = (_REPO / ".github/workflows/windows-venv-e2e.yml").read_text(encoding="utf-8-sig")
-    paths = re.findall(r"(tests/[\w/.:-]+)", text)
-    assert paths
-    assert [p for p in paths if "::" in p or not (_REPO / p).is_file()] == []
 
 
 def _write_event(tmp_path, number: int | None = 88442) -> Path:

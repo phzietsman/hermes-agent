@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { cleanReviveSnapshot, isIdlePromptOnly, parseOscCwd } from './use-terminal-session'
 
 // A default-PowerShell idle prompt: no blank-line separator before it.
-const PS_PROMPT = 'PS C:\\Users\\Aleksandr>'
+const PS_PROMPT = 'PS /Users/Aleksandr>'
 
 describe('isIdlePromptOnly', () => {
   it('is true for an empty or whitespace-only buffer', () => {
@@ -24,11 +24,11 @@ describe('isIdlePromptOnly', () => {
   })
 
   it('is false when the buffer holds a real command and output', () => {
-    expect(isIdlePromptOnly([PS_PROMPT, 'cd project', 'PS C:\\Users\\Aleksandr\\project>'].join('\r\n'))).toBe(false)
+    expect(isIdlePromptOnly([PS_PROMPT, 'cd project', 'PS /Users/Aleksandr/project>'].join('\r\n'))).toBe(false)
   })
 
   it('is false when two different prompts are present (cwd actually changed)', () => {
-    expect(isIdlePromptOnly([PS_PROMPT, 'PS C:\\Users\\Aleksandr\\project>'].join('\r\n'))).toBe(false)
+    expect(isIdlePromptOnly([PS_PROMPT, 'PS /Users/Aleksandr/project>'].join('\r\n'))).toBe(false)
   })
 })
 
@@ -76,17 +76,13 @@ describe('parseOscCwd', () => {
     expect(parseOscCwd(7, 'file://host/Users/al/my%20project')).toBe('/Users/al/my project')
   })
 
-  it('strips the leading slash from a Windows OSC 7 file URI', () => {
-    expect(parseOscCwd(7, 'file:///C:/Users/Aleksandr/project')).toBe('C:/Users/Aleksandr/project')
-  })
-
   it('ignores non-file OSC 7 payloads', () => {
     expect(parseOscCwd(7, 'https://example.com')).toBeNull()
     expect(parseOscCwd(7, '')).toBeNull()
   })
 
   it('parses an OSC 9;9 cwd payload and unquotes it', () => {
-    expect(parseOscCwd(9, '9;"C:\\Users\\Aleksandr"')).toBe('C:\\Users\\Aleksandr')
+    expect(parseOscCwd(9, '9;"/Users/Aleksandr"')).toBe('/Users/Aleksandr')
     expect(parseOscCwd(9, '9;/home/al/src')).toBe('/home/al/src')
   })
 

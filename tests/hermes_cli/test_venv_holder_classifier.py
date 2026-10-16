@@ -1,18 +1,16 @@
-"""Cross-platform unit tests for the venv-holder message classifier (#90778)."""
+"""Unit tests for the holder subcommand classifier (#90778)."""
 
 import pytest
 
-from hermes_cli.update_cmd import (
-    _hermes_holder_subcommand,
-)
+from hermes_cli.update_cmd_common import _hermes_holder_subcommand
 
 class TestHolderSubcommand:
     @pytest.mark.parametrize(
         ("cmdline", "expected"),
         [
-            (r"C:\x\venv\Scripts\python.exe -m hermes_cli.main serve --host 127.0.0.1", "serve"),
-            (r"C:\x\venv\Scripts\python.exe -m hermes_cli.main dashboard", "dashboard"),
-            (r"python.exe -m hermes_cli.main gateway run", "gateway"),
+            (r"/x/venv/bin/python -m hermes_cli.main serve --host 127.0.0.1", "serve"),
+            (r"/x/venv/bin/python -m hermes_cli.main dashboard", "dashboard"),
+            (r"python3 -m hermes_cli.main gateway run", "gateway"),
             # profile selector skipped; its VALUE must not become the subcommand
             (r"python -m hermes_cli.main --profile serve gateway run", "gateway"),
             (r"python -m hermes_cli.main -p work serve", "serve"),
@@ -27,7 +25,7 @@ class TestHolderSubcommand:
             # -c consumes ONE value token; later bare tokens are (harmless,
             # unhinted) subcommand candidates — pin that shape honestly
             (r"python -m hermes_cli.main -c mysession serve", "serve"),
-            (r"C:\bin\hermes.exe dashboard", "dashboard"),
+            (r"/opt/bin/hermes dashboard", "dashboard"),
             (r"/usr/local/bin/hermes serve", "serve"),
             # no hermes entry at all
             (r"python -c import time; time.sleep(3)", None),

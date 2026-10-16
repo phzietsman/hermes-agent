@@ -308,8 +308,7 @@ class SubdirectoryHintTracker:
         return None
 
     def _display_path(self, hint_path: Path) -> str:
-        """Working-dir-relative, else ``~/``-relative (POSIX rendering so Windows
-        never shows ``~/AppData\\Local\\...`` chimeras), else absolute."""
+        """Working-dir-relative, else ``~/``-relative, else absolute."""
         try:
             return str(hint_path.relative_to(self.working_dir))
         except (ValueError, RuntimeError):

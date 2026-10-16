@@ -1,14 +1,12 @@
 """Disposable subprocess/tee probe; never invokes an actual update.
 
-Run with the checkout's Python. --step drives the native Windows hand-off
-watchdog fixture; otherwise print a live before/after JSON receipt.
+Run with the checkout's Python; prints a live before/after JSON receipt.
 """
 import argparse
 import io
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
 import tempfile
 import threading
@@ -28,16 +26,6 @@ def run_child(mode):
     return 7
 
 
-def step(mode):
-    from hermes_cli.main_dashboard import _install_hangup_protection, _finalize_update_output
-    from hermes_cli.main import _run_logged_subprocess
-    state = _install_hangup_protection(gateway_mode=True)
-    try:
-        return _run_logged_subprocess([sys.executable, __file__, "--child", mode]).returncode
-    finally:
-        _finalize_update_output(state)
-
-
 def probe():
     from hermes_cli.main_dashboard import _install_hangup_protection, _finalize_update_output
     from hermes_cli.main import _run_logged_subprocess
@@ -46,7 +34,6 @@ def probe():
         with tempfile.TemporaryDirectory(prefix="update-output-") as temp:
             os.environ["HERMES_HOME"] = temp
             os.environ["HOME"] = temp
-            os.environ["USERPROFILE"] = temp
             screen, original = io.StringIO(), sys.stdout
             sys.stdout = screen
             state = _install_hangup_protection(gateway_mode=gateway)
@@ -78,10 +65,7 @@ def probe():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--child", choices=("silent", "progress"))
-    parser.add_argument("--step", choices=("silent", "progress"))
     args = parser.parse_args()
     if args.child:
         raise SystemExit(run_child(args.child))
-    if args.step:
-        raise SystemExit(step(args.step))
     probe()

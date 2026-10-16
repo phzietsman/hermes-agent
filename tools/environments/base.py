@@ -269,7 +269,7 @@ class BaseEnvironment(ABC):
         self._cwd_marker = _cwd_marker(self._session_id)
         self._snapshot_ready = False
         self._snapshot_passthrough_names: set[str] = set()
-        # True when login bash is unusable (e.g. broken Git-for-Windows startup)
+        # True when login bash is unusable (broken rc startup)
         # so execute() must fall back to non-login ``bash -c``, not ``bash -l``.
         self._prefer_nonlogin = False
 
@@ -346,13 +346,11 @@ class BaseEnvironment(ABC):
         return tuple(sorted(self._snapshot_passthrough_names))
 
     def _snapshot_script_kwargs(self, cwd: str) -> dict:
-        """Quoting inputs shared by the bootstrap and per-command wrapper scripts.
-        ``_quote_cwd_for_cd`` / ``_quote_shell_path`` (not bare shlex.quote) let the Windows
-        subclass rewrite ``C:\\...`` to ``/c/...`` so ``cd`` resolves and MSYS doesn't choke."""
+        """Quoting inputs shared by the bootstrap and per-command wrapper scripts."""
         return dict(
             quoted_cwd=self._quote_cwd_for_cd(cwd),
-            quoted_snap=self._quote_shell_path(self._snapshot_path),
-            snap_tmp_template=self._quote_shell_path(self._snapshot_path + _SNAP_TMP_SUFFIX),
+            quoted_snap=shlex.quote(self._snapshot_path),
+            snap_tmp_template=shlex.quote(self._snapshot_path + _SNAP_TMP_SUFFIX),
             cwd_marker=self._cwd_marker)
 
     def init_session(self):
@@ -408,11 +406,6 @@ class BaseEnvironment(ABC):
         if cwd.startswith("~/"):
             return f"$HOME/{shlex.quote(cwd[2:])}"
         return shlex.quote(cwd)
-
-    def _quote_shell_path(self, path: str) -> str:
-        """Quote *path* for a bash script. LocalEnvironment overrides this to
-        rewrite native/mixed Windows paths to ``/c/...``; remote backends are POSIX."""
-        return shlex.quote(path)
 
     def _wrap_command(self, command: str, cwd: str) -> str:
         """Full bash script: source snapshot, cd, run, re-dump env, emit CWD markers."""
@@ -681,8 +674,8 @@ class BaseEnvironment(ABC):
                 self._kill_spawned_tree(proc_holder[0])
 
         # Hard wall-clock backstop: ``_wait_for_process`` polls to ``effective_timeout`` on the
-        # tool thread; if that is the event-loop thread, or the wait never returns (Windows
-        # pipe/poll hang), every asyncio timer is silently disabled. ``run_bounded_sync`` drives
+        # tool thread; if that is the event-loop thread, or the wait never returns,
+        # every asyncio timer is silently disabled. ``run_bounded_sync`` drives
         # expiry from a daemon worker + ``Event.wait`` so a blocked loop cannot disable it; the
         # grace lets the inner loop return the partial-output 124 path.
         # See #94285.

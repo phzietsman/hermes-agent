@@ -8,7 +8,6 @@ import signal
 import subprocess
 import sys
 import textwrap
-import time
 from pathlib import Path
 
 import pytest
@@ -16,7 +15,6 @@ import pytest
 from hermes_cli import update_pause_record as pause_record
 
 REPO = Path(__file__).resolve().parents[2]
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX signals; Windows cells live in wine2e")
 
 
 # Every child (and its children) locks a private file for THIS repo's checkout, like the
@@ -46,7 +44,7 @@ def _reap_children():
     while _SPAWNED:
         child = _SPAWNED.pop()
         if child.poll() is None:
-            child.kill()  # windows-footgun: ok — module skips on Windows
+            child.kill()
             child.wait(timeout=10)
 
 
@@ -90,7 +88,7 @@ def test_record_written_by_a_killed_updater_is_orphaned_only_after_its_death(tmp
         assert body["token"]["profiles"] == {"default": 4242}
         assert _orphaned_profiles(tmp_path) is None  # live owner: its own resume owns the set
     finally:
-        owner.send_signal(signal.SIGKILL)  # windows-footgun: ok — module skips on Windows
+        owner.send_signal(signal.SIGKILL)
         owner.wait(timeout=10)
     assert _orphaned_profiles(tmp_path) == {"default": 4242}
 
@@ -186,22 +184,21 @@ def _orphan(tmp_path: Path, profiles: dict) -> None:
         time.sleep(120)
     """ % profiles, env={"HERMES_HOME": str(tmp_path)})
     assert owner.stdout.readline().strip() == "written"
-    owner.send_signal(signal.SIGKILL)  # windows-footgun: ok — module skips on Windows
+    owner.send_signal(signal.SIGKILL)
     owner.wait(timeout=10)
 
 
-# The Windows resume cannot run here: the stand-in for it prints the set it was handed (on the real
-# stdout: recovery points sys.stdout at stderr) and (mode "hang") parks like a resume waiting on
-# relaunch verification.
+# A stand-in for the resume prints the set it was handed (on the real stdout: recovery points
+# sys.stdout at stderr) and (mode "hang") parks like a resume waiting on relaunch verification.
 _RECOVER = """
     import sys, time
-    import hermes_cli.update_cmd_windows as w
+    import hermes_cli.update_cmd_posix_pause as w
     def resume(token):
         print("resume", sorted(token.get("profiles") or {}), file=sys.__stdout__, flush=True)  # recovery sends stdout to stderr
         if sys.argv[1] == "hang":
             time.sleep(120)
         token["resume_needed"] = False
-    w._resume_windows_gateways_after_update = resume
+    w.resume_paused_gateways_after_update = resume
     from hermes_cli import update_pause_record as r
     r.recover(["status"])
     print("done", flush=True)
@@ -216,7 +213,7 @@ def test_a_launch_killed_mid_recovery_leaves_the_set_to_the_next_launch(tmp_path
     try:
         assert first.stdout.readline().strip() == "resume ['default']"
     finally:
-        first.send_signal(signal.SIGKILL)  # windows-footgun: ok — taskkill / console close mid-resume
+        first.send_signal(signal.SIGKILL)
         first.wait(timeout=10)
     second = _child(_RECOVER, "ok", env=env)
     out, _ = second.communicate(timeout=60)
@@ -335,11 +332,11 @@ _AT_LINE = """
         sys.settrace(trace)
 """
 _RESUMES = """
-    import hermes_cli.update_cmd_windows as w
+    import hermes_cli.update_cmd_posix_pause as w
     def resume(token):
         print("resume", sorted(token.get("profiles") or {}), file=sys.__stdout__, flush=True)  # recovery sends stdout to stderr
         token["resume_needed"] = False
-    w._resume_windows_gateways_after_update = resume
+    w.resume_paused_gateways_after_update = resume
     r.recover(["status"])
     print("done", flush=True)
 """
@@ -445,7 +442,7 @@ def test_a_gateway_draining_after_the_stop_request_keeps_its_restart_debt(tmp_pa
         assert updater.stdout.readline().strip() == "asked"
         assert gateway.stdout.readline().strip() == "stopping"
     finally:
-        updater.send_signal(signal.SIGKILL)  # windows-footgun: ok — module skips on Windows
+        updater.send_signal(signal.SIGKILL)
         updater.wait(timeout=10)
     try:
         assert gateway.poll() is None, "premise: the gateway is still draining"
@@ -470,7 +467,7 @@ def test_a_gateway_never_asked_to_stop_is_not_restarted(tmp_path):
     """, str(gateway.pid), env={"HERMES_HOME": str(tmp_path)})
     try:
         assert updater.stdout.readline().strip() == "recorded"
-        updater.send_signal(signal.SIGKILL)  # windows-footgun: ok — killed before its first stop request
+        updater.send_signal(signal.SIGKILL)
         updater.wait(timeout=10)
         assert _launches(tmp_path, 1) == [[]]
         assert _record_files(tmp_path) == [], "a still-serving gateway's entry stayed owed"
@@ -495,7 +492,7 @@ def test_a_stop_intended_but_never_issued_leaves_a_serving_gateway_alone_and_a_l
     """, str(gateway.pid), env={"HERMES_HOME": str(tmp_path)})
     try:
         assert updater.stdout.readline().strip() == "intended"
-        updater.send_signal(signal.SIGKILL)  # windows-footgun: ok — killed between the intent and the request
+        updater.send_signal(signal.SIGKILL)
         updater.wait(timeout=10)
         assert _launches(tmp_path, 1) == [[]]
         assert _record_files(tmp_path) == [], "a gateway never asked to stop is held as draining"
@@ -518,14 +515,14 @@ def test_a_request_on_disk_is_owed_even_before_it_is_recorded_sent(tmp_path):
     token = r.record_pause({"resume_needed": True, "profiles": {"default": pid},
                             "identities": {str(pid): r.identity(pid)["ct"]}}, None, [])
     r.mark_stop_requested(token, [pid], markers={pid: marker})
-    from hermes_cli.update_cmd_windows import _write_update_planned_stop_marker
+    from hermes_cli.update_cmd_posix_pause import _write_update_planned_stop_marker
     assert _write_update_planned_stop_marker(marker.parent, pid)
     print("requested", flush=True)
     time.sleep(120)
     """, str(gateway.pid), str(marker), env={"HERMES_HOME": str(tmp_path)})
     try:
         assert updater.stdout.readline().strip() == "requested"
-        updater.send_signal(signal.SIGKILL)  # windows-footgun: ok — killed before mark_stop_sent
+        updater.send_signal(signal.SIGKILL)
         updater.wait(timeout=10)
         assert _launches(tmp_path, 1) == [[]] and len(_record_files(tmp_path)) == 1, "an issued request lost its debt"
         marker.write_text(json.dumps({"target_pid": gateway.pid, "stopper_pid": 1}), encoding="utf-8")  # a user's stop replaced it
@@ -778,31 +775,6 @@ def test_a_host_without_psutil_records_an_identity_the_liveness_rule_can_prove(m
     ident = pause_record.identity()
     assert ident["ct"] is not None, "no creation time without psutil"
     assert update_lock.incarnation_live(ident["pid"], ident["ct"]) is True
-
-
-def test_the_tree_gate_finds_pm_git_and_runs_it_in_the_updaters_custody(tmp_path, monkeypatch):
-    """Review 5411136378 fix 3: on an install whose only git is PM's staged copy (no git on PATH),
-    a bare ``git`` made ``head_sha`` None, so ``tree_is_whole`` refused forever."""
-    import shutil
-    from types import SimpleNamespace
-
-    import pm
-    from hermes_cli import update_custody
-    root = tmp_path / "checkout"
-    root.mkdir()
-    _git(root, "init", "-q")
-    (root / "a.py").write_text("v1\n", encoding="utf-8")
-    _git(root, "add", ".")
-    _git(root, "commit", "-qm", "v1")
-    head, pm_git = _git(root, "rev-parse", "HEAD"), shutil.which("git")
-    ran, real_run_git = [], update_custody.run_git
-    monkeypatch.setattr(update_custody, "run_git", lambda cmd, args, **kw: ran.append(cmd[0]) or real_run_git(cmd, args, **kw))
-    monkeypatch.setattr(pm, "installed_package",
-                        lambda name, allow_outdated=False: SimpleNamespace(binary=Path(pm_git)) if name == "git" else None)
-    (tmp_path / "no-git").mkdir()
-    monkeypatch.setenv("PATH", str(tmp_path / "no-git"))
-    assert pause_record.head_sha(root) == head
-    assert ran == [pm_git], "the gate's git bypassed update_custody.run_git"
 
 
 @pytest.mark.parametrize("mechanism, probe, holds", [

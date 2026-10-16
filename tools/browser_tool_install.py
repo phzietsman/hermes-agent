@@ -54,7 +54,7 @@ def _browser_install_hint() -> str:
 def _agent_browser_candidate_present(path: str | None) -> bool:
     if not path:
         return False
-    return os.path.isfile(path) and (os.name == "nt" or os.access(path, os.X_OK))
+    return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
 def _find_agent_browser(*, validate: bool = True) -> str:
@@ -155,7 +155,7 @@ def check_browser_requirements() -> bool:
     # CDP override needs no local binary. Raw (no-I/O) check: this runs during schema build, where a stale endpoint must not cost a blocking probe.
     if _cdp._get_cdp_override_raw():
         return True
-    # Do not exec ``agent-browser --version`` here: Windows .cmd shims flash a console during Desktop startup. Execution paths still validate.
+    # Do not exec ``agent-browser --version`` here: this runs during schema build. Execution paths still validate.
     try:
         _find_agent_browser(validate=False)
     except FileNotFoundError:

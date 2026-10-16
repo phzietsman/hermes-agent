@@ -11,7 +11,7 @@ import path from 'node:path'
 import simpleGit from 'simple-git'
 
 import { resolveRequestedPathForIpc } from './hardening'
-import { execGit, noConsoleGitEnv, simpleGitBinary, windowsGitHost } from './no-console-git'
+import { execGit } from './no-console-git'
 
 const COMMIT_CONTEXT_DIFF_MAX_CHARS = 120_000
 const COMMIT_CONTEXT_UNTRACKED_MAX = 80
@@ -22,8 +22,7 @@ const UNTRACKED_LINE_COUNT_MAX_BYTES = 1024 * 1024
 // simple-git 3.x validates a custom binary path against an ASCII whitelist —
 // `isBadArgument` in node_modules/simple-git/dist/cjs/index.js accepts only
 // `/^([a-z]:)?([a-z0-9/.\_~-]+)$/i`. Everything outside it is "restricted": a
-// space in the default `C:\Program Files\Git\...`, the parentheses in
-// `Program Files (x86)`, the accented user name in `C:\Users\João\...`. Without
+// space, parentheses or an accented user name in the path. Without
 // the escape hatch simple-git THROWS on such a path; with it, it console.warns
 // this exact message — the flag only downgrades the throw. Exported so gitFor
 // and its tests share one source of truth.
@@ -49,7 +48,7 @@ function runGh(args, cwd, ghBin): Promise<{ ok: boolean; stdout: string; stderr:
     execFile(
       ghBin || 'gh',
       args,
-      { cwd, env: ghEnv(ghBin), windowsHide: true, timeout: 30_000, maxBuffer: 8 * 1024 * 1024 },
+      { cwd, env: ghEnv(ghBin), timeout: 30_000, maxBuffer: 8 * 1024 * 1024 },
       (err, stdout, stderr) =>
         resolve({ ok: !err, stdout: String(stdout || ''), stderr: String(err?.stderr ?? stderr ?? '') })
     )
@@ -58,23 +57,16 @@ function runGh(args, cwd, ghBin): Promise<{ ok: boolean; stdout: string; stderr:
 
 function gitFor(cwd, gitBin) {
   // `gitBin` is resolved inside the Electron main process from known install
-  // locations or PATH — never renderer/user input, and the Windows tuple below is
-  // built there too: `gitBin` is the resolved install/path and the python host is
-  // this process's own interpreter. simple-git's ASCII whitelist accepts
-  // backslashes but rejects every character outside it — the space in the default
-  // `C:\Program Files\Git\cmd\git.exe`, the parentheses in `Program Files (x86)`,
-  // the accent in `C:\Users\João\...` — and without the escape hatch it THROWS
+  // locations or PATH — never renderer/user input. simple-git's ASCII whitelist
+  // rejects every character outside it — a space, parentheses, an accented
+  // user name in the path — and without the escape hatch it THROWS
   // inside the factory, silently breaking the Review pane. Key the hatch on "we
   // resolved this binary ourselves", not on a `/\s/` guess, which still throws for
   // every other restricted character. Falling back to PATH instead is not an
   // option (often absent in GUI-launched apps, and a PATH lookup could resolve a
-  // repo-local git.exe).
-  // On Windows the binary tuple is [python.exe, host script]. simple-git has no
-  // creationFlags slot; the script spawns the real git with CREATE_NO_WINDOW and
-  // forwards argv unchanged.
-  const host = windowsGitHost()
-  const binary = simpleGitBinary(gitBin, host)
-  const unsafe = Boolean(gitBin) || Array.isArray(binary)
+  // repo-local git).
+  const binary = gitBin || 'git'
+  const unsafe = Boolean(gitBin)
 
   const makeGit = () =>
     simpleGit({
@@ -91,8 +83,7 @@ function gitFor(cwd, gitBin) {
 
   // With the escape hatch set, simple-git still console.warns that same message on
   // every factory call — the flag only downgrades the throw to a warning. The
-  // binary was resolved by this process, never supplied by the renderer, so on
-  // Windows (where the standard git lives under a spaced "Program Files") that
+  // binary was resolved by this process, never supplied by the renderer, so that
   // warning is pure console spam. Filter exactly that message, for the
   // synchronous factory call only.
   const originalWarn = console.warn
@@ -106,7 +97,7 @@ function gitFor(cwd, gitBin) {
   try {
     const git = makeGit()
 
-    return Array.isArray(binary) ? git.env(noConsoleGitEnv(process.env, gitBin || 'git')) : git
+    return git
   } finally {
     console.warn = originalWarn
   }

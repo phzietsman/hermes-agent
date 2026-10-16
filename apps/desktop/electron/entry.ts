@@ -14,14 +14,7 @@ function configuredElectronFlags(env: NodeJS.ProcessEnv): string[] {
   // HERMES_DATA_DIR_SUFFIX channel installs and profiles/-rooted HERMES_HOME
   // values must pick the same config.yaml before the relaunch and inside the
   // app, or desktop.electron_flags silently never reaches the relaunch.
-  const home = resolveDesktopHermesHome({
-    home: os.homedir(),
-    env,
-    // Linux-only pre-launch path; the win32 legacy-migration probe is never
-    // consulted on posix, so its directoryExists callback is not needed here.
-    directoryExists: () => false,
-    readWindowsHome: () => null
-  })
+  const home = resolveDesktopHermesHome({ home: os.homedir(), env })
 
   try {
     return readDesktopLaunchConfig(readFileSync(path.join(home, 'config.yaml'), 'utf8')).electronFlags

@@ -1,8 +1,8 @@
-"""Durable record of the gateways and services ``hermes update`` paused on Windows.
+"""Durable record of the gateways and services ``hermes update`` paused.
 
 The pause token used to live only in the updater's memory (plus an ``atexit`` resume), so a
-killed updater (console closed, ``taskkill``, power loss) left every paused gateway and SCM
-service stopped with nothing on disk saying so. The record is written under the ROOT Hermes
+killed updater (terminal closed, SIGKILL, power loss) left every paused gateway and service
+stopped with nothing on disk saying so. The record is written under the ROOT Hermes
 home BEFORE anything is stopped, names its owner (pid + creation time, the update-marker
 identity format), is rewritten as the token changes, and is removed only after a verified
 resume. A later launch whose owner check finds the updater dead (and no update live) resumes it.
@@ -19,7 +19,7 @@ Otherwise the record stays for the next launch, which runs after the interrupted
 the dependency sync.
 
 Custody: every mutation (write, claim, retire, discharge) happens while holding a kernel lock on
-``<record dir>/.hermes-update-paused-gateways.lock`` (flock / msvcrt, released by the kernel when
+``<record dir>/.hermes-update-paused-gateways.lock`` (flock, released by the kernel when
 the holder dies; the file is never deleted), and the read → judge → mutate decision is made
 inside that hold. A recovering launch claims a record by publishing ``<record>.<pid>.<nonce>.claim``
 with its own identity already inside (atomic replace), then retires the source; a crash between the
@@ -27,8 +27,8 @@ two leaves two files with ONE obligation id (``pause_id``), and an update that f
 into its own record lists their ids under ``absorbed`` before retiring them. Readers treat a file
 whose id another file carries as a copy, never as a second obligation, and the next mutator
 retires it. Completing an obligation first adds its ids to ``<record stem>.retired`` (atomic), then
-unlinks its files: an unlink Windows refuses (a reader holding the file without
-FILE_SHARE_DELETE) leaves a copy that is redundant by id, never an obligation that executes again.
+unlinks its files: a failed unlink leaves a copy that is redundant by id, never an obligation
+that executes again.
 The list is read only under the mutex, and only its absence means "nothing retired": a list that
 cannot be read means unknown, so nothing is claimed and the list is never rewritten from that read.
 A list that reads but does not parse is unknown too while any record or claim exists; with none
@@ -41,7 +41,6 @@ import glob
 import hashlib
 import json
 import os
-import shutil
 import subprocess
 import sys
 import threading
@@ -125,7 +124,7 @@ def _mutex(wait_s: float = _MUTEX_WAIT_S):
     from hermes_cli import update_lock
     path = record_path().with_name(MUTEX_NAME)
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o644)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
     try:
         deadline = time.monotonic() + wait_s
         while not update_lock._try_lock(fd):
@@ -137,41 +136,16 @@ def _mutex(wait_s: float = _MUTEX_WAIT_S):
             yield
         finally:
             _mutex_held.depth = 0
-            update_lock._unlock(fd)
     finally:
         os.close(fd)
 
 
-def _git_executable() -> str:
-    """The git ``hermes update`` runs, found without installing anything: PATH's, else the copy
-    install.ps1 staged in PM's store (``_subprocess_compat.expose_pm_git`` puts it on PATH only
-    inside the updater). A bare ``git`` on such an install dies with WinError 2, so every gate
-    read would fail and the paused gateways would never be restarted."""
-    found = shutil.which("git")
-    if found:
-        return found
-    with suppress(Exception):  # health: allow BLE001 -- no PM, no store, no Windows git package: PATH's answer ("git") stands
-        import pm
-        from pm import paths
-        from pm.lock import Lockfile
-
-        recorded = pm.installed_package("git", allow_outdated=True)
-        if recorded is not None and recorded.binary is not None and recorded.binary.is_file():
-            return str(recorded.binary)
-        package, target = pm.get_package("git"), pm.current_target()
-        version = Lockfile(paths.lockfile_path()).version("git")
-        staged = package.binary(paths.store_root() / package.store_entry(version, target), target)
-        if staged is not None and staged.is_file():
-            return str(staged)
-    return "git"
-
-
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess | None:
-    """A read-only git query in the updater's custody (``update_custody.run_git``: job-bound on
-    Windows inside an update, custody config in argv); ``None`` when git cannot run."""
+    """A read-only git query in the updater's custody (``update_custody.run_git``: custody config
+    in argv); ``None`` when git cannot run."""
     from hermes_cli.update_custody import run_git
     try:
-        return run_git([_git_executable(), "-C", str(root)], args, capture_output=True, text=True,
+        return run_git(["git", "-C", str(root)], args, capture_output=True, text=True,
                        encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL, timeout=30, check=False)
     except (OSError, ValueError, subprocess.SubprocessError):
         return None
@@ -398,7 +372,7 @@ def _atomic_write(path: Path, body: dict) -> None:
             os.fsync(fh.fileno())
         os.replace(tmp, path)
     except BaseException:
-        # A refused replace (a Windows reader without FILE_SHARE_DELETE) or a failed write must
+        # A refused replace or a failed write must
         # not leave the half-published temp beside the record; the error itself still propagates.
         with suppress(OSError):
             tmp.unlink()
@@ -407,7 +381,7 @@ def _atomic_write(path: Path, body: dict) -> None:
 
 def read(path: Path | None = None) -> dict | None:
     """The saved body; ``None`` only when the file is absent. One that exists but cannot be read
-    (a Windows sharing violation, an AV scanner) or does not parse raises :class:`RecordUnknown`:
+    or does not parse raises :class:`RecordUnknown`:
     it may be the newest copy of an obligation (its partial progress) or the only one, so it never
     lets an older copy execute nor a new pause replace it. Callers fail closed and retry later."""
     path = path or record_path()
@@ -580,7 +554,7 @@ def _retired(path: Path) -> set[str]:
 def _quarantine_retired(path: Path, target: Path) -> set[str]:
     """A retired list that reads but does not parse. While a record or claim of this checkout
     exists the list may be the only proof it is complete: unknown, fail closed. With none left it
-    guards nothing, and keeping it would abort every Windows update: set it aside and go on."""
+    guards nothing, and keeping it would abort every update: set it aside and go on."""
     if path.exists() or _claims(path):
         raise RetiredUnknown(f"the retired paused-gateway list {target} is malformed")
     corrupt = target.with_suffix(".corrupt")
@@ -943,10 +917,10 @@ def _resume_fenced(claim_path: Path, body: dict) -> None:
     try:
         if _has_work(token):
             print("→ Restarting gateway(s) paused by an interrupted `hermes update`...", file=sys.stderr)
-            from hermes_cli.update_cmd_windows import _resume_windows_gateways_after_update
+            from hermes_cli.update_cmd_posix_pause import resume_paused_gateways_after_update
             # Whatever command this launch runs owns stdout (``--json`` output, a Desktop pipe).
             with redirect_stdout(sys.stderr):
-                _resume_windows_gateways_after_update(token)
+                resume_paused_gateways_after_update(token)
         else:
             token["resume_needed"] = False
     except Exception as exc:  # health: allow BLE001 -- recovery boundary: any resume error is reported and the claim handed back (finally), never raised into the launch

@@ -59,7 +59,7 @@ import tempfile
 import time
 from pathlib import Path, PurePosixPath
 from hermes_constants import get_hermes_home
-from hermes_cli._subprocess_compat import selected_git_env, windows_hide_flags
+from hermes_cli._subprocess_compat import selected_git_env
 from hermes_cli.gitlock import clear_stale_tmp_packs
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -399,10 +399,6 @@ def _run_git(
             env=env,
             cwd=str(normalized_working_dir),
             stdin=subprocess.DEVNULL,
-            # Checkpoints fire several bare git calls per turn from the
-            # console-less desktop/gateway backend; suppress the per-call
-            # conhost flash on Windows (no-op on POSIX).
-            creationflags=windows_hide_flags(),
         )
         ok = result.returncode == 0
         stdout = os.fsdecode(result.stdout) if "-z" in args else result.stdout.strip()
@@ -551,7 +547,6 @@ def _init_store(store: Path, working_dir: str) -> Optional[str]:
             capture_output=True, text=True, encoding='utf-8', errors='replace',
             env=init_env, timeout=_GIT_TIMEOUT,
             stdin=subprocess.DEVNULL,
-            creationflags=windows_hide_flags(),
         )
         if result.returncode != 0:
             return f"Shadow store init failed: {result.stderr.strip()}"
@@ -592,8 +587,7 @@ def _volume_evidence(workdir: Path) -> Dict:
 
     Returns ``{}`` when the workdir is not currently reachable, when the
     filesystem does not provide a usable directory identity (a zero
-    ``st_dev`` or ``st_ino`` — e.g. Windows filesystems without file IDs and
-    some network shares), or when the probe fails — callers treat all of
+    ``st_dev`` or ``st_ino`` — e.g. some network shares), or when the probe fails — callers treat all of
     these as "no evidence recorded" and orphan pruning stays conservative
     for the project (never classified as orphan; retention still applies).
     """

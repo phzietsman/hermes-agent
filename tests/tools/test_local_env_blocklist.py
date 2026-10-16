@@ -2,11 +2,10 @@
 
 import json
 import os
-import subprocess
 import sys
 import threading
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,13 +17,11 @@ from tools.environments.local_env_policy import _HERMES_PROVIDER_ENV_BLOCKLIST
 
 def _running_venv_site_packages() -> Path:
     """Independently construct the host-native venv site-packages path."""
-    if sys.platform == "win32":
-        return Path(sys.prefix) / "Lib" / "site-packages"
     return Path(sys.prefix) / "lib" / f"python{sys.version_info[0]}.{sys.version_info[1]}" / "site-packages"
 
 
 def _physical_repo_root(tmp_path: Path) -> Path:
-    """Create the physical repo checkout directory for junction tests."""
+    """Create the physical repo checkout directory for symlink tests."""
     physical_root = tmp_path / "physical-home" / "hermes-agent"
     physical_root.mkdir(parents=True)
     return physical_root
@@ -61,8 +58,7 @@ GATEWAY_RELAY_PLATFORMS MY_APP_KEY MY_CUSTOM_VAR
 
 
 def _running_site():
-    return Path(sys.prefix) / ("Lib/site-packages" if os.name == "nt" else
-                              f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages")
+    return Path(sys.prefix) / f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
 
 
 def test_terminal_child_observes_declared_policy(child_env, monkeypatch):
@@ -174,7 +170,7 @@ def test_user_platform_plugin_secrets_belong_to_their_own_profile(child_env, mon
         reset_hermes_home_override(token)
 
 
-@pytest.mark.skipif(os.name == "nt" or os.geteuid() == 0,  # windows-footgun: ok — short-circuits on nt
+@pytest.mark.skipif(os.geteuid() == 0,
                     reason="needs POSIX permissions as non-root")
 @pytest.mark.parametrize("layout", ["platforms", "flat"])
 def test_a_failed_rescan_keeps_the_denials_it_already_knew(child_env, monkeypatch, layout):
@@ -261,7 +257,7 @@ def test_a_symlinked_home_alias_shares_its_profiles_plugin_declarations(child_en
     assert sizes[0] == sizes[1]
 
 
-@pytest.mark.skipif(os.name == "nt" or os.geteuid() == 0,  # windows-footgun: ok — short-circuits on nt
+@pytest.mark.skipif(os.geteuid() == 0,
                     reason="needs POSIX permissions as non-root")
 def test_unreadable_platform_manifest_fails_closed(tmp_path):
     """A manifest that cannot be read might declare secrets, so the policy scan raises rather than
@@ -524,11 +520,9 @@ def test_pythonpath_descendants_are_not_owned():
     assert env["PYTHONPATH"].split(os.pathsep) == entries
 
 
-@pytest.mark.platforms("linux", "macos", "windows")
 @pytest.mark.parametrize("link_at", ["home", "repo", "unrelated"])
 @pytest.mark.parametrize("profile", [False, True])
 def test_launcher_alias_provenance(child_env, monkeypatch, link_at, profile):
-    from hermes_cli.gateway_windows import _preserve_hermes_home_path
     from hermes_cli.profiles import resolve_profile_env
     physical_home = child_env / "physical-home"
     physical_root = physical_home / "hermes-agent"
@@ -550,8 +544,6 @@ def test_launcher_alias_provenance(child_env, monkeypatch, link_at, profile):
     monkeypatch.setenv("HERMES_HOME", str(configured))
     assert Path(resolve_profile_env("default")) == configured
     assert Path(resolve_profile_env("coder")) == configured / "profiles/coder"
-    if link_at == "home":
-        assert Path(_preserve_hermes_home_path(physical_root)) == lexical_root
     active_home = configured / "profiles/coder" if profile else configured
     aliases = pp._build_hermes_repo_root_aliases(physical_root.resolve(), physical_root, active_home)
     monkeypatch.setattr(local, "_hermes_repo_root_aliases", aliases)
@@ -569,8 +561,7 @@ def test_runtime_provenance_is_independent_of_aliases_and_virtual_env(child_env,
     from pm.environments import runtime_facts_path
     payload = child_env / "payload"
     runtime = payload / "state/environments/candidate/venv"
-    site = runtime / ("Lib/site-packages" if os.name == "nt" else
-                      f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages")
+    site = runtime / f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
     site.mkdir(parents=True)
     (runtime / "pyvenv.cfg").write_text("version = 3.14\n", encoding="utf-8")
     (payload / "tools").mkdir()
@@ -629,57 +620,14 @@ def test_foreground_minimal_path_preserves_operator_precedence(child_env, monkey
 
 
 def _make_directory_link(link: Path, target: Path) -> None:
-    """Create a directory link without requiring symlink privileges.
-
-    POSIX: Path.symlink_to.  Windows: try symlink_to first (works with
-    Developer Mode enabled), then fall back to an unprivileged directory
-    junction via `cmd /c mklink /J` -- junctions do not require the
-    SeCreateSymbolicLinkPrivilege.  Raises the original error when no
-    mechanism is available so callers can skip with a clear reason.
-    """
-    try:
-        link.symlink_to(target, target_is_directory=True)
-        return
-    except OSError:
-        if sys.platform != "win32":
-            raise
-    # Binary capture: on a localized Windows the junction message is in the
-    # console code page (e.g. GBK), which would raise UnicodeDecodeError in
-    # the reader thread under UTF-8 mode.  Only the exit code matters.
-    result = subprocess.run(
-        ["cmd", "/c", "mklink", "/J", str(link), str(target)],
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        detail = result.stderr.decode("utf-8", errors="replace").strip()
-        raise OSError(detail or f"mklink /J failed: {result.returncode}")
+    """Create a directory symlink."""
+    link.symlink_to(target, target_is_directory=True)
 
 
 class TestNativeEnvironmentContracts:
     @pytest.fixture(autouse=True)
     def _no_bin_injection(self, monkeypatch):
         monkeypatch.setattr(local, "_HERMES_BIN_DIR", None)
-
-    @pytest.mark.platforms("windows")
-    def test_windows_hermes_owned_paths_stripped(self):
-        """On Windows, a Hermes venv site-packages entry written with
-        backslashes is stripped by the same Hermes-owned check, while a
-        user Windows path is preserved.  Windows-only: POSIX ``Path`` does
-        not split on backslashes, so this cannot be meaningfully simulated
-        on a POSIX host."""
-        from tools.environments.local_pythonpath import _strip_hermes_owned_pythonpath
-
-        venv_sp = str(_running_site())
-        # Windows form: C:\...\venv\Lib\site-packages (backslashes)
-        hermes_win = venv_sp
-        user_win = "D:\\\\user\\\\lib"
-        env = {
-            "PYTHONPATH": ";".join([hermes_win, user_win]),
-        }
-        _strip_hermes_owned_pythonpath(env)
-        entries = env["PYTHONPATH"].split(";")
-        assert hermes_win not in entries
-        assert user_win in entries
 
     def test_empty_pythonpath_unchanged(self):
         """An empty PYTHONPATH is a no-op (falsy -> early return)."""
@@ -718,42 +666,6 @@ class TestNativeEnvironmentContracts:
 
         assert env["PYTHONPATH"] == user_pp
 
-
-    @pytest.mark.platforms("windows")
-    def test_base_python_sanitizer_uses_validated_separate_runtime_venv(self, tmp_path, monkeypatch):
-        """A base interpreter strips the exact Windows runtime site-packages.
-
-        This deliberately uses a synthetic Hermes venv separate from the test
-        runner: sys.prefix represents base Python, while validated VIRTUAL_ENV
-        identifies ``<repo>/venv`` as the Hermes runtime producer contract.
-        """
-        import tools.environments.local as local
-        from tools.environments import local_pythonpath
-
-        repo_root = tmp_path / "hermes-agent"
-        runtime_venv = repo_root / "venv"
-        runtime_sp = runtime_venv / "Lib" / "site-packages"
-        runtime_sp.mkdir(parents=True)
-        (runtime_venv / "pyvenv.cfg").write_text("version = 3.11\n", encoding="utf-8")
-        base_prefix = tmp_path / "base-python"
-        unrelated = "/custom/lib/python3.13/site-packages"
-
-        monkeypatch.setattr(local, "_hermes_repo_root_aliases", (repo_root,))
-        monkeypatch.setattr(local, "_in_venv", False)
-        monkeypatch.setattr(local, "_hermes_site_packages", None)
-        monkeypatch.setattr(local.sys, "prefix", str(base_prefix))
-        monkeypatch.setattr(local.sys, "base_prefix", str(base_prefix))
-
-        env = {
-            "VIRTUAL_ENV": str(runtime_venv),
-            "PYTHONPATH": os.pathsep.join([str(runtime_sp), unrelated]),
-        }
-        result = local._sanitize_subprocess_env(env)
-
-        assert Path(local.sys.prefix) == base_prefix
-        assert runtime_venv != Path(local.sys.prefix)
-        assert result["PYTHONPATH"] == unrelated
-        assert "VIRTUAL_ENV" not in result
 
     def test_unrelated_virtual_env_is_not_runtime_provenance(self, tmp_path, monkeypatch):
         """An arbitrary inherited VIRTUAL_ENV cannot claim PYTHONPATH ownership."""
@@ -904,12 +816,6 @@ class TestNativeEnvironmentContracts:
         assert "PYTHONPATH" in captured["env"], \
             "execute_code never reached Popen"
         parts = captured["env"]["PYTHONPATH"].split(os.pathsep)
-        # Windows path comparison is case-insensitive: the inherited entries
-        # and the re-added repo root can carry a different case than the
-        # resolve()/abspath()-derived spellings used in this test (e.g. a
-        # launcher-written lowercase PYTHONPATH).  Normalize with
-        # os.path.normcase so a case-only difference never fails the
-        # composition contract (identity on POSIX).
         norm_parts = [os.path.normcase(p) for p in parts]
         norm_staging = os.path.normcase(captured["staging"])
         norm_root = os.path.normcase(hermes_root)
@@ -947,10 +853,7 @@ class TestNativeEnvironmentContracts:
         """A direct child of the repo root (depth=1) is PRESERVED.
 
         Independent audit of every real launcher producer (Electron
-        ``apps/desktop/electron/main.ts``,
-        ``gateway/run.py::_ensure_windows_gateway_venv_imports``,
-        ``cron/scheduler.py::_windows_cron_python_invocation``,
-        ``tui_gateway/host_supervisor.py``) shows they all inject the exact
+        ``apps/desktop/electron/main.ts``, ``tui_gateway/host_supervisor.py``) shows they all inject the exact
         repo root and/or the venv site-packages — none injects
         ``<repo>/tools`` or another direct child as an independent
         PYTHONPATH entry.  A user path that merely happens to live under
@@ -975,7 +878,6 @@ class TestNativeEnvironmentContracts:
         """The real producer spelling is derived and consumed end to end."""
         import tools.environments.local as local
         from tools.environments import local_pythonpath
-        from hermes_cli.gateway_windows import _preserve_hermes_home_path
 
         physical_home = tmp_path / "physical-home"
         physical_root = _physical_repo_root(tmp_path)
@@ -986,7 +888,7 @@ class TestNativeEnvironmentContracts:
             pytest.skip(f"directory link unavailable on this host: {exc}")
         monkeypatch.setenv("HERMES_HOME", str(configured_home))
 
-        launcher_entry = Path(_preserve_hermes_home_path(physical_root))
+        launcher_entry = configured_home / "hermes-agent"
         aliases = local_pythonpath._build_hermes_repo_root_aliases(
             physical_root.resolve(),
             physical_root,
@@ -1152,53 +1054,6 @@ class TestNativeEnvironmentContracts:
         env = {"PYTHONPATH": os.pathsep.join([str(lexical_root), "/home/user/my-lib"])}
         local_pythonpath._strip_hermes_owned_pythonpath(env)
         assert env["PYTHONPATH"].split(os.pathsep) == ["/home/user/my-lib"]
-
-    @pytest.mark.platforms("windows")
-    def test_validated_runtime_venv_lexical_after_repo_recovery(self, tmp_path, monkeypatch):
-        """uv-base gateway: once the lexical repo alias is recovered, a lexical
-        VIRTUAL_ENV (<lexical repo>/venv) validates and its site-packages is
-        stripped together with the repo root, while user entries survive.
-        """
-        import tools.environments.local as local
-        from tools.environments import local_pythonpath
-
-        physical_root = _physical_repo_root(tmp_path)
-        venv_dir = physical_root / "venv"
-        venv_dir.mkdir(parents=True)
-        (venv_dir / "pyvenv.cfg").write_text("home = x\n", encoding="utf-8")
-        configured_home = tmp_path / "configured-home"
-        configured_home.mkdir()
-        try:
-            _make_directory_link(configured_home / "hermes-agent", physical_root)
-        except OSError as exc:
-            pytest.skip(f"directory link unavailable on this host: {exc}")
-
-        lexical_root = configured_home / "hermes-agent"
-        aliases = local_pythonpath._build_hermes_repo_root_aliases(
-            physical_root.resolve(),
-            physical_root,
-            configured_home,
-        )
-        assert any(local_pythonpath._same_path(a, lexical_root) for a in aliases)
-        monkeypatch.setattr(local, "_hermes_repo_root_aliases", aliases)
-
-        lexical_venv = lexical_root / "venv"
-        validated = local_pythonpath._validated_runtime_venv({"VIRTUAL_ENV": str(lexical_venv)})
-        assert validated is not None
-        assert local_pythonpath._same_path(validated, lexical_venv)
-
-        local._hermes_site_packages = None
-        env = {"PYTHONPATH": os.pathsep.join([
-            str(lexical_root),
-            str(lexical_venv / "Lib" / "site-packages"),
-            "/home/user/my-lib",
-        ]), "VIRTUAL_ENV": str(lexical_venv)}
-        local_pythonpath._strip_hermes_owned_pythonpath(env)
-        assert env["PYTHONPATH"].split(os.pathsep) == ["/home/user/my-lib"]
-
-
-
-
 
 class TestPythonhomeSanitized:
     """PYTHONHOME must not leak from the Hermes runtime into subprocesses.
@@ -1453,33 +1308,23 @@ class TestSanePathIncludesHomebrew:
     def test_make_run_env_appends_homebrew_on_minimal_path(self, monkeypatch):
         """When PATH is minimal, _make_run_env appends missing sane entries.
 
-        POSIX: the sane-path merge appends the Homebrew dirs.  Windows:
-        _append_missing_sane_path_entries is a documented passthrough (the
-        native PATH must not be touched), so the assertion is the unchanged
-        input.  Git Bash dir prepending is neutralised so the merged PATH
-        layout is deterministic on every host.
+        The sane-path merge appends the Homebrew dirs.
         """
-        from tools.environments import local as local_mod
         from tools.environments.local import _SANE_PATH, _make_run_env
-        monkeypatch.setattr(local_mod, "_git_bash_bin_dirs", lambda: [])
         minimal_env = {"PATH": "/some/custom/bin"}
         with patch.dict(os.environ, minimal_env, clear=True):
             result = _make_run_env({})
         path_entries = result["PATH"].split(os.pathsep)
         assert path_entries[0] == "/some/custom/bin"
-        if sys.platform == "win32":
-            assert result["PATH"] == "/some/custom/bin"
-        else:
-            for entry in _SANE_PATH.split(os.pathsep):
-                assert entry in path_entries
+        for entry in _SANE_PATH.split(os.pathsep):
+            assert entry in path_entries
 
 
     @pytest.mark.platforms("macos")
     def test_make_run_env_real_launchd_path_gains_homebrew(self):
         """The literal macOS launchd PATH is the production trigger for #35613.
 
-        macOS-only: the regression is the launchd environment on macOS, and
-        the sane-path merge is a documented passthrough on Windows.
+        macOS-only: the regression is the launchd environment on macOS.
         """
         from tools.environments.local import _make_run_env
         launchd_env = {"PATH": os.pathsep.join(["/usr/bin", "/bin", "/usr/sbin", "/sbin"])}
@@ -1492,23 +1337,3 @@ class TestSanePathIncludesHomebrew:
         assert path_entries[:4] == ["/usr/bin", "/bin", "/usr/sbin", "/sbin"]
 
 
-    @pytest.mark.platforms("windows")
-    def test_make_run_env_preserves_windows_mixed_case_path_key(self, monkeypatch):
-        """Windows-only: ``_path_env_key`` looks for a case-insensitive PATH
-        key only on Windows, so the mixed-case ``Path`` preservation this
-        asserts is a genuinely Windows-native behaviour.
-
-        The Git Bash dir prepend is neutralised so the assertion is about the
-        key casing alone (a real Windows box has those dirs).
-        """
-        from tools.environments import local as local_mod
-        from tools.environments.local import _make_run_env
-        # Keep the real home vars: the adapter-secret lookup resolves the profile home.
-        windows_env = {"Path": r"C:\Windows\System32;C:\Program Files\Git\bin",
-                       **{k: os.environ[k] for k in ("USERPROFILE", "HOMEDRIVE", "HOMEPATH", "HERMES_HOME")
-                          if k in os.environ}}
-        monkeypatch.setattr(local_mod, "_git_bash_bin_dirs", lambda: [])
-        with patch.object(local_mod.os, "environ", windows_env):
-            result = _make_run_env({})
-        assert result["Path"] == windows_env["Path"]
-        assert "PATH" not in result

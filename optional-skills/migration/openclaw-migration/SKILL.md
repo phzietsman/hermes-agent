@@ -4,7 +4,7 @@ description: Import an OpenClaw setup (memories, skills) into Hermes.
 version: 1.0.0
 author: Hermes Agent (Nous Research)
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [Migration, OpenClaw, Hermes, Memory, Persona, Import]

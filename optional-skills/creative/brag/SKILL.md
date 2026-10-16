@@ -4,7 +4,7 @@ description: Project launch video via Hyperframes, upstream-maintained.
 version: 0.4.0
 author: Shunit Haviv Hakimi (shunithaviv)
 license: MIT
-platforms: [linux, macos, windows]
+platforms: [linux, macos]
 metadata:
   hermes:
     tags: [video, launch-video, marketing, hyperframes, motion-graphics, share-copy]

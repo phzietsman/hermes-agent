@@ -24,12 +24,6 @@ describe('files show-ignored preference', () => {
     expect($showIgnoredRoots.get()).toEqual([])
   })
 
-  it('treats host spellings of one root as the same project', () => {
-    setShowIgnoredFiles('C:\\Repo\\', true)
-
-    expect(showsIgnoredFiles('c:/repo')).toBe(true)
-  })
-
   it('does not distinguish a trailing separator on POSIX roots', () => {
     setShowIgnoredFiles('/repo/', true)
 

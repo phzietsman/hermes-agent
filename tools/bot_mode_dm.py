@@ -408,11 +408,10 @@ def _delivery_lock(argv: list[str], *, stdin_file: bool):
 
     See #93091.
     """
-    # Match the CLI element by basename: argv[0] may be an absolute venv path
-    # (service contexts lack PATH) and carries .exe on Windows; split on both separators.
-    # Split on both separators so the shape matches regardless of which platform built the argv. See #93590.
-    cli = (argv[0] if argv else "").rsplit("\\", 1)[-1].rsplit("/", 1)[-1]
-    if stdin_file or len(argv) < 3 or cli not in ("hermes", "hermes.exe") or argv[1] != "-p":
+    # Match the CLI element by basename: argv[0] may be an absolute venv path (service contexts lack PATH).
+    # See #93590.
+    cli = os.path.basename(argv[0] if argv else "")
+    if stdin_file or len(argv) < 3 or cli != "hermes" or argv[1] != "-p":
         return contextlib.nullcontext()
     from tools.bot_mode_probe import _hermes_root
     from tools.bot_relay import acquire_turn_lock
@@ -569,8 +568,8 @@ def _wait_live_dm(home: str, delivery_id: str, *, dm_file: "str | os.PathLike | 
 
 
 def _local_delivery_home(argv: list[str]) -> Path | None:
-    cli = (argv[0] if argv else "").rsplit("\\", 1)[-1].rsplit("/", 1)[-1]
-    if len(argv) < 3 or cli not in ("hermes", "hermes.exe") or argv[1] != "-p":
+    cli = os.path.basename(argv[0] if argv else "")
+    if len(argv) < 3 or cli != "hermes" or argv[1] != "-p":
         return None
     from tools.bot_mode_probe import _hermes_root, _roster
 
@@ -650,12 +649,7 @@ def _delivery_command(argv: list[str], dm_file: str, *, stdin_file: bool,
     if profile_home is not None:
         runner_argv.extend(["--profile-home", str(Path(profile_home).resolve())])
     runner_argv.extend(argv)
-    if sys.platform == "win32":
-        # The tracked local backend uses Git Bash on native Windows: forward slashes keep drive
-        # paths executable there; backslash paths are parsed as command names (exit 127).
-        runner_argv = [part.replace("\\", "/") for part in runner_argv]
     if author:
-        # Inserted after the slash rewrite: JSON escapes are backslashes too.
         runner_argv[3:3] = ["--author", json.dumps(author, separators=(",", ":"))]
     return shlex.join(runner_argv)
 
@@ -895,9 +889,8 @@ if __name__ == "__main__":  # pragma: no cover - exercised as a background proce
         except (Exception, SystemExit) as exc:
             # A pinned live intent means the sender may already have admitted this DM and was
             # told not to resend; a bare repair hint would read as "NOT delivered". Without an
-            # intent nothing was handed over, so the plain failure is the truth. A relaunched
-            # child (Windows) already printed its own outcome.
-            booted = getattr(exc, "relaunched", False) or (isinstance(exc, SystemExit) and not exc.code)
+            # intent nothing was handed over, so the plain failure is the truth.
+            booted = isinstance(exc, SystemExit) and not exc.code
             parsed = _runner_argv(sys.argv[1:])
             if not booted and parsed and os.path.exists(_live_intent_file(parsed[2])):
                 print(_live_outcome_unknown(parsed[2], "the delivery runner could not activate "

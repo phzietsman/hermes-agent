@@ -82,7 +82,7 @@ def _read_numbered_choice(prompt_text: str) -> int | None | object:
 
 def _read_numbered_input(prompt_text: str) -> str | _NumberedNavigation:
     """Plain ``input()`` outside setup flows; inside a scoped flow prompt_toolkit supplies portable
-    Escape / Ctrl+C / Left bindings on POSIX and native Windows."""
+    Escape / Ctrl+C / Left bindings."""
     if _MENU_NAVIGATION_HANDLER.get() is None:
         return input(prompt_text)
     from prompt_toolkit import PromptSession

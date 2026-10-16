@@ -489,7 +489,7 @@ export async function installDesktopPluginFromGit(
   }
 }
 
-/** Resolve git binary via execFile which path on unix; caller passes Windows-resolved path. */
+/** Probe that `gitBin --version` exits 0. */
 export function runGitVersion(gitBin: string): Promise<boolean> {
   return execGit(gitBin, ['--version'], { timeoutMs: 5_000 }).then(
     result => result.code === 0,

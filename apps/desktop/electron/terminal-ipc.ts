@@ -14,18 +14,12 @@ import { resolveTerminalConnectionForSender } from './connection-apply'
 import { ensureSpawnHelperExecutable } from './spawn-helper-perms'
 import { buildInteractiveSshArgs } from './ssh-connection'
 import { createTerminalOutputGate } from './terminal-output-gate'
-import { applyWindowsMsysBashEnvDefaults } from './windows-msys-bash-env'
-import { buildWindowsInteractiveCommand } from './windows-remote-lifecycle'
 
 export interface TerminalIpcDeps {
-  isWindows: boolean
   findOnPath: (command: string) => null | string
   rememberLog: (line: string) => void
   activeSshTerminalTarget: (webContentsId: number) => unknown
-  /** The ssh client to spawn for remote terminals (resolveSshBinary). */
-  sshBinary: () => string
   ensureBackend: (webContentsId: number) => Promise<unknown>
-  getSshConnectionState: (scope: string) => undefined | { remotePlatform?: string }
 }
 
 export interface TerminalIpcApi {
@@ -50,13 +44,10 @@ export function terminalLcCtype(
 }
 
 export function registerTerminalIpc({
-  isWindows,
   findOnPath,
   rememberLog,
   activeSshTerminalTarget,
-  sshBinary,
-  ensureBackend,
-  getSshConnectionState
+  ensureBackend
 }: TerminalIpcDeps): TerminalIpcApi {
   const terminalSessions = new Map()
 
@@ -81,50 +72,18 @@ export function registerTerminalIpc({
     return { args: interactiveArgs, command: shellPath, name: shellName }
   }
 
-  // Windows PowerShell 5.1 ships at a fixed System32 path on every Windows box;
-  // prefer it only after PowerShell 7+ (`pwsh`).
-  function windowsPowerShellPath() {
-    const systemRoot = process.env.SystemRoot || process.env.windir || 'C:\\Windows'
-    const builtin = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-
-    return isExecutableFile(builtin) ? builtin : findOnPath('powershell.exe')
-  }
-
   // Map a resolved shell path to its spawn spec, picking interactive flags by
-  // family: PowerShell drops its logo banner (so the prompt sits flush like the
-  // POSIX shells), cmd needs nothing, and everything else (zsh/bash/fish/sh…)
-  // gets POSIX interactive-login flags.
+  // family: zsh/bash get login flags, everything else (fish/sh…) plain `-i`.
   function shellSpecFor(shellPath) {
-    const name = path.basename(shellPath).toLowerCase()
-
-    if (name.startsWith('pwsh') || name.startsWith('powershell')) {
-      return { args: ['-NoLogo'], command: shellPath, name }
-    }
-
-    if (name.startsWith('cmd')) {
-      return { args: [], command: shellPath, name }
-    }
-
     return posixShellSpec(shellPath)
-  }
-
-  // Best installed Windows shell: PowerShell 7+ (`pwsh`), then Windows PowerShell
-  // 5.1, then comspec/cmd.exe as the universal fallback.
-  function windowsShellSpec() {
-    const command =
-      findOnPath('pwsh.exe') || findOnPath('pwsh') || windowsPowerShellPath() || process.env.COMSPEC || 'cmd.exe'
-
-    return shellSpecFor(command)
   }
 
   // Resolve the interactive shell for the embedded terminal: an explicit user
   // override wins, otherwise auto-detect the best one installed for the platform.
   function terminalShellCommand() {
-    // HERMES_DESKTOP_SHELL is the cross-platform escape hatch (a path or a bare
-    // name on PATH); $SHELL is honored on POSIX, where it's the user's canonical
-    // choice, but ignored on Windows, where it's usually a stray MSYS/Git path
-    // node-pty can't spawn natively.
-    const override = (process.env.HERMES_DESKTOP_SHELL || (isWindows ? '' : process.env.SHELL) || '').trim()
+    // HERMES_DESKTOP_SHELL is the escape hatch (a path or a bare name on PATH);
+    // otherwise $SHELL is the user's canonical choice.
+    const override = (process.env.HERMES_DESKTOP_SHELL || process.env.SHELL || '').trim()
 
     if (override) {
       const resolved = isExecutableFile(override) ? override : findOnPath(override)
@@ -132,10 +91,6 @@ export function registerTerminalIpc({
       if (resolved) {
         return shellSpecFor(resolved)
       }
-    }
-
-    if (isWindows) {
-      return windowsShellSpec()
     }
 
     const shellPath = ['/bin/zsh', '/bin/bash', '/bin/sh'].find(candidate => isExecutableFile(candidate))
@@ -185,7 +140,7 @@ export function registerTerminalIpc({
     // which marks the agent *backend* and gates cron/gateway behavior.
     env.HERMES_DESKTOP_TERMINAL = '1'
 
-    return applyWindowsMsysBashEnvDefaults(env, isWindows)
+    return env
   }
 
   function terminalChannel(id, suffix) {
@@ -195,8 +150,7 @@ export function registerTerminalIpc({
   // Best-effort read of a live PTY child's current working directory so a
   // reopened tab can restart the shell where the user last `cd`'d, instead of the
   // tab's original launch dir. Shell-agnostic (no prompt/OSC config needed) on
-  // POSIX; Windows has no cheap per-process cwd query without a native module, so
-  // it returns null and the caller falls back to the launch cwd.
+  // POSIX; other platforms return null and the caller falls back to the launch cwd.
   function readProcessCwd(pid) {
     return new Promise(resolve => {
       if (!Number.isInteger(pid) || pid <= 0) {
@@ -279,7 +233,7 @@ export function registerTerminalIpc({
   let _spawnHelperEnsured = false
 
   function ensureNodePtySpawnHelper() {
-    if (_spawnHelperEnsured || isWindows) {
+    if (_spawnHelperEnsured) {
       return
     }
 
@@ -315,17 +269,11 @@ export function registerTerminalIpc({
     const sshTarget = await resolveTerminalConnectionForSender(event.sender.id, activeSshTerminalTarget, ensureBackend)
 
     const remote = Boolean(sshTarget)
-    const remoteState = remote ? getSshConnectionState(sshTarget.scope) : null
-
-    const remoteCommand =
-      remoteState?.remotePlatform === 'Windows'
-        ? buildWindowsInteractiveCommand(String(payload?.cwd || '').trim())
-        : undefined
 
     const ptyProcess = remote
       ? nodePty.spawn(
-          sshBinary(),
-          buildInteractiveSshArgs(sshTarget.ssh, String(payload?.cwd || '').trim(), undefined, remoteCommand),
+          'ssh',
+          buildInteractiveSshArgs(sshTarget.ssh, String(payload?.cwd || '').trim()),
           { cols, cwd: app.getPath('home'), env: terminalShellEnv(), name: 'xterm-256color', rows }
         )
       : nodePty.spawn(command, args, { cols, cwd, env: terminalShellEnv(), name: 'xterm-256color', rows })

@@ -6,7 +6,7 @@ import { middleClickHandlers } from './middle-click'
 afterEach(cleanup)
 
 /** A middle click as a real three-button mouse delivers it. Chromium on
- *  Windows/Linux swallows the trailing `auxclick` when the press starts
+ *  Linux swallows the trailing `auxclick` when the press starts
  *  autoscroll, so the gesture may NOT depend on that event. */
 function middleClick(element: Element, upOn: Element = element) {
   fireEvent.mouseDown(element, { button: 1 })

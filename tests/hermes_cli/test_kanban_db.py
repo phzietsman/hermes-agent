@@ -6,9 +6,7 @@ import json
 import os
 import sqlite3
 import subprocess
-import sys
 import time
-import types
 from pathlib import Path
 
 import pytest
@@ -49,42 +47,6 @@ def _init_git_repo(repo: Path) -> None:
 
 
 
-
-
-@pytest.mark.platforms("windows")
-def test_cross_process_init_lock_uses_windows_byte_range_lock(tmp_path, monkeypatch):
-    """Windows must use a real (non-blocking) process lock, not a no-op open.
-
-    The init lock acquires with LK_NBLCK in a bounded retry loop (#36644) so a
-    wedged holder can never block connect() forever; a clean acquire takes the
-    lock once and releases it once.
-
-    ``platforms("windows")``: ``msvcrt`` does not exist off Windows, so faking
-    ``_IS_WINDOWS`` on Linux meant injecting a fake ``msvcrt`` module too —
-    the test then asserted against its own stub rather than the byte-range
-    locking API. Here the platform is real; only ``msvcrt.locking`` is
-    instrumented so the call sequence is observable.
-    """
-    calls: list[tuple[int, int, int]] = []
-    import msvcrt as _msvcrt
-
-    fake_msvcrt = types.SimpleNamespace(
-        LK_NBLCK=_msvcrt.LK_NBLCK,
-        LK_UNLCK=_msvcrt.LK_UNLCK,
-        locking=lambda fd, mode, nbytes: calls.append((fd, mode, nbytes)),
-    )
-    monkeypatch.setitem(sys.modules, "msvcrt", fake_msvcrt)
-
-    db_path = tmp_path / "kanban.db"
-    with kbc._cross_process_init_lock(db_path):
-        # Acquired exactly once via the non-blocking byte-range lock.
-        assert [call[1:] for call in calls] == [(fake_msvcrt.LK_NBLCK, 1)]
-
-    # Released once on exit.
-    assert [call[1:] for call in calls] == [
-        (fake_msvcrt.LK_NBLCK, 1),
-        (fake_msvcrt.LK_UNLCK, 1),
-    ]
 
 
 def test_connect_migrates_legacy_db_before_optional_column_indexes(tmp_path):

@@ -30,10 +30,6 @@ tag's own hermes_cli/main.py):
                where launch_command[0] is the packaged app executable
                under apps/desktop/release/
 
-  3ddf82fe249+ on Windows: the packaged launch is a detached
-               subprocess.Popen(launch_command, creationflags=...) and
-               ``hermes desktop`` exits without waiting for it
-
 Every shape passes an explicit ``env=`` kwarg, so both ``subprocess.run``
 and ``subprocess.Popen`` are intercepted. npm BUILD calls (``npm run
 build`` / ``npm run pack``) carry no ``electron`` token in argv and pass

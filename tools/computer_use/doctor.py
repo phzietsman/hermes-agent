@@ -15,14 +15,13 @@ import sys
 from contextlib import contextmanager, suppress
 from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 from tools.computer_use.permissions import _child_env as _sanitized_cua_env
 from tools.computer_use.permissions import stale_tcc_grant_hint
 
 # Match the ALLOWED_STATUS_VALUES + ALLOWED_OVERALL_VALUES the cua-driver integration test pins.
 _STATUS_GLYPH = {"pass": "✅", "fail": "❌", "skip": "⏭️"}
 _OVERALL_GLYPH = {"ok": "✅", "degraded": "⚠️", "failed": "❌"}
-_SUPPORTED_PLATFORMS = ("darwin", "linux", "windows")
+_SUPPORTED_PLATFORMS = ("darwin", "linux")
 _TCC_HINT = "Grant {} to CuaDriver in System Settings → Privacy & Security."
 _ZERO_DISPLAY_MSG = "ScreenCaptureKit reachable but 0 shareable display(s) — every capture will return 0x0."
 _ZERO_DISPLAY_HINT = ("Wake the built-in display, connect a monitor or HDMI dummy dongle (e.g. Headless Ghost), or enable "
@@ -61,7 +60,7 @@ def _first_line(text: str) -> Optional[str]:
     return text.strip().splitlines()[0].strip() if text.strip() else None
 
 def _read_cli_version(binary: str, *, timeout: float = 5.0) -> Optional[str]:
-    """First line of ``--version`` or None; health_report's ``driver_version`` can disagree (seen on Windows)."""
+    """First line of ``--version`` or None; health_report's ``driver_version`` can disagree."""
     cp = _cli_text(binary, "--version", timeout=timeout, exc_types=_IO_EXC + (ValueError, TypeError))
     return None if isinstance(cp, BaseException) else _first_line(cp.stdout or cp.stderr or "")
 
@@ -116,9 +115,9 @@ def _extract_health_report_from_result(result: Report) -> Report:
     raise RuntimeError(f"health_report response carried neither structuredContent nor a parseable JSON text block. Result keys: {list(result.keys())}")
 
 def _open_mcp(binary: str) -> subprocess.Popen:
-    """Spawn ``<binary> mcp``; pin UTF-8 — cua-driver emits emoji/arbitrary paths and Windows' cp1252 would raise."""
+    """Spawn ``<binary> mcp``; pin UTF-8 — cua-driver emits emoji/arbitrary paths a non-UTF-8 locale would raise on."""
     return subprocess.Popen([binary, "mcp"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            text=True, encoding="utf-8", errors="replace", bufsize=1, creationflags=windows_hide_flags(),
+                            text=True, encoding="utf-8", errors="replace", bufsize=1,
                             env=_sanitized_cua_env())
 
 def _mcp_rpc(proc: subprocess.Popen, msg_id: int, method: str, params: Any = None) -> Report:
@@ -413,7 +412,7 @@ def _print_text_report(report: Report, color: bool, *, identity: Optional[Report
                   f"  {dim}gateway environment was not checked; active gateway computer_use sessions use that process environment{reset}"]
     if identity.get("version_mismatch"):
         lines += [f"  {yellow}⚠️ version mismatch: health_report says {report_v!r} but binary --version is {cli_v!r}{reset}",
-                  f"  {dim}→ trust --version / packages/current for debugging; health_report's binary_version check can lag on Windows{reset}"]
+                  f"  {dim}→ trust --version / packages/current for debugging; health_report's binary_version check can lag{reset}"]
     for check in report.get("checks", []):
         status = check.get("status", "?")
         lines.append(f"  {_STATUS_GLYPH.get(status, '•')} {status_cols.get(status, '')}{check.get('name', '?')}{reset}: {check.get('message') or ''}")
@@ -428,7 +427,7 @@ def run_doctor(driver_cmd: Optional[str] = None, *, include: Sequence[str] = (),
                color: Optional[bool] = None) -> int:
     """Resolve the binary via the shared runtime resolver (diagnose what `computer_use` actually invokes), call
     `health_report`, render; on 0.10.x (denied) a report is synthesized from probes."""
-    # Windows' locale codec (cp1252, cp936, ...) cannot encode the ✅ ❌ ⚠️ ⏭️ glyphs — force UTF-8.
+    # A non-UTF-8 locale codec (LANG=C) cannot encode the ✅ ❌ ⚠️ ⏭️ glyphs — force UTF-8.
     for stream in (sys.stdout, sys.stderr):
         with suppress(AttributeError, OSError):
             stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
@@ -443,13 +442,13 @@ def run_doctor(driver_cmd: Optional[str] = None, *, include: Sequence[str] = (),
         except HealthReportUnavailable as e:
             report = _compose_fallback_report(binary, reason=str(e), timeout=12.0)
     except OSError as e:
-        # The spawn itself failed (Windows: a venv interpreter denied `CreateProcess` on a binary under
-        # `C:\Program Files\WindowsApps`, WinError 5). A traceback here hides the one fact the user needs.
+        # The spawn itself failed (binary not executable by this interpreter). A traceback here hides the one fact
+        # the user needs.
         print(f"cua-driver could not be started from {binary!r}: {e}\n"
               "  The Hermes runtime interpreter cannot execute this binary; the tool may still work because the\n"
-              "  shell resolves a different copy on PATH. Fix: install cua-driver outside the protected directory\n"
-              "  (e.g. the upstream installer's default under your user profile) or point HERMES_CUA_DRIVER_CMD at\n"
-              "  a copy the runtime can execute, then re-run `hermes computer-use doctor`.", file=sys.stderr)
+              "  shell resolves a different copy on PATH. Fix: reinstall with `hermes computer-use install` or point\n"
+              "  HERMES_CUA_DRIVER_CMD at a copy the runtime can execute, then re-run `hermes computer-use doctor`.",
+              file=sys.stderr)
         return 2
     except RuntimeError as e:
         print(f"cua-driver health_report failed: {e}", file=sys.stderr)

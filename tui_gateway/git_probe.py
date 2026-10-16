@@ -20,12 +20,11 @@ _NEG_TTL = 30.0  # "not a git repo" TTL: a fresh `git init` shows within seconds
 
 
 def run_git(cwd: str, *args: str) -> str:
-    """``git -C <cwd> <args>`` → stripped stdout, or ``""`` on any failure. ``bounded_git_probe``
-    bounds post-kill cleanup on Windows (a killed git's suspended descendant held the pipes).
+    """``git -C <cwd> <args>`` → stripped stdout, or ``""`` on any failure.
 
-    Uses the shared :func:`bounded_git_probe` so the post-kill cleanup is bounded on Windows — a plain
+    Uses the shared :func:`bounded_git_probe` so the post-kill cleanup is bounded — a plain
     ``subprocess.run(timeout=...)`` here deadlocked Desktop session readiness when a killed git left a
-    suspended descendant holding the pipe handles (issue #68609).
+    descendant holding the pipe handles (issue #68609).
     """
     # A missing dir can only fail at the price of a fork; deleted worktrees dominate a long
     # session history's cwds, so the stat pays off.
@@ -101,8 +100,7 @@ def repo_root(cwd: str) -> str:
 def common_repo_root(cwd: str) -> str:
     """The MAIN (common) repo root for ``cwd``, folding linked worktrees: ``--show-toplevel`` is a
     linked worktree's OWN root; the parent of the shared ``--git-common-dir`` is the one true root
-    (fallback: toplevel). Normalized to git's forward-slash spelling so it compares equal to
-    :func:`repo_root` (native ``\\`` on Windows made the main checkout look like a worktree)."""
+    (fallback: toplevel)."""
     # Checking the (warmed, negative-cached) toplevel first spares every non-repo cwd a second
     # `git` spawn the parallel warm can't absorb.
     if not cwd or not repo_root(cwd):
@@ -113,7 +111,7 @@ def common_repo_root(cwd: str) -> str:
         if gitdir:
             gitdir = os.path.realpath(gitdir)
             if os.path.basename(gitdir) == ".git":
-                return os.path.dirname(gitdir).replace(os.sep, "/")
+                return os.path.dirname(gitdir)
         return repo_root(cwd)
 
     return _cache.resolve(f"common:{cwd}", _probe)

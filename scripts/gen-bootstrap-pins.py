@@ -1,19 +1,18 @@
 #!/usr/bin/env -S bash -c 'exec "$BASH" "$(dirname "$0")/run-in-hermes-env" python3 "$0" "$@"'
-"""Generate the bootstrap pin fragments inside the installers.
+"""Generate the bootstrap pin fragment inside the installer.
 
-The installers bootstrap uv (and, on Windows, git) BEFORE any checkout
-exists, so they cannot read pm/lock.json at run time: they are fetched
-standalone (`curl | sh`, `irm | iex`) and there is no JSON parser they can
-rely on that early (no jq guarantee; python is what uv installs on Windows).
-Instead, this script derives a plain-data fragment from pm/lock.json — the
-SAME authority the pm package manager uses for every managed tool — and
-splices it between markers in each installer. The bytes are stored, the
+The installer bootstraps uv BEFORE any checkout exists, so it cannot read
+pm/lock.json at run time: it is fetched standalone (`curl | sh`) and there is
+no JSON parser it can rely on that early (no jq guarantee). Instead, this
+script derives a plain-data fragment from pm/lock.json — the SAME authority
+the pm package manager uses for every managed tool — and splices it between
+markers in the installer. The bytes are stored, the
 truth is derived, and the drift test (tests/scripts/test_bootstrap_pins_fragment.py)
 fails when they disagree.
 
 Run after bumping a bootstrapped tool in pm/lock.json:
 
-    python3 scripts/gen-bootstrap-pins.py          # rewrite fragments
+    python3 scripts/gen-bootstrap-pins.py          # rewrite the fragment
     python3 scripts/gen-bootstrap-pins.py --check  # exit 1 on drift
 """
 
@@ -34,8 +33,7 @@ from pm.artifact_mirror import mirror_url  # noqa: E402
 BEGIN_MARK = "# --- BEGIN GENERATED: bootstrap pins (scripts/gen-bootstrap-pins.py) ---"
 END_MARK = "# --- END GENERATED: bootstrap pins ---"
 
-_POSIX_TARGETS = ("linux-x64", "linux-arm64", "linux-x64-musl", "linux-arm64-musl", "darwin-x64", "darwin-arm64")
-_WINDOWS_TARGETS = ("win32-x64", "win32-arm64")
+_TARGETS = ("linux-x64", "linux-arm64", "linux-x64-musl", "linux-arm64-musl", "darwin-x64", "darwin-arm64")
 
 
 def _load_lock() -> dict:
@@ -44,19 +42,8 @@ def _load_lock() -> dict:
 
 def _load_uv_pin() -> dict:
     entry = _load_lock()["packages"]["uv"]
-    for target in _POSIX_TARGETS + _WINDOWS_TARGETS:
+    for target in _TARGETS:
         _validate_artifact("uv", entry, target)
-    return entry
-
-
-def _load_git_pin() -> dict:
-    # Windows targets only. install.ps1 bootstraps the pinned git-for-windows
-    # artifact because Windows needs it to clone. macOS and Linux use the
-    # machine's git, so the pin table declares those targets as reasoned gaps
-    # and there is nothing for the sh installers to stage.
-    entry = _load_lock()["packages"]["git"]
-    for target in _WINDOWS_TARGETS:
-        _validate_artifact("git", entry, target)
     return entry
 
 
@@ -87,7 +74,7 @@ def _sh_fragment(uv: dict) -> str:
         "uv_bootstrap_pin() {",
         '    case "$1" in',
     ]
-    for target in _POSIX_TARGETS:
+    for target in _TARGETS:
         entry = uv["artifacts"][target]
         lines += [
             f"        {target})",
@@ -109,61 +96,16 @@ def _sh_fragment(uv: dict) -> str:
     return "\n".join(lines)
 
 
-def _ps1_fragment(uv: dict, git: dict) -> str:
-    lines = [
-        BEGIN_MARK,
-        "# Derived from pm/lock.json. DO NOT EDIT BY HAND:",
-        "# run scripts/gen-bootstrap-pins.py after a pin bump.",
-        f'$script:UvPinVersion = "{uv["version"]}"',
-        "$script:UvPinFiles = @{",
-    ]
-    for target in _WINDOWS_TARGETS:
-        entry = uv["artifacts"][target]
-        lines += [
-            f'    "{target}" = @{{',
-            f'        Url    = "{entry["url"]}"',
-            f'        MirrorUrl = "{mirror_url(entry["sha256"])}"',
-            f'        Sha256 = "{entry["sha256"]}"',
-            "    }",
-        ]
-    lines += [
-        "}",
-        "",
-        f'$script:GitPinVersion = "{git["version"]}"',
-        "$script:GitPinFiles = @{",
-    ]
-    for target in _WINDOWS_TARGETS:
-        entry = git["artifacts"][target]
-        lines += [
-            f'    "{target}" = @{{',
-            f'        Url    = "{entry["url"]}"',
-            f'        MirrorUrl = "{mirror_url(entry["sha256"])}"',
-            f'        Sha256 = "{entry["sha256"]}"',
-            "    }",
-        ]
-    lines += [
-        "}",
-        END_MARK,
-    ]
-    return "\n".join(lines)
-
-
 def _splice(path: Path, fragment: str, check: bool) -> bool:
     """Replace the marked block in *path*. Returns True when up to date."""
-    raw = path.read_bytes()
-    had_bom = raw.startswith(b"\xef\xbb\xbf")
-    text = raw.decode("utf-8-sig")
+    text = path.read_text(encoding="utf-8")
     begin = text.index(BEGIN_MARK)  # ValueError on missing marker is the point
     end = text.index(END_MARK) + len(END_MARK)
-    # Match the file's line endings (install.ps1 is CRLF) so the generated
-    # block does not leave the script with mixed newlines.
-    newline = "\r\n" if "\r\n" in text else "\n"
-    fragment = fragment.replace("\n", newline)
     updated = text[:begin] + fragment + text[end:]
     if updated == text:
         return True
     if not check:
-        path.write_bytes((b"\xef\xbb\xbf" if had_bom else b"") + updated.encode("utf-8"))
+        path.write_text(updated, encoding="utf-8")
     return False
 
 
@@ -172,29 +114,25 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="exit 1 when the committed fragments drift from pm/lock.json",
+        help="exit 1 when the committed fragment drifts from pm/lock.json",
     )
     args = parser.parse_args()
 
     uv = _load_uv_pin()
-    git = _load_git_pin()
     results = {
         "scripts/install.sh": _splice(
             REPO_ROOT / "scripts" / "install.sh", _sh_fragment(uv), args.check
         ),
-        "scripts/install.ps1": _splice(
-            REPO_ROOT / "scripts" / "install.ps1", _ps1_fragment(uv, git), args.check
-        ),
         # setup-hermes.sh deliberately holds NO fragment: it runs after a
         # checkout exists, so it reads the pin straight from pm/lock.json
         # at run time (the pm.sh-derived bootstrap). The fragment exists
-        # only for the curl|sh / irm|iex installers that bootstrap BEFORE
+        # only for the curl|sh installer that bootstraps BEFORE
         # any checkout exists.
     }
     stale = [name for name, fresh in results.items() if not fresh]
     if args.check and stale:
         print(
-            "bootstrap pin fragments drifted from pm/lock.json in: "
+            "bootstrap pin fragment drifted from pm/lock.json in: "
             f"{', '.join(stale)}\nrun: python3 scripts/gen-bootstrap-pins.py",
             file=sys.stderr,
         )
@@ -202,7 +140,7 @@ def main() -> int:
     for name in stale:
         print(f"updated {name}")
     if not stale:
-        print("fragments up to date")
+        print("fragment up to date")
     return 0
 
 

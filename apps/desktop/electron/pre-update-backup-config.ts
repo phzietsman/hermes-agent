@@ -16,7 +16,6 @@ export interface HermesConfigRuntime {
   command?: string | null
   args?: string[]
   env?: NodeJS.ProcessEnv
-  shell?: boolean
 }
 
 export async function readPreUpdateBackupEnabled(
@@ -34,9 +33,7 @@ export async function readPreUpdateBackupEnabled(
     const result = await run(resolvedRuntime.command, resolvedRuntime.args, {
       encoding: 'utf8',
       env: { ...process.env, ...resolvedRuntime.env, HERMES_HOME: hermesHome },
-      shell: Boolean(resolvedRuntime.shell),
-      timeout: 15_000,
-      windowsHide: true
+      timeout: 15_000
     })
 
     return preUpdateBackupEnabled(JSON.parse(String(result.stdout).trim()))

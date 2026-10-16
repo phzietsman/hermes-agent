@@ -1,4 +1,4 @@
-"""Native/cross-target execution and Windows directory-hold staging contracts."""
+"""Native/cross-target execution staging contracts."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from pm.package import InstallError, Package
+from pm.package import Package
 from pm.lock import Lockfile
 from pm.store import Store
 
@@ -181,37 +181,3 @@ def test_real_node_native_install_keeps_smoke_validation(tmp_path, sandbox, monk
     assert facts.get("node")["entry"] == entry.name
     (entry / "bin/node").write_text("#!/bin/sh\nexit 23\n")
     assert "23" in package.verify(entry, current_target())
-
-
-@pytest.mark.platforms("windows")
-def test_stage_repin_refuses_a_native_directory_hold_then_recovers(sandbox, monkeypatch):
-    import ctypes
-    from ctypes import wintypes
-
-    original, replacement = b"original", b"replacement"
-    _arm_lock(monkeypatch, [{"url": "https://example.test/tool", "sha256": _sha(original)}])
-    _seed_fetch_cache(sandbox, original)
-    entry = ensure_mod.stage_only("stage-test", TARGET)
-    marker = (entry / ".pm-stage-pin.json").read_bytes()
-    _arm_lock(monkeypatch, [{"url": "https://example.test/tool", "sha256": _sha(replacement)}])
-    _seed_fetch_cache(sandbox, replacement)
-    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
-                                  wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
-    kernel.CreateFileW.restype = wintypes.HANDLE
-    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
-    kernel.CloseHandle.restype = wintypes.BOOL
-    # FILE_FLAG_BACKUP_SEMANTICS opens a directory; omit FILE_SHARE_DELETE. The access mask must
-    # be non-zero (FILE_LIST_DIRECTORY): a zero-access handle takes no sharing lock and the rename
-    # the stage repin performs goes through unopposed.
-    handle = kernel.CreateFileW(str(entry), 1, 3, None, 3, 0x02000000, None)
-    assert handle != wintypes.HANDLE(-1).value, ctypes.get_last_error()
-    try:
-        with pytest.raises(InstallError):
-            ensure_mod.stage_only("stage-test", TARGET)
-        assert (entry / "bin/tool").read_bytes() == original
-        assert (entry / ".pm-stage-pin.json").read_bytes() == marker
-    finally:
-        kernel.CloseHandle(handle)
-    ensure_mod.stage_only("stage-test", TARGET)
-    assert (entry / "bin/tool").read_bytes() == replacement

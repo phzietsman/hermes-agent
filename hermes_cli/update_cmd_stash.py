@@ -152,9 +152,7 @@ def _push_stash(git_cmd: list[str], cwd: Path, stash_name: str, prev_stash: str)
 
 def _resolve_stash_selector(git_cmd: list[str], cwd: Path, stash_ref: str) -> Optional[str]:
     """Selector for the stash entry whose commit is *stash_ref*, as the bare index ``N``
-    (git accepts it wherever ``stash@{N}`` is valid). Never ``stash@{N}`` itself: on native
-    Windows the MSYS runtime strips the braces from git.exe's argv, so ``stash@{0}`` reaches git
-    as ``stash@0`` and the drop fails (#87542)."""
+    (git accepts it wherever ``stash@{N}`` is valid)."""
     from hermes_cli.update_cmd_git import _git_run
     stash_list = _git_run(git_cmd, ["stash", "list", "--format=%gd %H"], cwd, check=True)
     for line in stash_list.stdout.splitlines():

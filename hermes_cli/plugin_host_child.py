@@ -493,8 +493,8 @@ def _import_plugin(params: Dict[str, Any]) -> Any:
 
 def _take_protocol_streams():
     """Duplicate stdin/stdout for the channel, then point fd 0 at /dev/null and fd 1 at stderr."""
-    reader = os.fdopen(os.dup(0), "rb")  # windows-footgun: ok — binary protocol stream
-    writer = os.fdopen(os.dup(1), "wb")  # windows-footgun: ok — binary protocol stream
+    reader = os.fdopen(os.dup(0), "rb")
+    writer = os.fdopen(os.dup(1), "wb")
     devnull = os.open(os.devnull, os.O_RDONLY)
     os.dup2(devnull, 0)
     os.close(devnull)

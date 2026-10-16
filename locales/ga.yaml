@@ -1975,7 +1975,6 @@ cli:
     force_exiting: "⚡ Ag scor go forsáilte..."
     interrupting_again_hint: "⚡ Ag briseadh isteach ar an ngníomhaire... (brúigh Ctrl+C arís le scor go forsáilte)"
     interrupting: "⚡ Ag briseadh isteach ar an ngníomhaire..."
-    suspend_unsupported: "Ní thacaítear le fionraí (Ctrl+Z) ar Windows."
     suspended: "Cuireadh {agent_name} ar fionraí. Rith `fg` chun {agent_name} a thabhairt ar ais."
     steer_failed_queued: "Theip ar stiúradh ({error}) — curtha i scuaine don chéad seal eile."
     steered: "⏩ Stiúrtha: '{preview}'"

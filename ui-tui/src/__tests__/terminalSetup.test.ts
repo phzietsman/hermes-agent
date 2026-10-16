@@ -30,22 +30,13 @@ describe('terminalSetup helpers', () => {
     expect(detectVSCodeLikeTerminal({} as NodeJS.ProcessEnv)).toBeNull()
   })
 
-  it('computes VS Code style config dirs cross-platform', () => {
-    expect(getVSCodeStyleConfigDir('Code', 'darwin', {} as NodeJS.ProcessEnv, '/home/me')).toBe(
+  it('computes VS Code style config dirs per platform', () => {
+    expect(getVSCodeStyleConfigDir('Code', 'darwin', '/home/me')).toBe(
       '/home/me/Library/Application Support/Code/User'
     )
-    expect(getVSCodeStyleConfigDir('Code', 'linux', {} as NodeJS.ProcessEnv, '/home/me')).toBe(
+    expect(getVSCodeStyleConfigDir('Code', 'linux', '/home/me')).toBe(
       '/home/me/.config/Code/User'
     )
-    expect(
-      getVSCodeStyleConfigDir(
-        'Code',
-        'win32',
-        // Explicit win32-style platform data; win32.join yields backslash separators.
-        { APPDATA: 'C:\\Users\\me\\AppData\\Roaming' } as NodeJS.ProcessEnv,
-        '/home/me'
-      )
-    ).toBe('C:\\Users\\me\\AppData\\Roaming\\Code\\User')
   })
 
   it('strips line comments from keybindings JSON', () => {

@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 import threading
 
 import pytest
@@ -34,8 +33,6 @@ from tests.fakes.fake_llm_provider import Text, ToolCall
 
 # Not marked ``integration`` (that marker means external services and is deselected by addopts): the backend is
 # loopback-only. ``tests/e2e`` is outside default discovery; run with ``scripts/run_tests.sh --include-integration``.
-pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX process-group lifecycle for the spawned backend")
-
 TAG_RE = re.compile(r"\b(CLARIFY|RMRF)-([a-z0-9_]+)\b")
 PROMPT_TIMEOUT = 90.0
 

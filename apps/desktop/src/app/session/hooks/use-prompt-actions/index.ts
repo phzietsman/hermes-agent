@@ -29,7 +29,6 @@ import { clearPreviewArtifacts } from '@/store/preview-status'
 import { clearAllPrompts } from '@/store/prompts'
 import {
   $busy,
-  $currentCwd,
   $messages,
   $terminalBackend,
   setActiveSessionId,
@@ -102,7 +101,6 @@ interface HandoffResult {
 export async function uploadComposerAttachment(
   attachment: ComposerAttachment,
   opts: {
-    backendCwd?: null | string
     remote: boolean
     requestGateway: GatewayRequest
     sessionId: string
@@ -115,10 +113,10 @@ export async function uploadComposerAttachment(
     terminalBackend?: string
   }
 ): Promise<ComposerAttachment> {
-  const { backendCwd, remote, requestGateway, storedSessionId, onRecovered, onSessionRecovered, terminalBackend } = opts
+  const { remote, requestGateway, storedSessionId, onRecovered, onSessionRecovered, terminalBackend } = opts
   const path = attachment.path ?? ''
   const label = attachment.label || pathLabel(path)
-  const uploadBytes = remote || attachmentPathNeedsUpload(path, backendCwd, terminalBackend)
+  const uploadBytes = remote || attachmentPathNeedsUpload(terminalBackend)
 
   // Read bytes/paths ONCE, outside the retry. Only the session-scoped RPC is
   // replayed on recovery — re-reading a multi-MB file to retry a dead session
@@ -391,7 +389,6 @@ export function usePromptActions({
 
         if (attachment.kind === 'image' || attachment.kind === 'file') {
           const nextAttachment = await uploadComposerAttachment(attachment, {
-            backendCwd: $currentCwd.get(),
             remote,
             requestGateway,
             sessionId: liveSessionId,
@@ -452,7 +449,6 @@ export function usePromptActions({
         // don't resurrect it — just drop the staged result on the floor.
         updateComposerAttachment(
           await uploadComposerAttachment(attachment, {
-            backendCwd: $currentCwd.get(),
             remote,
             requestGateway,
             sessionId,

@@ -276,7 +276,6 @@ os._exit(0)
 """
 
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX process groups")
 @pytest.mark.live_system_guard_bypass  # a red run must reap survivors reparented to init
 @pytest.mark.parametrize("scenario", ["spawn_before_publish", "launch_after_fence"])
 def test_hard_exit_leaves_no_foreground_survivor_around_the_spawn(scenario, tmp_path):

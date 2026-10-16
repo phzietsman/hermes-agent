@@ -4205,15 +4205,6 @@ export const deOverrides = {
     availableBodyRelease: tag => `Version ${tag} ist bereit zur Installation.`,
     releaseAvailable: tag => `Version ${tag} ist verfügbar.`,
     checkingShort: 'Wird geprüft…',
-    availableBodyAppInstaller:
-      'Eine neue Hermes-Version ist bereit. Hermes wird geschlossen, Windows schließt das Update ab und Hermes startet automatisch neu.',
-    applyingBodyAppInstaller:
-      'Hermes wird geschlossen und Windows schließt das Update ab. Danach startet Hermes automatisch neu.',
-    applyingCloseAppInstaller:
-      'Dieses Fenster schließt sich, Windows schließt das Update ab und Hermes startet automatisch neu.',
-    checkUnknownTitleAppInstaller: 'Update-Check fehlgeschlagen',
-    checkUnknownBodyAppInstaller:
-      'Windows konnte gerade nicht nach Updates suchen. Updates werden auch beim Neustart von Hermes automatisch installiert.',
     versionDetailsTitle: 'Versionsdetails',
     versionDetailsBody:
       'Diese Installation wird außerhalb der App verwaltet. Aktualisieren Sie sie auf dieselbe Weise, wie Sie sie installiert haben.',
@@ -4222,13 +4213,11 @@ export const deOverrides = {
     versionDetailsBuildOrigin: 'Build-Ursprung',
     versionDetailsDistribution: 'Distribution',
     versionDetailsDistributionDesktop: 'Desktop-App',
-    versionDetailsDistributionDesktopMsix: 'Desktop-App (MSIX)',
     versionDetailsDistributionDesktopInstaller: 'Desktop-App (Installer)',
     versionDetailsDistributionSourceInstaller: 'Quellcode (Installationsskript)',
     versionDetailsDistributionSourceInstallerDesktop: 'Quellcode (Installationsskript) + hermes desktop',
     versionDetailsDistributionSource: 'Quellcode',
     versionDetailsDistributionSourceDesktop: 'Quellcode + hermes desktop',
-    versionDetailsDistributionStore: 'Microsoft Store',
     versionDetailsRuntime: 'Laufzeit',
     versionDetailsRuntimeEmbedded: 'Eingebettete Laufzeit',
     versionDetailsRuntimeExternal: 'Extern (nutzt die Laufzeit des Computers)',

@@ -1,8 +1,7 @@
 """TLS trust for Hermes. One authority, one trust source.
 
-Trust comes from the platform verifier via ``truststore``: CryptoAPI on
-Windows, Security.framework on macOS, and OpenSSL's own store (with a
-distro candidate sweep) on Linux. That is the machine's real answer to
+Trust comes from the platform verifier via ``truststore``: Security.framework
+on macOS and OpenSSL's own store (with a distro candidate sweep) on Linux. That is the machine's real answer to
 "is this chain valid", so a corporate MITM root installed by MDM, an
 internal CA, and a locked-down NixOS box all work with no configuration.
 

@@ -26,7 +26,7 @@ function fixture() {
   fs.mkdirSync(path.join(sevenZip, 'bin'), { recursive: true })
   fs.mkdirSync(icons)
   fs.writeFileSync(electron, 'verified archive fixture')
-  fs.writeFileSync(path.join(sevenZip, 'bin', process.platform === 'win32' ? '7za.exe' : '7za'), 'archive utility fixture')
+  fs.writeFileSync(path.join(sevenZip, 'bin', '7za'), 'archive utility fixture')
   fs.writeFileSync(path.join(icons, 'icon-tool.js'), 'icon tool fixture')
   return { source, out, electron, sevenZip, icons }
 }

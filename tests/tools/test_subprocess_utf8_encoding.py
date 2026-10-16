@@ -1,13 +1,11 @@
 """Regression test for #53428 (fix PR #55339): ``subprocess.run(text=True)``
 decoding of secret-manager CLI output must never crash on undecodable bytes.
 
-On Chinese Windows (cp936/GBK) ``text=True`` without ``encoding=`` decodes with
-the locale codepage and crashes on non-GBK bytes (#47939, #53428, #57238);
-``encoding='utf-8'`` alone still raises on non-UTF-8 bytes emitted by
-Windows-native CLIs. ``scripts/check-windows-footguns.py`` enforces the
-``encoding=`` half repo-wide; this drives the real ``_op_whoami`` against a
-child that emits invalid UTF-8 so the ``errors='replace'`` half is exercised
-on every host.
+``text=True`` without ``encoding=`` decodes with the locale codepage and
+crashes on bytes it cannot represent (#47939, #53428, #57238);
+``encoding='utf-8'`` alone still raises on non-UTF-8 bytes a CLI emits. This
+drives the real ``_op_whoami`` against a child that emits invalid UTF-8 so the
+``errors='replace'`` half is exercised on every host.
 """
 
 from __future__ import annotations

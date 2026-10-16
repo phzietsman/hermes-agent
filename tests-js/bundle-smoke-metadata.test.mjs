@@ -13,7 +13,7 @@ const commit = 'a'.repeat(40)
 test('fresh-install provenance admits tagless commit stamps without relaxing update acceptance', () => {
   const stamp = { commit, tag: null, source: 'commit-build', branch: null, dirty: false,
     distribution: 'desktop-app', payload: 'bundled', updateMechanism: 'external', displayVersion: '1.2.3' }
-  for (const platform of ['darwin', 'win32']) {
+  for (const platform of ['darwin']) {
     expect(verifyBundleStamp(stamp, { commit, platform })).toBe('1.2.3')
     for (const [key, value] of [['commit', 'b'.repeat(40)], ['tag', 'v1.2.3'], ['payload', 'light'],
       ['source', 'git'], ['branch', 'main'], ['dirty', true], ['updateMechanism', 'electron-updater']]) {
@@ -21,7 +21,7 @@ test('fresh-install provenance admits tagless commit stamps without relaxing upd
     }
     const tag = 'v1.2.3+canary.20260913T000000Z'
     const tagged = { ...stamp, tag, source: 'git', branch: 'main', displayVersion: tag.slice(1),
-      updateMechanism: platform === 'darwin' ? 'electron-updater' : 'app-installer' }
+      updateMechanism: 'electron-updater' }
     expect(verifyBundleStamp(tagged, { commit, tag, platform })).toBe(tag.slice(1))
     expect(() => verifyBundleStamp({ ...tagged, updateMechanism: 'external' }, { commit, tag, platform })).toThrow('updateMechanism')
   }
@@ -33,14 +33,14 @@ test('identity uses the production bundled variant and exact input tokens, not i
   const canary = bundleIdentity(commit, 'v1.2.3+canary.20260913T000000Z')
   const tagless = bundleIdentity(commit)
   expect(stable.appId).not.toBe(canary.appId)
-  expect(stable.msixIdentity).not.toBe(tagless.msixIdentity)
+  expect(stable.appId).not.toBe(tagless.appId)
   expect(tagless.appId).toContain(commit.slice(0, 7))
-  expect(tagless.publisher).toBe(stable.publisher)
+  expect(tagless.applicationId).not.toBe(stable.applicationId)
   for (const bad of [commit.slice(0, 7), ` ${commit}`, commit.toUpperCase()]) {
     expect(() => bundleIdentity(bad)).toThrow('commit')
   }
   expect(() => bundleIdentity(commit, 'v1.2.3 ')).toThrow('tag')
-  const hostileEnvironment = { ...process.env, HERMES_DESKTOP_VARIANT: 'store', HERMES_BUILD_COMMIT: 'b'.repeat(40), HERMES_PAYLOAD_TAG: 'v9.9.9', _HERMES_CHANNEL_REQUEST_JSON: '{"invalid":"inherited"}' }
+  const hostileEnvironment = { ...process.env, HERMES_DESKTOP_VARIANT: 'light', HERMES_BUILD_COMMIT: 'b'.repeat(40), HERMES_PAYLOAD_TAG: 'v9.9.9', _HERMES_CHANNEL_REQUEST_JSON: '{"invalid":"inherited"}' }
   const cli = path.resolve(import.meta.dirname, '../tests/install/e2e-assets/bundle-smoke-metadata.mjs')
   expect(JSON.parse(execFileSync(process.execPath, [cli, 'identity', '--commit', commit], { env: hostileEnvironment, encoding: 'utf8' }))).toEqual(tagless)
 })
@@ -64,17 +64,16 @@ test('channel smoke binds the complete admitted request, not a commit-build iden
     const identity = run('identity')
     expect(identity.status, identity.stderr).toBe(0)
     expect(JSON.parse(identity.stdout)).toMatchObject({ appId: request.identity.appId,
-      msixIdentity: request.identity.msixAppIdWithOrg, applicationId: request.identity.appNamePascal,
-      windowsVersion: request.windowsVersion })
+      applicationId: request.identity.appNamePascal })
     const env = { ...process.env, HERMES_DESKTOP_VARIANT: 'bundled', HERMES_BUILD_COMMIT: '',
       HERMES_PAYLOAD_TAG: '', HERMES_PAYLOAD_VERSION: '', _HERMES_CHANNEL_REQUEST_JSON: JSON.stringify(request) }
-    for (const platform of ['darwin', 'win32']) {
+    for (const platform of ['darwin']) {
       const stamp = buildStampPayload({ commit, dirty: false }, env, platform,
         { runtime: { commands: { hermes: 'bin/hermes' } } })
       fs.writeFileSync(stampPath, JSON.stringify(stamp))
       const result = run('stamp', ['--platform', platform, '--stamp', stampPath])
       expect(result.status, result.stderr).toBe(0)
-      expect(JSON.parse(result.stdout)).toBe(platform === 'darwin' ? request.version : request.windowsVersion)
+      expect(JSON.parse(result.stdout)).toBe(request.version)
       const options = { commit, platform, channelRequest: request }
       for (const key of Object.keys(request)) {
         const changed = { ...stamp, channelBuild: { ...request, [key]: null } }
@@ -85,7 +84,7 @@ test('channel smoke binds the complete admitted request, not a commit-build iden
         expect(() => verifyBundleStamp({ ...stamp, [key]: value }, options), key).toThrow(key)
       }
       expect(() => verifyBundleStamp(stamp, { commit, platform })).toThrow()
-      if (platform === 'darwin') {
+      {
         const plist = { CFBundleIdentifier: request.identity.appId, CFBundleShortVersionString: request.version,
           CFBundleVersion: request.version, CFBundleExecutable: request.identity.displayName }
         expect(verifyMacMetadata(plist, stamp, options)).toBe(request.version)
@@ -104,7 +103,7 @@ test('channel smoke binds the complete admitted request, not a commit-build iden
       expect(run('identity').status).not.toBe(0)
     }
     for (const invalid of [{ ...request, commit: 'b'.repeat(40) }, { ...request, channel: 'smoke/invalid' },
-      { ...request, windowsVersion: '1.2.3.0' }, { ...request, identity: { token } }]) {
+      { ...request, identity: { token } }]) {
       fs.writeFileSync(requestPath, JSON.stringify(invalid))
       expect(run('identity').status).not.toBe(0)
     }
@@ -122,20 +121,15 @@ test('workspace admission rejects reuse and symlink escapes before creating anyt
     expect(run(work, out).status).toBe(1)
     expect(run(path.join(temp, '..', 'escape'), out).status).toBe(1)
     expect(run(path.join(temp, 'another-work'), path.join(temp, 'another-work')).status).toBe(1)
-    fs.symlinkSync(os.tmpdir(), path.join(temp, 'link'), process.platform === 'win32' ? 'junction' : 'dir')
+    fs.symlinkSync(os.tmpdir(), path.join(temp, 'link'), 'dir')
     expect(run(path.join(temp, 'link', 'escape'), out).status).toBe(1)
     const marker = path.join(work, 'keep')
     fs.writeFileSync(marker, 'untouched')
     expect(run(work, out).status).toBe(1)
     expect(fs.readFileSync(marker, 'utf8')).toBe('untouched')
     const alias = path.join(temp, 'alias')
-    fs.symlinkSync(temp, alias, process.platform === 'win32' ? 'junction' : 'dir')
+    fs.symlinkSync(temp, alias, 'dir')
     expect(run(path.join(alias, 'fresh'), out).status).toBe(0)
   } finally { fs.rmSync(temp, { recursive: true, force: true }) }
 })
 
-test.runIf(process.platform === 'win32')('PowerShell admits only the pinned package and native slice', () => {
-  const script = path.resolve(import.meta.dirname, '../tests/install/e2e-assets/windows-bundle-metadata.test.ps1')
-  expect(execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script],
-    { encoding: 'utf8' })).toContain('PASS: MSIX identity/executable and MSIXBUNDLE native-slice admission')
-})

@@ -1,26 +1,13 @@
-"""Tests for hermes_bootstrap — Windows UTF-8 stdio shim.
+"""Tests for hermes_bootstrap, imported at the top of every Hermes entry point
+(hermes, hermes-agent, hermes-acp, gateway, batch_runner, cli.py).
 
-The bootstrap module is imported at the top of every Hermes entry point
-(hermes, hermes-agent, hermes-acp, gateway, batch_runner, cli.py).  It
-fixes Python's Windows UTF-8 defaults so print("café") doesn't crash and
-subprocess children inherit UTF-8 mode.
-
-Key invariants covered by these tests:
-
-  1. Windows: env vars get set, stdio reconfigured, non-ASCII print works
-  2. POSIX: complete no-op (we don't touch LANG/LC_* or anything else)
-  3. Idempotent: safe to call multiple times
-  4. Respects user opt-out: if the user explicitly sets PYTHONUTF8=0 or
-     PYTHONIOENCODING=something-else, we leave those alone
-  5. Load order: every Hermes entry point imports hermes_bootstrap as its
-     first non-docstring import (before anything that might do file I/O
-     or print to stdout)
+Load order: every Hermes entry point imports hermes_bootstrap as its first
+non-docstring import (before anything that might do file I/O or print to stdout).
 """
 
 from __future__ import annotations
 
 import errno
-import io
 import os
 import socket
 import subprocess
@@ -31,152 +18,11 @@ from pathlib import Path
 import pytest
 
 
-# Import the module under test via an import-time side-effect check path.
-# We need to be able to reset its state between tests, so we import it
-# fresh in each test that manipulates _IS_WINDOWS.
 def _fresh_import():
-    """Return a freshly-imported hermes_bootstrap module.
-
-    Drops any cached copy from sys.modules first so module-level code
-    runs again and the platform check re-evaluates.
-    """
+    """Re-import hermes_bootstrap so its module-level code runs again."""
     sys.modules.pop("hermes_bootstrap", None)
     import hermes_bootstrap  # noqa: WPS433
     return hermes_bootstrap
-
-
-class TestWindowsBehavior:
-    """Windows: the bootstrap does its job."""
-
-    @pytest.mark.platforms("windows")
-    def test_env_vars_set_on_windows(self, monkeypatch):
-        # Clear any pre-existing values and re-run bootstrap.
-        monkeypatch.delenv("PYTHONUTF8", raising=False)
-        monkeypatch.delenv("PYTHONIOENCODING", raising=False)
-        hb = _fresh_import()
-        # Module-level apply_windows_utf8_bootstrap() ran during import.
-        assert os.environ.get("PYTHONUTF8") == "1"
-        assert os.environ.get("PYTHONIOENCODING") == "utf-8"
-        assert hb._bootstrap_applied is True
-
-    @pytest.mark.platforms("windows")
-    def test_stdout_reconfigured_to_utf8_on_windows(self):
-        # The live process's stdout should now be UTF-8 (the Hermes CLI
-        # runs on Windows with a pytest console that's cp1252 by default).
-        # If reconfigure succeeded, sys.stdout.encoding is 'utf-8'.
-        _fresh_import()
-        # pytest may capture stdout, which makes encoding check flaky —
-        # so instead verify the reconfigure call succeeded on the real
-        # stream by attempting the failure case.
-        out = sys.stdout
-        reconfigure = getattr(out, "reconfigure", None)
-        if reconfigure is None:
-            pytest.skip("pytest replaced sys.stdout with a non-reconfigurable stream")
-        # After bootstrap, encoding should be utf-8 (or the reconfigure
-        # skipped because pytest's capture already set it to utf-8).
-        assert out.encoding.lower() in {"utf-8", "utf8"}, (
-            f"stdout encoding is {out.encoding!r} — bootstrap should have "
-            "reconfigured it to UTF-8"
-        )
-
-    @pytest.mark.platforms("windows")
-    def test_child_process_inherits_utf8_mode(self):
-        """A subprocess spawned from this process should inherit
-        PYTHONUTF8=1 and be able to print non-ASCII to stdout."""
-        _fresh_import()
-        # Non-ASCII chars that would crash under cp1252: arrow, emoji.
-        script = textwrap.dedent("""
-            import sys
-            print("em-dash \\u2014 arrow \\u2192 emoji \\U0001f680")
-            sys.exit(0)
-        """).strip()
-        # Don't pass env= — let the child inherit os.environ, which
-        # now contains PYTHONUTF8=1 courtesy of the bootstrap.
-        result = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            timeout=15,
-        )
-        assert result.returncode == 0, (
-            f"Child crashed printing non-ASCII despite UTF-8 bootstrap:\n"
-            f"  stdout: {result.stdout!r}\n"
-            f"  stderr: {result.stderr!r}"
-        )
-        decoded = result.stdout.decode("utf-8")
-        assert "\u2014" in decoded
-        assert "\u2192" in decoded
-        assert "\U0001f680" in decoded
-
-
-class TestUserOptOut:
-    """If the user has explicitly set PYTHONUTF8 / PYTHONIOENCODING in
-    their environment, we respect that (setdefault, not overwrite)."""
-
-    @pytest.mark.platforms("windows")
-    def test_user_pythonutf8_zero_preserved(self, monkeypatch):
-        monkeypatch.setenv("PYTHONUTF8", "0")
-        _fresh_import()
-        assert os.environ["PYTHONUTF8"] == "0", (
-            "bootstrap must not overwrite an explicit user setting"
-        )
-
-
-
-class TestPosixNoOp:
-    """POSIX: zero behavior change.  We don't touch LANG, LC_*, or any
-    stdio.  The goal is that Linux/macOS behave identically before and
-    after this module is imported."""
-
-    @pytest.mark.platforms("linux")
-    def test_noop_on_posix_host(self, monkeypatch):
-        """Even when imported, the bootstrap function must return False
-        and leave env untouched on a POSIX host (``_IS_WINDOWS`` is
-        genuinely False here — nothing is faked)."""
-        hb = _fresh_import()
-        # Reset the idempotence latch so the call below is not a no-op for
-        # the wrong reason.
-        hb._bootstrap_applied = False
-        monkeypatch.delenv("PYTHONUTF8", raising=False)
-        monkeypatch.delenv("PYTHONIOENCODING", raising=False)
-
-        result = hb.apply_windows_utf8_bootstrap()
-
-        assert result is False
-        assert "PYTHONUTF8" not in os.environ
-        assert "PYTHONIOENCODING" not in os.environ
-        assert hb._bootstrap_applied is False
-
-
-
-
-
-
-class TestStdioReconfigureErrorHandling:
-    """If sys.stdout/stderr/stdin have been replaced with streams that
-    don't support reconfigure (e.g. by a test harness), the bootstrap
-    must degrade gracefully rather than crash."""
-
-    @pytest.mark.platforms("windows")
-    def test_non_reconfigurable_stream_does_not_crash(self, monkeypatch):
-        """Replace sys.stdout with a BytesIO (no reconfigure method),
-        then run the bootstrap and make sure it doesn't raise.
-
-        ``platforms("windows")``: forcing ``_IS_WINDOWS = True`` on Linux was the only
-        thing that made the reconfigure block reachable — off Windows the
-        bootstrap returns before touching stdio, so the test proved nothing
-        about the guard it names.
-        """
-        hb = _fresh_import()
-        hb._bootstrap_applied = False
-
-        fake = io.BytesIO()  # no .reconfigure attribute
-        monkeypatch.setattr(sys, "stdout", fake)
-        try:
-            # Must not raise.
-            hb.apply_windows_utf8_bootstrap()
-        except Exception as exc:
-            pytest.fail(f"bootstrap raised on non-reconfigurable stdout: {exc}")
-
 
 
 @pytest.mark.parametrize("path", [
@@ -208,7 +54,6 @@ def guarded(name, globals=None, locals=None, fromlist=(), level=0):
             assert name == 'hermes_bootstrap', name
             module = real_import(name, globals, locals, fromlist, level)
             assert module._pm_repair is True
-            assert module._bootstrap_applied is (sys.platform == 'win32')
             seen.append(name)
             return module
         raise Boundary()
@@ -229,8 +74,7 @@ else:
     assert result.stdout.strip() == "bootstrap-before-app"
 
 
-# "any": the OS lanes select only platforms-marked tests, and Windows is where hermes_cli's
-# stdio repair fires on a cp1252 pipe.
+# "any": the OS lanes select only platforms-marked tests.
 @pytest.mark.platforms("any")
 def test_library_imports_of_dual_use_entry_modules_stay_side_effect_free(tmp_path):
     # The codex hermes-tools MCP server and the compute host are ``python -m`` entry points
@@ -397,76 +241,6 @@ class TestHardenImportPath:
             else:
                 os.environ["HERMES_PYTHON_SRC_ROOT"] = original_env
 
-
-
-class TestEnableWindowsVt:
-    """Hermes prints raw SGR codes; a conhost console renders them only with VT on."""
-
-    @pytest.mark.platforms("windows")
-    def test_turns_vt_on_for_a_console_that_has_it_off(self):
-        # A fresh console via CREATE_NEW_CONSOLE is the installer's situation:
-        # a real conhost whose output handle starts without VT processing.
-        script = textwrap.dedent("""
-            import ctypes, msvcrt, sys
-            from ctypes import wintypes
-            sys.path.insert(0, sys.argv[1])
-            import hermes_bootstrap
-            kernel32 = ctypes.WinDLL("kernel32")
-            handle = msvcrt.get_osfhandle(sys.stdout.fileno())
-            mode = wintypes.DWORD()
-            if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
-                sys.exit(4)
-            kernel32.SetConsoleMode(handle, mode.value & ~0x0004)
-            ok = hermes_bootstrap.enable_windows_vt()
-            kernel32.GetConsoleMode(handle, ctypes.byref(mode))
-            sys.exit(0 if ok and mode.value & 0x0004 else 3)
-        """).strip()
-        root = str(Path(__file__).resolve().parents[1])
-        result = subprocess.run(
-            [sys.executable, "-c", script, root],
-            creationflags=subprocess.CREATE_NEW_CONSOLE,
-            timeout=120,
-        )
-        if result.returncode == 4:
-            pytest.skip("this session cannot create a console")
-        assert result.returncode == 0
-
-    @pytest.mark.platforms("windows")
-    def test_leaves_non_console_handles_and_colour_alone(self, tmp_path, monkeypatch):
-        # Redirected output must neither fail nor flip Hermes to NO_COLOR.
-        monkeypatch.delenv("NO_COLOR", raising=False)
-        import hermes_bootstrap
-
-        with open(tmp_path / "out.txt", "w", encoding="utf-8") as stream:
-            assert hermes_bootstrap.enable_windows_vt([stream]) is True
-        assert "NO_COLOR" not in os.environ
-
-
-class TestSuppressPlatformVerConsole:
-    """suppress_platform_ver_console: stub applied on Windows, no-op on POSIX."""
-
-
-    @pytest.mark.platforms("windows")
-    def test_stub_applied_when_windows(self):
-        # Faking _IS_WINDOWS on Linux asserted only that the stub was
-        # installed; the reason it exists — ``platform.win32_ver()`` shelling
-        # out ``cmd /c ver`` — has no counterpart off Windows.
-        import platform
-        hb = _fresh_import()
-        original = getattr(platform, "_syscmd_ver", None)
-        try:
-            hb.suppress_platform_ver_console()
-            stubbed = platform._syscmd_ver
-            assert stubbed is not original
-            # Stub returns its inputs — win32_ver()'s documented fallback path.
-            assert stubbed("s", "r", "v") == ("s", "r", "v")
-            # No-arg call (how Lib/platform.py invokes it in the fallback
-            # probe) must not raise — the rejected PR #69522 wrapper
-            # TypeError'd here.
-            assert stubbed() == ("", "", "")
-        finally:
-            if original is not None:
-                platform._syscmd_ver = original
 
 
 class TestHappyEyeballsSocketConnect:

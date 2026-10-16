@@ -41,23 +41,13 @@ description: "如何为 Hermes Agent 做贡献 — 开发环境配置、代码�
 
 成功准备后，每次在仓库根目录的新 shell 中激活已有环境。
 
-Bash：
-
 ```bash
 source ./activate
 hermes --version
 ```
 
-PowerShell：
-
-```powershell
-. .\activate.ps1
-hermes --version
-```
-
-PowerShell 开头的点和空格用于 dot-source，不能省略。
 激活通过 PM 准备工具并同步依赖，但不创建 JS workspaces，也不设置常规 venv 提示符。
-激活把 `hermes` 定义成当前 worktree 的函数，因此会盖住全局命令和 MSIX 别名，
+激活把 `hermes` 定义成当前 worktree 的函数，因此会盖住全局命令，
 并在离开该 worktree 时拒绝运行。
 `deactivate` 恢复激活前的环境，不卸载依赖或停止已启动的进程。
 
@@ -77,7 +67,6 @@ PM 不会自动删除已有目录。不要通过原始 pip 或 uv 命令修改 H
 
 测试 runner 自动发现仓库的 `.venv`。它会清除 `PYTHONPATH`，因此 pytest 必须安装在解释器自身的环境中。
 也可将 `--out` 指向仓库外的新路径，再将 `HERMES_PYTHON` 设为该环境的解释器。
-Windows 上通过 Bash 运行 `scripts/run_tests.sh`，并预先准备本机 C++ 编译环境。
 
 独立测试环境不替代 PM 工具存储或应用的依赖选择。不要修改签名应用的载荷。
 运行开发实例前，选择临时的 `HERMES_HOME`，再使用 `hermes setup` 配置它。
@@ -112,14 +101,12 @@ scripts/run_tests.sh
 
 ## 跨平台兼容性
 
-Hermes 支持 Linux、macOS、WSL2 和原生 Windows。Windows shell 由 PM 解析 Git Bash。Dashboard 聊天通过 pywinpty/ConPTY 支持原生 Windows，并非仅限 WSL2。平台和依赖限制见[平台支持](../getting-started/platform-support.md)。
+Hermes 支持 Linux 和 macOS（Windows 用户通过 WSL2 运行）。平台和依赖限制见[平台支持](../getting-started/platform-support.md)。
 
 贡献代码时，请遵守以下规则：
 
-- **不得添加未加保护的 `signal.SIGKILL` 引用。** Windows 上未定义该信号。请通过 `gateway.status.terminate_pid(pid, force=True)`（集中式原语，Windows 上执行 `taskkill /T /F`，POSIX 上发送 SIGKILL）路由，或使用 `getattr(signal, "SIGKILL", signal.SIGTERM)` 回退。
-- **不要在 Windows 上用 `os.kill(pid, 0)` 检查存活。** 使用 `psutil.pid_exists()`；信号调用不是安全的只读检查。
-- **不得强制终端使用 POSIX 语义。** `os.setsid`、`os.killpg`、`os.getpgid`、`os.fork` 在 Windows 上均会抛出异常 — 使用 `if sys.platform != "win32":` 或 `if os.name != "nt":` 进行条件判断。
-- **打开文件时显式指定 `encoding="utf-8"`。** Windows 上 Python 默认使用系统区域设置（通常为 cp1252），处理非拉丁字符时会出现乱码或崩溃。
+- **使用 `psutil.pid_exists()` 检查进程存活**，而不是 `os.kill(pid, 0)`。
+- **打开文件时显式指定 `encoding="utf-8"`。**
 - **使用 `pathlib.Path` / `os.path.join`，不得手动用 `/` 拼接路径。** 这对我们构造后传给子进程的字符串尤为重要，而非 OS 返回给我们的字符串。
 
 关键模式：
@@ -136,13 +123,7 @@ except UnicodeDecodeError:
 
 ### 2. 进程管理
 
-`os.setsid()`、`os.killpg()` 以及信号处理在各平台间存在差异：
-
-```python
-import platform
-if platform.system() != "Windows":
-    kwargs["preexec_fn"] = os.setsid
-```
+使用 `start_new_session=True` 分离子进程，而不是 `preexec_fn`。
 
 ### 3. 路径分隔符
 
@@ -188,7 +169,7 @@ refactor/description   # 代码重构
 
 1. **运行测试**：`scripts/run_tests.sh` 以确保 CI 一致性。仅当 wrapper 不可用或您有意在 wrapper 之外调试时，才使用直接 `python -m pytest ...`。
 2. **手动测试**：运行 `hermes` 并验证您修改的代码路径
-3. **检查跨平台影响**：考虑 macOS、Linux、WSL2 和原生 Windows。如果您修改了文件 I/O、进程管理、终端处理、子进程或信号相关代码，请运行 `scripts/check-windows-footguns.py`。
+3. **检查跨平台影响**：考虑 macOS、Linux 和 WSL2，尤其是在修改文件 I/O、进程管理、终端处理、子进程或信号相关代码时。
 4. **保持 PR 聚焦**：每个 PR 只包含一个逻辑变更
 
 ### PR 描述

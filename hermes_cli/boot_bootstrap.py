@@ -61,9 +61,8 @@ def read_git_head(root: Path) -> str | None:
 def _git_binary() -> str | None:
     """The git to run, or None when this machine has no usable one.
 
-    pm's pinned git first (the win32 Git-for-Windows package — where it
-    is installed, it is the one whose bash contract the rest of the tree
-    already trusts), then a PATH git. The imports are local: this module
+    pm's pinned git first (where it is installed, it is the one the rest
+    of the tree already trusts), then a PATH git. The imports are local: this module
     is loaded early enough that a module-level import would widen the
     boot import graph for a lookup most platforms answer from PATH.
     """

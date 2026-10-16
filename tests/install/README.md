@@ -14,8 +14,8 @@ The test family has four layers. Each layer has one job.
 
 1. `scripts/sandbox/generate-e2e-matrix.mjs` declares the support matrix. It lists every {os, install-method, update-method} pair. It expands the pairs against the sampled release tags. It knows nothing about which pairs CI can run.
 2. `.github/workflows/install-e2e.yml` is the primary workflow. It picks the release tags, runs the generator, and fans out one matrix job per OS. It also writes the plan chart and the result chart on the run summary.
-3. The run workflows own the capability knowledge. `install-e2e-run.yml` serves linux. `install-e2e-windows-run.yml` serves windows. `install-e2e-macos-run.yml` selects either the shared script driver or the macOS GUI driver. Job-level `if:` gates select the supported pairs. All other pairs skip natively and show as grey.
-4. The drivers do the work. `tests/install/installer-script-e2e.sh` handles POSIX script installs, `tests/install/macos-desktop-e2e.sh` handles macOS dmg installs, and `tests/install/windows-e2e.ps1` handles Windows installs. Install and update methods are separate axes, subject to each workflow's capability gates.
+3. The run workflows own the capability knowledge. `install-e2e-run.yml` serves linux. `install-e2e-macos-run.yml` selects either the shared script driver or the macOS GUI driver. Job-level `if:` gates select the supported pairs. All other pairs skip natively and show as grey.
+4. The drivers do the work. `tests/install/installer-script-e2e.sh` handles POSIX script installs, and `tests/install/macos-desktop-e2e.sh` handles macOS dmg installs. Install and update methods are separate axes, subject to each workflow's capability gates.
 
 To declare a new method, edit the generator. To implement a method, flip the gate in the run workflow and extend a driver.
 
@@ -43,7 +43,7 @@ This column tests two things that no tag leg tests:
 - HEAD's installer on an empty machine. Tag legs run an old installer, or run HEAD's installer over an existing install.
 - HEAD's own updater. Tag legs start the old release's updater.
 
-On Windows, the HEAD leg also takes every `git.exe` directory off PATH and installs no `remote get-url` shim. `install.ps1` uses any git that it finds on PATH, so without this step pinned-git staging never runs. The driver's own git plumbing uses the git path that it captured before the strip. The drivers take NEXT as `--update-ref NEXT` (Windows: `-UpdateRef NEXT`). The run workflows take it as the `update-ref` input.
+The drivers take NEXT as `--update-ref NEXT`. The run workflows take it as the `update-ref` input.
 
 ## What one leg does
 
@@ -55,11 +55,6 @@ Each leg with the script drivers has these phases:
 4. Verify the installed command and products before running `hermes --version`. Select the command under the installation's `.hermes/bin`; use the old venv only for a source tree without PM. Check PM currency and compiler receipts where supported. Preserve the no-desktop scenario for a plain install. Do not rebuild, remove dependencies, or force-stop an updater during verification. Historical installs without these receipts get artifact-presence checks, not a freshness claim.
 
 The cheap fixture checks are `tests/scripts/test_source_driver.py` and `tests-js/source-update-observer.test.mjs`. They do not run installers or prove native GUI relaunch. The native packaged-update drivers own automatic-relaunch acceptance. A later driver-owned launch checks chat only after the original update/relaunch assertions pass; it cannot repair a failed handoff. The observer does not change source files, products, dependency selections, or facts.
-
-The Windows `desktop-installer@latest` install downloads the published
-`Hermes-Setup.exe` and drives its GUI with AutoHotkey. The selected update
-method is a separate axis. App-update methods click the running app's Update
-control; script and CLI methods use their corresponding entry points.
 
 ## Desktop chat at install and update checkpoints
 
@@ -97,17 +92,13 @@ preserves unrelated settings, including the controlled update feed.
 ## Post-build artifact smoke
 
 `desktop-bundled-release.yml` calls `desktop-bundle-smoke.yml` on fresh native
-Windows and macOS runners. It downloads the admitted commit's receipt-bound
+macOS runners. It downloads the admitted commit's receipt-bound
 bytes through the public archive and installs the actual artifact before chat:
 
 | Native target | Independently installed formats |
 |---|---|
 | macOS arm64 and x64 | DMG, ZIP |
-| Windows arm64 and x64 | MSIX, universal MSIXBUNDLE |
 
-The universal envelope runs on both Windows architectures, verifying native
-slice selection. Windows assembly/staging is separate from feed publication;
-both Windows smoke matrices must pass before publishing its canary feed.
 macOS publication and stable candidate acceptance also require their smoke
 results. Failed checks retain the downloadable build and diagnostic artifacts.
 
@@ -120,8 +111,7 @@ previous-version upgrade baselines.
 This covers signed downloadable commit builds, canaries with upload enabled,
 and stable candidates. No-upload tag builds have no cross-job download handoff.
 Linux bundle jobs remain disabled, but Linux source-install desktop checks run.
-Unsigned Store submissions are not sideloaded or re-signed for this smoke;
-their Store acceptance remains separate. Passing helper tests does not establish
+Passing helper tests does not establish
 native installation or chat acceptance: those require the corresponding runner.
 
 ## Old versions
@@ -134,19 +124,19 @@ A leg can install a release from months back. The driver must not assume that th
 
 ## The install methods
 
-- `packaged-app`: a signed Windows MSIX bundle or macOS application ZIP.
+- `packaged-app`: a signed macOS application ZIP.
   This pairs only with `open-app-update`, using separately pinned package
   inputs rather than the source-tag cross product. See [bundled update
   acceptance](BUNDLED_UPDATES.md) for the manifest and proof contracts.
-- `installer-script`: the platform's one-liner (`curl | bash` on linux and macos, `irm | iex` on windows).
-- `installer-script+desktop`: the same one-liner with its desktop stage opted in (`--include-desktop` / `-IncludeDesktop`). The stage builds the desktop app during the install. On windows it also registers Start Menu and Desktop shortcuts. On linux and macos it builds the app inside the checkout and registers no OS entry point.
-- `desktop-installer@latest`: the published GUI installer (`Hermes-Setup.exe` on windows, `Hermes-Setup.dmg` on macos), driven through the real user flow.
+- `installer-script`: the platform's one-liner (`curl | bash`).
+- `installer-script+desktop`: the same one-liner with its desktop stage opted in (`--include-desktop`). The stage builds the desktop app inside the checkout during the install and registers no OS entry point.
+- `desktop-installer@latest`: the published GUI installer (`Hermes-Setup.dmg` on macos), driven through the real user flow.
 
 ## The two app-update variants
 
 The desktop app has two launch paths, so the matrix has two app-update methods. Both click "Update now" in the running app. They differ in how the app starts:
 
-- `open-app-update`: the app starts from the installed app entry point. On Windows, both the desktop installer and `installer-script+desktop` create shortcuts, so both support this route. On Linux and macOS, the script's opt-in desktop stage builds inside the checkout without registering an OS entry point. The macOS route therefore requires a desktop-installer install; Linux has no open-app-update leg.
+- `open-app-update`: the app starts from the installed app entry point. The script's opt-in desktop stage builds inside the checkout without registering an OS entry point. The macOS route therefore requires a desktop-installer install; Linux has no open-app-update leg.
 - `hermes-desktop-app-update`: the app starts with the `hermes desktop` command. Every install method provides this command, on each OS that ships the desktop app. On linux this is the only app surface: no desktop installer and no packaged desktop artifact exist for linux. The driver captures the product's own launch call (argv, cwd, environment) with `e2e-assets/launch-capture/sitecustomize.py` and re-executes it under Playwright, which owns the app and clicks the update flow. Pre-PM console scripts load the capture hook via `PYTHONPATH`; PM launchers use `-I`, so `launch-capture/pm-launch.py` obtains the installed launcher's own isolated runtime command and loads the driver hook before its bootstrap.
 
 ## Skips
@@ -162,7 +152,7 @@ The result chart on the run summary shows each leg as passed, failed, or skipped
 
 The full matrix does not run on pull requests. One leg installs real toolchains and takes more than 10 minutes. The triggers are:
 
-- A pull request that touches the install/update surface (the `paths:` list in `install-e2e.yml`). It runs only the `pr` route: `installer-script -> hermes-update` on Linux (newest release -> PR, and PR -> NEXT), Windows (PR -> NEXT) and macOS (newest release -> PR). The four legs run in parallel, so the wall clock is about one leg.
+- A pull request that touches the install/update surface (the `paths:` list in `install-e2e.yml`). It runs only the `pr` route: `installer-script -> hermes-update` on Linux (newest release -> PR, and PR -> NEXT) and macOS (newest release -> PR). The three legs run in parallel, so the wall clock is about one leg.
 - A schedule, every 12 hours. This finds upstream drift. When a scheduled run goes red, `install-e2e-red.yml` opens one issue labelled `install-e2e-red`, rewrites its body in place on every later red run, and closes it on the first green one.
 - A matching release tag push.
 - A reusable workflow call from the stable release gate.
@@ -177,9 +167,8 @@ chart before dispatching a large run. Scheduled/tag runs default to two sampled
 tags; manual dispatch defaults to three. `tag-count` accepts 1–10.
 
 `all` selects every source OS. `both`, `update`, and `installer` select Linux
-source legs, not Windows plus macOS. `windows-desktop` and `macos-desktop`
-select those source/GUI routes. `windows-bundled`, `macos-bundled`, and `bundled`
-require their package manifests; they do not expand the source-tag cross product.
+source legs. `macos-desktop` selects the source/GUI route. `macos-bundled` and
+`bundled` require their package manifest; they do not expand the source-tag cross product.
 `install-ref` selects one exact source baseline. Stable release calls also
 exclude the candidate tag so it cannot serve as its own old version.
 
@@ -187,7 +176,7 @@ Per-leg timeouts and GitHub's matrix limits remain workflow constraints, not
 proof that every declared combination ran. Native package acceptance is separate
 from the deferred desktop Playwright application suite.
 
-Running the drivers locally: don't, except in a disposable VM. The windows driver kills every process named Hermes during teardown and the macos driver operates on `/Applications/Hermes.app`; on a machine with a real Hermes install they will interfere with it.
+Running the drivers locally: don't, except in a disposable VM. The macos driver operates on `/Applications/Hermes.app`; on a machine with a real Hermes install it will interfere with it.
 
 ## Plugin upgrade preservation
 
@@ -210,14 +199,12 @@ contract and not exercised.
   profile plugin tree, and the externally-owned sidecar witness outside the
   home — no pyproject anywhere in the scanned root, nothing downloaded) and
   snapshots; after the update lands it verifies and fails the leg on any
-  violation. Both shell and Windows hooks call the same Python `seed`
-  command. Existing fixtures or snapshots abort rather than masking damage
-  by reseeding. Windows uses a junction without requiring symlink privilege.
+  violation. The hooks call the Python `seed` command. Existing fixtures or
+  snapshots abort rather than masking damage by reseeding.
 - Unit tests live at `tests/scripts/test_verify_plugin_preservation.py` and
   exercise the verifier against a real temp filesystem (real files, real
-  symlinks; junction fallback on Windows).
-- Stable-to-stable: the drivers accept `--update-ref REF` (Windows:
-  `-UpdateRef`), defaulting to HEAD. Pass the next release tag to target a
+  symlinks).
+- Stable-to-stable: the drivers accept `--update-ref REF`, defaulting to HEAD. Pass the next release tag to target a
   stable→stable upgrade through the same serve.git staging; only label a leg
   stable-to-stable when BOTH the install ref and the target ref are release
   tags. `NEXT` is reserved for the HEAD -> NEXT column (see above).
@@ -259,9 +246,7 @@ re-syncs it), but it may not delete or modify the user's own durable state —
   harness's "probe, do not assume" rule. Each action asserts it actually landed,
   so a leg can never "pass" while testing nothing.
 - `e2e-assets/preserve-user-state.sh` is the POSIX/macOS hook pair
-  (snapshot before the upgrade, verify after). Windows calls the same Python
-  `snapshot`/`verify` from `windows-e2e.ps1`'s phases, alongside its existing
-  plugin hooks.
+  (snapshot before the upgrade, verify after).
 - Two more invariants ride along: the redirect must stay transport-level
   (`config --get remote.origin.url` stays official while `remote get-url` is
   rewritten), and the user-visible launcher must still exist and run after the
@@ -271,4 +256,4 @@ re-syncs it), but it may not delete or modify the user's own durable state —
 
 ## Artifacts
 
-Each leg uploads its logs as an artifact. Every leg also records the screen for its whole run: the composite action `.github/actions/e2e-screen-record` records with the OS's capture backend (x11grab on linux, gdigrab on windows, avfoundation on macos), and fails the leg if the recording is missing or has zero frames. ffmpeg itself comes from the PM toolchain — jobs pass `packages: ffmpeg` to `actions/setup-pm`, which installs the locked, sha256-pinned build (native per-OS, including win32-arm64) and puts it on `PATH`; the action only verifies it is there. Linux runners have no display, so the action starts `Xvfb :99` first and exports `DISPLAY` for every later step — the app under test and the recorder share that display. The windows GUI leg also uploads screenshots and the update result file. Get them with `gh run download <run-id>`.
+Each leg uploads its logs as an artifact. Every leg also records the screen for its whole run: the composite action `.github/actions/e2e-screen-record` records with the OS's capture backend (x11grab on linux, avfoundation on macos), and fails the leg if the recording is missing or has zero frames. ffmpeg itself comes from the PM toolchain — jobs pass `packages: ffmpeg` to `actions/setup-pm`, which installs the locked, sha256-pinned build (native per-OS) and puts it on `PATH`; the action only verifies it is there. Linux runners have no display, so the action starts `Xvfb :99` first and exports `DISPLAY` for every later step — the app under test and the recorder share that display. Get them with `gh run download <run-id>`.

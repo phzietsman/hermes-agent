@@ -165,8 +165,7 @@ def scan_directory(
             portable_file = child / "plugin.json"
             has_portable = portable_file.exists() or portable_file.is_symlink()
         except OSError as exc:
-            # stat() raises (not "False") on an unsearchable directory — Windows ACLs (WinError 5) or a
-            # mode-000 dir; one such plugin must not abort discovery for every other plugin (#111804).
+            # stat() raises (not "False") on an unsearchable directory — a mode-000 dir; one such plugin must not abort discovery for every other plugin (#111804).
             logger.warning("Skipping unreadable plugin directory %s: %s", child, exc)
             continue
         if manifest_file is not None:

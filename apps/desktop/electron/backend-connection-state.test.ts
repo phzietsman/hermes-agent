@@ -113,8 +113,7 @@ test('a failed primary stop retains its child and blocks a replacement until ret
   const state = createBackendConnectionState<ChildProcess, string>()
 
   const child = spawn(process.execPath, ['-e', 'process.stdout.write("ready"); setInterval(() => {}, 1000)'], {
-    stdio: ['ignore', 'pipe', 'ignore'],
-    windowsHide: true
+    stdio: ['ignore', 'pipe', 'ignore']
   })
 
   try {
@@ -147,9 +146,6 @@ test('a failed primary stop retains its child and blocks a replacement until ret
       calls.push(current)
       current.kill()
       await waitForBackendExit(current, {
-        forceKillProcessTree: (): void => {
-          current.kill('SIGKILL')
-        },
         killGroup: (): void => {
           current.kill('SIGKILL')
         }
@@ -175,8 +171,7 @@ test('shutdown sees a spawned child while its persistent claim is still pending'
   const state = createBackendConnectionState<ChildProcess, string>()
 
   const child = spawn(process.execPath, ['-e', 'process.stdout.write("ready"); setInterval(() => {}, 1000)'], {
-    stdio: ['ignore', 'pipe', 'ignore'],
-    windowsHide: true
+    stdio: ['ignore', 'pipe', 'ignore']
   })
 
   const claim = deferred<void>()
@@ -196,9 +191,6 @@ test('shutdown sees a spawned child while its persistent claim is still pending'
       assert.equal(current, child)
       current.kill()
       await waitForBackendExit(current, {
-        forceKillProcessTree: (): void => {
-          current.kill('SIGKILL')
-        },
         killGroup: (): void => {
           current.kill('SIGKILL')
         }

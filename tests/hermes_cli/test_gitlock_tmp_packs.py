@@ -13,7 +13,6 @@ import os
 import time
 from pathlib import Path
 
-import pytest
 
 from hermes_cli.gitlock import (
     STALE_TMP_PACK_MIN_AGE_SECONDS,
@@ -100,30 +99,8 @@ def test_no_git_dir_is_a_noop(tmp_path):
     assert clear_stale_tmp_packs(tmp_path) == []
 
 
-
-
-@pytest.mark.platforms("windows")
-def test_windows_readonly_debris_is_cleared(tmp_path, monkeypatch):
-    """git renames its transfer temps into place read-only, and Windows refuses to unlink a
-    read-only file with EACCES — the exact rule that let aborted-fetch debris survive this
-    sweep for months (#116384). Runs on a real Windows host: no faked unlink, no faked OS."""
-    repo = _mkrepo(tmp_path)
-    monkeypatch.setattr("hermes_cli.gitlock._git_proc_running", lambda: False)
-    pack = repo / ".git" / "objects" / "pack"
-
-    debris = pack / "tmp_pack_ReadOnly"
-    debris.write_bytes(b"x" * 128)
-    _age(debris, STALE_TMP_PACK_MIN_AGE_SECONDS + 60)
-    os.chmod(debris, 0o444)  # read-only, as git writes its pack temps
-
-    removed = clear_stale_tmp_packs(repo)
-    assert removed == [str(debris)]  # write bit cleared first, then unlinked
-    assert not debris.exists()
-
-
 def test_unlink_failure_is_surfaced_at_warning(tmp_path, monkeypatch, caplog):
-    """The skip used to be logged at debug, which hid the months-long Windows no-op sweep;
-    a cleaner that fails silently is worse than none, so every skip must be visible (#116384)."""
+    """The skip used to be logged at debug, which hid a months-long no-op sweep; a cleaner that fails silently is worse than none, so every skip must be visible (#116384)."""
     repo = _mkrepo(tmp_path)
     monkeypatch.setattr("hermes_cli.gitlock._git_proc_running", lambda: False)
     pack = repo / ".git" / "objects" / "pack"

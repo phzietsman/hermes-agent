@@ -61,7 +61,7 @@ def transition(tmp_path):
     )
     selected = tmp_path / "selected-python"
     venv.EnvBuilder(with_pip=False).create(selected)
-    selected_python = selected / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    selected_python = selected / "bin/python"
     (pm_package / "environments.py").write_text(
         "import os, sys\n"
         "from pathlib import Path\n"
@@ -138,17 +138,20 @@ def transition(tmp_path):
         "def _restart_gateway_fleet_after_update(plan, gateway_mode):\n"
         "    event('restart', profiles=[r.profile for r in plan.runtimes])\n"
         "    return object()\n"
-        "def _resume_windows_gateways_and_merge_outcome(out, token, gateway_mode):\n"
-        "    token['resume_needed'] = False\n"
-        "    event('resume')\n"
-        "def _resume_windows_gateways_after_update(token):\n"
-        "    if token and token.get('resume_needed'):\n"
-        "        token['resume_needed'] = False\n"
-        "        event('emergency_resume')\n"
         "def _verify_fleet_after_update(out, **kw):\n"
         "    from hermes_cli.update_receipt import finalize_pending_update_receipt\n"
         "    event('verify')\n"
         "    finalize_pending_update_receipt(0, 'verified')\n"
+    )
+    (package / "update_cmd_posix_pause.py").write_text(
+        "from hermes_cli.probe import event\n"
+        "def resume_paused_gateways_and_merge_outcome(out, token, gateway_mode):\n"
+        "    token['resume_needed'] = False\n"
+        "    event('resume')\n"
+        "def resume_paused_gateways_after_update(token):\n"
+        "    if token and token.get('resume_needed'):\n"
+        "        token['resume_needed'] = False\n"
+        "        event('emergency_resume')\n"
     )
     (package / "update_receipt.py").write_text(
         "import contextvars, json, os, pathlib\n"
@@ -347,8 +350,8 @@ def test_desktop_build_that_never_ran_is_named_for_the_handoff(transition, capsy
     stale. The builder prints it only when the build fails; a run whose build never ran (dependency
     sync failed, the tail refused by the update lock, the prepared child died) must print it too."""
     scripts = Path(update_completion.__file__).parents[1] / "scripts/desktop-update"
-    for script in ("posix.sh", "windows.ps1"):  # the exact prefix the hand-off scripts match
-        assert "Desktop app build owed: " in (scripts / script).read_text(encoding="utf-8-sig")
+    # the exact prefix the hand-off script matches
+    assert "Desktop app build owed: " in (scripts / "posix.sh").read_text(encoding="utf-8-sig")
     assert update_completion.DESKTOP_BUILD_OWED == "Desktop app build owed:"
     root, git, old, new, request = transition
     request["desktop"] = desktop
@@ -566,11 +569,10 @@ def test_bootstrap_does_not_initialize_old_site_packages(transition, tmp_path, m
     shutil.copy2(update_completion.__file__, root / "hermes_cli/update_completion.py")
     obsolete = tmp_path / "obsolete-python"
     venv.EnvBuilder(with_pip=False).create(obsolete)
-    site = obsolete / ("Lib/site-packages" if os.name == "nt" else
-                       f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages")
+    site = obsolete / f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
     trap = tmp_path / "old-site-loaded"
     (site / "application.pth").write_text(f"import pathlib; pathlib.Path({str(trap)!r}).touch()\n")
-    monkeypatch.setattr(sys, "executable", str(obsolete / ("Scripts/python.exe" if os.name == "nt" else "bin/python")))
+    monkeypatch.setattr(sys, "executable", str(obsolete / "bin/python"))
     result = update_completion.run_completion(request)
     assert result["exit_code"] == 0
     assert not trap.exists(), "preparation initialized the old application's .pth graph"
@@ -713,77 +715,6 @@ def test_interrupt_reaps_completion_descendants_before_return(transition, monkey
         for pid in pids:
             if psutil.pid_exists(pid):
                 psutil.Process(pid).kill()
-
-
-@pytest.mark.platforms("windows")
-@pytest.mark.parametrize("failure", ["launch", "timeout", "nonzero"])
-def test_taskkill_failure_still_reaps_child_and_preserves_interrupt(tmp_path, monkeypatch, failure):
-    """Only native Windows exercises taskkill dispatch and retained-handle kill."""
-    import io
-    from hermes_cli import update_completion
-
-    package = tmp_path / "hermes_cli"
-    package.mkdir()
-    (package / "update_completion.py").write_text(
-        "import time\nprint('READY', flush=True)\ntime.sleep(60)\n"
-    )
-    request = {"source": str(tmp_path), "home": str(tmp_path), "receipt": {"update_id": "test"}}
-    interrupted = KeyboardInterrupt("cancel completion")
-    child = None
-    waits = []
-    popen, run = subprocess.Popen, subprocess.run
-
-    def capture_child(*args, **kwargs):
-        nonlocal child
-        proc = popen(*args, **kwargs)
-        # The nonzero fault uses a real command, but it is not the completion child.
-        if child is None:
-            child = proc
-            wait = proc.wait
-
-            def bounded_wait(timeout=None):
-                waits.append(timeout)
-                return wait(timeout=timeout)
-
-            monkeypatch.setattr(proc, "wait", bounded_wait)
-        return proc
-
-    def failed_taskkill(command, **kwargs):
-        assert child is not None
-        assert command == ["taskkill", "/T", "/F", "/PID", str(child.pid)]
-        if failure == "launch":
-            raise FileNotFoundError("taskkill unavailable")
-        if failure == "timeout":
-            raise subprocess.TimeoutExpired(command, kwargs["timeout"])
-        # Keep subprocess.run's real nonzero/check behavior, without killing a tree.
-        return run([sys.executable, "-c", "raise SystemExit(9)"], **kwargs)
-
-    class Interrupt(io.StringIO):
-        def write(self, value):
-            result = super().write(value)
-            if "READY" in self.getvalue():
-                raise interrupted
-            return result
-
-    monkeypatch.setattr(subprocess, "Popen", capture_child)
-    monkeypatch.setattr(subprocess, "run", failed_taskkill)
-    monkeypatch.setattr(sys, "stdout", Interrupt())
-    try:
-        with pytest.raises(KeyboardInterrupt) as error:
-            update_completion.run_completion(request)
-        assert error.value is interrupted
-        expected = {"launch": FileNotFoundError, "timeout": subprocess.TimeoutExpired,
-                    "nonzero": subprocess.CalledProcessError}[failure]
-        assert isinstance(error.value.__cause__, expected)
-        assert child is not None
-        assert child.poll() is not None, "retained completion child survived failed taskkill"
-        assert child.stdout.closed
-        assert waits and all(timeout is not None and timeout > 0 for timeout in waits)
-    finally:
-        # Only this disposable child is ours; no service or process scan is involved.
-        if child is not None:
-            child.kill()
-            child.wait(timeout=5)
 
 
 @pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig"])

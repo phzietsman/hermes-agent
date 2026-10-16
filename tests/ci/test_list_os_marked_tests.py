@@ -35,7 +35,7 @@ def _write(root: Path, relpath: str, body: str) -> Path:
     return path
 
 
-@pytest.mark.parametrize("platform", ["linux", "macos", "windows"])
+@pytest.mark.parametrize("platform", ["linux", "macos"])
 def test_finds_decorator_and_pytestmark_forms(tmp_path, platform):
     """Both the decorator form and module-level ``pytestmark`` are detected."""
     _write(
@@ -51,7 +51,7 @@ def test_finds_decorator_and_pytestmark_forms(tmp_path, platform):
     # A file with no gate at all must not be selected.
     _write(tmp_path, "test_plain.py", "def test_z():\n    pass\n")
     # A platforms() file gating a DIFFERENT platform must not be selected.
-    other = "windows" if platform != "windows" else "linux"
+    other = "linux" if platform != "linux" else "macos"
     _write(
         tmp_path,
         "test_other_platform.py",
@@ -98,8 +98,8 @@ def test_negated_spec_lists_for_that_lane(tmp_path):
 
 
 @pytest.mark.parametrize("spec,lanes", [
-    ("posix", {"linux", "macos"}), ("any", {"linux", "macos", "windows"}),
-    ("not linux", {"linux", "macos", "windows"}),  # admits the others; named lane keeps its import
+    ("posix", {"linux", "macos"}), ("any", {"linux", "macos"}),
+    ("not linux", {"linux", "macos"}),  # admits the others; named lane keeps its import
     ("macos", {"macos"}),
 ])
 def test_specs_resolve_to_every_lane_they_admit(tmp_path, spec, lanes):
@@ -110,7 +110,7 @@ def test_specs_resolve_to_every_lane_they_admit(tmp_path, spec, lanes):
         "test_gated.py",
         f'import pytest\n\n\n@pytest.mark.platforms("{spec}")\ndef test_x():\n    pass\n',
     )
-    for platform in ("linux", "macos", "windows"):
+    for platform in ("linux", "macos"):
         result = _run(platform, str(tmp_path))
         listed = any(p.endswith("test_gated.py") for p in result.stdout.split())
         assert listed is (platform in lanes), (platform, result.stdout, result.stderr)
@@ -144,14 +144,13 @@ def test_rejects_missing_root():
 
 
 def test_emits_repo_relative_posix_paths():
-    """Output feeds a bash command line on the Windows runner, so separators
-    must be POSIX and paths repo-relative.
+    """Output feeds a bash command line, so paths must be repo-relative.
 
     Asserted against the real ``tests/`` tree, which is the only case CI
     exercises — an out-of-repo root can't be made repo-relative and is
     emitted absolute instead.
     """
-    result = _run("windows")
+    result = _run("macos")
 
     assert result.returncode == 0, result.stderr
     listed = result.stdout.split()
@@ -163,7 +162,7 @@ def test_emits_repo_relative_posix_paths():
 
 def test_real_tree_selects_files_for_every_platform():
     """Against the actual ``tests/`` tree each platform resolves to real files."""
-    for platform in ("linux", "macos", "windows"):
+    for platform in ("linux", "macos"):
         result = _run(platform)
         assert result.returncode == 0, (platform, result.stderr)
         assert result.stdout.split(), f"{platform} selected nothing in the real tree"

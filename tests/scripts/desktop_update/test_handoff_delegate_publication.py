@@ -71,5 +71,5 @@ def test_sidecar_timeout_never_releases_the_parked_update(tmp_path):
         if lock_fd is not None:
             os.close(lock_fd)
         if script.poll() is None:
-            os.killpg(script.pid, signal.SIGKILL)  # windows-footgun: ok — Linux process-group fixture
+            os.killpg(script.pid, signal.SIGKILL)
         script.wait(timeout=10)

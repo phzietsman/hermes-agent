@@ -333,20 +333,6 @@ def stage(
     return 3
 
 
-def _gpg_homedir_arg(path: Path) -> str:
-    """Format a homedir path for the host's gpg.
-
-    On Windows the commonly available gpg is the MSYS/Git-for-Windows build,
-    which rejects native ``C:\\...`` paths for --homedir and needs the
-    ``/c/...`` form. POSIX gpg (CI's ubuntu runner) needs paths untouched,
-    so the conversion applies only to Windows drive-letter paths.
-    """
-    s = str(path)
-    if os.name == "nt" and len(s) >= 2 and s[1] == ":":
-        return f"/{s[0].lower()}{s[2:].replace(chr(92), '/')}"
-    return s
-
-
 def _gpg_run(
     homedir: Path,
     args: list,
@@ -360,7 +346,7 @@ def _gpg_run(
     ``--passphrase-fd 0`` -- it is never placed in argv (visible in
     /proc or error output) and never written to disk.
     """
-    cmd = ["gpg", "--batch", "--yes", "--homedir", _gpg_homedir_arg(homedir)]
+    cmd = ["gpg", "--batch", "--yes", "--homedir", str(homedir)]
     if passphrase is not None:
         cmd += ["--pinentry-mode", "loopback", "--passphrase-fd", "0"]
         if stdin is not None:

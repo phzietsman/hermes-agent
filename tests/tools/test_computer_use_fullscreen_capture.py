@@ -1,7 +1,7 @@
 """Full-screen vs desktop-shell capture routing (#60081, wallpaper-only bug).
 
 `capture(app='screen')` previously resolved to the OS shell/desktop window
-(Progman/WorkerW on Windows) via list_windows — the wallpaper + icons layer —
+(Finder desktop on macOS) via list_windows — the wallpaper + icons layer —
 so "screenshot my screen" always showed a bare desktop no matter what was
 actually displayed. cua-driver's `get_desktop_state` does a real composited
 full-screen grab; the `screen`/`fullscreen`/`all` sentinels now route there,
@@ -109,8 +109,7 @@ class TestFullScreenLane:
             f"app={sentinel!r} must use the composited desktop lane"
         )
         assert not session.called("list_windows"), (
-            "full-screen capture must not enumerate windows (enumeration "
-            "can hang on Windows — trycua/cua#2110)"
+            "full-screen capture must not enumerate windows"
         )
         assert cap.png_b64 == _PNG_B64
         assert cap.elements == []
@@ -169,9 +168,9 @@ class TestFullScreenLane:
 
 
 class TestDesktopShellLane:
-    _PROGMAN = {
-        "app_name": "Progman",
-        "title": "Program Manager",
+    _DESKTOP = {
+        "app_name": "Finder",
+        "title": "Desktop",
         "pid": 100,
         "window_id": 1,
         "off_screen": False,
@@ -179,7 +178,7 @@ class TestDesktopShellLane:
     }
 
     def test_desktop_sentinel_keeps_shell_window_lane(self):
-        session = _FakeSession(windows=[self._PROGMAN])
+        session = _FakeSession(windows=[self._DESKTOP])
         backend = _make_backend(session)
 
         cap = backend.capture(mode="vision", app="desktop")

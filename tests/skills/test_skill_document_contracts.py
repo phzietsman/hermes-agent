@@ -112,9 +112,3 @@ def test_optional_platform_declarations():
 @pytest.mark.parametrize("skill", [QUESTIONNAIRE, DARWINIAN])
 def test_optional_skill_available_on_posix(skill):
     assert skill_matches_platform(_document(skill)[0])
-
-
-@pytest.mark.platforms("windows")
-def test_optional_skill_availability_on_windows():
-    assert skill_matches_platform(_document(QUESTIONNAIRE)[0])
-    assert not skill_matches_platform(_document(DARWINIAN)[0])

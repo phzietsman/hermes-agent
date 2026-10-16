@@ -22,13 +22,12 @@ test('a checkout with no virtualenv resolves to no interpreter, never a PATH Pyt
   // Answering with a PATH Python runs an install's update probe and its backend
   // under an interpreter nothing selected — it can import the checkout while
   // lacking its selected dependencies (updater/checkout-source.ts).
-  assert.equal(resolveSourcePython(root, { fileExists, isWindows: false }), null)
-  assert.equal(resolveSourcePython(root, { fileExists, isWindows: true }), null)
+  assert.equal(resolveSourcePython(root, { fileExists }), null)
 })
 
 test('a virtualenv-less checkout yields no source backend, so the ladder moves on', (): void => {
   const { root, fileExists } = checkout()
-  const python: string | null = resolveSourcePython(root, { fileExists, isWindows: false })
+  const python: string | null = resolveSourcePython(root, { fileExists })
 
   assert.equal(createSourcePythonBackend(root, python, ['serve']), null)
 })
@@ -36,19 +35,14 @@ test('a virtualenv-less checkout yields no source backend, so the ladder moves o
 test('the checkout virtualenv is preferred over the flat venv, on both layouts', (): void => {
   const venv: string = path.join('venv', 'bin', 'python')
   const dotVenv: string = path.join('.venv', 'bin', 'python')
-  const windows: string = path.join('.venv', 'Scripts', 'python.exe')
 
   assert.equal(
-    resolveSourcePython(ROOT, { fileExists: checkout([venv, dotVenv]).fileExists, isWindows: false }),
+    resolveSourcePython(ROOT, { fileExists: checkout([venv, dotVenv]).fileExists }),
     path.join(ROOT, dotVenv)
   )
   assert.equal(
-    resolveSourcePython(ROOT, { fileExists: checkout([venv]).fileExists, isWindows: false }),
+    resolveSourcePython(ROOT, { fileExists: checkout([venv]).fileExists }),
     path.join(ROOT, venv)
-  )
-  assert.equal(
-    resolveSourcePython(ROOT, { fileExists: checkout([windows]).fileExists, isWindows: true }),
-    path.join(ROOT, windows)
   )
 })
 
@@ -59,14 +53,14 @@ test('an explicit developer interpreter wins, and is only honoured when it exist
   const withPreferred = (candidate: string): boolean => candidate === preferred || fileExists(candidate)
 
   assert.equal(
-    resolveSourcePython(root, { override: preferred, fileExists: withPreferred, isWindows: false }),
+    resolveSourcePython(root, { override: preferred, fileExists: withPreferred }),
     preferred
   )
   // An override naming a file that is gone does not resurrect a PATH Python;
   // it falls through to the checkout, then to null.
-  assert.equal(resolveSourcePython(root, { override: preferred, fileExists, isWindows: false }), aged)
+  assert.equal(resolveSourcePython(root, { override: preferred, fileExists }), aged)
   assert.equal(
-    resolveSourcePython(ROOT, { override: preferred, fileExists: checkout().fileExists, isWindows: false }),
+    resolveSourcePython(ROOT, { override: preferred, fileExists: checkout().fileExists }),
     null
   )
 })

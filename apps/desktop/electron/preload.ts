@@ -162,7 +162,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     // Linux only, and silent elsewhere: where the cursor is, in page
     // coordinates, or null when it has left the window. Stands in for the
     // mousemove that `setIgnoreMouseEvents(true, { forward: true })` delivers on
-    // macOS and Windows but not here.
+    // macOS but not here.
     onCursor: callback => {
       const listener = (_event, point) => callback(point)
       ipcRenderer.on('hermes:hud:cursor', listener)
@@ -628,7 +628,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
 
     return () => ipcRenderer.removeListener('hermes:boot-progress', listener)
   },
-  // First-launch bootstrap progress -- emitted by the install.ps1 stage
+  // First-launch bootstrap progress -- emitted by the install.sh stage
   // runner in main.ts (apps/desktop/electron/bootstrap-runner.ts).
   // Renderer's install overlay subscribes to live events and queries the
   // current snapshot via getBootstrapState() to recover after a devtools
@@ -658,8 +658,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   getRemoteDisplayReason: () => ipcRenderer.invoke('hermes:get-remote-display-reason'),
   uninstall: {
     summary: () => ipcRenderer.invoke('hermes:uninstall:summary'),
-    run: mode => ipcRenderer.invoke('hermes:uninstall:run', { mode }),
-    openAppsSettings: () => ipcRenderer.invoke('hermes:uninstall:openAppsSettings')
+    run: mode => ipcRenderer.invoke('hermes:uninstall:run', { mode })
   },
   updates: {
     check: opts => ipcRenderer.invoke('hermes:updates:check', opts),

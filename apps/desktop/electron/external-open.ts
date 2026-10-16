@@ -34,7 +34,7 @@ export interface FileOpenGuardDeps {
  * reportMissing and the caller must NOT hand the path to the OS (a reveal of
  * a non-existent path is silently a no-op on macOS; an open of one reads as
  * "No application found" on LaunchServices). Returns false for every other
- * stat failure (EACCES on a locked volume, ELOOP, Windows EPERM): those are
+ * stat failure (EACCES on a locked volume, ELOOP): those are
  * logged and the caller still proceeds to the OS, so an existing-but-locked
  * file keeps its real error and a stat failure never fabricates a miss.
  */
@@ -56,7 +56,7 @@ export interface ExternalOpenDeps {
   openExternal: (url: string) => Promise<void>
   openFile: (rawUrl: string) => Promise<void>
   /**
-   * Open a BARE local filesystem path (POSIX `/…`, `~/…`, Windows drive/UNC)
+   * Open a BARE local filesystem path (POSIX `/…`, `~/…`)
    * that is not a URL. The impl resolves it through the same audited
    * `resolveRequestedPathForIpc` the `file:` route uses, then `shell.openPath`,
    * with the same reveal-in-folder fallback and missing-file reporting as the
@@ -87,9 +87,8 @@ export async function openExternalUrl(rawUrl: string, deps: ExternalOpenDeps): P
     return { ok: false, reason: 'invalid' }
   }
 
-  // Bare local paths (POSIX `/…`, `~/…`, Windows drive/UNC) are not valid
-  // absolute URLs: `new URL()` either throws (POSIX, `~`, UNC) or mis-parses a
-  // drive letter as a bogus `c:` scheme, which the web allowlist below would
+  // Bare local paths (POSIX `/…`, `~/…`) are not valid
+  // absolute URLs: `new URL()` throws on them, which the web allowlist below would
   // reject as "Invalid external URL". Route them through the audited file
   // resolver instead (hermes-agent 80946, 84361).
   if (looksLikeLocalFilesystemPath(raw)) {
@@ -152,8 +151,7 @@ async function openViaWsl(url: string, deps: ExternalOpenDeps): Promise<External
 
   const proc = deps.spawn('cmd.exe', ['/c', 'start', '""', url], {
     detached: true,
-    stdio: 'ignore',
-    windowsHide: true
+    stdio: 'ignore'
   })
 
   // 'error' only fires when the process could not be spawned. In that case

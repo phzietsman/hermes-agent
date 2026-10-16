@@ -14,7 +14,7 @@ from hermes_cli.uninstall import remove_legacy_runtime_trees
 
 
 def test_legacy_cleanup_removes_only_runtime_bytes_and_is_idempotent(tmp_path):
-    runtime = ('node/bin/node', 'bin/uv', 'bin/uv.exe')
+    runtime = ('node/bin/node', 'bin/uv')
     user = ('bin/my-script', 'config.yaml', 'auth.json', 'SOUL.md',
             'sessions/session', 'skills/demo/SKILL.md', 'memories/MEMORY.md', 'profiles/other/config.yaml')
     for name in (*runtime, *user):
@@ -22,7 +22,7 @@ def test_legacy_cleanup_removes_only_runtime_bytes_and_is_idempotent(tmp_path):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(name, encoding='utf-8')
     removed = remove_legacy_runtime_trees(tmp_path)
-    assert set(removed) == {tmp_path / 'node', tmp_path / 'bin/uv', tmp_path / 'bin/uv.exe'}
+    assert set(removed) == {tmp_path / 'node', tmp_path / 'bin/uv'}
     assert all(not (tmp_path / name).exists() for name in runtime)
     assert all((tmp_path / name).read_text(encoding='utf-8') == name for name in user)
     assert remove_legacy_runtime_trees(tmp_path) == []

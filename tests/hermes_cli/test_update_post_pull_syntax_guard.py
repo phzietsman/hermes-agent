@@ -231,12 +231,12 @@ def test_the_preflight_reads_every_critical_file_in_one_git_spawn(tmp_path, monk
 
 def test_the_tree_move_marker_records_the_absolute_git_the_repair_reruns(tmp_path, monkeypatch):
     """The next launch's repair cannot ask ``pm`` for the store git when the move tore a module ``pm``
-    imports, so the marker carries the absolute git this run resolved (PATH or ``expose_pm_git``)."""
+    imports, so the marker carries the absolute git this run resolved."""
     from hermes_cli import _early_recovery
     from hermes_cli import update_cmd_commit as commit
 
     (tmp_path / ".git").mkdir()
-    fake = tmp_path / "store" / "git" / "cmd" / ("git.exe" if sys.platform == "win32" else "git")
+    fake = tmp_path / "store" / "git" / "cmd" / "git"
     fake.parent.mkdir(parents=True)
     fake.write_text("", encoding="utf-8")
     monkeypatch.setattr("shutil.which", lambda name: str(fake) if name == "git" else None)
@@ -244,8 +244,8 @@ def test_the_tree_move_marker_records_the_absolute_git_the_repair_reruns(tmp_pat
                                   target="b" * 40, stash=None)
     fields = dict(line.partition("=")[::2] for line in marker.read_text(encoding="utf-8").splitlines())
     assert fields["git"] == str(fake)
-    # ...and the repair prefers it to PATH (empty here) and to the pm lookup, once it answers as a
-    # git (m5: this fake is an empty file; the version probe is what decides).
+    # ...and the repair prefers it to PATH (empty here), once it answers as a git (m5: this fake is
+    # an empty file; the version probe is what decides).
     monkeypatch.setattr("shutil.which", lambda name: None)
     monkeypatch.setattr(_early_recovery, "_is_git", lambda path: path == str(fake))
     assert _early_recovery._git_executable(fields["git"]) == str(fake)

@@ -245,46 +245,6 @@ class TestSearchHandler:
 
 
 # ---------------------------------------------------------------------------
-# Windows MSYS path resolution (salvage of #50488 / #46995)
-# ---------------------------------------------------------------------------
-
-class TestWindowsMsysPathResolution:
-    """File tools must translate Git Bash drive paths before Path resolution."""
-
-    @pytest.mark.platforms("windows")
-    def test_absolute_msys_path_normalized_before_windows_resolve(self, monkeypatch):
-        """Windows-only: ``_resolve_path_for_task`` hands the translated path
-        to ``ntpath``/``Path``, and only a real Windows ``Path`` renders
-        ``C:\\Users\\...`` — faking ``sys.platform`` left PosixPath in place."""
-        import tools.file_tools_paths as file_tools
-
-        monkeypatch.setattr(file_tools, "_uses_container_paths", lambda task_id="default": False)
-
-        resolved = file_tools._resolve_path_for_task("/c/Users/Mark/project/app.py")
-        assert str(resolved) == r"C:\Users\Mark\project\app.py"
-
-
-    @pytest.mark.platforms("windows")
-    def test_container_paths_skip_msys_translation(self, monkeypatch):
-        """WSL/docker Linux paths must not be rewritten as Windows drives.
-
-        Windows-only: the translation this guards against only happens when
-        the host really is Windows, so the negative is only meaningful there.
-        """
-        import tools.file_tools_paths as file_tools
-
-        monkeypatch.setattr(file_tools, "_uses_container_paths", lambda task_id="default": True)
-        monkeypatch.setattr(
-            file_tools,
-            "_authoritative_workspace_root",
-            lambda task_id="default": "/home/don/project",
-        )
-
-        resolved = file_tools._resolve_path_for_task("/home/don/.env")
-        assert str(resolved) == "/home/don/.env"
-
-
-# ---------------------------------------------------------------------------
 # Tool result hint tests (#722)
 # ---------------------------------------------------------------------------
 

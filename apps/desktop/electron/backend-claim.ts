@@ -3,12 +3,10 @@
  *
  * The start-marker probe and the claim decision for a freshly spawned local
  * backend child, extracted from main.ts so the policy is testable without
- * booting Electron — including on a Windows CI lane that drives the probe
- * with REAL PowerShell (`processStartMarker` shells out to powershell.exe).
+ * booting Electron
  *
  * Why this exists (#93608): `claimBackendChild` used to hard-fail on ANY
- * probe error — `Get-Process` timing out on a PowerShell 5.1 cold start
- * (see #87169) killed a perfectly healthy backend, the renderer "repaired"
+ * probe error — a start-marker probe timing out killed a perfectly healthy backend, the renderer "repaired"
  * by respawning, and the next probe timeout killed that one too. The rule is
  * now the same one `createParentStartMarkerResolver` already applies to the
  * parent marker: a failed probe against a LIVE child degrades to PID-only
@@ -20,13 +18,11 @@
 import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 
-import { electronProcessStartMarker } from './parent-process-identity'
 import { isPidAlive } from './update-marker'
-import { hiddenWindowsChildOptions } from './windows-child-options'
 
 export function execText(command: string, args: string[], { timeout = 3000 } = {}): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const child = execFile(command, args, hiddenWindowsChildOptions({ encoding: 'utf8', timeout }), (error, stdout) => {
+    const child = execFile(command, args, { encoding: 'utf8', timeout }, (error, stdout) => {
       if (error) {
         reject(error)
       } else if (timeout > 0 && child.killed) {
@@ -49,7 +45,7 @@ export function execText(command: string, args: string[], { timeout = 3000 } = {
  * healthy child (#93608). Reap only needs to tell "same process" from "gone
  * or reused" for OLD records, and the ownership file can accumulate dozens of
  * them (one per profile per launch), so a 30s budget per record would let a
- * cold PowerShell 5.1 stall boot for minutes (#87169). 5s is plenty for a
+ * slow probe stall boot for minutes (#87169). 5s is plenty for a
  * warm probe; a timeout degrades to "unknown" and the record is preserved for
  * the next launch instead of blocking boot.
  */
@@ -62,7 +58,7 @@ export const REAP_PROBE_TIMEOUT_MS = 5_000
  * `claimDecision` / `probeStartMarker`).
  */
 export async function processStartMarker(pid: number, timeoutMs: number = 30_000): Promise<string> {
-  // Cheap native dead-PID gate. Windows Get-Process / macOS `ps -p` exit 1
+  // Cheap native dead-PID gate. macOS `ps -p` exit 1
   // on a missing PID (not ESRCH), so the identity matchers used to keep the
   // orphan and re-probe it every launch (#92875). ESRCH is the code those
   // catch blocks already map to "gone". Alive or uninspectable (EPERM) PIDs
@@ -86,37 +82,7 @@ export async function processStartMarker(pid: number, timeoutMs: number = 30_000
     return `linux:${fields[19]}`
   }
 
-  if (process.platform === 'win32') {
-    const electronMarker =
-      pid === process.pid ? electronProcessStartMarker(pid, process.pid, process.getCreationTime?.()) : null
-
-    if (electronMarker) {
-      return electronMarker
-    }
-
-    const ticks = await execText(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        `$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.StartTime.ToUniversalTime().Ticks`
-      ],
-      // PowerShell 5.1 cold starts routinely exceed the default 3s execText
-      // budget (2.4-8s observed in #87169); give the marker probe headroom.
-      // The claim path keeps this 30s budget; the orphan-reap path passes
-      // REAP_PROBE_TIMEOUT_MS so a slow probe cannot stall boot.
-      { timeout: timeoutMs }
-    )
-
-    if (!/^\d+$/.test(ticks)) {
-      throw new Error(`Invalid Windows start marker for PID ${pid}`)
-    }
-
-    return `win:${ticks}`
-  }
-
-  const started = await execText('ps', ['-p', String(pid), '-o', 'lstart='])
+  const started = await execText('ps', ['-p', String(pid), '-o', 'lstart='], { timeout: timeoutMs })
 
   if (!started) {
     throw new Error(`Missing process start marker for PID ${pid}`)

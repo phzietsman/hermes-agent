@@ -53,20 +53,12 @@ def _kanban_lane_id(repo_root: str) -> str:
 
 
 def _segments(path: str) -> list[str]:
-    return [s for s in re.split(r"[/\\]", (path or "").rstrip("/\\")) if s]
-
-
-def _is_windows_path(path: str) -> bool:
-    # Drive-letter, UNC (`\\srv`, `//srv`) or backslash-rooted; a single leading `/` stays POSIX.
-    value = (path or "").strip()
-    return bool(re.match(r"^[A-Za-z]:[/\\]", value)) or value.startswith(("\\", "//"))
+    return [s for s in (path or "").rstrip("/").split("/") if s]
 
 
 def _comparison_segments(path: str) -> list[str]:
-    """Path segments suitable for identity comparisons on any host.
-
-    Windows paths remain case-insensitive even when tests or remote backends run
-    on POSIX. Display paths and emitted IDs keep their original spelling.
+    """Path segments suitable for identity comparisons. Display paths and emitted IDs keep their
+    original spelling.
 
     Segments are NFC-normalized before comparing: the same on-disk folder can
     reach us as NFC (typed paths, os.getcwd()) or NFD (macOS file pickers,
@@ -74,8 +66,7 @@ def _comparison_segments(path: str) -> list[str]:
     an accented project folder would otherwise render empty (#65014). Mirrors
     ``comparisonSegments`` in the desktop's ``workspace-groups.ts``.
     """
-    segs = [unicodedata.normalize("NFC", segment) for segment in _segments(path)]
-    return [segment.casefold() for segment in segs] if _is_windows_path(path) else segs
+    return [unicodedata.normalize("NFC", segment) for segment in _segments(path)]
 
 
 def _path_key(path: str) -> str:

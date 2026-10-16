@@ -15,7 +15,6 @@ import sys
 import time
 from fastapi import APIRouter
 from hermes_cli.web_deps import LateState, late
-from hermes_cli.web_server_gateway import _display_system_platform
 from starlette.concurrency import run_in_threadpool
 from fastapi import HTTPException, Request
 from gateway.status import (
@@ -500,8 +499,8 @@ async def get_status(profile: Optional[str] = None):
         # count + liveness via gateway.status. Liveness keys off gateway_running, NEVER
         # gateway_updated_at — a stale heartbeat is reported separately, not treated as death.
         active_agents = parse_active_agents((gateway["runtime"] or {}).get("active_agents", 0))
-        # Off-loop: on a cold Windows install the first import of hermes_cli.gateway blocks
-        # 15-30s (.pyc compilation + Defender), exceeding the desktop handshake's 15s timeout.
+        # Off-loop: on a cold install the first import of hermes_cli.gateway blocks
+        # 15-30s (.pyc compilation), exceeding the desktop handshake's 15s timeout.
         restart_drain_timeout = await run_in_threadpool(_resolve_restart_drain_timeout)
         auth = _auth_gate_status()
 
@@ -573,9 +572,8 @@ async def get_system_stats():
     import platform as _platform
 
     info: Dict[str, Any] = {
-        **_display_system_platform(
-            system=_platform.system(), release=_platform.release(), version=_platform.version(),
-            platform_label=_platform.platform()),
+        "os": _platform.system(), "os_release": _platform.release(),
+        "os_version": _platform.version(), "platform": _platform.platform(),
         "arch": _platform.machine(), "hostname": _platform.node(),
         "python_version": _platform.python_version(),
         "python_impl": _platform.python_implementation(),

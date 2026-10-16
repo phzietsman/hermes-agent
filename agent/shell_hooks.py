@@ -10,7 +10,9 @@ import difflib
 import json
 import logging
 import os
+import fcntl
 import re
+import shlex
 import subprocess
 import sys
 import threading
@@ -21,13 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
-# split_command_line, not shlex: shlex eats Windows path backslashes.
-from hermes_cli._subprocess_compat import IS_WINDOWS, kill_process_tree, split_command_line, windows_hide_flags
-
-try:
-    import fcntl  # POSIX only; Windows falls back to best-effort without flock.
-except ImportError:  # pragma: no cover
-    fcntl = None  # type: ignore[assignment]
+from hermes_cli._subprocess_compat import kill_process_tree
 
 from hermes_constants import get_hermes_home
 from utils import atomic_json_write
@@ -52,9 +48,6 @@ _TOP_LEVEL_PAYLOAD_KEYS = {"tool_name", "args", "session_id", "parent_session_id
 # per-tool under one event), home so multiplexed-gateway profiles can register identical triples.
 _registered: Set[Tuple[str, str, Optional[str], str]] = set()
 _registered_lock = threading.Lock()
-# Non-POSIX fallback for allowlist read-modify-write. Must be separate from _registered_lock, which
-# register_from_config already holds when it triggers _record_approval (Lock is non-reentrant).
-_allowlist_write_lock = threading.Lock()
 
 
 def _home_key() -> str:
@@ -281,33 +274,8 @@ def _parse_single_entry(event: str, index: int, raw: Any) -> Optional[ShellHookS
 
 # --- Subprocess callback ---
 
-# Popen failure -> diagnostic; WinError 193 gets its own below, everything else is str(exc).
+# Popen failure -> diagnostic; everything else is str(exc).
 _POPEN_ERRORS = ((FileNotFoundError, "command not found"), (PermissionError, "command not executable"))
-
-# A hook configured as a bare script path runs on POSIX because the kernel reads its shebang.
-# CreateProcess has no such mechanism and answers WinError 193 ("%1 is not a valid Win32
-# application") for a text file, so every ``command: "~/.hermes/agent-hooks/x.sh"`` example in
-# the hooks docs — the canonical shape — fails on Windows while the same config works everywhere
-# else. Map the suffixes that shape uses to their interpreter; unmapped suffixes keep the OS
-# failure so a typo still reads as "command not found" rather than a mystery interpreter error.
-_WINDOWS_SCRIPT_INTERPRETERS = {".sh": "bash", ".bash": "bash", ".py": "python"}
-# WinError 193 raised for a suffix we deliberately do not map.
-_NOT_DIRECTLY_EXECUTABLE = "cannot be run directly on Windows (there is no shebang support): start it with its interpreter, e.g. 'bash <path>'"
-
-
-def _windows_script_argv(argv: list[str]) -> list[str]:
-    """``argv`` with the interpreter prepended when element 0 is an existing script we can name an
-    interpreter for; unchanged otherwise, including on POSIX, where the shebang already works."""
-    suffix = os.path.splitext(argv[0])[1].lower()
-    kind = _WINDOWS_SCRIPT_INTERPRETERS.get(suffix)
-    if kind is None or not os.path.isfile(argv[0]):
-        return argv
-    if kind == "python":
-        return [sys.executable, *argv]
-    # Resolved inside the caller's try: no Git for Windows raises RuntimeError carrying the
-    # installer's own actionable guidance, which is a better diagnostic than any we could add.
-    from tools.environments.local import _find_bash
-    return [_find_bash(), *argv]
 
 
 def _spawn(spec: ShellHookSpec, stdin_json: str) -> Dict[str, Any]:
@@ -319,34 +287,27 @@ def _spawn(spec: ShellHookSpec, stdin_json: str) -> Dict[str, Any]:
         return result
 
     try:
-        argv = split_command_line(os.path.expanduser(spec.command))
+        argv = shlex.split(os.path.expanduser(spec.command))
     except ValueError as exc:
         return failed(f"command {spec.command!r} cannot be parsed: {exc}")
     if not argv:
         return failed("empty command")
     t0 = time.monotonic()
-    # Own process group on POSIX so a timed-out hook's descendants are reaped with it (Windows: kill_process_tree
-    # / taskkill /T). Hooks that finish in time keep detached helpers alive.
-    popen_kwargs: Dict[str, Any] = {"creationflags": windows_hide_flags()} if IS_WINDOWS else {"process_group": 0}
+    # Own process group so a timed-out hook's descendants are reaped with it. Hooks that finish in
+    # time keep detached helpers alive.
     # HERMES_HOME follows the routed profile (the import-time environ holds the launch profile's), and
     # under multiplexing os.environ carries the DEFAULT profile's secrets, which a secondary's hook
     # script must not inherit; single-profile runs keep the process env byte-for-byte as before.
     from agent.secret_scope import is_multiplex_active
     from tools.environments.local import build_subprocess_env
     try:
-        if IS_WINDOWS:
-            argv = _windows_script_argv(argv)
         proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 text=True, encoding='utf-8', errors='replace', shell=False,
-                                env=build_subprocess_env(scrub_secrets=is_multiplex_active()), **popen_kwargs)
+                                env=build_subprocess_env(scrub_secrets=is_multiplex_active()), process_group=0)
     except Exception as exc:
         for cls, msg in _POPEN_ERRORS:
             if isinstance(exc, cls):
                 return failed(msg)
-        if getattr(exc, "winerror", None) == 193:
-            # Unmapped suffix (.zsh, .fish, .rb, …) — the raw WinError text is localized, so an
-            # operator on a non-English Windows could not act on it at all.
-            return failed(f"{argv[0]!r} {_NOT_DIRECTLY_EXECUTABLE}")
         return failed(str(exc))
     try:
         stdout, stderr = proc.communicate(input=stdin_json, timeout=spec.timeout)
@@ -553,12 +514,9 @@ def _locked_update_approvals() -> Iterator[Dict[str, Any]]:
     p = allowlist_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
-        if fcntl is None:  # pragma: no cover — non-POSIX fallback
-            stack.enter_context(_allowlist_write_lock)
-        else:
-            lock_fh = stack.enter_context(open(p.with_suffix(p.suffix + ".lock"), "a+", encoding="utf-8"))  # windows-footgun: ok (write/append mode, not a read)
-            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
-            stack.callback(_flock_unlock, lock_fh)
+        lock_fh = stack.enter_context(open(p.with_suffix(p.suffix + ".lock"), "a+", encoding="utf-8"))
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        stack.callback(_flock_unlock, lock_fh)
         data = load_allowlist()
         yield data
         save_allowlist(data)
@@ -612,7 +570,7 @@ _SCRIPT_EXTENSIONS: Tuple[str, ...] = (".sh", ".bash", ".zsh", ".fish", ".py", "
 def _command_script_path(command: str) -> str:
     """First token with a script extension, else the first path-like token, else the first token."""
     try:
-        parts = split_command_line(command) or [command]
+        parts = shlex.split(command) or [command]
     except ValueError:
         return command
     return (next((p for p in parts if p.lower().endswith(_SCRIPT_EXTENSIONS)), None)
@@ -649,7 +607,7 @@ def script_is_executable(command: str) -> bool:
     path = _command_script_path(command)
     expanded = os.path.expanduser(path)
     try:
-        argv = split_command_line(command) if path and os.path.isfile(expanded) else None
+        argv = shlex.split(command) if path and os.path.isfile(expanded) else None
     except ValueError:
         return False
     return argv is not None and os.access(expanded, os.X_OK if argv and argv[0] == path else os.R_OK)

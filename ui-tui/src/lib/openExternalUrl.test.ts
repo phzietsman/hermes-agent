@@ -46,15 +46,6 @@ describe('openCommand', () => {
     expect(openCommand('darwin')).toEqual({ command: 'open', args: [] })
   })
 
-  it('routes through explorer.exe on win32 — not cmd.exe — so URLs with & | ^ < > stay safe', () => {
-    // win32 must not route through cmd.exe — see comment in openCommand.
-    // Test pins the contract that we use explorer.exe (non-shell) so URLs
-    // with `&`/`|`/`^`/`<`/`>` aren't reparsed by cmd's tokenizer.
-    const cmd = openCommand('win32')
-    expect(cmd?.command).toBe('explorer.exe')
-    expect(cmd?.args).toEqual([])
-  })
-
   it('falls back to xdg-open on linux/bsd', () => {
     expect(openCommand('linux')).toEqual({ command: 'xdg-open', args: [] })
     expect(openCommand('freebsd')).toEqual({ command: 'xdg-open', args: [] })
@@ -150,35 +141,6 @@ describe('openExternalUrl', () => {
     expect(calls[0]!.args[calls[0]!.args.length - 1]).toBe(hostile)
   })
 
-  it('on win32, a URL with & | ^ < > is forwarded as a single argv element via explorer.exe', () => {
-    const { spawn, calls } = mockSpawn()
-
-    // Plain http URL with & in query (very common, e.g. analytics params)
-    // plus other cmd metacharacters that would split or reinterpret the
-    // command if win32 routed through cmd.exe /c start. Note that the URL
-    // parser percent-encodes `<` and `>` (which is fine — encoded forms
-    // can't be reinterpreted by any shell), but `&`, `|`, `^` survive
-    // and would tokenize cmd.exe if we ever regressed back to it.
-    const meta = 'https://example.com/q?a=1&b=2|c^d<e>f'
-
-    expect(openExternalUrl(meta, { spawn, platform: () => 'win32' })).toBe(true)
-    expect(calls).toHaveLength(1)
-    expect(calls[0]!.command).toBe('explorer.exe')
-    // The URL must arrive as exactly one argv element — not split on &/|/^/etc.
-    const forwarded = calls[0]!.args[0]!
-    expect(calls[0]!.args).toHaveLength(1)
-    expect(forwarded).toContain('a=1&b=2')
-    expect(forwarded).toContain('|c^d')
-  })
-
-  it('on win32, common http URLs with & query params are forwarded intact', () => {
-    const { spawn, calls } = mockSpawn()
-    const url = 'https://example.com/search?q=foo&page=2&utm_source=hermes'
-
-    openExternalUrl(url, { spawn, platform: () => 'win32' })
-    expect(calls[0]!.args).toEqual([url])
-  })
-
   it('returns false on synchronous spawn failure', () => {
     const spawn = vi.fn(() => {
       throw new Error('ENOENT')
@@ -188,7 +150,7 @@ describe('openExternalUrl', () => {
   })
 
   it('does not crash the host when the spawned process emits an async error', () => {
-    // Real-world case: `xdg-open` / `explorer.exe` missing on PATH. spawn()
+    // Real-world case: `xdg-open` missing on PATH. spawn()
     // returns a ChildProcess synchronously, then emits 'error' once the
     // exec actually fails. Without a registered 'error' listener, Node
     // re-throws the event as an uncaught exception → TUI dies. We attach

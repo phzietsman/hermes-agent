@@ -20,7 +20,6 @@
 //       - Linux: an ordered ladder of emulators, led by Debian's
 //         `x-terminal-emulator` alternative — which IS the user's configured
 //         choice — before falling back to the common concrete emulators.
-//       - Windows: Windows Terminal when installed, else a `cmd.exe` console.
 //
 // Everything here is pure so it can be unit-tested without Electron; the side
 // effects (writing the script, spawning) live in main.ts.
@@ -39,11 +38,6 @@ export function tuiResumeArgs(sessionId: string, profile?: string): string[] {
 /** Single-quote a value for /bin/sh (the POSIX launcher script). */
 export function posixQuote(value: string): string {
   return `'${String(value ?? '').replaceAll("'", `'\\''`)}'`
-}
-
-/** Quote a value for a cmd.exe script line. */
-export function windowsQuote(value: string): string {
-  return `"${String(value ?? '').replaceAll('"', '""')}"`
 }
 
 /**
@@ -80,25 +74,14 @@ export interface TerminalScriptSpec {
   args: string[]
   cwd: string
   env?: Record<string, string>
-  platform?: NodeJS.Platform
 }
 
 /**
  * The launcher script contents. `exec` on POSIX so the terminal window belongs
  * to the TUI itself rather than an idle shell wrapping it.
  */
-export function buildTerminalScript({ command, args, cwd, env = {}, platform = process.platform }: TerminalScriptSpec) {
+export function buildTerminalScript({ command, args, cwd, env = {} }: TerminalScriptSpec) {
   const entries = Object.entries(env)
-
-  if (platform === 'win32') {
-    return [
-      '@echo off',
-      `cd /d ${windowsQuote(cwd)}`,
-      ...entries.map(([key, value]) => `set ${windowsQuote(`${key}=${value}`)}`),
-      [command, ...args].map(windowsQuote).join(' '),
-      ''
-    ].join('\r\n')
-  }
 
   return [
     '#!/bin/sh',
@@ -110,10 +93,6 @@ export function buildTerminalScript({ command, args, cwd, env = {}, platform = p
 }
 
 export function terminalScriptExtension(platform: NodeJS.Platform = process.platform): string {
-  if (platform === 'win32') {
-    return '.cmd'
-  }
-
   // `.command` is the UTI macOS binds to a terminal app; on Linux the
   // extension is cosmetic (we always name the interpreter explicitly).
   return platform === 'darwin' ? '.command' : '.sh'
@@ -153,16 +132,6 @@ export function resolveTerminalLaunch({
   if (platform === 'darwin') {
     // No `-a`: LaunchServices picks the user's handler for shell scripts.
     return { command: 'open', args: [scriptPath] }
-  }
-
-  if (platform === 'win32') {
-    const windowsTerminal = findOnPath('wt.exe')
-
-    if (windowsTerminal) {
-      return { command: windowsTerminal, args: ['cmd.exe', '/k', scriptPath] }
-    }
-
-    return { command: 'cmd.exe', args: ['/c', 'start', '', 'cmd.exe', '/k', scriptPath] }
   }
 
   for (const { command, flag } of LINUX_TERMINALS) {

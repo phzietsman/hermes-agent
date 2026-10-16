@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from tools.environments.file_sync import (
     FileSyncManager,
@@ -405,11 +404,8 @@ class TestSyncBackSizeCap:
         assert any("sync_back_max_bytes" in r.message for r in caplog.records)
 
 
-class TestSyncBackWindowsHost:
-    """#76267: sync_back on a Windows host. The staging tar must be reopenable for writing by
-    the backend (NamedTemporaryFile held an exclusive handle → PermissionError), and remote
-    keys/parents must stay POSIX (relpath/Path stringify with backslashes on Windows, so no
-    staged file ever matched its mapping and every edit was dropped as "no host mapping")."""
+class TestSyncBackStagingTar:
+    """#76267: the staging tar must be reopenable for writing by the backend."""
 
     def test_backend_can_reopen_the_tar_path_for_writing(self, tmp_path):
         """Contract on every host: the download callback receives a path nothing else holds open."""
@@ -433,14 +429,3 @@ class TestSyncBackWindowsHost:
         assert host_file.read_bytes() == b"v2"
         assert not seen["dest"].exists()  # staging tar removed after use
 
-    @pytest.mark.platforms("windows")
-    def test_posix_remote_keys_match_on_windows(self, tmp_path):
-        host_file = tmp_path / "host" / "skill.py"
-        _write_file(host_file, b"v1")
-        mapping = [(str(host_file), "/root/.hermes/skills/a/skill.py")]
-        mgr = _make_manager(tmp_path, mapping, bulk_download_fn=_make_download_fn({
-            "root/.hermes/skills/a/skill.py": b"v2", "root/.hermes/skills/a/new.md": b"new"}))
-        mgr._pushed_hashes["/root/.hermes/skills/a/skill.py"] = _sha256_bytes(b"v1")
-        mgr.sync_back(hermes_home=tmp_path / ".hermes")
-        assert host_file.read_bytes() == b"v2"  # relpath key was 'root\\.hermes\\...' → skipped
-        assert (tmp_path / "host" / "new.md").read_bytes() == b"new"  # _infer_host_path parent match

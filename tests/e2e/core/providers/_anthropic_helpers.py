@@ -197,7 +197,7 @@ def reap_adopted(pids: list[int], timeout: float = 10.0) -> None:
     for pid in pids:
         while time.monotonic() < deadline:
             try:
-                done, _status = os.waitpid(pid, os.WNOHANG)  # windows-footgun: ok — Linux-gated suite
+                done, _status = os.waitpid(pid, os.WNOHANG)
             except OSError:  # ChildProcessError: not our child (a grandchild or already reaped)
                 break
             if done:
@@ -205,7 +205,7 @@ def reap_adopted(pids: list[int], timeout: float = 10.0) -> None:
             time.sleep(0.02)
     while True:
         try:
-            done, _status = os.waitpid(-1, os.WNOHANG)  # windows-footgun: ok — Linux-gated suite
+            done, _status = os.waitpid(-1, os.WNOHANG)
         except OSError:
             return
         if not done:

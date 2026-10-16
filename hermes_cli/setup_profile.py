@@ -105,8 +105,8 @@ def reset_setup_profile(launch_home: Path) -> SetupProfile:
     added = list(dict.fromkeys([*added, *_write_setup_config(path)]))
     _replace_dir(path / "skills")
     if (source / "skills").is_dir():
-        profiles_mod._copytree_keep_junctions(source / "skills", path / "skills",
-                                              profiles_mod._non_exportable_entries, dirs_exist_ok=True)
+        shutil.copytree(source / "skills", path / "skills", symlinks=True,
+                        ignore=profiles_mod._non_exportable_entries, dirs_exist_ok=True)
     _write_state(path, {**_FRESH_STATE, _ADDED_DISABLED: added, _OWNER: profile_name_for_home(source) or "default"})
     return SetupProfile(name, path, created=False)
 
@@ -318,8 +318,8 @@ def _write_soul(path: Path) -> None:
 
 
 def _replace_dir(directory: Path) -> None:
-    if directory.is_symlink() or profiles_mod._junction_target(str(directory)) is not None:
-        directory.unlink() if directory.is_symlink() else directory.rmdir()
+    if directory.is_symlink():
+        directory.unlink()
     elif directory.exists():
         shutil.rmtree(directory)
     directory.mkdir(parents=True)

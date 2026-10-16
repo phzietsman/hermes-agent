@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test for hermes-update-rehearsal.sh (this directory).
 # Builds a synthetic install in a temp tree and drives pre/post/status for real.
-# Runs on macOS/Linux directly, and under git-bash on Windows (native paths).
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -11,8 +10,7 @@ SCRIPT="$HERE/hermes-update-rehearsal.sh"
 echo "--- bash -n ---"
 bash -n "$SCRIPT" && echo "syntax OK" || exit 1
 
-# Native paths, so native git.exe/python.exe can reach the same files bash can.
-if command -v cygpath >/dev/null 2>&1; then ROOT="$(cygpath -m "$(mktemp -d)")"; else ROOT="$(mktemp -d)"; fi
+ROOT="$(mktemp -d)"
 export HOME="$ROOT/home"; mkdir -p "$HOME"
 export GIT_CONFIG_GLOBAL="$ROOT/gitconfig-test"; : > "$GIT_CONFIG_GLOBAL"
 export HERMES_HOME="$ROOT/home/.hermes"

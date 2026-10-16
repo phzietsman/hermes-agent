@@ -337,18 +337,10 @@ ${payload}
         content: 'Created: /tmp/generated/report.pdf',
         role: 'assistant',
         timestamp: 1_781_774_001
-      },
-      {
-        content: 'Created: C:\\Temp\\generated-report.pdf',
-        role: 'assistant',
-        timestamp: 1_781_774_002
       }
     ])
 
-    expect(artifacts.map(artifact => artifact.value)).toEqual([
-      '/tmp/generated/report.pdf',
-      'C:\\Temp\\generated-report.pdf'
-    ])
+    expect(artifacts.map(artifact => artifact.value)).toEqual(['/tmp/generated/report.pdf'])
   })
 
   it('keeps explicitly delivered MEDIA files', () => {

@@ -1,10 +1,9 @@
 # Install ast-grep
 
-The skill ships an `install.sh` (POSIX) and `install.ps1` (Windows) that try every reasonable method in priority order and fall back to a GitHub release download as a last resort. **You usually do not need to read this page.** Run the installer:
+The skill ships an `install.sh` that tries every reasonable method in priority order and fall back to a GitHub release download as a last resort. **You usually do not need to read this page.** Run the installer:
 
 ```bash
-bash install.sh                        # macOS / Linux / WSL / Git Bash
-pwsh -File install.ps1                 # Windows PowerShell
+bash install.sh                        # macOS / Linux / WSL
 ```
 
 This page exists for the (rare) case the installer cannot find a working method, or you want to install ast-grep manually.
@@ -45,17 +44,7 @@ nix-shell -p ast-grep
 >
 > The `ast_grep_helper.py` script in `scripts/` already handles this — when it sees `sg` on PATH on Linux, it runs `--version` and rejects the binary if it isn't ast-grep.
 
-### Windows
-
-```powershell
-scoop install main/ast-grep            # Scoop (most common on dev machines)
-winget install --id ast-grep.ast-grep  # Winget (Microsoft built-in)
-choco install ast-grep                 # Chocolatey
-npm install -g @ast-grep/cli           # any OS with Node
-cargo install ast-grep --locked        # any OS with Rust
-```
-
-### WSL / Git Bash on Windows
+### WSL
 
 Treat as Linux. Use `npm`, `cargo`, `pip`, or `bash install.sh`.
 
@@ -90,8 +79,6 @@ If every package manager fails:
 #      app-x86_64-apple-darwin.zip           macOS Intel
 #      app-aarch64-unknown-linux-gnu.zip     Linux ARM64 (glibc)
 #      app-x86_64-unknown-linux-gnu.zip      Linux x86_64 (glibc)
-#      app-x86_64-pc-windows-msvc.zip        Windows x86_64
-#      app-aarch64-pc-windows-msvc.zip       Windows ARM64
 
 # 2. Download and extract:
 VERSION=0.45.0
@@ -160,7 +147,4 @@ See `references/cli.md` for `ast-grep lsp` flags.
 | cargo | `cargo uninstall ast-grep` |
 | pip | `pip uninstall ast-grep-cli` |
 | pipx | `pipx uninstall ast-grep-cli` |
-| scoop | `scoop uninstall ast-grep` |
-| winget | `winget uninstall --id ast-grep.ast-grep` |
-| choco | `choco uninstall ast-grep` |
 | GitHub binary | `rm <skill_root>/bin/sg` |

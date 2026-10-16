@@ -20,7 +20,7 @@ The simplest path: a one-click installer with a guided, point-and-click setup. N
 
 ### 1. Download and install
 
-[Download the Hermes Desktop installer](https://hermes-agent.nousresearch.com/) for macOS or Windows, then open it. On first launch it finishes setting itself up (usually under a minute).
+[Download the Hermes Desktop installer](https://hermes-agent.nousresearch.com/) for macOS, then open it. On first launch it finishes setting itself up (usually under a minute).
 
 ### 2. Connect Nous Portal
 
@@ -50,12 +50,6 @@ On macOS/Linux/WSL2/Android, run
 
 ```bash
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-```
-
-On Windows, run
-
-```powershell
-iex (irm https://hermes-agent.nousresearch.com/install.ps1)
 ```
 
 Prefer to review first? Download [`install.sh`](https://hermes-agent.nousresearch.com/install.sh), inspect it, then run it.
@@ -117,7 +111,7 @@ Already set up with another model?
 
 ## See also
 
-- **[Desktop App](../user-guide/desktop.md)** — The native one-click app (macOS, Windows, Linux)
+- **[Desktop App](../user-guide/desktop.md)** — The native one-click app (macOS, Linux)
 - **[Run Hermes Agent with Nous Portal](./run-hermes-with-nous-portal.md)** — Full Portal walkthrough: models, Tool Gateway, and verification
 - **[Nous Portal integration](../integrations/nous-portal.md)** — What's in the subscription
 - **[Quickstart](../getting-started/quickstart.md)** — Install-to-chat in under 5 minutes

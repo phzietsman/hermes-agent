@@ -50,7 +50,7 @@ Hermes Agent 支持在 CLI 和消息平台上进行完整的语音交互。通�
 | `messaging` | `discord.py[voice]`、`python-telegram-bot`、`aiohttp` | Discord 和 Telegram |
 | `tts-premium` | `elevenlabs` | ElevenLabs TTS |
 
-原生 Windows ARM64 和 Intel macOS 不包含 Faster-Whisper，请使用云端或命令式 STT。
+Intel macOS 不包含 Faster-Whisper，请使用云端或命令式 STT。
 `all` 不代表所有语音或唤醒引擎。NeuTTS 是单独的可选运行时，首次使用会下载模型。
 
 :::info

@@ -57,8 +57,8 @@ select the required extras in the
 | `messaging` | `discord.py[voice]`, `python-telegram-bot`, `aiohttp` | Discord & Telegram bots |
 | `tts-premium` | `elevenlabs` | ElevenLabs TTS provider |
 
-Local Faster-Whisper is excluded on native Windows ARM64 and Intel macOS.
-Use a cloud or command-based STT provider on those targets. `audio-io` contains
+Local Faster-Whisper is excluded on Intel macOS.
+Use a cloud or command-based STT provider on that target. `audio-io` contains
 the microphone/playback dependencies without local STT. The `all` extra does
 not mean every voice or wake engine.
 

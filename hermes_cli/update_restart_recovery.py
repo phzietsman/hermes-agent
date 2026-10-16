@@ -132,11 +132,8 @@ def _child_environment(profile: str | None = None) -> dict[str, str]:
 
 def _run_profile_restart(profile: str, *, run: Callable[..., Any]) -> bool:
     """Run one profile restart without inheriting the updater's process state."""
-    kwargs: dict[str, Any] = {"stdin": subprocess.DEVNULL, "env": _child_environment(profile)}
-    if os.name == "nt":
-        kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
-    else:
-        kwargs["start_new_session"] = True
+    kwargs: dict[str, Any] = {"stdin": subprocess.DEVNULL, "env": _child_environment(profile),
+                              "start_new_session": True}
     argv = [sys.executable, "-m", "hermes_cli.main", "-p", profile, "gateway", "restart"]
     return _succeeded(_run_quiet(run, argv, timeout=_PROFILE_RESTART_TIMEOUT, **kwargs))
 
@@ -175,21 +172,15 @@ def _host_state_dir() -> str:
 
 
 def _pid_is_live(pid: int) -> bool:
-    """Liveness of ``pid``: ``psutil`` when importable, else the POSIX signal-0 probe.
-
-    The signal probe is POSIX-only by construction — on Windows ``os.kill(pid, 0)`` sends a real
-    control event and can kill the target — so an unimportable psutil there means "cannot prove".
-    """
+    """Liveness of ``pid``: ``psutil`` when importable, else the signal-0 probe."""
     try:
         import psutil
 
         return bool(psutil.pid_exists(pid))
     except Exception:
         pass
-    if os.name == "nt":
-        return False
     try:
-        os.kill(pid, 0)  # windows-footgun: ok — POSIX-only branch, guarded by os.name above
+        os.kill(pid, 0)
     except PermissionError:
         return True
     except OSError:

@@ -93,8 +93,7 @@ ident_state() { # pid recorded-ct -> 0 same process, 1 gone/reused, 2 alive but 
   ct_close "$want" "$have" 2.0
 }
 
-# ident_state 0 is marker-claim.ps1's Test-ProcessIdentityExact: both creation times known and
-# within 2 s. Adopting a run, withdrawing a bridge and reporting `taken` need exactly that; an
+# ident_state 0 is an exact identity: both creation times known and within 2 s. Adopting a run, withdrawing a bridge and reporting `taken` need exactly that; an
 # alive pid whose creation time cannot be read is never proof of who it is (fail closed).
 
 ident_alive() { # pid recorded-ct -> 0 iff that process may still be running (unknown counts)
@@ -299,8 +298,7 @@ marker_ancestor() { # pid -> 0 iff it is one of our ancestors
   return 1
 }
 
-# The launcher-lineage rule -- ONE rule, the same in marker-claim.ps1
-# (Test-MarkerLauncherRule); the shared table is
+# The launcher-lineage rule -- ONE rule; the shared table is
 # tests/scripts/desktop_update/lineage_rule_cases.py. An OLD Desktop's bridge
 # "<launcher pid>\n<started_at>\n" (v1: no ct, no delegate) names the launcher
 # it spawned (be3fd671d70 checkout.ts) instead of itself. It is adopted iff it
@@ -623,7 +621,7 @@ marker_op_withdraw_locked() {
   echo foreign
 }
 
-marker_op() { # reclaim | withdraw -> one verdict line on stdout (same words as marker.ps1):
+marker_op() { # reclaim | withdraw -> one verdict line on stdout:
   # reclaim  absent | live <pid> | busy | held (dead or no marker, but the checkout lock is held) | reclaimed
   # withdraw absent | taken <pid> (a live adopter carries the run) | withdrawn (this Desktop's
   #          own bridge, removed) | foreign (anything else, kept -- a dead adopter included)

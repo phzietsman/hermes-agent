@@ -1,7 +1,7 @@
 """Desktop-application resolver over an `AppDef` (parsed from an MCP manifest's `app:` block).
 
-`locate` stats every declared location in order (fixed paths, PATH, uninstall entries, the flatpak,
-snap and Applications directories) and lists directories for a `*` path segment; the first present
+`locate` stats every declared location in order (fixed paths, PATH, the flatpak, snap and
+Applications directories) and lists directories for a `*` path segment; the first present
 one wins. `inspect` reads the version source in-process.
 `probe` re-reads the vendor's runtime file on every call; the bearer token in it never
 leaves this module.
@@ -14,10 +14,9 @@ import json
 import os
 import plistlib
 import re
-import sys
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Iterator, Literal
+from typing import Callable, Literal
 from urllib.parse import urlsplit
 
 from hermes_platform.resolver import known_dirs
@@ -33,7 +32,7 @@ from hermes_platform.resolver.core import (
 )
 
 PresenceKind = Literal["executable", "bundle"]
-VersionKind = Literal["pe_resource", "plist", "uninstall_registry", "none"]
+VersionKind = Literal["plist", "none"]
 LivenessKind = Literal["server_json", "none"]
 
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
@@ -42,23 +41,21 @@ _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
 @dataclass(frozen=True)
 class AppLocation:
     """One place to look. `kind` is `path` or a key of `LOCATION_KINDS`. `value` is the path, or the
-    value of that kind's `key`. `file` is joined onto an uninstall entry's `InstallLocation`."""
+    value of that kind's `key`."""
 
     kind: str
     value: str
-    file: str = ""
 
 
 @dataclass(frozen=True)
 class AppDef:
-    """One application on one OS. Paths use `%VAR%` and `~`; expansion happens at lookup."""
+    """One application on one OS. Paths use `$VAR` and `~`; expansion happens at lookup."""
 
     app_id: str
     os_family: str
     presence: PresenceKind
     locations: tuple[AppLocation, ...]
     version_kind: VersionKind = "none"
-    version_arg: str = ""
     liveness_kind: LivenessKind = "none"
     liveness_path: str = ""
     liveness_pid_key: str = "pid"
@@ -110,11 +107,7 @@ class AppResolver:
                 return Observation.not_checked()
             if kind == "plist":
                 return _plist_version(path)
-            if kind == "pe_resource":
-                return _pe_version(path)
-            if kind == "uninstall_registry":
-                return _uninstall_registry_version(self.definition.version_arg)
-        except Exception as exc:  # a vendor's plist/PE/registry entry is untrusted input; never abort the caller
+        except Exception as exc:  # a vendor's plist is untrusted input; never abort the caller
             return Observation(CheckState.ERROR, detail=exc.__class__.__name__)
         return Observation(CheckState.UNAVAILABLE, detail=f"unknown version kind {kind}")
 
@@ -189,15 +182,6 @@ def _command_hits(d: AppDef, loc: AppLocation, ctx: LookupContext | None) -> lis
     return [(Candidate(c.value, f"app:{d.app_id}:{loc.kind}", c.present), "path_executable") for c in res.candidates]
 
 
-def _uninstall_hits(d: AppDef, loc: AppLocation, ctx: LookupContext | None) -> list[_Hit]:
-    if sys.platform != "win32":
-        return []
-    # A UNC InstallLocation is skipped so a presence check never touches the network.
-    return [_hit(d, f"app:{d.app_id}:{loc.kind}", os.path.join(entry["InstallLocation"], loc.file))
-            for entry in _uninstall_entries(loc.value)
-            if entry.get("InstallLocation") and not entry["InstallLocation"].startswith(("\\\\", "//"))]
-
-
 def _in_dirs(dirs: Callable[[], tuple[str, ...]]) -> _Locator:
     def hits(d: AppDef, loc: AppLocation, ctx: LookupContext | None) -> list[_Hit]:
         return [_hit(d, f"app:{d.app_id}:{loc.kind}", os.path.join(_expand(root), loc.value)) for root in dirs()]
@@ -208,18 +192,16 @@ def _in_dirs(dirs: Callable[[], tuple[str, ...]]) -> _Locator:
 class LocationSpec:
     """A location kind a declaration names in a mapping. `only_on` is the one OS family it is valid
     under (None: any), `key` names the mapping field holding what to find, `yields` is the presence
-    it finds, and `needs_file` says the mapping also carries a relative `file`."""
+    it finds."""
 
     only_on: str | None
     key: str
     yields: PresenceKind
     locate: _Locator
-    needs_file: bool = False
 
 
 LOCATION_KINDS: dict[str, LocationSpec] = {
     "command": LocationSpec(None, "name", "executable", _command_hits),
-    "uninstall_registry": LocationSpec("win32", "display_name_prefix", "executable", _uninstall_hits, needs_file=True),
     "app_bundle": LocationSpec("darwin", "name", "bundle", _in_dirs(known_dirs.mac_application_dirs)),
     "flatpak": LocationSpec("linux", "app_id", "executable", _in_dirs(known_dirs.flatpak_export_dirs)),
     "snap": LocationSpec("linux", "name", "executable", _in_dirs(known_dirs.snap_bin_dirs)),
@@ -235,97 +217,12 @@ def _locator(kind: str) -> _Locator:
 
 
 def _plist_version(bundle: str) -> Observation[str]:
-    with open(os.path.join(bundle, "Contents", "Info.plist"), "rb") as fh:  # windows-footgun: ok — binary mode
+    with open(os.path.join(bundle, "Contents", "Info.plist"), "rb") as fh:
         info = plistlib.load(fh)
     value = info.get("CFBundleShortVersionString") or info.get("CFBundleVersion")
     if not value:
         return Observation(CheckState.UNAVAILABLE, detail="no version key in Info.plist")
     return Observation(CheckState.PRESENT, str(value))
-
-
-def _pe_version(path: str) -> Observation[str]:
-    if sys.platform != "win32":
-        return Observation(CheckState.UNAVAILABLE, detail="pe_resource needs Windows")
-    import ctypes
-    from ctypes import wintypes
-
-    ver = ctypes.windll.version  # type: ignore[attr-defined]
-    ver.GetFileVersionInfoSizeW.argtypes = [wintypes.LPCWSTR, ctypes.POINTER(wintypes.DWORD)]
-    ver.GetFileVersionInfoSizeW.restype = wintypes.DWORD
-    size = ver.GetFileVersionInfoSizeW(path, None)
-    if not size:
-        return Observation(CheckState.UNAVAILABLE, detail="no version resource")
-    buf = ctypes.create_string_buffer(size)
-    ver.GetFileVersionInfoW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p]
-    ver.GetFileVersionInfoW.restype = wintypes.BOOL
-    if not ver.GetFileVersionInfoW(path, 0, size, buf):
-        return Observation(CheckState.ERROR, detail="GetFileVersionInfoW failed")
-    ptr = ctypes.c_void_p()
-    length = wintypes.UINT()
-    ver.VerQueryValueW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR, ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.UINT)]
-    ver.VerQueryValueW.restype = wintypes.BOOL
-    if not ver.VerQueryValueW(buf, "\\", ctypes.byref(ptr), ctypes.byref(length)) or not ptr.value:
-        return Observation(CheckState.UNAVAILABLE, detail="no fixed file info")
-    # VS_FIXEDFILEINFO: dwFileVersionMS at offset 8, dwFileVersionLS at offset 12.
-    ms = ctypes.cast(ptr.value + 8, ctypes.POINTER(wintypes.DWORD)).contents.value
-    ls = ctypes.cast(ptr.value + 12, ctypes.POINTER(wintypes.DWORD)).contents.value
-    return Observation(CheckState.PRESENT, f"{ms >> 16}.{ms & 0xFFFF}.{ls >> 16}.{ls & 0xFFFF}")
-
-
-def _uninstall_values(entry: Any) -> dict[str, str]:
-    """The uninstall entry's values that exist; any of them may be missing."""
-    import winreg
-
-    values: dict[str, str] = {}
-    for value_name in ("DisplayName", "DisplayVersion", "InstallLocation"):
-        try:
-            values[value_name] = str(winreg.QueryValueEx(entry, value_name)[0])
-        except OSError:
-            continue
-    return values
-
-
-def _uninstall_entry(key: Any, index: int) -> dict[str, str]:
-    """One child entry's values; an entry can vanish between EnumKey and OpenKey, which reads as no values."""
-    import winreg
-
-    try:
-        with winreg.OpenKey(key, winreg.EnumKey(key, index)) as entry:
-            return _uninstall_values(entry)
-    except OSError:
-        return {}
-
-
-def _uninstall_entries(display_name_prefix: str) -> Iterator[dict[str, str]]:
-    """Each uninstall entry whose `DisplayName` starts with the prefix, machine-wide before per-user."""
-    import winreg
-
-    roots = (
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-        (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-    )
-    for hive, root in roots:
-        try:
-            with winreg.OpenKey(hive, root) as key:
-                count = winreg.QueryInfoKey(key)[0]
-                for i in range(count):
-                    values = _uninstall_entry(key, i)
-                    if values.get("DisplayName", "").startswith(display_name_prefix):
-                        yield values
-        except OSError:
-            continue
-
-
-def _uninstall_registry_version(display_name_prefix: str) -> Observation[str]:
-    if sys.platform != "win32":
-        return Observation(CheckState.UNAVAILABLE, detail="uninstall_registry needs Windows")
-    entry = next(_uninstall_entries(display_name_prefix), None)
-    if entry is None:
-        return Observation(CheckState.ABSENT, detail="no uninstall entry")
-    if "DisplayVersion" not in entry:
-        return Observation(CheckState.UNAVAILABLE, detail="entry has no DisplayVersion")
-    return Observation(CheckState.PRESENT, entry["DisplayVersion"])
 
 
 # ---- liveness: the token stays inside this section -------------------------------------
@@ -362,21 +259,8 @@ def _read_server_json(path: str, d: AppDef) -> _Session | None:
 def _pid_alive(pid: int | None) -> Observation[bool]:
     if pid is None or pid <= 0:
         return Observation(CheckState.UNAVAILABLE, detail="no pid in runtime file")
-    if sys.platform == "win32":
-        import ctypes
-        from ctypes import wintypes
-
-        k32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
-        k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-        k32.OpenProcess.restype = wintypes.HANDLE
-        handle = k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-        if not handle:
-            return Observation(CheckState.ABSENT, False)
-        k32.CloseHandle.argtypes = [wintypes.HANDLE]
-        k32.CloseHandle(handle)
-        return Observation(CheckState.PRESENT, True)
     try:
-        os.kill(pid, 0)  # windows-footgun: ok — POSIX only, the win32 branch returned above
+        os.kill(pid, 0)
     except ProcessLookupError:
         return Observation(CheckState.ABSENT, False)
     except PermissionError:

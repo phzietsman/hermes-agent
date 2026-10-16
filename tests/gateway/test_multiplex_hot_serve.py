@@ -114,9 +114,7 @@ async def test_opt_out_rescans_and_opt_in_waits_for_own_gateway_to_stop(tmp_path
 
 @pytest.mark.asyncio
 async def test_stalled_own_gateway_probe_never_wedges_the_loop_or_serves(tmp_path, monkeypatch, caplog):
-    """#132547: the pre-serve own-gateway probe can end in a control-socket read that has no
-    timeout of its own (a Windows named pipe stalls there until its peer answers); inline on
-    the loop thread it parked shutdown_watchdog liveness probes until the multiplexer was
+    """#132547: the pre-serve own-gateway probe can stall; inline on the loop thread it parked shutdown_watchdog liveness probes until the multiplexer was
     hard-killed with exit 75. A stalled probe must leave the event loop turning, keep the
     profile unserved for that cycle, and the profile must serve once the probe answers."""
     from gateway import run_profile_reconcile as reconcile_mod
@@ -328,13 +326,7 @@ async def test_unserve_releases_gateway_held_log_and_mcp_handles(tmp_path, monke
     gamma_dir = _mkprofile(home, "gamma", "DISCORD_BOT_TOKEN=gamma-token\n")
 
     def _holds_open_log_file(handler) -> bool:
-        # concurrent-log-handler (Windows) keeps the cross-process ``.__agent.lock``
-        # handle in ``stream_lock`` — what the deleter's rmtree actually trips over —
-        # and closes ``stream`` again after every write; stdlib (POSIX) keeps the log
-        # ``stream`` itself open between writes.
-        lock_stream = getattr(handler, "stream_lock", None)
-        if lock_stream is not None and not lock_stream.closed:
-            return True
+        # stdlib keeps the log ``stream`` open between writes.
         stream = getattr(handler, "stream", None)
         return stream is not None and not stream.closed
 
@@ -364,7 +356,7 @@ async def test_unserve_releases_gateway_held_log_and_mcp_handles(tmp_path, monke
         gamma_handlers = [handler._profile_handlers[gamma_dir.resolve()] for handler in routers]
         alpha_handlers = [handler._profile_handlers[alpha_dir.resolve()] for handler in routers]
         # Before the reconcile the deleted profile's routed handlers each hold an open fd into
-        # its home — the ``.__agent.lock`` lock handle on Windows, the log stream on POSIX.
+        # its home (the log stream).
         assert all(_holds_open_log_file(handler) for handler in gamma_handlers)
 
         with patch("hermes_cli.profiles.get_active_profile_name", return_value="default"):

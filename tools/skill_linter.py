@@ -26,13 +26,9 @@ _SHELL_UTIL_TO_TOOL: Dict[str, str] = {
 _MARKETING_WORDS = (
     "powerful", "comprehensive", "seamless", "advanced", "cutting-edge", "state-of-the-art",
     "revolutionary", "robust")
-# POSIX-only primitives that require ``platforms:`` when a bundled script uses
-# them. Detected in scripts/, not in prose.
-_POSIX_PRIMITIVES = (
-    "fcntl",
-    "termios",
-    "os.setsid",  # windows-footgun: ok  (search-pattern string, not a call)
-    "signal.SIGKILL",  # windows-footgun: ok  (search-pattern string, not a call)
+# Linux- or macOS-only primitives that require ``platforms:`` when a bundled script
+# uses them. Detected in scripts/, not in prose.
+_PLATFORM_PRIMITIVES = (
     "osascript",
     "/proc/",
     "apt-get",
@@ -116,7 +112,7 @@ def _check_frontmatter(frontmatter: Dict[str, Any], skill_dir: Optional[Path]) -
                     f"or a real contributor name.")
     platforms = frontmatter.get("platforms")
     if platforms:
-        valid = {"linux", "macos", "windows", "darwin"}
+        valid = {"linux", "macos", "darwin"}
         items = platforms if isinstance(platforms, list) else [platforms]
         bad = [p for p in items if str(p).lower() not in valid]
         if bad:
@@ -162,7 +158,7 @@ def _check_body(body: str, skill_dir: Optional[Path]) -> Iterator[LintFinding]:
 
 
 def _check_files(frontmatter: Dict[str, Any], skill_dir: Path) -> Iterator[LintFinding]:
-    # Bundled scripts using POSIX-only primitives require a platforms: declaration.
+    # Bundled scripts using Linux- or macOS-only primitives require a platforms: declaration.
     scripts_dir = skill_dir / "scripts"
     offenders: Dict[str, List[str]] = {}
     if not frontmatter.get("platforms") and scripts_dir.is_dir():
@@ -173,14 +169,14 @@ def _check_files(frontmatter: Dict[str, Any], skill_dir: Path) -> Iterator[LintF
                 text = script.read_text(encoding="utf-8-sig", errors="ignore")
             except OSError:
                 continue
-            hit = [p for p in _POSIX_PRIMITIVES if p in text]
+            hit = [p for p in _PLATFORM_PRIMITIVES if p in text]
             if hit:
                 offenders[script.name] = hit
     if offenders:
         detail = "; ".join(f"{k}: {v}" for k, v in offenders.items())
         yield _warn("platforms-gating",
-                    f"scripts use POSIX-only primitives ({detail}) but no 'platforms:' frontmatter is "
-                    f"declared. Fix cross-platform or gate with platforms: [linux, macos].")
+                    f"scripts use single-platform primitives ({detail}) but no 'platforms:' frontmatter is "
+                    f"declared. Fix cross-platform or gate with platforms: [linux] / [macos].")
     for fname in _FORBIDDEN_FILES:
         if (skill_dir / fname).exists():
             yield _warn("forbidden-file",

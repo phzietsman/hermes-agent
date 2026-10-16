@@ -35,7 +35,7 @@ def open_db(
     only journal-mode setter that carries the WAL-reset-bug gate, the network-FS silent-refusal
     fallback and the never-live-downgrade invariant; a raw ``PRAGMA journal_mode=WAL`` bypasses all
     three. Only the transient ``database is locked`` from that pragma is retried (``wal_lock_retries``):
-    a first opener initializing a shared DB can make it ignore the busy timeout, notably on Windows.
+    a first opener initializing a shared DB can make it ignore the busy timeout.
     """
     from hermes_state_wal import apply_wal_with_fallback
 

@@ -8,7 +8,6 @@ SQLite connection factory needed by the final lock probe.
 from __future__ import annotations
 
 import errno
-import functools
 import logging
 import os
 import sqlite3
@@ -32,7 +31,6 @@ def read_only_db_uri(db_path) -> str:
 
 logger = logging.getLogger(__name__)
 
-_IS_WINDOWS = sys.platform == "win32"
 _HERMES_EXECUTABLES = frozenset({"hermes", "hermes-agent", "hermes-acp"})
 _HERMES_PYTHON_MODULES = frozenset({"acp_adapter", "hermes_cli.main"})
 _HERMES_PYTHON_SCRIPTS = frozenset({"hermes_cli/main.py", "run_agent.py"})
@@ -70,7 +68,7 @@ def describe_holder_pid(pid: int) -> str:
 
 
 def _looks_like_python_executable(program: str) -> bool:
-    name = os.path.basename(program).lower().removesuffix(".exe")
+    name = os.path.basename(program).lower()
     for prefix in ("python", "pypy"):
         if name.startswith(prefix):
             suffix = name[len(prefix) :]
@@ -123,7 +121,7 @@ def _looks_like_hermes(argv: Sequence[str]) -> bool:
     """Return whether argv identifies a supported Hermes execution target."""
     if not argv:
         return False
-    program = os.path.basename(argv[0]).lower().removesuffix(".exe")
+    program = os.path.basename(argv[0]).lower()
     if program in _HERMES_EXECUTABLES:
         return True
     if not _looks_like_python_executable(program):
@@ -319,109 +317,9 @@ def _argv_scoped_to_other_home(argv: Sequence[str], db_path: Path) -> bool:
     return other_home_seen
 
 
-_RM_ERROR_MORE_DATA = 234
-_RM_SESSION_KEY_LEN = 33  # CCH_RM_SESSION_KEY + 1
-
-
-@functools.cache
-def _rm_ctypes():
-    """Restart Manager ctypes metadata, built once on first scan.
-
-    Once, because ``ctypes.POINTER()`` on a freshly defined Structure pins it in
-    ``ctypes._pointer_type_cache`` forever (a per-scan rebuild leaked a class set per call);
-    lazily, because POSIX processes import this module but never scan with Restart Manager.
-    """
-    import ctypes
-    from ctypes import wintypes
-
-    class _RmUniqueProcess(ctypes.Structure):
-        _fields_ = [("pid", wintypes.DWORD), ("started", wintypes.FILETIME)]
-
-    class _RmProcessInfo(ctypes.Structure):
-        _fields_ = [
-            ("process", _RmUniqueProcess),
-            ("app_name", wintypes.WCHAR * 256),  # CCH_RM_MAX_APP_NAME + 1
-            ("service_name", wintypes.WCHAR * 64),  # CCH_RM_MAX_SVC_NAME + 1
-            ("app_type", wintypes.DWORD),
-            ("app_status", wintypes.ULONG),
-            ("ts_session_id", wintypes.DWORD),
-            ("restartable", wintypes.BOOL),
-        ]
-
-    argtypes = {
-        "RmStartSession": [ctypes.POINTER(wintypes.DWORD), wintypes.DWORD, wintypes.LPWSTR],
-        "RmRegisterResources": [
-            wintypes.DWORD, wintypes.UINT, ctypes.POINTER(wintypes.LPCWSTR),
-            wintypes.UINT, ctypes.c_void_p, wintypes.UINT, ctypes.c_void_p,
-        ],
-        "RmGetList": [
-            wintypes.DWORD, ctypes.POINTER(wintypes.UINT), ctypes.POINTER(wintypes.UINT),
-            ctypes.POINTER(_RmProcessInfo), ctypes.POINTER(wintypes.DWORD),
-        ],
-        "RmEndSession": [wintypes.DWORD],
-    }
-    return _RmProcessInfo, argtypes
-
-
 def _sqlite_family(base: str) -> Tuple[str, str, str]:
     """The main database file plus the ``-wal``/``-shm`` sidecars SQLite may hold alongside it."""
     return (base, base + "-wal", base + "-shm")
-
-
-def _windows_restart_manager_holders(db_path: Path) -> List[Tuple[int, str]]:
-    """Return foreign processes using state.db or a WAL sidecar via Windows Restart Manager."""
-    import ctypes
-    from ctypes import wintypes
-
-    process_info, argtypes = _rm_ctypes()
-    # WinDLL per call (not memoised) so the unit test can inject a fake rstrtmgr through ctypes.WinDLL.
-    api = ctypes.WinDLL("rstrtmgr", use_last_error=True)
-    for name, types in argtypes.items():
-        fn = getattr(api, name)
-        fn.argtypes = types
-        fn.restype = wintypes.DWORD
-    start, register, get_list, end = (
-        api.RmStartSession, api.RmRegisterResources, api.RmGetList, api.RmEndSession
-    )
-
-    db_abspath = os.path.abspath(os.fspath(db_path))
-    resources = [path for path in _sqlite_family(db_abspath) if os.path.exists(path)]
-    if not resources:
-        return []
-
-    session = wintypes.DWORD()
-    key = ctypes.create_unicode_buffer(_RM_SESSION_KEY_LEN)
-    rc = start(ctypes.byref(session), 0, key)
-    if rc:
-        raise OSError(rc, "RmStartSession failed")
-    try:
-        filenames = (wintypes.LPCWSTR * len(resources))(*resources)
-        rc = register(session, len(resources), filenames, 0, None, 0, None)
-        if rc:
-            raise OSError(rc, "RmRegisterResources failed")
-
-        # Pass 1 sizes (ERROR_MORE_DATA); the process set can change before the data pass, so retry the
-        # bounded race with a re-sized buffer.
-        needed, reasons = wintypes.UINT(), wintypes.DWORD()
-        for _ in range(4):
-            apps = (process_info * needed.value)()
-            count = wintypes.UINT(needed.value)
-            rc = get_list(
-                session, ctypes.byref(needed), ctypes.byref(count),
-                apps if needed.value else None, ctypes.byref(reasons),
-            )
-            if rc == 0:
-                own_pid = os.getpid()
-                return [
-                    (int(apps[index].process.pid), db_abspath)
-                    for index in range(count.value)
-                    if int(apps[index].process.pid) != own_pid
-                ]
-            if rc != _RM_ERROR_MORE_DATA:
-                raise OSError(rc, "RmGetList failed")
-        raise RuntimeError("Restart Manager holder set kept changing")
-    finally:
-        end(session)
 
 
 def foreign_state_db_holders(db_path: Path) -> List[Tuple[int, str]]:
@@ -431,16 +329,6 @@ def foreign_state_db_holders(db_path: Path) -> List[Tuple[int, str]]:
     must not assume quiescence when an old, unlinked SQLite generation may
     still be open by another process.
     """
-    if _IS_WINDOWS:
-        try:
-            return _windows_restart_manager_holders(db_path)
-        except Exception as exc:
-            logger.warning(
-                "Could not prove state.db has no Windows holders; deferring structural maintenance: %s",
-                exc,
-            )
-            return [(-1, f"Windows Restart Manager scan failed: {exc}")]
-
     # realpath, not abspath: psutil/libproc report the kernel-resolved pathname, so a symlinked
     # HERMES_HOME would otherwise make every holder invisible and let maintenance proceed.
     db_path_str = os.path.realpath(os.fspath(db_path))

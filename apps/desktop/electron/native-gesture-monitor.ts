@@ -51,8 +51,7 @@ export class NativeGestureMonitor<T> {
       child = (this.options.spawn ?? nodeSpawn)(this.options.path, requestPermission ? ['--request-permission'] : [], {
         stdio: ['pipe', 'pipe', 'ignore'],
         shell: false,
-        detached: false,
-        windowsHide: true
+        detached: false
       })
     } catch (error) {
       onStatus(spawnFailure(error))

@@ -717,8 +717,7 @@ def _run_bot_chat_turn(argv: list, env: dict, report_path: str, timeout: float) 
     # The scheduler may sit in a directory that no longer exists (a kanban worker whose
     # scratch workspace was reaped): a child inheriting that cwd dies at CLI startup
     # (#102941). The target home is the one directory this lane has already verified.
-    # Decoding is the runner's platform policy: lossy everywhere (#105582), UTF-8 only on
-    # win32 (#115894), the locale codec on POSIX (#66566).
+    # Decoding is the runner's policy: lossy (#105582) with the locale codec (#66566).
     return run_reported_turn(argv, env=env, report_path=report_path, timeout=timeout,
                              cwd=env.get("HERMES_HOME") or None)
 

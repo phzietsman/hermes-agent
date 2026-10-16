@@ -6,13 +6,12 @@
  * shows through:
  *
  * - 'clear' — the main process maps the lever to native window opacity
- *   (`setOpacity`), so the whole window fades, text included. macOS + Windows;
+ *   (`setOpacity`), so the whole window fades, text included. macOS only;
  *   `setOpacity` is a no-op on Linux.
  * - 'glass' — the window stays fully opaque at the native level and the
  *   renderer thins its page surfaces instead, letting a platform material
  *   read as a matte blur while text keeps full contrast. macOS rides
- *   `setVibrancy`; Windows 11 (22H2+) rides `setBackgroundMaterial`. Linux
- *   has no first-party desktop material, so glass is not offered there.
+ *   `setVibrancy`. Linux has no first-party desktop material, so glass is not offered there.
  *
  * The renderer owns the value and mirrors it to main over IPC; main persists it
  * so a cold launch can apply it at window creation, before the renderer reports
@@ -54,50 +53,6 @@ export type GlassScope = (typeof GLASS_SCOPES)[number]
 
 export const DEFAULT_GLASS_SCOPE: GlassScope = 'sidebar'
 
-/**
- * Electron `setBackgroundMaterial` values. `'auto'` is deliberately absent —
- * it lets DWM pick, which would silently erase the frost choice.
- */
-export const WINDOWS_BACKGROUND_MATERIALS = ['acrylic', 'tabbed', 'mica', 'none'] as const
-
-export type WindowsBackgroundMaterial = (typeof WINDOWS_BACKGROUND_MATERIALS)[number]
-
-/**
- * Frost (sheer → heavy) → Windows 11 system backdrop. Acrylic is the live-blur
- * transient material, closest to macOS under-window vibrancy; tabbed and mica
- * sample the wallpaper and read more opaque.
- *
- * Three backdrops for four rungs, so the two heaviest both land on mica. The
- * mapping stays total — a frost saved on a Mac still resolves — and the PICKER
- * drops the duplicate instead (see `glassMaterialsFor`).
- */
-const WINDOWS_MATERIAL_BY_FROST: Record<GlassMaterial, Exclude<WindowsBackgroundMaterial, 'none'>> = {
-  'under-window': 'acrylic',
-  popover: 'tabbed',
-  titlebar: 'mica',
-  header: 'mica'
-}
-
-/**
- * The frost rungs Windows can render as DISTINCT looks: the first rung for each
- * backdrop. Shipping two options that composite identically is the mistake the
- * macOS census already corrected once (sidebar/hud); deriving the list from the
- * mapping means a change there can never reintroduce a duplicate.
- */
-const WINDOWS_GLASS_MATERIALS: readonly GlassMaterial[] = GLASS_MATERIALS.filter(
-  (material, index) =>
-    GLASS_MATERIALS.findIndex(rung => WINDOWS_MATERIAL_BY_FROST[rung] === WINDOWS_MATERIAL_BY_FROST[material]) === index
-)
-
-/**
- * Windows 11 22H2 (build 22621) is the floor Electron documents for
- * `setBackgroundMaterial`. Windows 11 still reports kernel 10.0; the build
- * number is the discriminator. Fail closed on a missing/unparseable release.
- *
- * @see https://www.electronjs.org/docs/latest/api/browser-window#winsetbackgroundmaterialmaterial-windows
- */
-export const WINDOWS_GLASS_MIN_BUILD = 22621
-
 export interface TranslucencyState {
   intensity: number
   /**
@@ -127,26 +82,19 @@ export type Appearance = 'light' | 'dark'
 /**
  * Glass starts at 29% tint, confined to the sidebar in both appearances.
  * Fade stays off so the content column and text remain fully opaque.
- * Frost keeps its platform/appearance tuning: macOS uses header/titlebar,
- * while Windows uses under-window, the live acrylic backdrop.
+ * Frost keeps its appearance tuning: header in light, titlebar in dark.
  */
-const DEFAULT_VALUES: Record<'mac' | 'windows', Record<Appearance, TranslucencyValues>> = {
-  mac: {
-    light: { intensity: 29, fade: 0, material: 'header', scope: DEFAULT_GLASS_SCOPE },
-    dark: { intensity: 29, fade: 0, material: 'titlebar', scope: DEFAULT_GLASS_SCOPE }
-  },
-  windows: {
-    light: { intensity: 29, fade: 0, material: 'under-window', scope: DEFAULT_GLASS_SCOPE },
-    dark: { intensity: 29, fade: 0, material: 'under-window', scope: DEFAULT_GLASS_SCOPE }
-  }
+const DEFAULT_VALUES: Record<Appearance, TranslucencyValues> = {
+  light: { intensity: 29, fade: 0, material: 'header', scope: DEFAULT_GLASS_SCOPE },
+  dark: { intensity: 29, fade: 0, material: 'titlebar', scope: DEFAULT_GLASS_SCOPE }
 }
 
 /**
- * The untouched values for an appearance on this platform. Linux never reaches
- * here — translucency is unsupported there, so nothing resolves.
+ * The untouched values for an appearance. Linux never reaches here —
+ * translucency is unsupported there, so nothing resolves.
  */
-export function defaultTranslucencyValues(appearance: Appearance, isWindows: boolean): TranslucencyValues {
-  return DEFAULT_VALUES[isWindows ? 'windows' : 'mac'][appearance]
+export function defaultTranslucencyValues(appearance: Appearance): TranslucencyValues {
+  return DEFAULT_VALUES[appearance]
 }
 
 /**
@@ -200,26 +148,15 @@ export function clampIntensity(value: unknown): number {
  * row should not be shown at all.
  */
 export function translucencySupportedOn(platform: string): boolean {
-  return platform === 'darwin' || platform === 'win32'
+  return platform === 'darwin'
 }
 
 /**
  * Whether this OS can back glass with a first-party Electron material.
- * macOS: `setVibrancy`. Windows 11 22H2+: `setBackgroundMaterial`. Linux and
- * older Windows: no.
+ * macOS: `setVibrancy`. Linux: no.
  */
-export function glassSupportedOn(platform: string, release = ''): boolean {
-  if (platform === 'darwin') {
-    return true
-  }
-
-  if (platform !== 'win32') {
-    return false
-  }
-
-  const build = Number.parseInt(release.split('.')[2] ?? '', 10)
-
-  return Number.isFinite(build) && build >= WINDOWS_GLASS_MIN_BUILD
+export function glassSupportedOn(platform: string): boolean {
+  return platform === 'darwin'
 }
 
 /**
@@ -281,13 +218,9 @@ export function normalizeState(payload: unknown, glassSupported: boolean): Trans
  * send corrects any mismatch while the window is still young, and every launch
  * after the first reads the persisted state instead.
  */
-export function defaultTranslucencyState(
-  appearance: Appearance,
-  glassSupported: boolean,
-  isWindows: boolean
-): TranslucencyState {
+export function defaultTranslucencyState(appearance: Appearance, glassSupported: boolean): TranslucencyState {
   return {
-    ...defaultTranslucencyValues(appearance, isWindows),
+    ...defaultTranslucencyValues(appearance),
     mode: normalizeMode(undefined, glassSupported)
   }
 }
@@ -347,12 +280,8 @@ export function normalizeBook(payload: unknown, glassSupported: boolean): Transl
  * ever be handed around — main, the CSS field surfaces, and every consumer of
  * `$translucency` all want the resolved answer for what is painted right now.
  */
-export function resolveTranslucency(
-  book: TranslucencyBook,
-  appearance: Appearance,
-  isWindows: boolean
-): TranslucencyState {
-  const fallback = defaultTranslucencyValues(appearance, isWindows)
+export function resolveTranslucency(book: TranslucencyBook, appearance: Appearance): TranslucencyState {
+  const fallback = defaultTranslucencyValues(appearance)
   const slot = book[appearance]
 
   return {
@@ -437,20 +366,6 @@ export function vibrancyFor(state: TranslucencyState): GlassMaterial | 'sidebar'
 }
 
 /**
- * The Windows 11 system backdrop a chat window should carry. 'none' while
- * glass is off so DWM does not keep drawing mica/acrylic under the opaque
- * themed backing.
- */
-export function backgroundMaterialFor(state: TranslucencyState): WindowsBackgroundMaterial {
-  return glassActive(state) ? WINDOWS_MATERIAL_BY_FROST[state.material] : 'none'
-}
-
-/** The frost rungs to offer on this platform. */
-export function glassMaterialsFor(isWindows: boolean): readonly GlassMaterial[] {
-  return isWindows ? WINDOWS_GLASS_MATERIALS : GLASS_MATERIALS
-}
-
-/**
  * The native frost a HUD-style transparent window should carry.
  *
  * Two gates, because the HUD's frost answers to more than the setting. The
@@ -468,28 +383,8 @@ export function glassMaterialsFor(isWindows: boolean): readonly GlassMaterial[] 
 export function hudFrostFor(
   state: TranslucencyState,
   showing: boolean
-): { backgroundMaterial: WindowsBackgroundMaterial; vibrancy: GlassMaterial | null } {
+): { vibrancy: GlassMaterial | null } {
   const active = showing && glassActive(state)
 
-  return {
-    vibrancy: active ? state.material : null,
-    backgroundMaterial: active ? backgroundMaterialFor(state) : 'none'
-  }
-}
-
-/**
- * The rung the picker highlights. A frost with no rung of its own here — a
- * Mac's 'header' read on Windows — folds onto the rung that renders the same
- * backdrop, so the picker shows a truthful selection without rewriting the
- * value the user saved on their other machine.
- */
-export function glassMaterialForPicker(material: GlassMaterial, isWindows: boolean): GlassMaterial {
-  if (!isWindows) {
-    return material
-  }
-
-  return (
-    WINDOWS_GLASS_MATERIALS.find(rung => WINDOWS_MATERIAL_BY_FROST[rung] === WINDOWS_MATERIAL_BY_FROST[material]) ??
-    DEFAULT_GLASS_MATERIAL
-  )
+  return { vibrancy: active ? state.material : null }
 }

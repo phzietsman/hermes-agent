@@ -24,7 +24,6 @@ function machoBuf() {
 }
 
 test('repairFrameworkLinks turns a flattened Foo.framework/Foo into a symlink', () => {
-  if (process.platform === 'win32') return
   const root = tempRoot()
   try {
     const fw = path.join(root, 'F.framework')

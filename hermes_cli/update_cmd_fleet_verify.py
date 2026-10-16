@@ -47,7 +47,7 @@ def _print_legacy_units_warning() -> None:
 def _collect_fleet_snapshot(restart, rows_expected: bool) -> list:
     """Fleet version rows, polled over a bounded settle window when runtimes are expected.
 
-    Gateways need time to rewrite gateway_state.json; Windows resumes DETACHED (~10s boot),
+    Gateways need time to rewrite gateway_state.json; a resumed gateway boots DETACHED (~10s),
     so a single 2s sleep reported "no rows" on healthy resumes. A "down" row may be a
     detached replacement still booting: poll until none remain or the deadline passes.
     Pre-restart PIDs make a gateway stopped WITHOUT verified replacement a DOWN row (owed restart)
@@ -232,10 +232,8 @@ def _verify_fleet_after_update(restart, *, _pre_update_plan, _windows_gateway_re
     _fleet_snapshot: list = []
     with _best_effort('Fleet version verification failed: %s'):
         from hermes_cli.update_receipt import print_fleet_version_matrix
-        # Cross-platform "rows expected" signal: (restarted_services or killed_pids)
-        # never fires on Windows (pause/resume populates neither), so a healthy
-        # resumed gateway yielded zero rows and exit 0.
-        # See #93406.
+        # "Rows expected" signal beyond (restarted_services or killed_pids): a paused-and-resumed
+        # gateway populates neither, so a healthy one yielded zero rows and exit 0 (#93406).
         # A gateway stopped WITHOUT a successor ("Restart manually") publishes no row by design,
         # so it must not count as an expected one — otherwise an update whose only live gateways
         # were unmapped reports "no rows" after correctly stopping them.
@@ -256,7 +254,7 @@ def _verify_fleet_after_update(restart, *, _pre_update_plan, _windows_gateway_re
             print(
                 # Fleet probe returned zero rows even though at least one gateway runtime was (or may have
                 # been) live pre-update — POSIX restart bookkeeping, the pre-restart PID snapshot, the
-                # pre-update plan inventory, or the Windows pause/resume token all count as that signal.
+                # pre-update plan inventory, or the pause/resume token all count as that signal.
                 # Every failure path inside collect_fleet_versions() is swallowed via logger.debug(), so an
                 # empty list is indistinguishable from a healthy fleet in the current output. Treat it as
                 # verification failure so the receipt carries a gateway_restart follow-up (#93406).

@@ -71,7 +71,6 @@ def test_declared_extra_gates_match_dependency_selection():
     targets = [
         ("linux", "Linux", "x86_64"), ("linux", "Linux", "aarch64"),
         ("darwin", "Darwin", "x86_64"), ("darwin", "Darwin", "arm64"),
-        ("win32", "Windows", "AMD64"), ("win32", "Windows", "ARM64"),
     ]
     for system, platform_system, machine in targets:
         for python in ("3.12", "3.13", "3.14"):
@@ -88,7 +87,7 @@ def test_declared_extra_gates_match_dependency_selection():
 
 
 def test_faster_whisper_targets_are_gated(monkeypatch):
-    """The local-STT extra's anchor is faster-whisper, which has no win_arm64 or darwin-x64 build.
+    """The local-STT extra's anchor is faster-whisper, which has no darwin-x64 build.
 
     An extra whose anchor can never import there must be refused up front: without the gate,
     ensure_import rebuilt the whole dependency environment and still failed the anchor — on every
@@ -98,8 +97,6 @@ def test_faster_whisper_targets_are_gated(monkeypatch):
     """
     monkeypatch.setattr(extras, "_PLATFORM_GATES", None)
     targets = {
-        "win32-arm64": {"sys_platform": "win32", "platform_system": "Windows",
-                        "platform_machine": "ARM64", "os_name": "nt"},
         "darwin-x64": {"sys_platform": "darwin", "platform_system": "Darwin",
                        "platform_machine": "x86_64", "os_name": "posix"},
         "linux-x64": {"sys_platform": "linux", "platform_system": "Linux",
@@ -110,7 +107,7 @@ def test_faster_whisper_targets_are_gated(monkeypatch):
                                        importable=lambda _: False)
         for target, environment in targets.items()
     }
-    assert supported == {"win32-arm64": False, "darwin-x64": False, "linux-x64": True}
+    assert supported == {"darwin-x64": False, "linux-x64": True}
 
 
 @pytest.fixture
@@ -250,5 +247,5 @@ def test_runtime_marker_evaluation_answers_for_the_given_environment():
     env = '{"sys_platform": "linux"}'
     out = [subprocess.run([sys.executable, str(helper), marker, env], capture_output=True,
                           text=True, timeout=60, check=True).stdout.strip()
-           for marker in ("sys_platform == 'linux'", "sys_platform == 'win32'")]
+           for marker in ("sys_platform == 'linux'", "sys_platform == 'darwin'")]
     assert out == ["1", "0"]

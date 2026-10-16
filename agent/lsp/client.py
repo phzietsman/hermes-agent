@@ -13,13 +13,11 @@ import asyncio
 import contextlib
 import logging
 import os
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
 from urllib.parse import quote, unquote
 
-from hermes_cli._subprocess_compat import windows_hide_flags
 
 from agent.lsp.protocol import (
     ERROR_CONTENT_MODIFIED, ERROR_METHOD_NOT_FOUND, LSPProtocolError, LSPRequestError, classify_message,
@@ -75,13 +73,8 @@ _CLIENT_CAPABILITIES: Dict[str, Any] = {
 
 
 def file_uri(path: str) -> str:
-    """Return a ``file://`` URI for a path (handles spaces, unicode, Windows drive letters)."""
-    abs_path = os.path.abspath(path)
-    if os.name == "nt":
-        # ``C:\foo`` → ``file:///C:/foo``: the drive letter must be a path component.
-        abs_path = abs_path.replace("\\", "/")
-        abs_path = abs_path if abs_path.startswith("/") else "/" + abs_path
-    return "file://" + quote(abs_path, safe="/:")
+    """Return a ``file://`` URI for a path (handles spaces and unicode)."""
+    return "file://" + quote(os.path.abspath(path), safe="/:")
 
 
 def _folder(root: str) -> Dict[str, str]:
@@ -93,10 +86,7 @@ def uri_to_path(uri: str) -> str:
     """Inverse of :func:`file_uri`."""
     if not uri.startswith("file://"):
         return uri
-    raw = uri[len("file://"):]
-    if os.name == "nt" and raw.startswith("/") and len(raw) > 2 and raw[2] == ":":
-        raw = raw[1:]  # strip leading slash before drive letter
-    return os.path.normpath(unquote(raw))
+    return os.path.normpath(unquote(uri[len("file://"):]))
 
 
 def _end_position(text: str) -> Dict[str, int]:
@@ -250,20 +240,16 @@ class LSPClient:
         from agent.delegation_context import delegated_child_subprocess_env
         from tools.environments.local import hermes_subprocess_env
         cmd = self._command
-        if sys.platform == "win32" and cmd[0].lower().endswith((".cmd", ".bat")):
-            cmd = ["cmd.exe", "/c", *cmd]  # CreateProcess can't run .cmd/.bat shims directly
         try:
             # start_new_session=True gives the server its own process group; otherwise it inherits
             # the gateway's pgid and mcp_tool's orphan sweeper can killpg() the TUI parent with it.
-            # windows_hide_flags() suppresses the console window a .cmd shim would flash from a
-            # console-less host (CREATE_NO_WINDOW; 0 on POSIX).
             # Language servers are third-party binaries a write_file can start: they get the
             # scrubbed env (no gateway tokens, no provider keys), plus their own configured env.
             self._proc = await asyncio.create_subprocess_exec(
                 cmd[0], *cmd[1:], limit=_STREAM_LIMIT,
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                 env=delegated_child_subprocess_env({**hermes_subprocess_env(), **(self._env or {})}), cwd=self._cwd,
-                start_new_session=True, creationflags=windows_hide_flags(),
+                start_new_session=True,
             )
         except FileNotFoundError as e:
             raise LSPProtocolError(f"LSP server binary not found: {cmd[0]} ({e})") from e
@@ -435,8 +421,6 @@ class LSPClient:
                 # ``shutdown`` has already given the protocol a grace period.  Hard-kill
                 # the tree while its ancestry is still observable: waiting for the launcher
                 # after SIGTERM can let an ignoring descendant become reparented and escape.
-                # Windows maps this to a synchronous taskkill /T /F (up to 15s), so the
-                # kill runs off the event loop.
                 from agent.deadline import kill_process_tree
 
                 if not await asyncio.to_thread(kill_process_tree, proc.pid):

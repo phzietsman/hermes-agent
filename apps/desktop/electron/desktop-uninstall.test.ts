@@ -6,7 +6,7 @@
  *
  * These are the pure helpers behind the desktop Chat GUI uninstaller: the
  * mode → CLI-flag mapping, the running-app-bundle resolution per OS, and the
- * cleanup-script builders (POSIX + Windows).
+ * cleanup-script builders (POSIX).
  */
 
 import assert from 'node:assert/strict'
@@ -21,7 +21,6 @@ import { test } from 'vitest'
 import {
   allowedUninstallModes,
   buildPosixCleanupScript,
-  buildWindowsCleanupScript,
   installKindAllowsCodeRemoval,
   modeRemovesAgent,
   modeRemovesUserData,
@@ -70,13 +69,12 @@ test('nativeRemovalInstructions names the steward per kind and OS', () => {
   assert.match(nativeRemovalInstructions('nix', 'linux'), /installed by Nix/)
   assert.match(nativeRemovalInstructions('nix', 'darwin'), /flake or profile/)
 
-  for (const platform of ['linux', 'darwin', 'win32']) {
+  for (const platform of ['linux', 'darwin']) {
     const steps = nativeRemovalInstructions('external', platform, '/usr/lib/hermes/hermes')
     assert.match(steps, /with that package manager/)
     assert.doesNotMatch(steps, /Delete|Trash/)
   }
 
-  assert.match(nativeRemovalInstructions('bundled', 'win32'), /Installed apps/)
   assert.equal(
     nativeRemovalInstructions('bundled', 'darwin', '/Applications/Hermes Agent Canary.app'),
     'Quit the app and drag Hermes Agent Canary.app from /Applications to the Trash.'
@@ -133,21 +131,6 @@ test('resolveRemovableAppPath: dev-run .app resolves (safety is shouldRemoveAppB
   assert.equal(resolveRemovableAppPath('/usr/bin/electron', 'darwin'), null)
 })
 
-test('resolveRemovableAppPath finds the install dir on Windows', () => {
-  assert.equal(
-    resolveRemovableAppPath('C:\\Users\\x\\AppData\\Local\\Programs\\Hermes\\Hermes.exe', 'win32'),
-    'C:\\Users\\x\\AppData\\Local\\Programs\\Hermes'
-  )
-  assert.equal(
-    resolveRemovableAppPath('C:\\Users\\x\\AppData\\Local\\hermes-desktop\\Hermes.exe', 'win32'),
-    'C:\\Users\\x\\AppData\\Local\\hermes-desktop'
-  )
-})
-
-test('resolveRemovableAppPath returns null for an unrecognized Windows dir', () => {
-  assert.equal(resolveRemovableAppPath('C:\\Temp\\foo\\Hermes.exe', 'win32'), null)
-})
-
 test('resolveRemovableAppPath uses APPIMAGE on Linux when set', () => {
   assert.equal(
     resolveRemovableAppPath('/tmp/.mount_HermesXXXX/hermes', 'linux', { APPIMAGE: '/home/x/Apps/Hermes.AppImage' }),
@@ -163,7 +146,7 @@ test('resolveRemovableAppPath finds the unpacked dir on Linux', () => {
 
 test('resolveRemovableAppPath returns null for an empty exe path', () => {
   assert.equal(resolveRemovableAppPath('', 'darwin'), null)
-  assert.equal(resolveRemovableAppPath(null, 'win32'), null)
+  assert.equal(resolveRemovableAppPath(null, 'linux'), null)
 })
 
 // --- shouldRemoveAppBundle ---
@@ -175,7 +158,7 @@ test('shouldRemoveAppBundle requires packaged AND a resolved path', () => {
   assert.equal(shouldRemoveAppBundle(false, null), false)
 })
 
-test.skipIf(process.platform === 'win32').each(['gui', 'lite', 'full'] as const)(
+test.each(['gui', 'lite', 'full'] as const)(
   'POSIX cleanup executes %s in its sandbox and preserves its sibling',
   async (mode: string): Promise<void> => {
     const root: string = fs.mkdtempSync(path.join(os.tmpdir(), "uninstall-o'brien-"))
@@ -248,47 +231,4 @@ test('buildPosixCleanupScript waits for the PID, runs the uninstall module, remo
   assert.match(script, /'-m' 'hermes_cli\.uninstall' '--mode' 'gui'/)
   assert.match(script, /rm -rf '\/opt\/hermes\/linux-unpacked'/)
   assert.match(script, /export HERMES_HOME='\/home\/x\/\.hermes'/)
-})
-
-// --- buildWindowsCleanupScript ---
-
-test('buildWindowsCleanupScript waits (bounded) for PID, runs uninstall, rmdir bundle', () => {
-  const script = buildWindowsCleanupScript({
-    desktopPid: 9988,
-    pythonExe: 'C:\\Python313\\python.exe',
-    pythonPath: 'C:\\hermes',
-    agentRoot: 'C:\\hermes',
-    uninstallArgs: ['-m', 'hermes_cli.uninstall', '--mode', 'full'],
-    appPath: 'C:\\Users\\x\\AppData\\Local\\Programs\\Hermes',
-    hermesHome: 'C:\\Users\\x\\AppData\\Local\\hermes'
-  })
-
-  assert.match(script, /@echo off/)
-  assert.match(script, /set "PID=9988"/)
-  // PYTHONPATH set so a system python can import hermes_cli from source.
-  assert.match(script, /set "PYTHONPATH=C:\\hermes;%PYTHONPATH%"/)
-  assert.match(script, /"C:\\Python313\\python.exe" "-m" "hermes_cli\.uninstall" "--mode" "full"/)
-  // Bounded wait-loop (no infinite loop), whole-token PID match (no substring).
-  assert.match(script, /if %waited% geq 60 goto waited_done/)
-  assert.match(script, /findstr \/r \/c:" %PID% "/)
-  // Removal is a retry loop (Windows releases dir handles lazily).
-  assert.match(script, /:rmloop/)
-  assert.match(script, /rmdir \/s \/q "C:\\Users\\x\\AppData\\Local\\Programs\\Hermes" >nul 2>&1/)
-  assert.match(script, /if %tries% geq 10 goto rmdone/)
-  assert.match(script, /del "%~f0"/)
-})
-
-test('buildWindowsCleanupScript omits PYTHONPATH + rmdir when not needed (gui, no bundle)', () => {
-  const script = buildWindowsCleanupScript({
-    desktopPid: 2,
-    pythonExe: 'C:\\h\\venv\\Scripts\\python.exe',
-    pythonPath: null,
-    agentRoot: 'C:\\h',
-    uninstallArgs: ['-m', 'hermes_cli.uninstall', '--mode', 'gui'],
-    appPath: null,
-    hermesHome: 'C:\\h'
-  })
-
-  assert.doesNotMatch(script, /rmdir/)
-  assert.doesNotMatch(script, /set "PYTHONPATH=/)
 })

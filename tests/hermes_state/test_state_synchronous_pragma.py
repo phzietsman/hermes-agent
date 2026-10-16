@@ -2,7 +2,7 @@
 
 Before this, `apply_database_pragmas()` accepted five sizing pragmas and no
 durability one, and `_enforce_macos_synchronous_full()` returned early off
-Darwin. So on Linux and Windows nothing in the process ever executed
+Darwin. So on Linux nothing in the process ever executed
 `PRAGMA synchronous` against state.db, and the effective level was whichever
 `SQLITE_DEFAULT_WAL_SYNCHRONOUS` the interpreter's SQLite happened to be
 compiled with -- invisible from config, unpinnable, and different between

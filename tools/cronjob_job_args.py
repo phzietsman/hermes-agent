@@ -414,15 +414,15 @@ def _validate_cron_base_url(
 
 
 def _validate_cron_script_path(script: Optional[str]) -> Optional[str]:
-    """Scripts must be relative paths within HERMES_HOME/scripts/ (absolute / ~ / drive-letter
-    rejected — prompt-injection guard). Error string if blocked, else None; empty = clear."""
+    """Scripts must be relative paths within HERMES_HOME/scripts/ (absolute / ~ rejected —
+    prompt-injection guard). Error string if blocked, else None; empty = clear."""
     if not script or not script.strip():
         return None
 
     from hermes_constants import get_hermes_home
     raw = script.strip()
     scripts_dir = get_hermes_home() / "scripts"
-    if raw.startswith(("/", "~")) or (len(raw) >= 2 and raw[1] == ":"):
+    if raw.startswith(("/", "~")):
         return (
             f"Script path must be relative to {scripts_dir}/. "
             f"Got absolute or home-relative path: {raw!r}. "

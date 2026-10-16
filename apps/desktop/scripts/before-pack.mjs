@@ -34,7 +34,7 @@
  * on every pack; nothing else depends on its prior contents.
  *
  * Cross-platform: the same partial-state trap exists on macOS
- * (the mac-unpacked Hermes.app bundle) and Windows (win-unpacked), so we
+ * (the mac-unpacked Hermes.app bundle), so we
  * clean whatever `appOutDir` electron-builder hands us regardless of platform.
  *
  * Best-effort: a cleanup failure must never mask the real build. We log and
@@ -46,10 +46,10 @@
  *
  * electron-builder passes a context with:
  *   - appOutDir:            the unpacked app directory about to be staged
- *   - electronPlatformName: 'win32' | 'darwin' | 'linux'
+ *   - electronPlatformName: 'darwin' | 'linux'
  *   - arch:                 Arch enum (0=ia32, 1=x64, 2=armv7l, 3=arm64, 4=universal)
  */
-import { existsSync, rmSync, renameSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { Arch } from 'electron-builder'
 import { copyNativeInputs } from './prepared-native-deps.mjs'
@@ -64,67 +64,21 @@ export function cleanStaleAppOutDir(appOutDir) {
     return false
   }
   // Recursive + force so a half-written tree (read-only bits, partial files)
-  // can't block the wipe. retry/maxRetries rides out transient EBUSY on
-  // Windows where an AV/indexer may briefly hold a handle.
+  // can't block the wipe. retry/maxRetries rides out transient EBUSY.
   rmSync(appOutDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
-  // Node's native rmSync silently deletes nothing on non-ASCII Windows
-  // paths (nodejs/node#56049, fixed in v24.13.1) — without this check the
-  // stale tree survives and the "removed" log below lies. Fall back to
-  // the libuv-backed walk, which handles those paths on every version.
+  // Without this check a silent rmSync no-op would leave the stale tree and
+  // the "removed" log below would lie. Fall back to the libuv-backed walk.
   if (existsSync(appOutDir)) {
     removeDirSync(appOutDir)
   }
   return true
 }
 
-/**
- * Keep manual recovery material for raw in-place Windows packs (#69179).
- * Preserve `<appOutDir>.bak` only when the output holds the product executable.
- * The CLI builds in a separate staging directory and rejects invalid output
- * before promotion. Its live-app transaction does not consume this backup.
- *
- * Returns true when the tree was preserved (appOutDir no longer exists), false
- * when there was nothing worth preserving (caller falls through to the wipe).
- * A rename failure (AV holding a handle) also returns false — the wipe is the
- * safe fallback and matches pre-#69179 behavior exactly.
- */
-/** @param {string | null | undefined} appOutDir @param {string} [productExeName] @returns {boolean} */
-export function preserveRollbackBackup(appOutDir, productExeName = 'Hermes.exe') {
-  if (!appOutDir || typeof appOutDir !== 'string' || !existsSync(appOutDir)) {
-    return false
-  }
-  if (!existsSync(path.join(appOutDir, productExeName))) {
-    // Partial/corrupt tree (interrupted prior pack) — not rollback material.
-    return false
-  }
-  const backupDir = `${appOutDir}.bak`
-  try {
-    rmSync(backupDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
-    // Same non-ASCII rmSync no-op as cleanStaleAppOutDir: a surviving .bak
-    // makes the rename fail and the previous build is wiped instead of kept.
-    if (existsSync(backupDir)) {
-      removeDirSync(backupDir)
-    }
-    renameSync(appOutDir, backupDir)
-    return true
-  } catch {
-    return false
-  }
-}
-
 /** @param {import("app-builder-lib").BeforePackContext} context @returns {Promise<void>} */
 export default async function beforePack(context) {
   const appOutDir = context && context.appOutDir
-  const platformName = context && context.electronPlatformName
   try {
-    // Windows: keep the previous working build as rollback material for the
-    // post-build integrity gate (#69179) instead of destroying it. Falls
-    // through to the plain wipe when the old tree is partial/corrupt or the
-    // rename fails.
-    const productExe = `${(context && context.packager?.appInfo?.productFilename) || 'Hermes'}.exe`
-    if (platformName === 'win32' && preserveRollbackBackup(appOutDir, productExe)) {
-      console.log(`[before-pack] preserved previous unpacked dir for rollback: ${appOutDir}.bak`)
-    } else if (cleanStaleAppOutDir(appOutDir)) {
+    if (cleanStaleAppOutDir(appOutDir)) {
       console.log(`[before-pack] removed stale unpacked dir before staging: ${appOutDir}`)
     }
   } catch (err) {

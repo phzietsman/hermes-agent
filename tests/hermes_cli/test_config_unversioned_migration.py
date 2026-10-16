@@ -73,7 +73,7 @@ def test_update_keeps_user_values_of_an_unversioned_config_and_migrates_legacy_k
 
 
 def test_config_seeded_from_the_template_reads_as_current(hermes_home):
-    """install.sh, install.ps1, docker/stage2-hook.sh and `hermes doctor --fix` copy the template."""
+    """install.sh, docker/stage2-hook.sh and `hermes doctor --fix` copy the template."""
     from hermes_cli.config import check_config_version
 
     shutil.copy(TEMPLATE, hermes_home / "config.yaml")

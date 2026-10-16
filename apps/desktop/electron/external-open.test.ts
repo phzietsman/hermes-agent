@@ -93,37 +93,27 @@ test('resolves invalid for a URL the route does not open, with no notify', async
 test('dispatches file:// URLs to openFile', async () => {
   const { deps, calls } = makeDeps()
 
-  const result = await openExternalUrl('file:///C:/x.html', deps)
+  const result = await openExternalUrl('file:///tmp/x.html', deps)
 
   assert.deepEqual(result, { ok: true })
-  assert.deepEqual(calls.fileOpened, ['file:///C:/x.html'])
+  assert.deepEqual(calls.fileOpened, ['file:///tmp/x.html'])
 })
 
 test('opens bare local paths through openLocalPath instead of rejecting them', async () => {
   const { deps, calls } = makeDeps()
 
-  // Every shape `new URL()` cannot express as a web/file URL: a Windows drive
-  // letter parses as the bogus `c:` scheme, POSIX/UNC/`~` make the parser
+  // Every shape `new URL()` cannot express as a web/file URL: POSIX and `~` paths make the parser
   // throw. All previously landed in the "Invalid external URL" reject.
   for (const raw of [
-    'C:\\Users\\x\\a.md',
-    'C:/Work/report.html',
     '/tmp/report.pdf',
-    '~/logs/desktop.log',
-    '\\\\server\\share\\a.md'
+    '~/logs/desktop.log'
   ]) {
     const result = await openExternalUrl(raw, deps)
 
     assert.deepEqual(result, { ok: true }, `expected ${raw} to open as a local path`)
   }
 
-  assert.deepEqual(calls.localOpened, [
-    'C:\\Users\\x\\a.md',
-    'C:/Work/report.html',
-    '/tmp/report.pdf',
-    '~/logs/desktop.log',
-    '\\\\server\\share\\a.md'
-  ])
+  assert.deepEqual(calls.localOpened, ['/tmp/report.pdf', '~/logs/desktop.log'])
   assert.equal(calls.fileOpened.length, 0)
   assert.equal(calls.opened.length, 0)
 })
@@ -133,11 +123,11 @@ test('resolves invalid, with the path logged, when openLocalPath cannot resolve 
     openLocalPath: async () => false
   })
 
-  const result = await openExternalUrl('C:\\Users\\x\\a.md', deps)
+  const result = await openExternalUrl('/Users/x/a.md', deps)
 
   assert.deepEqual(result, { ok: false, reason: 'invalid' })
   assert.ok(
-    calls.logged.some(line => line.includes('openPath resolve rejected') && line.includes('C:\\Users\\x\\a.md'))
+    calls.logged.some(line => line.includes('openPath resolve rejected') && line.includes('/Users/x/a.md'))
   )
   assert.equal(calls.notified.length, 0)
 })

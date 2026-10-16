@@ -20,13 +20,11 @@ import time
 import uuid
 from pathlib import Path
 
-_IS_WINDOWS = platform.system() == "Windows"
 # systemd transient scopes exist only on Linux; gate every scope-path branch on this
-# (not merely "not Windows") so macOS and other POSIX platforms never touch systemd.
+# so macOS never touches systemd.
 # See #70716.
 _IS_LINUX = platform.system() == "Linux"
 from tools.environments.local import _find_shell, _resolve_safe_cwd, _sanitize_subprocess_env
-from hermes_cli._subprocess_compat import windows_hide_flags
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, NamedTuple, Optional
 
@@ -190,7 +188,7 @@ def _systemd_scope_argv(binary: str, unit_name: str, *argv: str) -> List[str]:
 
 def _default_user_runtime_dir() -> Path:
     """``/run/user/<uid>``; a function so tests can point it at a temp dir with a real socket."""
-    return Path(f"/run/user/{os.getuid()}")  # windows-footgun: ok — only reached behind the _IS_LINUX gate in systemd_user_bus_env
+    return Path(f"/run/user/{os.getuid()}")
 
 
 def _secure_user_runtime_dir(path: Path) -> bool:
@@ -200,7 +198,7 @@ def _secure_user_runtime_dir(path: Path) -> bool:
         return (
             path.is_absolute()
             and stat.S_ISDIR(metadata.st_mode)
-            and metadata.st_uid == os.getuid()  # windows-footgun: ok — only reached behind the _IS_LINUX gate in systemd_user_bus_env
+            and metadata.st_uid == os.getuid()
             and metadata.st_mode & 0o022 == 0
         )
     except OSError:
@@ -236,7 +234,7 @@ def systemd_user_bus_env(base_env: Optional[Dict[str, str]] = None) -> Dict[str,
         bus_metadata = bus_path.lstat()
     except OSError:
         return env
-    if not stat.S_ISSOCK(bus_metadata.st_mode) or bus_metadata.st_uid != os.getuid():  # windows-footgun: ok — behind the _IS_LINUX gate above
+    if not stat.S_ISSOCK(bus_metadata.st_mode) or bus_metadata.st_uid != os.getuid():
         return env
 
     env["XDG_RUNTIME_DIR"] = str(runtime_dir)
@@ -310,8 +308,7 @@ def _is_supervised_gateway_process() -> bool:
     importing ``gateway.run`` sets the latter), so also require ownership of the live
     gateway PID file — scopes are for the gateway, not terminal children or CLIs.
     Reads the launch marker (``HERMES_SUPERVISED_CHILD`` included), not the restart-route
-    probe: a Windows Scheduled-Task gateway sets only that marker, and the self-kill guards
-    gated here must protect it too (#113667)."""
+    probe, so every supervised launch is covered by the self-kill guards gated here (#113667)."""
     if os.environ.get("_HERMES_GATEWAY") != "1":
         return False
     try:
@@ -458,7 +455,7 @@ def restart_safe_gateway_child_argv(
     if not _systemd_run_user_scope_available():
         return _degrade(
             "systemd-run --user --scope is unavailable (usually no reachable user D-Bus session at "
-            f"/run/user/{os.getuid()}/bus). On a system-level service install, run "  # windows-footgun: ok — behind the _IS_LINUX return above
+            f"/run/user/{os.getuid()}/bus). On a system-level service install, run "
             "`sudo loginctl enable-linger <gateway-user>` and restart the gateway."
         )
     scoped = _build_systemd_scope_argv(command, unit_suffix=unit_suffix)
@@ -684,7 +681,7 @@ def _is_wsl_launcher_command(command: str) -> bool:
         candidates.append((shlex.split(command, posix=True) or [""])[0])
     except ValueError:
         pass
-    # POSIX shlex eats Windows backslashes (``C:\...\wsl.exe``), so also try
+    # POSIX shlex eats backslashes in a WSL-interop path (``C:\...\wsl.exe``), so also try
     # the naive first token where path separators survive.
     words = command.strip().split()
     if words:
@@ -974,8 +971,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         """Best-effort liveness check for host-visible PIDs."""
         if not pid:
             return False
-        # ``os.kill(pid, 0)`` is NOT a no-op on Windows (bpo-14484) — use the
-        # cross-platform existence check.
+        # Shared check reports zombies as dead, unlike a bare ``os.kill(pid, 0)``.
         from gateway.status import _pid_exists
         return _pid_exists(pid)
 
@@ -1174,10 +1170,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         """PTY spawn for interactive CLI tools (Codex, Claude Code, REPLs).
         Raises ImportError when no PTY backend is installed and re-raises any spawn
         failure; ``spawn_local`` falls back to pipe mode in both cases."""
-        if _IS_WINDOWS:
-            from winpty import PtyProcess as _PtyProcessCls
-        else:
-            from ptyprocess import PtyProcess as _PtyProcessCls
+        from ptyprocess import PtyProcess as _PtyProcessCls
         pty_argv = self._scope_argv(session, safe_command, session.id, "PTY")
         pty_env = self._spawn_env(env_vars)
         if session.systemd_unit:
@@ -1198,7 +1191,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         env_vars: dict = None, use_pty: bool = False, owner_task_id: str = "",
         persist_on_release: bool = False) -> ProcessSession:
         """Spawn a background process locally (TERMINAL_ENV=local; other backends use
-        spawn_via_env()). ``use_pty`` requests a pseudo-terminal via ptyprocess/pywinpty
+        spawn_via_env()). ``use_pty`` requests a pseudo-terminal via ptyprocess
         for interactive CLIs, falling back to a plain pipe when unavailable or failing.
         ``persist_on_release`` keeps the process out of agent-lifecycle kill sweeps (#41225)."""
         # Bash parses ``A && B &`` as ``(A && B) &`` — a subshell that holds our stdout
@@ -1227,7 +1220,6 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
                         ) from e
                     session.systemd_unit = ""
         # Pipe path (non-PTY or PTY fallback).
-        _popen_kwargs = {"creationflags": windows_hide_flags()} if _IS_WINDOWS else {}
         unit_suffix = f"{session.id}-pipe-fallback" if pty_scope_attempted else session.id
         spawn_argv = self._scope_argv(session, safe_command, unit_suffix, "Local")
         spawn_env = self._spawn_env(env_vars)
@@ -1241,7 +1233,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         proc = subprocess.Popen(
             spawn_argv, text=True, cwd=session.cwd, env=spawn_env, encoding="utf-8",
             errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-            start_new_session=True, **_popen_kwargs)
+            start_new_session=True)
         session.process = proc
         session.pid = proc.pid
         session.host_start_time = self._safe_host_start_time(session.pid)
@@ -1334,10 +1326,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         end so EOF never arrives while it lives, which would park this thread and never
         fire ``notify_on_complete``; on POSIX we ``select()`` and stop draining shortly
         after the direct child exits (mirrors ``environments/base.py::_wait_for_process``).
-        Windows pipes lack select(), so the lazy ``_reconcile_local_exit`` is the net.
-
-        Windows pipes don't support select(); the blocking path is kept there and the lazy reconcile in
-        poll()/wait() remains the safety net. See #68915, #8340.
+        See #68915, #8340.
         """
         # ``bash -lic`` without a tty writes its startup warnings one write() per line, so the
         # reader can wake between them; strip leading noise from every chunk until the
@@ -1374,7 +1363,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
             # select() needs a real OS fd; mocked streams (tests, adapters) may lack
             # fileno() and use the blocking read instead.
             try:
-                fd = stdout.fileno() if raw_read is not None and not _IS_WINDOWS else None
+                fd = stdout.fileno() if raw_read is not None else None
             except Exception:
                 fd = None
             if not (isinstance(fd, int) and fd >= 0):
@@ -1518,12 +1507,9 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         # Programs in a PTY can block waiting for replies to device-status / window-size /
         # cursor-position / DEC private-mode queries. Answer the bounded set and strip the
-        # queries from captured output. POSIX only: Windows ConPTY is a real console host that
-        # answers itself (and pywinpty yields str chunks, not bytes).
-        responder = None
-        if not _IS_WINDOWS:
-            from tools.pty_query_responder import PtyQueryResponder
-            responder = PtyQueryResponder(rows=30, cols=120)
+        # queries from captured output.
+        from tools.pty_query_responder import PtyQueryResponder
+        responder = PtyQueryResponder(rows=30, cols=120)
 
         def ingest(text: str) -> None:
             # A kill can leave this reader running while a detached descendant holds the
@@ -1536,8 +1522,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
                 try:
                     chunk = pty.read(4096)
                     if chunk:
-                        # ptyprocess returns bytes; pywinpty returns str
-                        if responder is not None and isinstance(chunk, bytes):
+                        if isinstance(chunk, bytes):
                             chunk, replies = responder.process(chunk)
                             if replies:
                                 try:
@@ -1665,13 +1650,12 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
             # the slave side is gone. A descendant that setsid()s past the kill
             # keeps it open, so close() here would block forever (under _lock on
             # the prune path). The reader closes the PTY itself via
-            # _finish_reader once its read ends. pywinpty reads don't block, so
-            # Windows closes here as before.
+            # _finish_reader once its read ends.
             reader = session._reader_thread
-            if (not _IS_WINDOWS and reader is not None and reader.is_alive()
+            if (reader is not None and reader.is_alive()
                     and reader is not threading.current_thread()):
                 return
-            # ptyprocess/pywinpty close() is idempotent (``closed`` flag) and
+            # ptyprocess close() is idempotent (``closed`` flag) and
             # closes the master fd exactly once; it raises only if the child
             # ignores SIGKILL, which we don't want to surface on the finish path.
             with suppress(Exception):
@@ -1969,8 +1953,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
             return  # Direct child still running — reader block is legitimate.
         reader = session._reader_thread
         if (
-            not _IS_WINDOWS
-            and session._reader_selectable
+            session._reader_selectable
             and reader is not None
             and reader.is_alive()
         ):
@@ -1993,7 +1976,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
             return
         # Best-effort non-blocking drain of whatever the reader hasn't consumed.
         stdout = getattr(proc, "stdout", None)
-        if stdout is not None and not _IS_WINDOWS:
+        if stdout is not None:
             try:
                 import fcntl
                 fd = stdout.fileno()
@@ -2274,8 +2257,7 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
                 if session.pid:
                     os.kill(session.pid, signal.SIGTERM)
         elif session.process:
-            # Tree kill: on Windows Popen.terminate() only kills the shell wrapper and
-            # leaves Git Bash descendants behind.
+            # Tree kill: Popen.terminate() only signals the shell wrapper, not its descendants.
             self._terminate_host_pid(session.process.pid, session.host_start_time)
         elif session.env_ref and session.pid:
             session.env_ref.execute(f"kill {session.pid} 2>/dev/null", timeout=5)
@@ -2338,13 +2320,9 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         """Send raw data to a running process's stdin (no newline appended)."""
 
         def via_pty(pty):
-            # pywinpty expects str on Windows; ptyprocess expects bytes on POSIX.
-            if _IS_WINDOWS:
-                pty.write(data.decode("utf-8") if isinstance(data, bytes) else str(data))
-            else:
-                # surrogateescape: a PTY is a byte stream — round-trip the original
-                # bytes instead of crashing on surrogate content.
-                pty.write(data.encode("utf-8", "surrogateescape") if isinstance(data, str) else data)
+            # surrogateescape: a PTY is a byte stream — round-trip the original
+            # bytes instead of crashing on surrogate content.
+            pty.write(data.encode("utf-8", "surrogateescape") if isinstance(data, str) else data)
 
         def via_pipe(stdin):
             stdin.write(data)
@@ -2352,13 +2330,8 @@ class ProcessRegistry(ProcessTerminationMixin, ProcessCheckpointMixin):
         return self._stdin_op(session_id, via_pty, via_pipe, {"status": "ok", "bytes_written": len(data)})
 
     def submit_stdin(self, session_id: str, data: str = "") -> dict:
-        """Send data + newline to stdin (like pressing Enter).
-        On a Windows PTY, Enter is a carriage return: ConPTY treats ``\\r`` as
-        end-of-line and a bare ``\\n`` through pywinpty is NOT a line terminator — the
-        child's blocking line read (``readline()``, Go ``bufio.Scanner``) never returns
-        and the process hangs looking healthy. ``\\r\\n`` gives it both; POSIX keeps ``\\n``."""
-        session = self.get(session_id)
-        return self.write_stdin(session_id, data + ("\r\n" if _IS_WINDOWS and session and session._pty else "\n"))
+        """Send data + newline to stdin (like pressing Enter)."""
+        return self.write_stdin(session_id, data + "\n")
 
     def request_close_terminal(self, session_id: str) -> dict:
         """Ask the desktop GUI to close this process's read-only terminal tab. Does NOT
@@ -2605,7 +2578,7 @@ from tools.registry import registry, tool_error
 PROCESS_SCHEMA = {
     "name": "process_manage",
     # The enum names the verbs; the description keeps only non-obvious semantics
-    # (write-vs-submit is the one real trap: a lone \n on a Windows PTY is not Enter).
+    # (write-vs-submit is the one real trap: write sends raw bytes, submit appends Enter).
     # See #95681.
     "description": (
         "Poll, wait on, or kill background terminal processes (from "

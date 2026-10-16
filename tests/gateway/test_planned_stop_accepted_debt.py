@@ -1,7 +1,7 @@
-"""The gateway's planned-stop consumer and the accepted-stop evidence a Windows update pause relies on.
+"""The gateway's planned-stop consumer and the accepted-stop evidence an update pause relies on.
 
 The gateway is this test process; every file is real and every refusal a real one (a read-only
-directory standing in for a Windows ACL or sharing refusal). Recovery is the real
+directory). Recovery is the real
 ``update_pause_record.recover``.
 """
 
@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -21,8 +20,7 @@ from gateway import status
 from hermes_cli import update_pause_record as pause_record
 
 pytestmark = [
-    pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes stand in for Windows refusals"),
-    pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root ignores file modes"),
+    pytest.mark.skipif(os.geteuid() == 0, reason="root ignores file modes"),
 ]
 
 
@@ -101,7 +99,7 @@ def test_accepted_stop_evidence_is_removed_once_its_pause_is_settled_and_never_b
 
 
 def test_with_no_pause_on_disk_the_consumer_never_waits_on_the_pause_lock(tmp_path, monkeypatch):
-    """No pause record (every non-Windows host, or a settled pause): a plain ``hermes gateway stop`` is
+    """No pause record (none made, or a settled pause): a plain ``hermes gateway stop`` is
     consumed without the pause lock, so another holder costs it no wait and leaves no request or
     ``.accepted`` receipt behind."""
     _home(tmp_path, monkeypatch)

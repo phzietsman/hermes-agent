@@ -418,7 +418,7 @@ class TestTerminalIntegration:
         register_env_passthrough(["openai_api_key"])
         child_env = _scrub_child_env(
             {"openai_api_key": "sk-real", "PATH": "/usr/bin"},
-            is_passthrough=is_env_passthrough, is_windows=False)
+            is_passthrough=is_env_passthrough)
         assert "openai_api_key" not in child_env
         assert child_env["PATH"] == "/usr/bin"
 
@@ -530,8 +530,7 @@ class TestTerminalIntegration:
                 "ANTHROPIC_API_KEY": "synthetic-secret",
                 "PATH": "/usr/bin",
             },
-            is_passthrough=is_env_passthrough,
-            is_windows=False,
+            is_passthrough=is_env_passthrough
         )
         assert "OPENAI_API_KEY" not in child_env
         assert "ANTHROPIC_API_KEY" not in child_env

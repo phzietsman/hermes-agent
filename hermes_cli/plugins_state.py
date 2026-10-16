@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
-import os
 import re
 import threading
 from contextlib import contextmanager
@@ -91,9 +91,9 @@ def save_plugin_setting(plugin_id: str, segments: tuple[str, ...], value: Any) -
 
 
 def _plugin_data_namespace(plugin_id: str, skill_namespace: str) -> str:
-    """Return one Windows-safe directory component for plugin-owned data. Portable Agent Plugins already
-    receive this exact PLUGIN_DATA path; otherwise the fixed prefix avoids Windows reserved device names and
-    the digest prevents fold collisions."""
+    """Return one portable directory component for plugin-owned data. Portable Agent Plugins already
+    receive this exact PLUGIN_DATA path; otherwise the fixed prefix avoids reserved names and the digest
+    prevents fold collisions."""
     candidate = skill_namespace or plugin_id
     portable = skill_namespace and candidate.startswith("agent-plugin-")
     if portable and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,191}", candidate):
@@ -103,7 +103,7 @@ def _plugin_data_namespace(plugin_id: str, skill_namespace: str) -> str:
 
 @contextmanager
 def _locked_plugin_state(path: Path):
-    """Serialize state read-modify-write across threads/processes (fcntl / msvcrt). The lock lives in a
+    """Serialize state read-modify-write across threads/processes (fcntl). The lock lives in a
     sibling file because atomic replacement changes the target's inode."""
     lock_path = path.with_name(f".{path.name}.lock")
     with _PLUGIN_STATE_LOCKS_GUARD:
@@ -111,24 +111,11 @@ def _locked_plugin_state(path: Path):
     with thread_lock:
         lock_path.parent.mkdir(parents=True, exist_ok=True)
         with open(lock_path, "a+b") as handle:
-            if os.name == "nt":  # pragma: no cover - exercised on Windows CI
-                import msvcrt
-                if handle.seek(0, os.SEEK_END) == 0:
-                    handle.write(b"\0")
-                    handle.flush()
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
             try:
                 yield
             finally:
-                if os.name == "nt":  # pragma: no cover - exercised on Windows CI
-                    handle.seek(0)
-                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-                else:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 class PluginState:

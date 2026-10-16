@@ -89,14 +89,12 @@ function updatePreference(
 
     renameSync(temporary, file)
 
-    if (process.platform !== 'win32') {
-      const directory: number = openSync(path.dirname(file), 'r')
+    const directory: number = openSync(path.dirname(file), 'r')
 
-      try {
-        fsyncSync(directory)
-      } finally {
-        closeSync(directory)
-      }
+    try {
+      fsyncSync(directory)
+    } finally {
+      closeSync(directory)
     }
 
     return next

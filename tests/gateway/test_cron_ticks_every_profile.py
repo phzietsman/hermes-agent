@@ -43,7 +43,6 @@ def isolated_profiles(tmp_path, monkeypatch):
     # A dir is only a profile once it carries an identity marker.
     (hermes_home / "profiles" / "secondary" / "config.yaml").write_text("{}\n")
     monkeypatch.setenv("HOME", str(fake_home))
-    monkeypatch.setenv("USERPROFILE", str(fake_home))
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
     from hermes_cli import profiles as profiles_mod
 

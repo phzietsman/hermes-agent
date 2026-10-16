@@ -110,7 +110,7 @@ export function isUndoShortcut(event: Pick<KeyboardEvent, 'altKey' | 'ctrlKey' |
   return (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'z'
 }
 
-/** True for "redo" — ⌘⇧Z everywhere, plus Ctrl+Y on Windows/Linux. */
+/** True for "redo" — ⌘⇧Z everywhere, plus Ctrl+Y on Linux. */
 export function isRedoShortcut(event: Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'key' | 'metaKey' | 'shiftKey'>) {
   if (event.altKey) {
     return false
