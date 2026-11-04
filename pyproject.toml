@@ -734,13 +734,13 @@ addopts = "-m 'not integration and not live'"
 strict = true
 warn_unreachable = true
 python_version = "3.13"
-files = ["evals/memory"]
+files = ["evals/memory", "agent/learning"]
 plugins = ["pydantic.mypy"]
 
 [tool.pyright]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
-include = ["evals/memory"]
+include = ["evals/memory", "agent/learning"]
 
 [tool.ty.environment]
 python-version = "3.13"

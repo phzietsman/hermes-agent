@@ -43,7 +43,7 @@ jobs:
         run: python -m pyright
 
       - name: ruff
-        run: python -m ruff check evals/memory tests/evals_memory
+        run: python -m ruff check evals/memory agent/learning tests/evals_memory tests/agent/learning
 
       - name: pytest (memory evals)
-        run: scripts/run_tests.sh tests/evals_memory
+        run: scripts/run_tests.sh tests/evals_memory tests/agent/learning
