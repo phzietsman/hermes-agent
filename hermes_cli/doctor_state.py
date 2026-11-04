@@ -609,10 +609,7 @@ def _memory_provider_generic(name: str) -> None:
     elif _provider:
         check_warn(f"{name} configured but not available", "run: hermes memory status")
     else:
-        from plugins.memory import find_provider_dir
-        from hermes_cli.memory_provider_migration import catalog_install_hint
-        hint = catalog_install_hint(name, category="memory") if find_provider_dir(name) is None else None
-        check_warn(f"{name} plugin not found", f"run: {hint or 'hermes memory setup'}")
+        check_warn(f"{name} plugin not found", "run: hermes memory setup")
 
 
 @doctor_check()

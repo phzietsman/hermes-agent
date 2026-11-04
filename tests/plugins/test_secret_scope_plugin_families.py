@@ -55,24 +55,32 @@ def multiplex_scope():
 # ---------------------------------------------------------------------------
 
 class TestMemoryFamily:
-    def test_retaindb_scoped_key_wins(self, multiplex_scope, monkeypatch):
-        monkeypatch.setenv("RETAINDB_API_KEY", "env-other-profile")
-        multiplex_scope({"RETAINDB_API_KEY": "scoped-key"})
+    @staticmethod
+    def _configured_home(monkeypatch, tmp_path):
+        import json
 
-        from plugins.memory.retaindb import RetainDBMemoryProvider
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        (tmp_path / "agent-memory.json").write_text(
+            json.dumps({"endpoint": "https://x.example", "context": "c"}), encoding="utf-8")
 
-        assert RetainDBMemoryProvider().is_available() is True
+    def test_agent_memory_scoped_key_wins(self, multiplex_scope, monkeypatch, tmp_path):
+        self._configured_home(monkeypatch, tmp_path)
+        monkeypatch.setenv("AGENT_MEMORY_API_KEY", "env-other-profile")
+        multiplex_scope({"AGENT_MEMORY_API_KEY": "scoped-key"})
 
-    def test_retaindb_scoped_miss_does_not_borrow_environ(
-        self, multiplex_scope, monkeypatch
-    ):
+        from plugins.memory.agent_memory import AgentMemoryProvider
+
+        assert AgentMemoryProvider().is_available() is True
+
+    def test_agent_memory_scoped_miss_does_not_borrow_environ(self, multiplex_scope, monkeypatch, tmp_path):
         # Env holds another profile's key; the active profile's scope has none.
-        monkeypatch.setenv("RETAINDB_API_KEY", "env-other-profile")
+        self._configured_home(monkeypatch, tmp_path)
+        monkeypatch.setenv("AGENT_MEMORY_API_KEY", "env-other-profile")
         multiplex_scope({})
 
-        from plugins.memory.retaindb import RetainDBMemoryProvider
+        from plugins.memory.agent_memory import AgentMemoryProvider
 
-        assert RetainDBMemoryProvider().is_available() is False
+        assert AgentMemoryProvider().is_available() is False
 
 
 # ---------------------------------------------------------------------------

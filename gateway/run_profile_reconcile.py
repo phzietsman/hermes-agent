@@ -281,9 +281,6 @@ class GatewayProfileReconcileMixin:
             with _log_suppressed(logging.DEBUG, "profile handle release failed", exc_info=True):
                 from hermes_state_registry import close_all_under
                 close_all_under(home)
-            with _log_suppressed(logging.DEBUG, "memory-store release failed", exc_info=True):
-                from plugins.memory.holographic.store import MemoryStore
-                MemoryStore.release_all_under(home)
             # The gateway process is a second holder the CLI-side delete cannot reach: its routed
             # log files (logs/.__agent.lock, logs/.__errors.lock) and its scoped MCP servers'
             # mcp-stderr.log handle live HERE, so unserve must release them in this process too

@@ -118,16 +118,16 @@ def test_memory_provider_tools_report_bounded_provider_and_op(home):
 
     manager = MemoryManager()
     manager._tool_to_provider = {
-        "honcho_search": _Provider("honcho", "honcho_search", '{"results": []}'),
+        "agent_memory_recall": _Provider("agent_memory", "agent_memory_recall", '{"results": []}'),
         "acme_private_remember": _Provider("acme-private-memory", "acme_private_remember", boom=True),
     }
-    manager.handle_tool_call("honcho_search", {"query": "q"})
+    manager.handle_tool_call("agent_memory_recall", {"query": "q"})
     manager.handle_tool_call("acme_private_remember", {"content": "c"})
 
     rows = sorted(
         (d["provider"], d["op"], d["outcome"], d["failure_class"]) for d, _ in _rows(home, "hermes.memory.op.count")
     )
-    assert rows == [("honcho", "search", "success", "none"), ("plugin", "add", "failed", "exception")]
+    assert rows == [("agent_memory", "search", "success", "none"), ("plugin", "add", "failed", "exception")]
 
 
 def test_disabled_shared_metrics_record_no_loop_rows(home, monkeypatch):

@@ -230,12 +230,6 @@ def _read_memory_provider_existing_values(name: str) -> Dict[str, Any]:
         if isinstance(legacy_cfg, dict):
             values = {**legacy_cfg, **values}
 
-    # Holographic stores under plugins.hermes-memory-store.
-    plugins_cfg = cfg.get("plugins")
-    if name == "holographic" and isinstance(plugins_cfg, dict):
-        holographic_cfg = plugins_cfg.get("hermes-memory-store")
-        if isinstance(holographic_cfg, dict):
-            values.update(holographic_cfg)
     return values
 
 

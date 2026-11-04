@@ -1,35 +1,38 @@
 """Multiplex invariant: memory-provider identity/tenant/endpoint never comes from the default profile.
 
-Under ``gateway.multiplex_profiles`` ``os.environ`` is the DEFAULT profile's ``.env``. When a secondary
-profile's scope does not define RETAINDB_PROJECT /
-HERMES_HONCHO_HOST, the provider must fall back to its own default
-(per-profile partition), NOT write the secondary's memories into the default profile's account.
+Under ``gateway.multiplex_profiles`` ``os.environ`` is the DEFAULT profile's ``.env``. The Agent Memory
+provider takes endpoint/context from the active profile's own ``agent-memory.json`` and the key from
+the scoped secrets, so a secondary profile never talks to (or writes into) the default profile's account.
 """
 from __future__ import annotations
+
+import json
 
 import pytest
 
 from agent import secret_scope
+from plugins.memory.agent_memory.client import Profile
+from plugins.memory.agent_memory.provider import AgentMemoryProvider
+from tests.plugins.memory.agent_memory.fakes import FakeClient
 
 _DEFAULT_ENV = {
-    "RETAINDB_PROJECT": "proj-default", "RETAINDB_BASE_URL": "https://rdb.default",
-    "HERMES_HONCHO_HOST": "host-default", "HONCHO_BASE_URL": "https://honcho.default",
+    "AGENT_MEMORY_ENDPOINT": "https://default.example", "AGENT_MEMORY_CONTEXT": "ctx-default",
+    "AGENT_MEMORY_API_KEY": "key-default",
 }
 
 
 @pytest.fixture
 def secondary_profile(monkeypatch, tmp_path):
-    """Multiplex ON; default profile's values in environ; secondary profile `b` scope with only its
-    own API keys (no identity/tenant/endpoint vars)."""
+    """Multiplex ON; default profile's values in environ; secondary profile `b` with its own config
+    file and only its own scoped API key."""
     for k, v in _DEFAULT_ENV.items():
         monkeypatch.setenv(k, v)
-    home = tmp_path / ".hermes"
-    prof_b = home / "profiles" / "b"
+    prof_b = tmp_path / ".hermes" / "profiles" / "b"
     prof_b.mkdir(parents=True)
     (prof_b / "config.yaml").write_text("{}\n")
     monkeypatch.setenv("HERMES_HOME", str(prof_b))
     secret_scope.set_multiplex_active(True)
-    token = secret_scope.set_secret_scope({"RETAINDB_API_KEY": "rdb-b", "HONCHO_API_KEY": "honcho-b"})
+    token = secret_scope.set_secret_scope({"AGENT_MEMORY_API_KEY": "key-b"})
     try:
         yield prof_b
     finally:
@@ -37,10 +40,26 @@ def secondary_profile(monkeypatch, tmp_path):
         secret_scope.set_multiplex_active(False)
 
 
-def test_secondary_profile_memory_identity_never_inherits_default_environ(secondary_profile):
-    import plugins.memory.retaindb as retaindb
+def test_secondary_profile_uses_its_own_config_never_the_default_environ(secondary_profile):
+    (secondary_profile / "agent-memory.json").write_text(
+        json.dumps({"endpoint": "https://b.example", "context": "ctx-b"}), encoding="utf-8")
+    built = []
 
-    provider = retaindb.RetainDBMemoryProvider()
+    def factory(settings):
+        built.append(settings)
+        c = FakeClient()
+        c.profile_value = Profile()
+        return c
+
+    provider = AgentMemoryProvider(client_factory=factory)
     provider.initialize("s1", hermes_home=str(secondary_profile))
-    assert provider._client.project == "hermes-b"
-    assert "default" not in provider._client.base_url
+    provider.shutdown()
+    (settings,) = built
+    assert str(settings.endpoint).rstrip("/") == "https://b.example"
+    assert settings.context == "ctx-b" and settings.api_key.get_secret_value() == "key-b"
+
+
+def test_secondary_profile_without_its_own_config_is_unavailable_not_the_default_account(secondary_profile):
+    provider = AgentMemoryProvider(client_factory=lambda _s: FakeClient())
+    provider.initialize("s1", hermes_home=str(secondary_profile))
+    assert provider.is_available() is False

@@ -551,13 +551,13 @@ def _armed_agent(manager):
 
 def _legacy_manager():
     manager = MemoryManager()
-    manager.add_provider(_BaseStubProvider("holographic"))
+    manager.add_provider(_BaseStubProvider("agent_memory"))
     return manager
 
 
 @pytest.mark.parametrize(
     "manager, expected_label",
-    [(_legacy_manager(), "holographic"), (None, "no active provider")],
+    [(_legacy_manager(), "agent_memory"), (None, "no active provider")],
     ids=["v1-provider", "no-manager"],
 )
 def test_startup_warns_when_checkpoint_required_cannot_pass(caplog, manager, expected_label):

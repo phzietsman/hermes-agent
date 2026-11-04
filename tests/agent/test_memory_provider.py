@@ -365,15 +365,14 @@ class TestPluginMemoryDiscovery:
         from plugins.memory import discover_memory_providers
         providers = discover_memory_providers()
         names = [name for name, _, _ in providers]
-        assert "holographic" in names  # always available (no external deps)
+        assert "agent_memory" in names
 
     def test_load_provider_by_name(self):
         """load_memory_provider returns a working provider instance."""
         from plugins.memory import load_memory_provider
-        p = load_memory_provider("holographic")
+        p = load_memory_provider("agent_memory")
         assert p is not None
-        assert p.name == "holographic"
-        assert p.is_available()
+        assert p.name == "agent_memory"
 
     def test_load_nonexistent_returns_none(self):
         """load_memory_provider returns None for unknown names."""
@@ -426,14 +425,14 @@ class TestUserInstalledProviderDiscovery:
     def test_bundled_takes_precedence(self, tmp_path, monkeypatch):
         """Bundled provider wins when user plugin has the same name."""
         from plugins.memory import load_memory_provider, discover_memory_providers
-        # Create user plugin named "holographic" (same as bundled)
-        plugin_dir = tmp_path / "plugins" / "holographic"
+        # Create user plugin named "agent_memory" (same as bundled)
+        plugin_dir = tmp_path / "plugins" / "agent_memory"
         plugin_dir.mkdir(parents=True)
         (plugin_dir / "__init__.py").write_text(
             "from agent.memory_provider import MemoryProvider\n"
             "class Fake(MemoryProvider):\n"
             "    @property\n"
-            "    def name(self): return 'holographic-FAKE'\n"
+            "    def name(self): return 'agent_memory-FAKE'\n"
             "    def is_available(self): return True\n"
             "    def initialize(self, **kw): pass\n"
             "    def sync_turn(self, *a, **kw): pass\n"
@@ -444,14 +443,14 @@ class TestUserInstalledProviderDiscovery:
             "plugins.memory._get_user_plugins_dir",
             lambda: tmp_path / "plugins",
         )
-        # Load should return bundled (name "holographic"), not user (name "holographic-FAKE")
-        p = load_memory_provider("holographic")
+        # Load should return bundled (name "agent_memory"), not user (name "agent_memory-FAKE")
+        p = load_memory_provider("agent_memory")
         assert p is not None
-        assert p.name == "holographic"  # bundled wins
+        assert p.name == "agent_memory"  # bundled wins
 
         # discover should not duplicate
         providers = discover_memory_providers()
-        holo_count = sum(1 for n, _, _ in providers if n == "holographic")
+        holo_count = sum(1 for n, _, _ in providers if n == "agent_memory")
         assert holo_count == 1
 
 
