@@ -14,11 +14,13 @@ from types import SimpleNamespace
 
 import pytest
 
+from agent.conversation_compression_memory import (
+    _direct_messages_for_pre_compress_memory,
+    _pre_compress_memory_context,
+)
 from agent.conversation_compression import (
     CompressionCheckpointUnavailable,
     _checkpoint_blocked,
-    _direct_messages_for_pre_compress_memory,
-    _pre_compress_memory_context,
     _warn_checkpoint_required_without_capable_provider,
 )
 from agent.context_compressor import COMPRESSED_SUMMARY_METADATA_KEY

@@ -30,14 +30,24 @@ class AgentReviewHost:
         if not enabled or getattr(agent, "_delegate_depth", 0) > 0:
             on_outcome(ReviewOutcome.SKIPPED)
             return
-        agent._spawn_background_review_now(
-            messages_snapshot=copy.deepcopy(messages),  # the fork sanitizes in place
-            
-            review_memory=bool(getattr(agent, "_memory_store", None) or getattr(agent, "_memory_manager", None)),
-            review_skills="skill_manage" in agent.valid_tool_names,
-            task_cfg=task_cfg,
-            on_outcome=on_outcome,
-        )
+        kwargs: dict[str, Any] = {
+            "messages_snapshot": copy.deepcopy(messages),  # the fork sanitizes in place
+            "review_memory": bool(getattr(agent, "_memory_store", None) or getattr(agent, "_memory_manager", None)),
+            "review_skills": "skill_manage" in agent.valid_tool_names,
+            "task_cfg": task_cfg,
+        }
+        # Facade seams shared with run_agent._spawn_background_review; not public API on purpose.
+        from run_agent import _review_queue_key, _review_should_defer  # pyright: ignore[reportPrivateUsage]
+
+        if _review_should_defer(agent, task_cfg):
+            # Managed local llama-server: keep the user's GPU free. The idle dispatcher owns the spawn,
+            # its preemption requeue and its age-out from here, so the job is handed off, not retried.
+            from agent.review_idle_queue import QUEUE
+
+            QUEUE.enqueue(agent, _review_queue_key(agent), kwargs)
+            on_outcome(ReviewOutcome.DONE)
+            return
+        agent._spawn_background_review_now(**kwargs, on_outcome=on_outcome)
 
     def load_messages(self, session_id: str) -> list[dict[str, Any]]:
         db = getattr(self._agent, "_session_db", None)
