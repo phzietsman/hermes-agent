@@ -192,21 +192,6 @@ def _exercise_config_save(tripwire: ProfileTripwire) -> None:
     )
 
 
-def _exercise_memory_store(tripwire: ProfileTripwire) -> None:
-    """MemoryStore.add() persistence path (same class as #92662)."""
-    from tools.memory_tool import MemoryStore
-
-    store = MemoryStore()
-    store.load_from_disk()
-    result = store.add("memory", "testprof remembers something")
-    assert result.get("success"), f"memory add failed: {result}"
-    mem_file = tripwire.profile / "memories" / "MEMORY.md"
-    assert mem_file.exists(), (
-        "MemoryStore did not persist to the active profile's memories/"
-    )
-    assert "testprof remembers something" in mem_file.read_text()
-
-
 def _exercise_cron_store(tripwire: ProfileTripwire) -> None:
     """cron save_jobs()/load_jobs() store resolution (#89625)."""
     from cron.jobs import load_jobs, save_jobs
@@ -241,7 +226,6 @@ def _exercise_cron_store(tripwire: ProfileTripwire) -> None:
 SURFACES = [
     pytest.param(_exercise_session_db, id="session_db"),
     pytest.param(_exercise_config_save, id="config_save"),
-    pytest.param(_exercise_memory_store, id="memory_store"),
     pytest.param(_exercise_cron_store, id="cron_store"),
 ]
 

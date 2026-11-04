@@ -26,7 +26,7 @@ ClientFactory = Callable[[AgentMemorySettings], MemoryClient]
 _STOP: Any = object()
 # Skills are mirrored as "Skill '<name>': ..." pointers (the SDK's RecallHit carries no labels).
 _SKILL_HIT = re.compile(r"^Skill '([^']+)':")
-# Contexts that must never write: cron/subagent/flush runs are not the user's conversation.
+# Contexts that must never auto-write: cron/subagent/flush runs are not the user's conversation.
 _READ_ONLY_CONTEXTS = frozenset({"cron", "subagent", "flush"})
 
 
@@ -118,6 +118,15 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
         if self._client is not None:
             self._client.close()
 
+    @staticmethod
+    def _in_fork() -> bool:
+        """True inside a background-review fork. Its turns carry the harness prompt, so its transcript is
+        never synced and it does not recall; its agent_memory_remember tool calls still land (tagged
+        origin=background_review)."""
+        from tools.skill_provenance import get_current_write_origin  # pyright: ignore[reportUnknownVariableType]
+
+        return str(get_current_write_origin()) != "foreground"  # pyright: ignore[reportUnknownArgumentType]
+
     def _active(self) -> bool:
         return self._client is not None and self._settings is not None and not self._breaker.is_open
 
@@ -183,7 +192,7 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
     def prefetch(self, query: str, *, session_id: str = "") -> str:
         """Never blocks long: waits up to prefetch_wait_s for this query's recall, else returns the last
         completed one (the usual case after queue_prefetch warmed it during the previous turn)."""
-        if not self._active() or not query.strip() or self._settings is None:
+        if not self._active() or not query.strip() or self._settings is None or self._in_fork():
             return ""
         if self._settings.recall_mode is RecallMode.TOOLS:
             return ""
@@ -192,7 +201,7 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
         return self._done[1]
 
     def queue_prefetch(self, query: str, *, session_id: str = "") -> None:
-        if self._active() and query.strip():
+        if self._active() and query.strip() and not self._in_fork():
             self._ensure_recall(query)
 
     # -- writes (all through the outbox) -----------------------------------------------------------------------
@@ -242,7 +251,7 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
 
     def sync_turn(self, user_content: str, assistant_content: str, *, session_id: str = "",
                   messages: list[dict[str, Any]] | None = None, turn_author: dict[str, Any] | None = None) -> None:
-        if self._settings is None:
+        if self._settings is None or self._in_fork():
             return
         items = direct_messages([{"role": "user", "content": user_content}, {"role": "assistant", "content": assistant_content}])
         if self._settings.send_tool_outputs and messages:
@@ -253,6 +262,8 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
                                           "labels": ["origin=turn", self._session_label(session_id)]})
 
     def _remember_transcript(self, messages: list[dict[str, Any]]) -> None:
+        if self._in_fork():
+            return
         items = direct_messages(messages)
         digest = transcript_digest(messages)
         # pre-compress and session-end often see the same transcript; the outbox only dedupes while an

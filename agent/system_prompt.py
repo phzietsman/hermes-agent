@@ -274,23 +274,12 @@ def _profile_name_for_home(home: Path) -> str:
 def _tool_guidance_block(agent: Any) -> Optional[str]:
     """Tool-aware behavioral guidance, injected only when the tools are loaded."""
     names = agent.valid_tool_names
-    # With both memory stores disabled no store is built, so the full guidance
-    # would steer the model at a tool that always answers "Memory is not
-    # available"; with only USER.md enabled the narrower block is used.
-    memory_guidance = None
-    if "memory" in names:
-        memory_guidance = _pb.build_memory_guidance(
-            getattr(agent, "_memory_enabled", True),
-            getattr(agent, "_user_profile_enabled", True),
-            skill_manage_available="skill_manage" in names,
-        )
     # Kanban lifecycle: resolved once at __init__ (_kanban_worker_guidance);
     # fallback paths must also limit task protocol guidance to dispatcher workers.
     _kanban_guidance = getattr(agent, "_kanban_worker_guidance", None)
     if _kanban_guidance is None and "kanban_show" in names and owned_kanban_task():
         _kanban_guidance = KANBAN_GUIDANCE
     tool_guidance = [
-        memory_guidance,
         SESSION_SEARCH_GUIDANCE if "session_search" in names else None,
         SKILLS_GUIDANCE if "skill_manage" in names else None,
         _kanban_guidance,
@@ -514,16 +503,11 @@ def _timestamp_line(agent: Any) -> str:
 
 
 def _memory_parts(agent: Any) -> List[str]:
-    """Built-in memory/USER.md blocks plus the external provider block (gated on
+    """The memory provider's block (gated on
     the same check ``inject_memory_provider_tools`` uses, so we never advertise
     tools the toolset config gated off)."""
     parts: List[str] = []
-    if agent._memory_store:
-        for enabled, kind in ((agent._memory_enabled, "memory"), (agent._user_profile_enabled, "user")):
-            block = agent._memory_store.format_for_system_prompt(kind) if enabled else None
-            if block:
-                parts.append(block)
-    # External memory provider system prompt block (additive to built-in). Gated on the same check
+    # Memory provider system prompt block. Gated on the same check
     # ``inject_memory_provider_tools`` uses so we never advertise provider tools that the agent's toolset
     # configuration has already gated off (#81014).
     if agent._memory_manager:
@@ -826,8 +810,6 @@ def invalidate_system_prompt(agent: Any) -> None:
     if hasattr(agent, "_plugin_system_prompt_sections_snapshot"):
         agent._plugin_system_prompt_sections_previous = agent._plugin_system_prompt_sections_snapshot
         del agent._plugin_system_prompt_sections_snapshot
-    if agent._memory_store:
-        agent._memory_store.load_from_disk()
 
 
 def reconstruct_static_prefix(agent: Any, system_message: Optional[str] = None, *, log_label: str = "restore") -> None:

@@ -372,27 +372,25 @@ def _digest_history(messages_snapshot: List[Dict], tail: int = 24) -> List[Dict]
 
 # Review prompts. AIAgent exposes them as class attributes (``_MEMORY_REVIEW_PROMPT`` etc.) so
 # per-agent overrides work; the text lives here.
-# Shared by the memory-only and combined review prompts: the memory tool has two targets and the
-# fork must pick one per fact. Without this the reviewer wrote profile data into MEMORY.md and the
-# same lesson into both stores until both hit their size limits (#30220).
+# Shared by the memory-only and combined review prompts. The provider tool takes a ``kind`` and the fork
+# must pick one per fact; without it the reviewer saved the same lesson several ways (#30220).
 _MEMORY_ROUTING_BLOCK = (
-    "TWO distinct stores — pick the right one for each fact:\n"
-    "  • USER.md (memory tool, target='user'): who the user is — persona, preferences, "
+    "Save with agent_memory_remember and pick the right kind for each fact:\n"
+    "  • kind='preference' or 'instruction': who the user is — persona, preferences, "
     "communication and work style, personal details they revealed, and expectations about how you "
     "should behave.\n"
-    "  • MEMORY.md (memory tool, target='memory'): facts about the ENVIRONMENT you operate in — "
-    "tool quirks, project conventions, config gotchas, paths and endpoints that matter.\n\n"
-    "One fact goes to ONE store, never both — writing it to both bloats both files until they hit "
-    "their size limits and crowds out the facts that matter; misrouting it puts it where the next "
-    "session won't look. If the tool schema lists only one "
-    "target, that store is the only one enabled — use it and skip the other.\n\n"
+    "  • kind='fact': facts about the ENVIRONMENT you operate in — "
+    "tool quirks, project conventions, config gotchas, paths and endpoints that matter.\n"
+    "  • kind='lesson': a durable lesson learned from this work that is not a task procedure.\n\n"
+    "Search first with agent_memory_recall so you do not save what is already remembered. One fact is "
+    "saved ONCE, with one kind; procedures and workflows belong in skills, not memory.\n\n"
 )
 
 _MEMORY_REVIEW_PROMPT = (
     "Review the conversation above and consider saving to memory if appropriate.\n\n"
-    "Memory has " + _MEMORY_ROUTING_BLOCK +
-    "If something stands out, save it once, in the right store, using the memory tool with the "
-    "matching target. If nothing is worth saving, just say 'Nothing to save.' and stop."
+    + _MEMORY_ROUTING_BLOCK +
+    "If something stands out, save it once with the matching kind. "
+    "If nothing is worth saving, just say 'Nothing to save.' and stop."
 )
 
 # Shared shape contract for anything written into a skill. The failure mode this prevents is the
@@ -927,11 +925,11 @@ def _routed_reasoning_config(task_cfg: Optional[Dict[str, Any]]) -> Optional[Dic
 
 def _fork_init_kwargs(agent: Any, rt: Dict[str, Any], routed: bool, max_iterations: int,
                       task_cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """AIAgent constructor kwargs for the review fork. skip_memory=True: an external memory plugin
-    scoped to the parent's session_id would leak the harness prompt into the user's real memory
-    namespace; built-in MEMORY.md/USER.md state is re-bound by the caller. Toolsets match the
-    parent so ``tools[]`` is byte-identical (Anthropic's cache key includes it); the runtime
-    whitelist restricts dispatch."""
+    """AIAgent constructor kwargs for the review fork. The fork is bound to the PARENT's memory manager
+    (not skip_memory) so its agent_memory_remember writes reach the provider, tagged with the
+    background_review write origin; the provider ignores a fork's own turn sync, so the harness
+    prompt never lands in the user's memory. Toolsets match the parent so ``tools[]`` is
+    byte-identical (Anthropic's cache key includes it); the runtime whitelist restricts dispatch."""
     kwargs: Dict[str, Any] = {
         "model": rt.get("model") or agent.model, "max_iterations": max_iterations, "quiet_mode": True,
         "platform": agent.platform, "provider": rt.get("provider") or agent.provider,
@@ -939,7 +937,8 @@ def _fork_init_kwargs(agent: Any, rt: Dict[str, Any], routed: bool, max_iteratio
         "api_key": rt.get("api_key") or None, "credential_pool": rt.get("credential_pool"),
         "request_overrides": rt.get("request_overrides") or {}, "parent_session_id": agent.session_id,
         "enabled_toolsets": getattr(agent, "enabled_toolsets", None),
-        "disabled_toolsets": getattr(agent, "disabled_toolsets", None), "skip_memory": True,
+        "disabled_toolsets": getattr(agent, "disabled_toolsets", None),
+        "memory_manager": getattr(agent, "_memory_manager", None),
     }
     if isinstance(rt.get("max_tokens"), int):
         kwargs["max_tokens"] = rt["max_tokens"]
@@ -996,9 +995,6 @@ def build_cache_parity_fork(
     # same-model path), so its turn-start/turn-exit log lines are otherwise
     # indistinguishable from live turns (#118693).
     review_agent._turn_origin = write_origin
-    review_agent._memory_store = agent._memory_store
-    review_agent._memory_enabled = agent._memory_enabled
-    review_agent._user_profile_enabled = agent._user_profile_enabled
     review_agent.skip_background_review = True  # a review fork never schedules its own review
     # _skip_mcp_refresh: the between-turns MCP refresh would add late-connecting MCP tools and
     # break tools[] parity. PERSISTENCE ISOLATION (curator-takeover root cause): sharing the
@@ -1098,12 +1094,11 @@ def _review_tool_whitelist(
     """``(whitelist, configured_extra_tools)`` for the review fork — DISPATCH-side only, so the
     advertised ``tools[]`` stays byte-identical to the parent's (prompt-cache parity)."""
     from model_tools import get_tool_definitions
-    # Gate the built-in memory tool on BOTH the profile's memory flags and the trigger that fired
-    # (#105921): a skill-nudge review never gets the memory tool, so an unattended fork cannot
-    # act on the memory tool's "consolidate now" hint and delete entries no one reviewed.
-    memory_on = review_agent._memory_enabled or review_agent._user_profile_enabled
-    review_toolsets = ["memory", "skills"] if memory_on and review_memory else ["skills"]
-    whitelist = {t["function"]["name"] for t in get_tool_definitions(enabled_toolsets=review_toolsets, quiet_mode=True)}
+    # Memory tools are admitted only when the memory trigger fired and the fork has a memory manager,
+    # and only the non-destructive pair: a review can save and look up, never forget (#105921).
+    whitelist = {t["function"]["name"] for t in get_tool_definitions(enabled_toolsets=["skills"], quiet_mode=True)}
+    if review_memory and getattr(review_agent, "_memory_manager", None) is not None:
+        whitelist |= {"agent_memory_remember", "agent_memory_recall"}
     # Read-only file tools: denying read_file/search_files caused a per-review denial storm that
     # starved the loop (read_file also registers the read with the read-before-write guard).
     # Write tools stay denied — autonomous maintenance goes through skill_manage's validation.
@@ -1172,8 +1167,9 @@ def _run_review_fork(
     prompt_extra = f" Exception — these configured tools are also allowed: {extra_list}." if configured_extra_tools else ""
     # Keep the deny/prompt wording in sync with the whitelist: a memory-less review must not
     # tell the model that memory is available, or it will burn iterations on denied calls.
-    memory_phrase_deny = " and memory for notes (add only)" if "memory" in review_whitelist else ""
-    memory_phrase_prompt = "memory and skill " if "memory" in review_whitelist else "skill "
+    has_memory = "agent_memory_remember" in review_whitelist
+    memory_phrase_deny = " and agent_memory_remember/agent_memory_recall for notes" if has_memory else ""
+    memory_phrase_prompt = "memory and skill " if has_memory else "skill "
     set_thread_tool_whitelist(
         review_whitelist,
         deny_msg_fmt=(

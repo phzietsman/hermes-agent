@@ -260,9 +260,6 @@ COMMAND_REGISTRY: list[CommandDef] = [
                # (#98330 review).
                desktop_subcommands=("pending", "approve", "reject", "diff",
                                     "approval")),
-    CommandDef("memory", "Review pending memory writes / toggle the approval gate",
-               "Tools & Skills", args_hint="[pending|approve|reject|approval] [id|on|off]",
-               subcommands=("pending", "approve", "reject", "approval")),
     CommandDef("bundles", "List skill bundles (aliases /<name> for multiple skills)",
                "Tools & Skills", execute="bundles"),
     CommandDef("pet", "Toggle or adopt a petdex mascot (/pet, /pet list, /pet <slug>)", "Tools & Skills",

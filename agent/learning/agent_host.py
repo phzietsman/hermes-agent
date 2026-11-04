@@ -32,7 +32,7 @@ class AgentReviewHost:
             return
         kwargs: dict[str, Any] = {
             "messages_snapshot": copy.deepcopy(messages),  # the fork sanitizes in place
-            "review_memory": bool(getattr(agent, "_memory_store", None) or getattr(agent, "_memory_manager", None)),
+            "review_memory": getattr(agent, "_memory_manager", None) is not None,
             "review_skills": "skill_manage" in agent.valid_tool_names,
             "task_cfg": task_cfg,
         }
@@ -82,10 +82,7 @@ def build_learning_loop(agent: Any, agent_cfg: dict[str, Any]) -> LearningLoop |
         return None
     db = getattr(agent, "_session_db", None)
     db_path = getattr(db, "db_path", None)
-    if db_path is None or (
-        "skill_manage" not in agent.valid_tool_names and not getattr(agent, "_memory_manager", None)
-        and not getattr(agent, "_memory_store", None)
-    ):
+    if db_path is None or ("skill_manage" not in agent.valid_tool_names and not getattr(agent, "_memory_manager", None)):
         return None
     # Own connection: SessionDB's handle is read-only/lock-guarded; the queue is a separate writer.
     conn = sqlite3.connect(Path(db_path), timeout=10.0, check_same_thread=False)

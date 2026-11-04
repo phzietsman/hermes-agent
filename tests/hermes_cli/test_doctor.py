@@ -409,36 +409,16 @@ class TestDoctorMemoryProviderSection:
             doctor_mod.run_doctor(Namespace(fix=False))
         return buf.getvalue()
 
-    def test_no_provider_shows_builtin_ok(self, monkeypatch, tmp_path):
+    def test_no_provider_reports_none_configured(self, monkeypatch, tmp_path):
         out = self._run_doctor_and_capture(monkeypatch, tmp_path, provider="")
         assert "Memory Provider" in out
-        assert "Built-in memory active" in out
-        # Should NOT mention Honcho or Mem0 errors
-        assert "Honcho API key" not in out
-        assert "Mem0" not in out
+        assert "No memory provider configured" in out
+        assert "Built-in memory" not in out
 
-
-    @pytest.mark.parametrize("memory_enabled", [False, True])
-    def test_stale_builtin_files_reported_only_when_store_enabled(
-        self, monkeypatch, tmp_path, memory_enabled
-    ):
-        # #100668: disabled built-in stores must not surface stale files as active.
-        out = self._run_doctor_and_capture(
-            monkeypatch,
-            tmp_path,
-            provider="mnemosyne",
-            memory_config={
-                "memory_enabled": memory_enabled,
-                "user_profile_enabled": False,
-            },
-            stale_builtin_files=True,
-        )
-
-        assert ("MEMORY.md exists" in out) is memory_enabled
+    def test_stale_builtin_files_are_not_reported(self, monkeypatch, tmp_path):
+        out = self._run_doctor_and_capture(monkeypatch, tmp_path, provider="", stale_builtin_files=True)
+        assert "MEMORY.md exists" not in out
         assert "USER.md exists" not in out
-        assert ("Built-in memory files disabled by config" in out) is not memory_enabled
-
-
 
 
 def test_run_doctor_accepts_named_provider_from_providers_section(monkeypatch, tmp_path):

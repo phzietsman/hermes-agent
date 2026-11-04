@@ -35,10 +35,6 @@ _PROFILE_DIRS = ["memories", "sessions", "skills", "skins", "logs", "plans", "wo
 
 # Files copied during --clone (if they exist in the source).
 _CLONE_CONFIG_FILES = ["config.yaml", ".env", "SOUL.md"]
-# Subdirectory files copied during --clone: memory files are part of the agent's curated
-# identity, as important as SOUL.md for continuity.
-_CLONE_SUBDIR_FILES = ["memories/MEMORY.md", "memories/USER.md"]
-
 # Runtime files stripped after --clone-all. A post-copy step rather than an ignore filter
 # because they are created dynamically and may be absent at copy time.
 _CLONE_ALL_STRIP: list[str] = [
@@ -253,7 +249,7 @@ _DEFAULT_EXPORT_EXCLUDE_ROOT = DEFAULT_EXPORT_EXCLUDE_ROOT = frozenset({
 # (#58394). Add new artifacts here when introduced in ``hermes_constants``.
 _DEFAULT_EXPORT_INCLUDE_ROOT = frozenset({
     # Configuration / persona
-    "config.yaml", "SOUL.md", "MEMORY.md", "USER.md", "todo.json",
+    "config.yaml", "SOUL.md", "todo.json",
     "system_prompt.md", "AGENTS.md", "CLAUDE.md", ".cursorrules",
     # Desktop appearance overlay (written/applied by the desktop app's export/import).
     "desktop.json",
@@ -1307,8 +1303,6 @@ def _bootstrap_profile_dir(profile_dir: Path, source_dir: Optional[Path],
     if source_skills.is_dir():
         shutil.copytree(source_skills, profile_dir / "skills", symlinks=True, ignore=_non_exportable_entries,
                         dirs_exist_ok=True)
-    for relpath in _CLONE_SUBDIR_FILES:
-        _clone_file(source_dir, profile_dir, relpath)
     _clone_plugins(source_dir, profile_dir)
     from hermes_cli.profile_memory_config import active_memory_provider, clone_memory_provider_config
     clone_memory_provider_config(source_dir, profile_dir,

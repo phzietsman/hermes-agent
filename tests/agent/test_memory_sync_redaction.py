@@ -37,7 +37,6 @@ class _Recorder(MemoryProvider):
     def on_session_end(self, messages): self.seen.append(messages)
     def on_pre_compress(self, messages, **kw): self.seen.append(messages); return ""
     def on_delegation(self, task, result, **kw): self.seen.append((task, result))
-    def on_memory_write(self, action, target, content, metadata=None): self.seen.append((content, metadata))
 
 
 def _transcript():
@@ -57,7 +56,6 @@ FANOUTS = {
     "on_session_end": lambda m, t: m.on_session_end(t),
     "on_pre_compress": lambda m, t: m.on_pre_compress(t, evidence_messages=t),
     "on_delegation": lambda m, t: m.on_delegation(f"task {_LEAK}", f"result {_LEAK}"),
-    "on_memory_write": lambda m, t: m.on_memory_write("add", "memory", _LEAK, metadata={"old_text": _LEAK}),
 }
 
 

@@ -504,21 +504,21 @@ def _settle_disabled() -> None:
 def test_settings_skills_plugins_transitions_only_count_moves_from_and_back_to_default():
     old = {"skills": {"disabled": ["my-private-skill"]}, "plugins": {"disabled": []}}
     new = {
-        "memory": {"memory_enabled": False}, "compression": {"enabled": "false"}, "curator": {"enabled": True},
+        "compression": {"enabled": "false"}, "curator": {"enabled": True},
         "display": {"show_reasoning": False, "skin": "mono"},  # a value change on a non-bool: never a row
         "skills": {"disabled": ["my-private-skill", "arxiv"], "platform_disabled": {"telegram": ["totally-custom"]}},
         "plugins": {"disabled": ["disk-cleanup", "telegram", "some-private-plugin"]},
     }
     got = set(disabled_metrics.config_transitions(old, new))
     assert got == {
-        ("memory", "memory.memory_enabled", "disabled"), ("compression", "compression.enabled", "disabled"),
+        ("compression", "compression.enabled", "disabled"),
         ("setting", "display.show_reasoning", "disabled"),
         ("skill", "arxiv", "disabled"), ("skill", "custom", "disabled"),
         ("plugin", "disk-cleanup", "disabled"), ("platform", "telegram", "disabled"),
         ("plugin", "custom", "disabled"),
     }
     back = set(disabled_metrics.config_transitions(new, old))
-    assert ("memory", "memory.memory_enabled", "re_enabled") in back and ("skill", "arxiv", "re_enabled") in back
+    assert ("compression", "compression.enabled", "re_enabled") in back and ("skill", "arxiv", "re_enabled") in back
     assert all(contract.counter_dimensions_are_valid(contract.FEATURE_DISABLED_METRIC, {
         "event": e, "kind": k, "name": n, "surface": "cli_config"}) for k, n, e in got | back)
 
@@ -527,26 +527,26 @@ def test_toolset_transitions_use_the_real_resolver():
     from hermes_cli.tools_config import _get_platform_tools
 
     default = sorted(_get_platform_tools({}, "cli", include_default_mcp_servers=False))
-    assert "memory" in default
-    new = {"platform_toolsets": {"cli": [t for t in default if t != "memory"]}}
-    assert ("toolset", "memory", "disabled") in disabled_metrics.config_transitions({}, new)
-    assert ("toolset", "memory", "re_enabled") in disabled_metrics.config_transitions(new, {})
+    assert "browser" in default
+    new = {"platform_toolsets": {"cli": [t for t in default if t != "browser"]}}
+    assert ("toolset", "browser", "disabled") in disabled_metrics.config_transitions({}, new)
+    assert ("toolset", "browser", "re_enabled") in disabled_metrics.config_transitions(new, {})
     assert disabled_metrics.config_transitions({}, {"platform_toolsets": {"cli": default}}) == []
 
 
 def test_record_config_saved_needs_a_surface_and_collection(marks, monkeypatch):
     monkeypatch.setattr(disabled_metrics, "_process_surface", None)
-    disabled_metrics.record_config_saved({}, {"memory": {"memory_enabled": False}})
+    disabled_metrics.record_config_saved({}, {"compression": {"enabled": False}})
     assert marks.rows == []  # setup/migration writes: no entry-point surface
     disabled_metrics.set_process_surface("config")
     marks.policy["on"] = False
-    disabled_metrics.record_config_saved({}, {"memory": {"memory_enabled": False}})
+    disabled_metrics.record_config_saved({}, {"compression": {"enabled": False}})
     assert marks.rows == []
     marks.policy["on"] = True
-    disabled_metrics.record_config_saved({}, {"memory": {"memory_enabled": False}})
+    disabled_metrics.record_config_saved({}, {"compression": {"enabled": False}})
     _settle_disabled()
     assert marks.rows == [(contract.FEATURE_DISABLED_MARK, {
-        "event": "disabled", "kind": "memory", "name": "memory.memory_enabled", "surface": "cli_config"})]
+        "event": "disabled", "kind": "compression", "name": "compression.enabled", "surface": "cli_config"})]
     disabled_metrics.set_process_surface(None)
     assert disabled_metrics.current_surface() == "cli_slash"
 
@@ -568,13 +568,13 @@ def test_real_config_writes_report_the_move_away_from_default(marks, monkeypatch
     marks.home.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(disabled_metrics, "_process_surface", "cli_config")
     config = load_config()
-    config.setdefault("memory", {})["memory_enabled"] = False
+    config.setdefault("compression", {})["enabled"] = False
     save_config(config)
     _settle_disabled()
     set_config_value("curator.enabled", "false")
     _settle_disabled()
     rows = [(d["kind"], d["name"], d["event"]) for m, d in marks.rows if m == contract.FEATURE_DISABLED_MARK]
-    assert rows == [("memory", "memory.memory_enabled", "disabled"), ("curator", "curator.enabled", "disabled")]
+    assert rows == [("compression", "compression.enabled", "disabled"), ("curator", "curator.enabled", "disabled")]
 
 
 def test_migrations_and_env_templates_are_not_user_disables(marks, monkeypatch):
@@ -583,7 +583,7 @@ def test_migrations_and_env_templates_are_not_user_disables(marks, monkeypatch):
     marks.home.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(disabled_metrics, "_process_surface", "cli_config")
     config = load_config()
-    config.setdefault("memory", {})["memory_enabled"] = False
+    config.setdefault("compression", {})["enabled"] = False
     _persist_migration(config)  # e.g. `hermes config migrate` / profile create in the dashboard
     # A ``${VAR}`` template on the raw side vs its expanded value: nothing moved.
     monkeypatch.setenv("MEM_ON", "false")
@@ -613,7 +613,7 @@ def test_diff_and_record_run_off_the_callers_lock_in_the_owning_profile(marks, m
     token = set_hermes_home_override(str(tmp_path / "b"))
     try:
         with threading.Lock():  # the caller's write lock (the dashboard's _CONFIG_MUTATION_LOCK)
-            disabled_metrics.record_config_saved({}, {"memory": {"memory_enabled": False}})
+            disabled_metrics.record_config_saved({}, {"compression": {"enabled": False}})
             assert marks.rows == []  # returned without diffing
     finally:
         reset_hermes_home_override(token)

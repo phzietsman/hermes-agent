@@ -186,59 +186,6 @@ def test_direct_session_db_flushes_share_marker_claim(agent):
     assert db.token_flushes == 1
 
 
-def test_malformed_memory_config_still_builds_default_store():
-    """A non-mapping memory section must not leave an advertised dead tool."""
-    malformed = {"memory": "not-a-mapping"}
-    with (
-        patch(
-            "hermes_cli.config.load_config_readonly",
-            return_value=malformed,
-        ),
-        patch(
-            "model_tools.get_tool_definitions",
-            return_value=_make_tool_defs("memory"),
-        ),
-        patch("model_tools.check_toolset_requirements", return_value={}),
-        patch("agent.process_bootstrap.OpenAI"),
-    ):
-        agent = AIAgent(
-            api_key="test-k...7890",
-            base_url="https://openrouter.ai/api/v1",
-            quiet_mode=True,
-            skip_context_files=True,
-            skip_memory=True,
-            enabled_toolsets=["memory"],
-        )
-
-    assert agent._memory_enabled is True
-    assert agent._user_profile_enabled is True
-    assert agent._memory_store is not None
-    assert agent._memory_store.memory_enabled is True
-    assert agent._memory_store.user_profile_enabled is True
-
-
-@pytest.fixture()
-def agent_with_memory_tool():
-    """Agent whose valid_tool_names includes 'memory'."""
-    with (
-        patch(
-            "model_tools.get_tool_definitions",
-            return_value=_make_tool_defs("web_search", "memory"),
-        ),
-        patch("model_tools.check_toolset_requirements", return_value={}),
-        patch("agent.process_bootstrap.OpenAI"),
-    ):
-        a = AIAgent(
-            api_key="test-k...7890",
-            base_url="https://openrouter.ai/api/v1",
-            quiet_mode=True,
-            skip_context_files=True,
-            skip_memory=True,
-        )
-        a.client = MagicMock()
-        return a
-
-
 def test_aiagent_reuses_existing_errors_log_handler():
     """Repeated AIAgent init should not accumulate duplicate errors.log handlers."""
     root_logger = logging.getLogger()
@@ -841,49 +788,6 @@ class TestBuildSystemPrompt:
 
         assert "SOUL IDENTITY" in prompt
         assert DEFAULT_AGENT_IDENTITY not in prompt
-
-
-    def test_memory_guidance_when_memory_tool_loaded(self, agent_with_memory_tool):
-        agent_with_memory_tool._memory_enabled = True
-        prompt = agent_with_memory_tool._build_system_prompt()
-        from agent.prompt_builder import build_memory_guidance
-        assert build_memory_guidance(True, True, skill_manage_available=False) in prompt
-
-    def test_no_memory_guidance_when_both_builtin_stores_disabled(
-        self, agent_with_memory_tool
-    ):
-        """Guidance must follow the stores, not just the tool's presence.
-
-        With both built-in stores off, ``agent_init`` never builds a
-        ``MemoryStore``, so every memory call returns "Memory is not
-        available" — telling the model to save facts there is a dead
-        instruction paid for on every API call.
-        """
-        from agent.prompt_builder import MEMORY_GUIDANCE, USER_PROFILE_GUIDANCE
-
-        agent_with_memory_tool._memory_enabled = False
-        agent_with_memory_tool._user_profile_enabled = False
-        prompt = agent_with_memory_tool._build_system_prompt()
-        assert MEMORY_GUIDANCE not in prompt
-        assert USER_PROFILE_GUIDANCE not in prompt
-
-    def test_profile_guidance_when_only_user_profile_enabled(
-        self, agent_with_memory_tool
-    ):
-        """USER.md alone gets the narrower profile-only guidance.
-
-        The full MEMORY_GUIDANCE block instructs the model to save notes to a
-        MEMORY.md store that does not exist in this configuration, so the
-        profile-specific block is injected instead.
-        """
-        from agent.prompt_builder import MEMORY_GUIDANCE
-
-        agent_with_memory_tool._memory_enabled = False
-        agent_with_memory_tool._user_profile_enabled = True
-        prompt = agent_with_memory_tool._build_system_prompt()
-        assert MEMORY_GUIDANCE not in prompt
-        from agent.prompt_builder import build_memory_guidance
-        assert build_memory_guidance(False, True, skill_manage_available=False) in prompt
 
 
     def test_datetime_is_date_only_not_minute_precision(self, agent):
@@ -1557,41 +1461,6 @@ class TestExecuteToolCalls:
         tool_results = [m for m in messages if m["role"] == "tool"]
         assert [m["tool_call_id"] for m in tool_results] == ["c1", "c2"]
 
-    def test_sequential_memory_remove_notifies_provider_with_tool_result(self, agent):
-        old_text = "stale preference entry"
-        tc = _mock_tool_call(
-            name="memory",
-            arguments=json.dumps({
-                "action": "remove",
-                "target": "memory",
-                "old_text": old_text,
-            }),
-            call_id="mem-1",
-        )
-        mock_msg = _mock_assistant_msg(content="", tool_calls=[tc])
-        messages = []
-        calls = []
-
-        class FakeMemoryManager(MemoryManager):
-            def has_tool(self, tool_name):
-                return False
-
-            def on_memory_write(self, action, target, content, metadata=None):
-                calls.append((action, target, content, metadata or {}))
-
-        agent._memory_manager = FakeMemoryManager()
-        agent._memory_store = object()
-
-        with patch("tools.memory_tool.memory_tool", return_value=json.dumps({"success": True})):
-            agent._execute_tool_calls_sequential(mock_msg, messages, "task-1")
-
-        assert len(calls) == 1
-        action, target, content, metadata = calls[0]
-        assert (action, target, content) == ("remove", "memory", "")
-        assert metadata["old_text"] == old_text
-        assert metadata["tool_call_id"] == "mem-1"
-        assert messages[-1]["tool_call_id"] == "mem-1"
-
     def test_interrupt_skips_remaining(self, agent, monkeypatch):
         tc1 = _mock_tool_call(name="web_search", arguments="{}", call_id="c1")
         tc2 = _mock_tool_call(name="web_search", arguments="{}", call_id="c2")
@@ -2079,22 +1948,6 @@ class TestConcurrentToolExecution:
         assert post_calls[0]["status"] == "ok"
         assert post_calls[0]["result"] == '{"intercepted":true}'
 
-    def test_blocked_memory_tool_does_not_reset_counter(self, agent, monkeypatch):
-        """Blocked memory tool should not reset the nudge counter."""
-        agent._turns_since_memory = 5
-        monkeypatch.setattr(
-            "hermes_cli.plugins._dispatch_pre_tool_call_hooks",
-            lambda *args, **kwargs: ("Blocked", None),
-        )
-        with patch("tools.memory_tool.memory_tool", side_effect=AssertionError("should not run")):
-            result = agent._invoke_tool(
-                "memory", {"action": "add", "target": "memory", "content": "x"}, "task-1",
-            )
-
-        assert json.loads(result) == {"error": "Blocked"}
-        assert agent._turns_since_memory == 5
-
-
     def test_managed_tool_pipeline_rejects_second_dispatch(self, agent, monkeypatch):
         from agent import relay_tools, tool_executor
 
@@ -2210,7 +2063,6 @@ class TestAgentRuntimePostHookOwnershipSync:
     _CASES = (
         ("todo_list", {"todos": []}),
         ("session_search", {"query": "needle"}),
-        ("memory", {"action": "view", "target": "memory"}),
         ("clarify", {"questions": [{"question": "Continue?"}]}),
         ("read_terminal", {}),
         ("desktop_preview", {"action": "read"}),
@@ -2246,10 +2098,6 @@ class TestAgentRuntimePostHookOwnershipSync:
         monkeypatch.setattr("hermes_cli.lifecycle.has_hook", lambda name: True)
         monkeypatch.setattr(
             "tools.todo_tool.todo_tool",
-            lambda **kwargs: '{"ok":true}',
-        )
-        monkeypatch.setattr(
-            "tools.memory_tool.memory_tool",
             lambda **kwargs: '{"ok":true}',
         )
         monkeypatch.setattr(

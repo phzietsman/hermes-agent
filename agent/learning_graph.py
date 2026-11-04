@@ -140,68 +140,10 @@ def density_stats(nodes: dict[str, SkillNode], edges: list[tuple[str, str]]) -> 
     }
 
 
-def memory_fingerprint(entry: str) -> str:
-    """Short stable digest of a memory entry's TEXT, carried in the node id.
-
-    A journey card is identified by what it says, not by where it sat: an earlier entry can be
-    removed (an agent ``memory_tool`` remove mid-turn, a Journey delete without a refetch)
-    between the graph being drawn and the user submitting an edit, and a bare index then names
-    somebody else's card (#119668).
-    Cards and the mutation path both read entries through ``MemoryStore._read_file``, so the
-    same entry digests the same on both sides (a BOM'd file included).
-    """
-    return hashlib.sha256(entry.strip().encode("utf-8")).hexdigest()[:12]
-
-
 def memory_node_id(card: dict[str, Any], index: int) -> str:
-    """``memory:<source>:<index>:<fingerprint>`` — position for the occurrence, text for identity."""
+    """``memory:<source>:<index>:<fingerprint>``. Kept for the renderer; the graph no longer has memory
+    nodes (memory is in Agent Memory), so nothing mints these ids today."""
     return f"memory:{card['source']}:{index}:{card['fingerprint']}"
-
-
-def _memory_cards() -> list[dict[str, Any]]:
-    """``MEMORY.md`` / ``USER.md`` entries as the memory tool parses them; every
-    entry becomes one card (MEMORY.md cards first, then USER.md)."""
-    from tools.memory_tool import MemoryStore
-
-    base = get_hermes_home() / "memories"
-    cards: list[dict[str, Any]] = []
-    for fname, source in (("MEMORY.md", "memory"), ("USER.md", "profile")):
-        path = base / fname
-        try:
-            file_ts = _to_int_ts(path.stat().st_mtime)
-        except OSError:
-            continue
-        # The store's own parser (utf-8-sig, same delimiter): a hand-rolled split kept a Notepad
-        # BOM glued to the first entry, so its fingerprint never matched the store's and the card
-        # was "stale" forever.
-        for chunk_idx, chunk in enumerate(MemoryStore._read_file(path)):
-            first = chunk.splitlines()[0].strip().lstrip("# ").strip()
-            cards.append({
-                "source": source, "timestamp": file_ts + chunk_idx if file_ts is not None else None,
-                "title": (first[:80] + "…") if len(first) > 80 else first, "body": chunk[:1200],
-                # Digest the WHOLE chunk, not the truncated ``body`` a long memory renders with.
-                "fingerprint": memory_fingerprint(chunk),
-            })
-    return cards
-
-
-def _tokenize(text: str) -> set[str]:
-    return {t for t in re.split(r"[^a-z0-9]+", text.lower()) if len(t) >= 3}
-
-
-def _memory_skill_edges(memory_cards: list[dict[str, Any]], skills: list[SkillNode]) -> list[tuple[str, str]]:
-    """Top-4 lexically overlapping skills per memory card (name hit weighs 6)."""
-    edges: list[tuple[str, str]] = []
-    skill_meta = [(s.name, _tokenize(s.name), s.name.lower()) for s in skills]
-    for idx, card in enumerate(memory_cards):
-        text = f"{card.get('title', '')}\n{card.get('body', '')}".lower()
-        text_tokens = _tokenize(text)
-        scored = sorted(
-            ((score, name) for name, tokens, name_lower in skill_meta if (score := (6 if name_lower in text else 0) + len(tokens & text_tokens)) > 0),
-            key=lambda x: (-x[0], x[1]),
-        )
-        edges.extend((memory_node_id(card, idx), name) for _, name in scored[:4])
-    return edges
 
 
 def _has_learning_signal(node: SkillNode) -> bool:
@@ -217,17 +159,16 @@ def _has_learning_signal(node: SkillNode) -> bool:
 
 def build_learning_graph() -> dict[str, Any]:
     """Full payload for the desktop learning panel: non-base skills with real
-    learning signal (agent-created or used) plus memory chunks as graph nodes."""
+    learning signal (agent-created or used)."""
     roots = [("base", Path(__file__).resolve().parent.parent / "skills"), ("profile", get_hermes_home() / "skills")]
     learned_skills = {
         name: node for name, node in build_skill_nodes(roots).items()
         if node.source != "base" and _has_learning_signal(node)
     }
-    skill_edges, memory_cards = build_edges(learned_skills), _memory_cards()
-    memory_edges = _memory_skill_edges(memory_cards, list(learned_skills.values()))
+    skill_edges = build_edges(learned_skills)
+    memory_cards: list[dict[str, Any]] = []  # payload shape kept for clients; memory is not in this graph
+    memory_edges: list[tuple[str, str]] = []
     clusters = Counter(node.category for node in learned_skills.values())
-    if memory_cards:
-        clusters["memory"] = len(memory_cards)
 
     graph_nodes = [
         {

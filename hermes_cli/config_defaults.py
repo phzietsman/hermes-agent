@@ -1299,16 +1299,10 @@ DEFAULT_CONFIG = {
             "info_log_min_delta_mb": 0.0,
         },
     },
-    "memory": {  # Persistent memory — bounded curated memory injected into the system prompt
-        "memory_enabled": True,
-        "user_profile_enabled": True,
-        # Approval gate for memory writes (foreground and background review fork). true = foreground
-        # prompts inline, background is staged (/memory pending|approve|reject <id>). Off: memory_enabled.
-        "write_approval": False,
-        "memory_char_limit": 2200, "user_char_limit": 1375,  # ~800 / ~500 tokens at 2.75 chars/token
+    "memory": {  # Persistent memory: the Agent Memory provider (see `learning:` for the review loop)
         # Deprecated alias of learning.iteration_interval (counts tool iterations, not turns).
         "nudge_interval": 10,
-        # Memory provider plugin: "agent_memory" (SurrealDB Agent Memory). Empty = no external memory.
+        # Memory provider plugin: "agent_memory" (SurrealDB Agent Memory). Empty = no memory.
         "provider": "",
     },
     # Subagent delegation — override the provider:model used by delegate_task so children run on a

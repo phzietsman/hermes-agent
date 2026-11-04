@@ -874,32 +874,6 @@ class TestCommitMemorySessionRouting:
 # ---------------------------------------------------------------------------
 
 
-class TestOnMemoryWriteBridge:
-    """Verify that MemoryManager.on_memory_write is called when built-in
-    memory writes happen.  This is a regression test for #10174 where the
-    sequential tool execution path (_execute_tool_calls_sequential) was
-    missing the bridge call, so single memory tool calls never notified
-    external memory providers.
-    """
-
-
-
-    def test_on_memory_write_tolerates_provider_failure(self):
-        """If a provider's on_memory_write raises, others still get notified."""
-        mgr = MemoryManager()
-        bad = FakeMemoryProvider("builtin")
-        bad.on_memory_write = MagicMock(side_effect=RuntimeError("boom"))
-        good = FakeMemoryProvider("good")
-        mgr.add_provider(bad)
-        mgr.add_provider(good)
-
-        mgr.on_memory_write("add", "user", "test")
-        # Good provider still received the call despite bad provider crashing
-        assert good.memory_writes == [("add", "user", "test")]
-
-
-
-
 class TestMemoryToolToolsetGate:
     """Issue #5544: memory provider tools must respect platform_toolsets.
 
@@ -1137,16 +1111,6 @@ class TestSystemPromptGateParity:
         from agent.memory_manager import memory_provider_tools_exposed
         agent, _mgr, _p = self._agent_with_provider(enabled_toolsets=["web_search"])
         assert memory_provider_tools_exposed(agent) is False
-
-    def test_tools_exposed_when_memory_tool_already_present(self):
-        """The built-in "memory" tool is a sufficient opt-in even when the
-        toolset gate says nothing about memory."""
-        from agent.memory_manager import memory_provider_tools_exposed
-        tools = [
-            {"type": "function", "function": {"name": "memory", "description": "x", "parameters": {}}},
-        ]
-        agent, _mgr, _p = self._agent_with_provider(enabled_toolsets=["web_search"], tools=tools)
-        assert memory_provider_tools_exposed(agent) is True
 
     def test_inject_and_exposed_share_the_same_gate(self):
         """``inject_memory_provider_tools`` and ``memory_provider_tools_exposed``

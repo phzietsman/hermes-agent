@@ -18,7 +18,6 @@ class TestToolsetIntersection:
         child = _strip_blocked_tools(["terminal", "delegation", "clarify", "memory"])
         assert "delegation" not in child
         assert "clarify" not in child
-        assert "memory" not in child
         assert "terminal" in child
 
 class TestEmitParentConsole:

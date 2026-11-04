@@ -616,9 +616,6 @@ def _reset_per_turn_agent_state(agent: Any) -> None:
     agent._turn_failed_file_mutations = {}
     agent._turn_file_mutation_paths = set()
     agent._tool_guardrails.reset_for_turn()
-    _reset_consol = getattr(agent._memory_store, "reset_consolidation_failures", None)
-    if callable(_reset_consol):
-        _reset_consol()
     # Expiry clock for build_api_messages: admission time (not the input's platform-event
     # stamp, which can predate admission by minutes), frozen so every request this turn
     # sends identical bytes. Distinct from note_turn_start's _inflight_turn_started, a

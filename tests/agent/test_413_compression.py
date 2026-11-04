@@ -590,9 +590,6 @@ class TestPreflightCompression:
         agent._cached_system_prompt = (
             "cached system prompt\n\n<memory>same facts</memory>"
         )
-        memory_store = MagicMock()
-        memory_store.format_for_system_prompt.return_value = "<memory>same facts</memory>"
-        agent._memory_store = memory_store
 
         with (
             patch.object(
@@ -615,7 +612,6 @@ class TestPreflightCompression:
         assert new_system_prompt is agent._cached_system_prompt
         assert new_system_prompt == "cached system prompt\n\n<memory>same facts</memory>"
         build_prompt.assert_called_once()
-        memory_store.load_from_disk.assert_called_once()
 
 
 

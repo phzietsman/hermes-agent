@@ -78,12 +78,12 @@ def normalize_tool_schema(schema: Any) -> Optional[Dict[str, Any]]:
     return schema if name and isinstance(name, str) else None
 
 
-def memory_provider_tools_enabled(enabled_toolsets: Optional[List[str]], disabled_toolsets: Optional[List[str]] = None,
-                                  *, memory_tool_present: bool = False) -> bool:
-    """Return whether external memory-provider tools should be exposed."""
+def memory_provider_tools_enabled(enabled_toolsets: Optional[List[str]], disabled_toolsets: Optional[List[str]] = None) -> bool:
+    """Whether the memory provider's tools should be exposed: not denylisted, and either no toolset
+    restriction or one that names ``memory`` (directly, or via a platform toolset that includes it)."""
     if disabled_toolsets and "memory" in disabled_toolsets:
         return False
-    if memory_tool_present or enabled_toolsets is None:
+    if enabled_toolsets is None:
         return True
     if not enabled_toolsets:
         return False
@@ -108,10 +108,8 @@ def memory_provider_tools_exposed(agent: Any) -> bool:
     Same gate as ``inject_memory_provider_tools`` so a provider's ``system_prompt_block()``
     never advertises tools absent from the tool surface.
     """
-    tools = getattr(agent, "tools", None)
-    present = isinstance(tools, (list, tuple)) and any(_tool_name(t) == "memory" for t in tools)
     enabled, disabled = getattr(agent, "enabled_toolsets", None), getattr(agent, "disabled_toolsets", None)
-    return memory_provider_tools_enabled(enabled, disabled, memory_tool_present=present)
+    return memory_provider_tools_enabled(enabled, disabled)
 
 
 def inject_memory_provider_tools(agent: Any) -> int:
@@ -832,85 +830,6 @@ class MemoryManager:
                 f"No active memory provider completed pre-compress checkpoint API v{checkpoint_api_version}"
             )
         return "\n\n".join(parts)
-
-    @staticmethod
-    def _provider_memory_write_metadata_mode(provider: MemoryProvider) -> str:
-        """How to pass metadata to ``on_memory_write``: "keyword", "positional", or "legacy" (none)."""
-        params = _signature_params(provider.on_memory_write)
-        if params is None or _has_var_kwargs(params) or "metadata" in params:
-            return "keyword"
-        accepted = sum(p.kind is not inspect.Parameter.VAR_POSITIONAL for p in params.values())
-        return "positional" if accepted >= 4 else "legacy"
-
-    def on_memory_write(self, action: str, target: str, content: str,
-                        metadata: Optional[Dict[str, Any]] = None) -> None:
-        """Notify external providers when the built-in memory tool writes (skips builtin, the source)."""
-        content, metadata = _redact_for_provider(content, dict(metadata or {}))
-
-        def _notify(provider: MemoryProvider) -> None:
-            mode = self._provider_memory_write_metadata_mode(provider)
-            if mode == "legacy":
-                provider.on_memory_write(action, target, content)
-            elif mode == "positional":
-                provider.on_memory_write(action, target, content, dict(metadata or {}))
-            else:
-                provider.on_memory_write(action, target, content, metadata=dict(metadata or {}))
-
-        external = [p for p in self._providers if p.name != "builtin"]
-        self._each_provider("on_memory_write failed", _notify, providers=external)
-
-    # Actions mirrored to external providers; non-mutating results (errors, staged) are
-    # filtered by ``notify_memory_tool_write`` first.
-    _MIRRORED_MEMORY_ACTIONS = {"add", "replace", "remove"}
-
-    @staticmethod
-    def _memory_tool_result_succeeded(result: Any) -> bool:
-        """True only when the built-in memory tool actually committed a write. Fails closed (non-JSON,
-        non-dict, missing ``success``, staged for approval) so providers never mirror a write that did not land."""
-        if isinstance(result, str):
-            try:
-                result = json.loads(result)
-            except Exception:
-                return False
-        return isinstance(result, dict) and result.get("success") is True and result.get("staged") is not True
-
-    def notify_memory_tool_write(self, tool_result: Any, tool_args: Dict[str, Any], *,
-                                 build_metadata: Optional[Callable[[], Dict[str, Any]]] = None) -> None:
-        """Mirror a built-in memory tool call to external providers.
-
-        Gates on a committed write, expands single-op and batched ``operations`` shapes, keeps only
-        mutating actions, and forwards ``old_text`` plus provenance from ``build_metadata``.
-        ``previous_content`` comes only from the committed store result, never the search
-        argument: a partial provider registry cannot safely resolve that argument itself.
-        """
-        if not self._memory_tool_result_succeeded(tool_result):
-            return
-        result = json.loads(tool_result) if isinstance(tool_result, str) else tool_result
-        target = str(tool_args.get("target") or "memory")
-        operations = tool_args.get("operations")
-        batched = isinstance(operations, list) and bool(operations)
-        for index, op in enumerate(operations if batched else [tool_args], start=1):
-            action = str(op.get("action") or "") if isinstance(op, dict) else ""
-            if action not in self._MIRRORED_MEMORY_ACTIONS:
-                continue
-            try:
-                metadata = dict(build_metadata() if build_metadata else {})
-                metadata.pop("previous_content", None)
-                old_text = op.get("old_text")
-                if old_text:
-                    metadata["old_text"] = str(old_text)
-                field = {"replace": "replaced", "remove": "removed"}.get(action)
-                if field:
-                    if batched:
-                        entries = result.get(f"{field}_entries", {})
-                        previous = entries.get(str(index), entries.get(index)) if isinstance(entries, dict) else None
-                    else:
-                        previous = result.get(f"{field}_entry")
-                    if isinstance(previous, str) and previous:
-                        metadata["previous_content"] = previous
-                self.on_memory_write(action, target, str(op.get("content") or op.get("new_text") or ""), metadata=metadata)
-            except Exception as e:
-                logger.debug("notify_memory_tool_write failed for op %s: %s", action, e)
 
     def on_delegation(self, task: str, result: str, *, child_session_id: str = "", **kwargs) -> None:
         task, result = _redact_for_provider(task, result)

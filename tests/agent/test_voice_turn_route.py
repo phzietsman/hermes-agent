@@ -17,7 +17,7 @@ from tests.fakes.fake_llm_provider import FakeLLMServer, Text, write_hermes_home
 def _agent(home: Path, main_url: str):
     return AIAgent(
         model="fake-model", provider="custom", base_url=main_url, api_key="sk-fake-e2e",
-        quiet_mode=True, skip_context_files=True, skip_memory=True, enabled_toolsets=["memory"],
+        quiet_mode=True, skip_context_files=True, skip_memory=True, enabled_toolsets=["clarify"],
     )
 
 

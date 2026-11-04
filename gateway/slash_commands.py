@@ -849,19 +849,6 @@ class GatewaySlashCommandsMixin(
         self._track_background_task(_run_side_question())
         return t("gateway.btw.started", preview=preview)
 
-    async def _handle_memory_command(self, event: MessageEvent) -> str:
-        """Handle /memory — review pending memory writes + toggle the approval gate. Entries are small
-        enough to review inline, so the full flow works on every platform."""
-        from hermes_cli.write_approval_commands import handle_pending_subcommand
-        from tools import write_approval as wa
-        from tools.memory_tool import load_on_disk_store
-        # Apply approved writes against a fresh on-disk store (the gateway has no long-lived agent;
-        # the store persists to the same MEMORY/USER.md and honors the configured char limits).
-        out = handle_pending_subcommand(
-            wa.MEMORY, event.get_command_args().strip().split(), memory_store=load_on_disk_store(),
-            set_mode_fn=self._write_approval_setter("memory", event))
-        return out if out is not None else t("gateway.memory.unknown_subcommand")
-
     async def _handle_skills_command(self, event: MessageEvent) -> str:
         """Handle /skills on the gateway — pending skill-write review only (hub stays CLI-only). Gated
         by ``skills.write_approval`` but still answers when staged writes exist after the gate is off

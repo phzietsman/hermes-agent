@@ -21,8 +21,8 @@ from tools import write_approval as wa
 def homes(tmp_path, monkeypatch):
     launch = tmp_path / "launch"
     routed = tmp_path / "profiles" / "beta"
-    (launch / "pending" / "memory").mkdir(parents=True)
-    (routed / "pending" / "memory").mkdir(parents=True)
+    (launch / "pending" / "skills").mkdir(parents=True)
+    (routed / "pending" / "skills").mkdir(parents=True)
     monkeypatch.setenv("HERMES_HOME", str(launch))
     return launch, routed
 
@@ -46,19 +46,19 @@ def _event(text):
 async def test_idle_dispatch_runs_table_handlers_under_the_routed_runtime(homes):
     launch, routed = homes
     with _profile_runtime_scope(routed):
-        staged = wa.stage_write(wa.MEMORY, {"action": "add", "target": "memory", "content": "beta"},
+        staged = wa.stage_write(wa.SKILLS, {"action": "create", "name": "beta-skill", "content": "---\nname: beta-skill\n---\n"},
                                 summary="beta-only", origin="foreground")
     runner = _runner(routed)
-    event = _event("/memory pending")
+    event = _event("/skills pending")
 
     # Ambient scope is the LAUNCH home (what the receiving bot's handler binds); the dispatcher
     # must still resolve the routed runtime for the handler.
     with _profile_runtime_scope(launch):
-        handled, reply = await runner._hm_dispatch_canonical_command(event, event.source, "k", "memory")
+        handled, reply = await runner._hm_dispatch_canonical_command(event, event.source, "k", "skills")
         assert get_hermes_home() == launch  # scope restored after dispatch
 
     assert handled and staged["id"] in reply
-    assert not list((launch / "pending" / "memory").glob("*.json"))
+    assert not list((launch / "pending" / "skills").glob("*.json"))
 
 
 @pytest.mark.asyncio
