@@ -521,7 +521,7 @@ def apply_llm_output_transform(
 
 def finalize_turn(
     agent, *, final_response, api_call_count, interrupted, failed, messages, conversation_history,
-    effective_task_id, turn_id, user_message, original_user_message, _should_review_memory,
+    effective_task_id, turn_id, user_message, original_user_message,
     _turn_exit_reason, _pending_verification_response=None,
     _pending_verification_response_previewed=False,
 ):

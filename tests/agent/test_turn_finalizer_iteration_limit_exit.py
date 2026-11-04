@@ -108,7 +108,6 @@ def _finalize(
         turn_id="turn",
         user_message="task",
         original_user_message="task",
-        _should_review_memory=False,
         _turn_exit_reason=exit_reason,
         _pending_verification_response=pending_verification_response,
     )
@@ -154,7 +153,6 @@ def test_pending_response_does_not_mask_later_terminal_exit(
         turn_id="turn",
         user_message="task",
         original_user_message="task",
-        _should_review_memory=False,
         _turn_exit_reason=exit_reason,
         _pending_verification_response="stale premature report",
     )
@@ -218,7 +216,6 @@ def test_published_pending_candidate_is_not_duplicated_by_finalizer(monkeypatch)
         turn_id="turn",
         user_message="task",
         original_user_message="task",
-        _should_review_memory=False,
         _turn_exit_reason="unknown",
         _pending_verification_response=report,
     )
@@ -258,7 +255,6 @@ def test_bounded_fallback_records_kanban_failure_when_interrupted(monkeypatch):
         turn_id="turn",
         user_message="task",
         original_user_message="task",
-        _should_review_memory=False,
         _turn_exit_reason="interrupted_by_user",
     )
 
@@ -298,7 +294,6 @@ def test_bounded_fallback_records_kanban_failure_when_failed(monkeypatch):
         turn_id="turn",
         user_message="task",
         original_user_message="task",
-        _should_review_memory=False,
         _turn_exit_reason="provider_failure",
     )
 
@@ -331,7 +326,6 @@ def test_bounded_fallback_does_not_fire_without_kanban_task(monkeypatch):
         turn_id="turn",
         user_message="task",
         original_user_message="task",
-        _should_review_memory=False,
         _turn_exit_reason="interrupted_by_user",
     )
 
@@ -363,7 +357,6 @@ def test_bounded_fallback_does_not_fire_when_budget_not_exhausted(monkeypatch):
         turn_id="turn",
         user_message="task",
         original_user_message="task",
-        _should_review_memory=False,
         _turn_exit_reason="interrupted_by_user",
     )
 
@@ -399,7 +392,6 @@ def test_budget_exhausted_child_does_not_record_parent_kanban_timeout(monkeypatc
             turn_id="turn",
             user_message="task",
             original_user_message="task",
-            _should_review_memory=False,
             _turn_exit_reason="interrupted_by_user",
         )
 

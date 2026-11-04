@@ -97,3 +97,13 @@ def test_config_aliases_map_to_iteration_interval() -> None:
     ).iteration_interval == 7
     cfg = {"skills": {"creation_nudge_interval": 7}, "learning": {"iteration_interval": 2, "bogus": 1}}
     assert settings_from_config(cfg).iteration_interval == 2
+
+
+def test_shipped_defaults_are_valid_and_defer_to_the_legacy_aliases() -> None:
+    from hermes_cli.config_defaults import DEFAULT_CONFIG
+
+    defaults = DEFAULT_CONFIG["learning"]
+    ReviewSettings.model_validate({k: v for k, v in defaults.items() if v is not None})
+    assert defaults["iteration_interval"] is None  # a non-None default would mask the aliases
+    # a user who disabled reviews via the old key still gets them disabled
+    assert settings_from_config({**DEFAULT_CONFIG, "memory": {"nudge_interval": 0}}).iteration_interval == 0

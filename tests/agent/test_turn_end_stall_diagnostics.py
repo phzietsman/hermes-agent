@@ -133,7 +133,6 @@ def _finalize(agent):
         turn_id="turn-1",
         user_message="do a thing",
         original_user_message="do a thing",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(finish_reason=stop)",
     )
 

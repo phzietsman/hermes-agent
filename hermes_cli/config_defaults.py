@@ -1302,17 +1302,14 @@ DEFAULT_CONFIG = {
     "memory": {  # Persistent memory — bounded curated memory injected into the system prompt
         "memory_enabled": True,
         "user_profile_enabled": True,
-        # Approval gate for memory writes on BOTH foreground turns and the background review fork.
-        # true = foreground writes prompt inline; background writes are staged (/memory
-        # pending|approve <id>|reject <id>). To disable memory: memory_enabled.
+        # Approval gate for memory writes (foreground and background review fork). true = foreground
+        # prompts inline, background is staged (/memory pending|approve|reject <id>). Off: memory_enabled.
         "write_approval": False,
-        "memory_char_limit": 2200,   # ~800 tokens at 2.75 chars/token
-        "user_char_limit": 1375,     # ~500 tokens at 2.75 chars/token
-        # Periodic built-in memory review; 0 when an external provider auto-extracts.
+        "memory_char_limit": 2200, "user_char_limit": 1375,  # ~800 / ~500 tokens at 2.75 chars/token
+        # Deprecated alias of learning.iteration_interval (counts tool iterations, not turns).
         "nudge_interval": 10,
-        # External memory provider plugin (empty = built-in only); only ONE at a time: "holographic",
-        # "retaindb", "byterover", or a catalog-installed one ("honcho", "hindsight", "supermemory",
-        # "mem0", "openviking").
+        # External memory provider plugin (empty = built-in only); only ONE at a time ("holographic",
+        # "retaindb", "byterover", or a catalog-installed one such as "honcho", "mem0").
         "provider": "",
     },
     # Subagent delegation — override the provider:model used by delegate_task so children run on a
@@ -1436,6 +1433,9 @@ DEFAULT_CONFIG = {
     },
     # Skills — external skill directories shared across tools/agents. Paths are expanded (~, ${VAR})
     # and resolved; read-only — creation goes to ~/.hermes/skills/ unless create_dir redirects it.
+    # Background learning loop (agent/learning). iteration_interval None = fall back to
+    # skills.creation_nudge_interval, then memory.nudge_interval; 0 disables it (idle_seconds likewise).
+    "learning": {"iteration_interval": None, "idle_seconds": 900, "max_attempts": 5, "backoff_base_s": 30.0, "review_on_boundary": True},
     "skills": {
         "external_dirs": [],   # e.g. ["~/.agents/skills", "/shared/team-skills"]
         # Where skill_manage-created skills go (empty = profile-local dir). When set, new skills

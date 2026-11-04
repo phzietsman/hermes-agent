@@ -669,7 +669,6 @@ def test_empty_final_response_updates_already_flushed_blank_assistant_row(tmp_pa
         turn_id="turn",
         user_message="summarize",
         original_user_message="summarize",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(final)",
     )
 
@@ -913,7 +912,6 @@ def test_flush_archived_same_session_row_id_fills_active_clone(tmp_path):
         turn_id="turn",
         user_message="summarize",
         original_user_message="summarize",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(final)",
     )
 

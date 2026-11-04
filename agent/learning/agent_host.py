@@ -62,7 +62,7 @@ def settings_from_config(agent_cfg: dict[str, Any]) -> ReviewSettings:
     base: dict[str, Any] = {
         "iteration_interval": skills.get("creation_nudge_interval", memory.get("nudge_interval", 10)),
     }
-    base.update({k: v for k, v in learning.items() if k in ReviewSettings.model_fields})
+    base.update({k: v for k, v in learning.items() if v is not None and k in ReviewSettings.model_fields})
     return ReviewSettings.model_validate(base)
 
 

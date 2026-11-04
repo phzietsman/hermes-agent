@@ -72,7 +72,6 @@ def _run_finalize(agent: AIAgent) -> None:
         turn_id="test-turn",
         user_message="test",
         original_user_message="test",
-        _should_review_memory=True,
         _turn_exit_reason="text_response(1)",
     )
 
