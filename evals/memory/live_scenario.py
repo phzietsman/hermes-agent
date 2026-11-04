@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from .judge import JevJudge, JudgeScorer
@@ -32,7 +33,9 @@ def main() -> int:
     ap.add_argument("--model", required=True)
     ap.add_argument("--seed", type=int, default=1234)
     ns = ap.parse_args()
-    result = run(ns.scenario, LiveArm(ns.home, ns.model), ns.seed)
+    arm = LiveArm(ns.home, ns.model)
+    result = run(ns.scenario, arm, ns.seed)
+    print("TOOLS " + json.dumps({"tell": dict(arm.tell_tools), "ask": dict(arm.ask_tools), "files": arm.memory_files()}))
     print("RESULT " + result.model_dump_json())
     return 0
 

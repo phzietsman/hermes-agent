@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import importlib
 import os
 import threading
@@ -30,6 +31,8 @@ class LiveArm:
         self._agent: Any = None
         self._messages: list[dict[str, Any]] = []
         self._told: dict[str, str] = {}
+        self.ask_tools: collections.Counter[str] = collections.Counter()
+        self.tell_tools: collections.Counter[str] = collections.Counter()
 
     def _new_agent(self) -> Any:
         if self._db is None:
@@ -74,12 +77,26 @@ class LiveArm:
                 return
             time.sleep(1.0)
 
+    def _count_tools(self, since: int, into: collections.Counter[str]) -> None:
+        for m in self._messages[since:]:
+            calls: list[dict[str, Any]] = m.get("tool_calls") or []
+            for call in calls:
+                into[str(call["function"]["name"])] += 1
+
     def tell(self, key: str, statement: str) -> None:
         self._told[key] = statement
+        before = len(self._messages)
         self._chat(statement)
+        self._count_tools(before, self.tell_tools)
+
+    def memory_files(self) -> dict[str, int]:
+        return {p.name: p.stat().st_size for p in sorted((self._home / "memories").glob("*.md"))}
 
     def ask(self, key: str, question: str) -> str | None:
-        return self._chat(question) or None
+        before = len(self._messages)
+        reply = self._chat(question)
+        self._count_tools(before, self.ask_tools)
+        return reply or None
 
     def writes_claimed(self) -> int:
         return len(self._told)
