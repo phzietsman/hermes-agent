@@ -1,7 +1,6 @@
 """MemoryManager — fans the agent's memory hooks out to registered providers.
 
-The builtin provider is always allowed; only ONE external plugin provider may be
-registered at a time (tool-schema bloat, conflicting backends).
+Exactly one provider may be registered (``memory.provider``): one tool surface, one backend.
 """
 
 from __future__ import annotations
@@ -123,8 +122,7 @@ def inject_memory_provider_tools(agent: Any) -> int:
         # Say so once: a silent 0 leaves the provider looking "half on" with no clue which
         # config key (platform_toolsets / disabled_toolsets) gated it.
         # See #81014.
-        _providers = [p for p in getattr(memory_manager, "providers", None) or []
-                      if getattr(p, "name", "") != "builtin"]
+        _providers = list(getattr(memory_manager, "providers", None) or [])
         if _providers:
             logger.info(
                 "Memory provider(s) %s configured but the 'memory' toolset is "
@@ -397,7 +395,6 @@ class MemoryManager:
         self._providers: List[MemoryProvider] = []
         self._tool_to_provider: Dict[str, MemoryProvider] = {}
         self._external_prefetch_spill_config: Optional[Dict[str, Any]] = None
-        self._has_external: bool = False
         timeout = external_prefetch_timeout
         timeout = _EXTERNAL_PREFETCH_TIMEOUT_S if timeout is None else float(timeout)
         if timeout <= 0:
@@ -406,7 +403,7 @@ class MemoryManager:
         self._external_prefetch_threads: Dict[str, threading.Thread] = {}
         self._external_prefetch_lock = threading.Lock()
         # Single-worker background executor for end-of-turn sync/prefetch, created lazily so
-        # the builtin-only path spawns no threads; one worker serializes a provider's writes.
+        # a manager with no provider spawns no threads; one worker serializes a provider's writes.
         self._sync_executor: Optional[ThreadPoolExecutor] = None
         self._sync_executor_lock = threading.Lock()
         # Futures by durability class ("write" / "prefetch") so shutdown can drain FIFO
@@ -430,25 +427,21 @@ class MemoryManager:
         return results
 
     def add_provider(self, provider: MemoryProvider) -> None:
-        """Register a provider; builtin always accepted, only ONE external allowed."""
-        if provider.name != "builtin" and self._has_external:
-            existing = next((p.name for p in self._providers if p.name != "builtin"), "unknown")
+        """Register the memory provider; a second one is rejected."""
+        if self._providers:
             logger.warning(
-                "Rejected memory provider '%s' — external provider '%s' is "
-                "already registered. Only one external memory provider is "
-                "allowed at a time. Configure which one via memory.provider "
-                "in config.yaml.", provider.name, existing,
+                "Rejected memory provider '%s' — '%s' is already registered. Only one memory "
+                "provider is allowed; choose it with memory.provider in config.yaml.",
+                provider.name, self._providers[0].name,
             )
             return
 
         # Load schemas BEFORE mutating any manager state: a provider whose schema
-        # load raises must leave `_providers` / `_has_external` untouched, otherwise
-        # it blocks every later external provider in this process (#9948).
+        # load raises must leave `_providers` untouched, otherwise it blocks every later
+        # provider in this process (#9948).
         schemas = list(provider.get_tool_schemas())
 
-        if provider.name != "builtin":
-            self._has_external = True
-            self._external_prefetch_spill_config = get_spill_config()
+        self._external_prefetch_spill_config = get_spill_config()
 
         self._providers.append(provider)
 
@@ -511,9 +504,6 @@ class MemoryManager:
     def _prefetch_provider(self, provider: MemoryProvider, query: str, *, session_id: str = "") -> str:
         """Run one provider's prefetch; external providers are bounded by a timeout. A stuck external
         call keeps running on its daemon thread and the provider is skipped on later turns until it returns."""
-        if provider.name == "builtin":
-            return provider.prefetch(query, session_id=session_id)
-
         result_box: Dict[str, Any] = {}
 
         def _run() -> None:

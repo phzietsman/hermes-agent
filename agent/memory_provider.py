@@ -39,13 +39,13 @@ PRE_COMPRESS_CHECKPOINT_API_VERSION = 2
 # Default glyph for recall indicators; providers may use their own brand mark.
 INDICATOR_GLYPH = "🧠"
 
-# ``memory.provider`` values that mean "the built-in store, no external plugin". The built-in
-# store is core: doctor, migration and dependency refresh must never look these up as plugins.
+# ``memory.provider`` values that mean "no memory provider" ("builtin"/"built-in"/"default" are
+# legacy spellings). Doctor and dependency refresh must never look these up as plugins.
 CORE_MEMORY_PROVIDER_SENTINELS = frozenset({"", "default", "builtin", "built-in", "none"})
 
 
 def is_core_memory_provider(name: Optional[str]) -> bool:
-    """True when ``memory.provider`` selects the built-in store rather than an external plugin."""
+    """True when ``memory.provider`` selects no provider (empty or a legacy built-in spelling)."""
     return str(name or "").strip().lower() in CORE_MEMORY_PROVIDER_SENTINELS
 
 
@@ -91,7 +91,7 @@ class MemoryProvider(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
-        """Short identifier for this provider (e.g. 'builtin', 'honcho', 'hindsight')."""
+        """Short identifier for this provider (e.g. 'agent_memory')."""
 
     # -- Core lifecycle (implement these) ------------------------------------
 

@@ -121,6 +121,15 @@ class BlockingPrefetchProvider(FakeMemoryProvider):
 # ---------------------------------------------------------------------------
 
 
+class TestSingleProvider:
+    def test_a_second_provider_is_rejected(self):
+        mgr = MemoryManager()
+        first, second = FakeMemoryProvider("first"), FakeMemoryProvider("second")
+        mgr.add_provider(first)
+        mgr.add_provider(second)
+        assert mgr.providers == [first]
+
+
 class TestMemoryManager:
     def test_empty_manager(self):
         mgr = MemoryManager()
@@ -153,23 +162,6 @@ class TestMemoryManager:
         mgr.add_provider(ok)
         assert mgr.get_provider("ok") is ok
 
-    def test_on_turn_start_passes_each_provider_only_the_kwargs_it_accepts(self):
-        """A provider with the two-positional ``on_turn_start`` still runs; one declaring the author kwargs gets them."""
-        class AuthorAwareProvider(FakeMemoryProvider):
-            def on_turn_start(self, turn_number, message, *, author_id=None, **kwargs):
-                self.turn_starts.append((turn_number, message, author_id))
-
-        mgr = MemoryManager()
-        legacy, aware = FakeMemoryProvider("builtin"), AuthorAwareProvider("aware")
-        mgr.add_provider(legacy)
-        mgr.add_provider(aware)
-
-        mgr.on_turn_start(1, "hello", author_id="bot:scout", author_name="scout", author_is_bot=True)
-
-        assert legacy.turn_starts == [(1, "hello")]
-        assert aware.turn_starts == [(1, "hello", "bot:scout")]
-
-
     @staticmethod
     def _set_spill_config(monkeypatch, tmp_path, *, max_chars):
         monkeypatch.setattr(
@@ -191,59 +183,6 @@ class TestMemoryManager:
         spill_files = list((tmp_path / "session-1").glob("*.txt"))
         assert len(spill_files) == 1
         assert spill_files[0].read_text(encoding="utf-8") == provider._prefetch_result + "\n"
-
-    def test_builtin_prefetch_is_not_spilled(self, tmp_path, monkeypatch):
-        self._set_spill_config(monkeypatch, tmp_path, max_chars=10)
-        mgr = MemoryManager()
-        provider = FakeMemoryProvider("builtin")
-        provider._prefetch_result = "built-in memory has its own configured limit"
-        mgr.add_provider(provider)
-
-        assert mgr.prefetch_all("what do you remember?", session_id="s") == provider._prefetch_result
-        assert not list(tmp_path.rglob("*.txt"))
-
-    def test_prefetch_merges_results(self):
-        mgr = MemoryManager()
-        p1 = FakeMemoryProvider("builtin")
-        p1._prefetch_result = "Memory from builtin"
-        p2 = FakeMemoryProvider("external")
-        p2._prefetch_result = "Memory from external"
-        mgr.add_provider(p1)
-        mgr.add_provider(p2)
-
-        result = mgr.prefetch_all("what do you know?")
-        assert "Memory from builtin" in result
-        assert "Memory from external" in result
-        assert p1.prefetch_queries == ["what do you know?"]
-        assert p2.prefetch_queries == ["what do you know?"]
-
-
-    def test_queue_prefetch_all(self):
-        mgr = MemoryManager()
-        p1 = FakeMemoryProvider("builtin")
-        p2 = FakeMemoryProvider("external")
-        mgr.add_provider(p1)
-        mgr.add_provider(p2)
-
-        mgr.queue_prefetch_all("next turn")
-        mgr.flush_pending(timeout=5)
-        assert p1.queued_prefetches == ["next turn"]
-        assert p2.queued_prefetches == ["next turn"]
-
-
-    def test_sync_failure_doesnt_block_others(self):
-        """If one provider's sync fails, others still run."""
-        mgr = MemoryManager()
-        p1 = FakeMemoryProvider("builtin")
-        p1.sync_turn = MagicMock(side_effect=RuntimeError("boom"))
-        p2 = FakeMemoryProvider("external")
-        mgr.add_provider(p1)
-        mgr.add_provider(p2)
-
-        mgr.sync_all("user", "assistant")
-        mgr.flush_pending(timeout=5)
-        # p1 failed but p2 still synced
-        assert p2.synced_turns == [("user", "assistant")]
 
     def test_sync_all_keeps_legacy_provider_working_when_messages_are_available(self):
         """New optional turn context is not sent to an old provider signature."""
@@ -292,69 +231,10 @@ class TestMemoryManager:
         # Should be handled by p1 (first registered)
 
 
-    def test_tool_routing(self):
-        mgr = MemoryManager()
-        p1 = FakeMemoryProvider("builtin", tools=[
-            {"name": "builtin_tool", "description": "Builtin", "parameters": {}}
-        ])
-        p2 = FakeMemoryProvider("external", tools=[
-            {"name": "ext_tool", "description": "External", "parameters": {}}
-        ])
-        mgr.add_provider(p1)
-        mgr.add_provider(p2)
-
-        r1 = json.loads(mgr.handle_tool_call("builtin_tool", {"a": 1}))
-        assert r1["handled"] == "builtin_tool"
-        r2 = json.loads(mgr.handle_tool_call("ext_tool", {"b": 2}))
-        assert r2["handled"] == "ext_tool"
-
     # -- Lifecycle hooks -----------------------------------------------------
 
 
     # -- Error resilience ---------------------------------------------------
-
-
-    def test_external_prefetch_timeout_skips_stuck_provider(self):
-        mgr = MemoryManager(external_prefetch_timeout=0.01)
-        builtin = FakeMemoryProvider("builtin")
-        builtin._prefetch_result = "builtin memory"
-        external = BlockingPrefetchProvider("hy-memory")
-        external._prefetch_result = "late external memory"
-        mgr.add_provider(builtin)
-        mgr.add_provider(external)
-
-        started = time.monotonic()
-        result = mgr.prefetch_all("query")
-        elapsed = time.monotonic() - started
-
-        assert result == "builtin memory"
-        assert elapsed < 0.5
-        assert external.started.wait(timeout=1.0)
-        assert external.prefetch_queries == ["query"]
-
-        started = time.monotonic()
-        result = mgr.prefetch_all("query 2")
-        elapsed = time.monotonic() - started
-
-        assert result == "builtin memory"
-        assert elapsed < 0.2
-        assert external.prefetch_queries == ["query"]
-
-        external.release.set()
-
-        deadline = time.monotonic() + 1.0
-        while (
-            external.name in mgr._external_prefetch_threads
-            and mgr._external_prefetch_threads[external.name].is_alive()
-            and time.monotonic() < deadline
-        ):
-            time.sleep(0.01)
-
-        result = mgr.prefetch_all("query 3")
-
-        assert result == "builtin memory\n\nlate external memory"
-        assert external.prefetch_queries == ["query", "query 3"]
-        assert external.name not in mgr._external_prefetch_threads
 
 
 class TestPluginMemoryDiscovery:
@@ -753,23 +633,6 @@ class TestSequentialDispatchRouting:
 
 
 
-    def test_tool_names_include_all_providers(self):
-        """get_all_tool_names returns tools from all registered providers."""
-        mgr = MemoryManager()
-        builtin = FakeMemoryProvider("builtin", tools=[
-            {"name": "builtin_tool", "description": "B", "parameters": {}},
-        ])
-        external = FakeMemoryProvider("ext", tools=[
-            {"name": "ext_recall", "description": "E1", "parameters": {}},
-            {"name": "ext_retain", "description": "E2", "parameters": {}},
-        ])
-        mgr.add_provider(builtin)
-        mgr.add_provider(external)
-
-        names = mgr.get_all_tool_names()
-        assert names == {"builtin_tool", "ext_recall", "ext_retain"}
-
-
 # ---------------------------------------------------------------------------
 # Setup wizard field filtering tests (when clause and default_from)
 # ---------------------------------------------------------------------------
@@ -845,19 +708,6 @@ class _CommitRecorder(FakeMemoryProvider):
 
 
 class TestCommitMemorySessionRouting:
-    def test_on_session_end_fans_out(self):
-        mgr = MemoryManager()
-        builtin = _CommitRecorder("builtin")
-        external = _CommitRecorder("openviking")
-        mgr.add_provider(builtin)
-        mgr.add_provider(external)
-
-        msgs = [{"role": "user", "content": "hi"}]
-        mgr.on_session_end(msgs)
-
-        assert builtin.end_calls == [msgs]
-        assert external.end_calls == [msgs]
-
     def test_on_session_end_tolerates_failure(self):
         mgr = MemoryManager()
         builtin = FakeMemoryProvider("builtin")
