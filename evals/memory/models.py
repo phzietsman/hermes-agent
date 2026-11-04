@@ -34,6 +34,9 @@ class ScenarioResult(BaseModel):
     passed: int
     total: int
     requires_live: bool = False
+    seed: int = 0
+    # Free-form counters for diagnosis, e.g. landed / foreground for write-landing.
+    detail: dict[str, int] = Field(default_factory=dict)
 
     @property
     def rate(self) -> float:

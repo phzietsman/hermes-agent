@@ -15,7 +15,7 @@ _THINGS = ["editor", "shell", "mascot", "laptop", "deploy region", "test runner"
 _WORDS = ["zephyr", "quartz", "marlin", "tundra", "ember", "falcon", "cobalt", "juniper"]
 
 
-def _value(rng: random.Random, style: ValueStyle, avoid: str = "") -> str:
+def make_value(rng: random.Random, style: ValueStyle, avoid: str = "") -> str:
     """"code" values (zephyr-417) cannot be guessed by a model; "color" values can (1 in 8)."""
     while True:
         v = rng.choice(_COLORS) if style == "color" else f"{rng.choice(_WORDS)}-{rng.randint(100, 999)}"
@@ -43,7 +43,7 @@ def make_facts(seed: int, n: int, style: ValueStyle = "color") -> list[Fact]:
     facts: list[Fact] = []
     for i in range(n):
         thing = f"{rng.choice(_THINGS)}-{i}"
-        value = _value(rng, style)
+        value = make_value(rng, style)
         facts.append(
             Fact(
                 key=thing,
@@ -79,7 +79,7 @@ def supersession(
         arm.tell(f.key, f.statement)
     arm.start_session()
     for f in facts:
-        new = _value(rng, style, avoid=f.answer)
+        new = make_value(rng, style, avoid=f.answer)
         nf = f.model_copy(update={"statement": f"Update: my {f.key} is now {new}.", "answer": new})
         arm.tell(nf.key, nf.statement)
         updated.append(nf)

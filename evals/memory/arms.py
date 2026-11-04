@@ -13,6 +13,7 @@ class MemoryArm(Protocol):
     def ask(self, key: str, question: str) -> str | None: ...
     def writes_claimed(self) -> int: ...
     def writes_landed(self) -> int: ...
+    def landing_detail(self) -> dict[str, int]: ...
 
 
 class DictArm:
@@ -44,3 +45,6 @@ class DictArm:
 
     def writes_landed(self) -> int:
         return self._landed
+
+    def landing_detail(self) -> dict[str, int]:
+        return {}

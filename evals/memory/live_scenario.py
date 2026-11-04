@@ -6,37 +6,35 @@ import argparse
 import json
 from pathlib import Path
 
+from .aside_scenarios import aside_abstention, aside_recall, aside_supersession
 from .judge import JevJudge, JudgeScorer
 from .live import LiveArm
 from .models import ScenarioResult
-from .scenarios import abstention, recall_across_sessions, supersession, write_landing
 
-SIZES = {"recall": (8, 4), "supersession": (4, 0), "abstention": (4, 0), "write_landing": (8, 0)}
+SCENARIOS = ("recall", "supersession", "abstention")
 
 
-def run(name: str, arm: LiveArm, seed: int) -> ScenarioResult:
+def run(name: str, arm: LiveArm, seed: int) -> list[ScenarioResult]:
     scorer = JudgeScorer(JevJudge())
-    n, sessions = SIZES[name]
     if name == "recall":
-        return recall_across_sessions(arm, seed, n, sessions, scorer, "code")
+        return aside_recall(arm, seed, n=8, per_session=2, scorer=scorer)
     if name == "supersession":
-        return supersession(arm, seed, n, scorer, "code")
-    if name == "abstention":
-        return abstention(arm, seed, n, scorer, "code")
-    return write_landing(arm, seed, n, "code")
+        return aside_supersession(arm, seed, n=4, scorer=scorer)
+    return aside_abstention(arm, seed, n=4, scorer=scorer)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--scenario", choices=sorted(SIZES), required=True)
+    ap.add_argument("--scenario", choices=SCENARIOS, required=True)
     ap.add_argument("--home", type=Path, required=True)
     ap.add_argument("--model", required=True)
-    ap.add_argument("--seed", type=int, default=1234)
+    ap.add_argument("--seed", type=int, required=True)
     ns = ap.parse_args()
     arm = LiveArm(ns.home, ns.model)
-    result = run(ns.scenario, arm, ns.seed)
+    results = run(ns.scenario, arm, ns.seed)
     print("TOOLS " + json.dumps({"tell": dict(arm.tell_tools), "ask": dict(arm.ask_tools), "files": arm.memory_files()}))
-    print("RESULT " + result.model_dump_json())
+    for r in results:
+        print("RESULT " + r.model_dump_json())
     return 0
 
 

@@ -6,6 +6,8 @@ import os
 import threading
 import time
 import uuid
+import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +35,7 @@ class LiveArm:
         self._told: dict[str, str] = {}
         self.ask_tools: collections.Counter[str] = collections.Counter()
         self.tell_tools: collections.Counter[str] = collections.Counter()
+        self._foreground_args: list[str] = []
 
     def _new_agent(self) -> Any:
         if self._db is None:
@@ -81,7 +84,10 @@ class LiveArm:
         for m in self._messages[since:]:
             calls: list[dict[str, Any]] = m.get("tool_calls") or []
             for call in calls:
-                into[str(call["function"]["name"])] += 1
+                name = str(call["function"]["name"])
+                into[name] += 1
+                if name == "memory" and into is self.tell_tools:
+                    self._foreground_args.append(json.dumps(call["function"].get("arguments", "")))
 
     def tell(self, key: str, statement: str) -> None:
         self._told[key] = statement
@@ -101,8 +107,25 @@ class LiveArm:
     def writes_claimed(self) -> int:
         return len(self._told)
 
+    def _memory_text(self) -> str:
+        return "\n".join(p.read_text(encoding="utf-8") for p in sorted((self._home / "memories").glob("*.md")))
+
+    def _told_values(self) -> list[str]:
+        out: list[str] = []
+        for s in self._told.values():
+            m = re.search(r"[a-z]+-\d{3}", s)
+            out.append(m.group(0) if m else s.rstrip(".").split()[-1])
+        return out
+
     def writes_landed(self) -> int:
         """Told facts whose value is present in the persisted memory files once reviews have drained."""
         self.start_session()
-        text = "\n".join(p.read_text(encoding="utf-8") for p in sorted((self._home / "memories").glob("*.md")))
-        return sum(1 for s in self._told.values() if s.rstrip(".").split()[-1] in text)
+        text = self._memory_text()
+        return sum(1 for v in self._told_values() if v in text)
+
+    def landing_detail(self) -> dict[str, int]:
+        """Who wrote the landed facts: the agent in-turn (foreground memory call named the value) or a review."""
+        text = self._memory_text()
+        landed = [v for v in self._told_values() if v in text]
+        foreground = [v for v in landed if any(v in a for a in self._foreground_args)]
+        return {"landed": len(landed), "foreground": len(foreground), "review": len(landed) - len(foreground)}
