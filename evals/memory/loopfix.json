@@ -1,0 +1,115 @@
+{
+  "arm": "loopfix",
+  "seed": 1,
+  "harness_only": false,
+  "results": [
+    {
+      "scenario": "1_recall",
+      "passed": 5,
+      "total": 8,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 6,
+      "total": 8,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {
+        "landed": 6,
+        "foreground": 0,
+        "review": 6
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 6,
+      "total": 8,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {
+        "landed": 7,
+        "foreground": 6,
+        "review": 1
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {
+        "landed": 7,
+        "foreground": 7,
+        "review": 0
+      }
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 4,
+      "total": 4,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 2,
+      "total": 4,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 3,
+      "total": 4,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 4,
+      "total": 4,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 4,
+      "total": 4,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 4,
+      "total": 4,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    }
+  ]
+}
