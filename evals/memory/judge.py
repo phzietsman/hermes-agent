@@ -4,6 +4,8 @@ from typing import Protocol
 
 from typesafe_sdk import Noul, TypeSafeClient
 
+from .models import Fact
+
 # Versioned id, never an alias: `jev-latest` moves on release and would silently shift every score.
 JUDGE_MODEL = "jev-1.14.0"
 
@@ -68,3 +70,20 @@ def verdict(p: float) -> bool | None:
     if p <= NO:
         return False
     return None
+
+
+class JudgeScorer:
+    """Scorer over a Judge: uncertain verdicts count as a miss so noise never inflates a score."""
+
+    def __init__(self, judge: Judge) -> None:
+        self._judge = judge
+
+    def recalled(self, fact: Fact, reply: str | None) -> bool:
+        if reply is None:
+            return False
+        return verdict(self._judge.states_current_value(fact.question, fact.answer, reply)) is True
+
+    def abstained(self, reply: str | None) -> bool:
+        if reply is None:
+            return True
+        return verdict(self._judge.abstains(reply)) is True
