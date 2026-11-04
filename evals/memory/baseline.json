@@ -1,0 +1,55 @@
+{
+  "arm": "baseline",
+  "seed": 1234,
+  "harness_only": true,
+  "results": [
+    {
+      "scenario": "1_recall",
+      "passed": 30,
+      "total": 30,
+      "requires_live": false
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 70,
+      "total": 70,
+      "requires_live": false
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 0,
+      "total": 0,
+      "requires_live": true
+    },
+    {
+      "scenario": "5_procedural",
+      "passed": 0,
+      "total": 0,
+      "requires_live": true
+    },
+    {
+      "scenario": "7_resilience",
+      "passed": 0,
+      "total": 0,
+      "requires_live": true
+    },
+    {
+      "scenario": "8_regression",
+      "passed": 0,
+      "total": 0,
+      "requires_live": true
+    }
+  ]
+}
