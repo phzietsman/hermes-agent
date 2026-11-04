@@ -1,0 +1,319 @@
+from __future__ import annotations
+
+import hashlib
+import logging
+import queue
+import re
+import threading
+from collections.abc import Callable, Sequence
+from pathlib import Path
+from typing import Any
+
+from agent.memory_provider import MemoryProvider, spawn_context_thread  # pyright: ignore[reportUnknownVariableType]
+
+from . import tools
+from .breaker import Breaker
+from .client import MemoryAuthFailed, MemoryClient, MemoryUnavailable, Recall, SurrealMemoryAdapter
+from .config import AgentMemorySettings, RecallMode, config_schema, load_settings, save_config_file
+from .core_profile import CoreProfileCache, format_profile
+from .outbox import Outbox, OutboxEntry, OutboxOp, apply_entry
+
+logger = logging.getLogger(__name__)
+
+ClientFactory = Callable[[AgentMemorySettings], MemoryClient]
+_STOP: Any = object()
+# Skills are mirrored as "Skill '<name>': ..." pointers (the SDK's RecallHit carries no labels).
+_SKILL_HIT = re.compile(r"^Skill '([^']+)':")
+# Contexts that must never write: cron/subagent/flush runs are not the user's conversation.
+_READ_ONLY_CONTEXTS = frozenset({"cron", "subagent", "flush"})
+
+
+def _digest(messages: Sequence[dict[str, Any]]) -> str:
+    h = hashlib.sha256()
+    for m in messages:
+        h.update(f"{m.get('role')}\0{m.get('content')}\0".encode())
+    return h.hexdigest()[:16]
+
+
+def _direct(messages: Sequence[dict[str, Any]]) -> list[dict[str, str]]:
+    """User/assistant prose only: tool rows and system prompts never leave the machine."""
+    return [{"role": str(m["role"]), "content": m["content"]} for m in messages
+            if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str) and m["content"].strip()]
+
+
+class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseClass]
+    def __init__(self, client_factory: ClientFactory | None = None) -> None:
+        self._factory: ClientFactory = client_factory or SurrealMemoryAdapter
+        self._settings: AgentMemorySettings | None = None
+        self._client: MemoryClient | None = None
+        self._breaker = Breaker(3)
+        self._outbox: Outbox | None = None
+        self._cache: CoreProfileCache | None = None
+        self._core_text = ""
+        self._home = Path()
+        self._session_id = ""
+        self._writes_enabled = True
+        self._turns = 0
+        self._jobs: queue.Queue[Any] = queue.Queue()
+        self._worker: threading.Thread | None = None
+        self._warm: tuple[str, str] = ("", "")  # (query, formatted) from queue_prefetch
+        self._remembered: set[str] = set()  # transcript digests already queued this session
+
+    @property
+    def name(self) -> str:
+        return "agent_memory"
+
+    # -- readiness ---------------------------------------------------------------------------------------------
+
+    def _home_dir(self, hermes_home: str | None = None) -> Path:
+        if hermes_home:
+            return Path(hermes_home)
+        from hermes_constants import get_hermes_home  # pyright: ignore[reportUnknownVariableType]
+
+        return Path(get_hermes_home())  # pyright: ignore[reportUnknownArgumentType]
+
+    def is_available(self) -> bool:
+        return load_settings(self._home_dir(str(self._home) if self._home != Path() else None))[0] is not None
+
+    def unavailable_reason(self) -> str:
+        return load_settings(self._home_dir(str(self._home) if self._home != Path() else None))[1]
+
+    # -- lifecycle ---------------------------------------------------------------------------------------------
+
+    def initialize(self, session_id: str, **kwargs: Any) -> None:
+        self._session_id = session_id
+        self._home = self._home_dir(kwargs.get("hermes_home"))
+        self._writes_enabled = kwargs.get("agent_context", "primary") not in _READ_ONLY_CONTEXTS
+        settings, _ = load_settings(self._home)
+        if settings is None:
+            return
+        self._settings = settings
+        self._breaker = Breaker(settings.breaker_threshold)
+        self._outbox = Outbox(self._home / "agent-memory-outbox.jsonl")
+        self._cache = CoreProfileCache(self._home / "core_profile_cache.json")
+        user = kwargs.get("user_id") or kwargs.get("user_id_alt")
+        if user and settings.default_scope == "user/default":
+            self._settings = settings.model_copy(update={"default_scope": f"user/{user}"})
+        try:
+            self._client = self._factory(self._settings)
+        except Exception:  # health: allow BLE001 -- SDK import/config errors must degrade, not break agent init
+            logger.exception("Agent Memory client could not be built; memory disabled")
+            return
+        self._core_text = self._load_core_profile()
+        self._worker = spawn_context_thread(self._work, name="agent-memory-writer")  # pyright: ignore[reportUnknownVariableType]
+        self._worker.start()
+        self._jobs.put(self._replay)
+
+    def _load_core_profile(self) -> str:
+        """Frozen for the session (a mid-session change would break the cached prompt prefix); the
+        cache file lets a degraded start still get the last good profile."""
+        assert self._client and self._settings and self._cache
+        try:
+            text = format_profile(self._client.profile(), self._settings.core_profile_max_chars)
+        except MemoryUnavailable as exc:
+            self._breaker.record_failure("profile", auth=isinstance(exc, MemoryAuthFailed))
+            return self._cache.load()
+        self._breaker.record_ok()
+        if text:
+            self._cache.save(text)
+        return text
+
+    def shutdown(self) -> None:
+        if self._worker is not None and self._worker.is_alive():
+            self._jobs.put(_STOP)
+            self._worker.join(timeout=5.0)
+        if self._client is not None:
+            self._client.close()
+
+    def _active(self) -> bool:
+        return self._client is not None and self._settings is not None and not self._breaker.is_open
+
+    # -- recall ------------------------------------------------------------------------------------------------
+
+    def system_prompt_block(self) -> str:
+        if self._client is None:
+            return ""
+        guide = (
+            "You have persistent long-term memory (SurrealDB Agent Memory). Call agent_memory_remember for "
+            "durable facts, corrections, preferences and lessons; recalled memory appears under "
+            "\"## Recalled memory\". Procedures belong in skills (skill_manage), not memory."
+        )
+        return f"{guide}\n\n{self._core_text}" if self._core_text else guide
+
+    def _recall_text(self, query: str) -> str:
+        assert self._client and self._settings
+        s = self._settings
+        lens = [s.default_scope]
+        if s.recall_mode is RecallMode.CONTEXT:
+            body = self._client.query_context(query, k=s.top_k, lens=lens).strip()
+            return f"## Recalled memory\n{body}"[: s.max_prefetch_chars] if body else ""
+        return self._format_hits(self._client.recall(query, k=s.top_k, lens=lens), s.max_prefetch_chars)
+
+    @staticmethod
+    def _format_hits(recall: Recall, limit: int) -> str:
+        lines: list[str] = []
+        skills: list[str] = []
+        for h in recall.hits:
+            if m := _SKILL_HIT.match(h.text):
+                skills.append(m.group(1))
+            lines.append(f"- {h.text.strip()} ({h.score:.2f})")
+        if not lines:
+            return ""
+        out = "## Recalled memory\n" + "\n".join(lines)
+        if skills:
+            out += f"\nRelevant skills: {', '.join(dict.fromkeys(skills))} (load with skill_view)"
+        return out[:limit]
+
+    def prefetch(self, query: str, *, session_id: str = "") -> str:
+        if not self._active() or not query.strip() or self._settings is None:
+            return ""
+        if self._settings.recall_mode is RecallMode.TOOLS:
+            return ""
+        if self._warm[0] == query:
+            return self._warm[1]
+        try:
+            text = self._recall_text(query)
+        except MemoryUnavailable as exc:
+            self._breaker.record_failure("prefetch", auth=isinstance(exc, MemoryAuthFailed))
+            return ""
+        self._breaker.record_ok()
+        return text
+
+    def queue_prefetch(self, query: str, *, session_id: str = "") -> None:
+        if not self._active() or not query.strip():
+            return
+
+        def _warm() -> None:
+            try:
+                self._warm = (query, self._recall_text(query))
+            except MemoryUnavailable as exc:
+                self._breaker.record_failure("prefetch", auth=isinstance(exc, MemoryAuthFailed))
+
+        spawn_context_thread(_warm, name="agent-memory-prefetch").start()  # pyright: ignore[reportUnknownMemberType]
+
+    # -- writes (all through the outbox) -----------------------------------------------------------------------
+
+    def _work(self) -> None:
+        while (job := self._jobs.get()) is not _STOP:
+            try:
+                job()
+            except Exception:  # health: allow BLE001 -- a bad job must not kill the writer; traceback logged
+                logger.exception("Agent Memory writer job failed")
+
+    def _write(self, op: OutboxOp, payload: dict[str, Any]) -> None:
+        """Queue-or-send. A failure (or an open breaker) leaves the write in the outbox for replay."""
+        if self._outbox is None or not self._writes_enabled:
+            return
+        if not self._outbox.append(op, payload):
+            return  # an identical write is already waiting
+        if self._active():
+            self._jobs.put(self._replay)
+
+    def _replay(self) -> None:
+        if self._outbox is None or not self._active():
+            return
+
+        def _apply(entry: OutboxEntry) -> None:
+            assert self._client
+            try:
+                apply_entry(self._client, entry)
+            except MemoryUnavailable as exc:
+                self._breaker.record_failure(entry.op, auth=isinstance(exc, MemoryAuthFailed))
+                raise
+            self._breaker.record_ok()
+
+        self._outbox.replay(_apply)
+
+    def _scope(self) -> str | None:
+        return self._settings.default_scope if self._settings else None
+
+    def sync_turn(self, user_content: str, assistant_content: str, *, session_id: str = "",
+                  messages: list[dict[str, Any]] | None = None, turn_author: dict[str, Any] | None = None) -> None:
+        if self._settings is None:
+            return
+        items = _direct([{"role": "user", "content": user_content}, {"role": "assistant", "content": assistant_content}])
+        if self._settings.send_tool_outputs and messages:
+            items += [{"role": "tool", "content": str(m["content"])[:2000]} for m in messages
+                      if m.get("role") == "tool" and isinstance(m.get("content"), str)][-5:]
+        if items:
+            self._write("remember_many", {"items": items, "session_id": session_id or self._session_id,
+                                          "scopes": self._scope(), "labels": ["origin=turn"]})
+
+    def _remember_transcript(self, messages: list[dict[str, Any]]) -> None:
+        items = _direct(messages)
+        digest = _digest(messages)
+        # pre-compress and session-end often see the same transcript; the outbox only dedupes while an
+        # entry is still pending, so remember what was already queued once the writer has sent it.
+        if items and digest not in self._remembered:
+            self._remembered.add(digest)
+            self._write("remember_many", {"items": items, "session_id": self._session_id, "scopes": self._scope(),
+                                          "labels": [f"digest={digest}", "origin=session"]})
+
+    def on_pre_compress(self, messages: list[dict[str, Any]]) -> str:
+        self._remember_transcript(messages)
+        return ""
+
+    def on_session_end(self, messages: list[dict[str, Any]]) -> None:
+        self._remember_transcript(messages)
+        if self._settings and self._settings.consolidate_on_end and self._writes_enabled:
+            self._jobs.put(self._consolidate)
+
+    def _consolidate(self) -> None:
+        if not self._active():
+            return
+        self._replay()  # land pending writes first so consolidation sees them
+        assert self._client
+        try:
+            self._client.consolidate()
+        except MemoryUnavailable as exc:
+            self._breaker.record_failure("consolidate", auth=isinstance(exc, MemoryAuthFailed))
+
+    def on_session_switch(self, new_session_id: str, *, parent_session_id: str = "", reset: bool = False,
+                          rewound: bool = False, **kwargs: Any) -> None:
+        self._session_id = new_session_id
+
+    def on_turn_start(self, turn_number: int, message: str, **kwargs: Any) -> None:
+        self._turns += 1
+        if self._settings and self._turns % self._settings.replay_every_n_turns == 0:
+            self._jobs.put(self._replay)
+
+    # -- tools -------------------------------------------------------------------------------------------------
+
+    def get_tool_schemas(self) -> list[dict[str, Any]]:
+        return [dict(s) for s in tools.SCHEMAS]
+
+    def handle_tool_call(self, tool_name: str, args: dict[str, Any], **kwargs: Any) -> str:
+        if tool_name not in tools.TOOL_NAMES:
+            return tools.error(f"unknown tool {tool_name}")
+        if not self._active() or self._client is None or self._settings is None:
+            return tools.error("Agent Memory is unavailable")
+        try:
+            if tool_name == "agent_memory_recall":
+                out = tools.recall(self._client, args, self._settings.top_k, [self._settings.default_scope])
+            elif tool_name == "agent_memory_reflect":
+                out = tools.reflect(self._client, args)
+            elif tool_name == "agent_memory_forget":
+                self._write("forget", {"query": str(args["query"]), "purge": bool(args.get("purge", False))})
+                out = tools.result({"queued": True})
+            else:
+                from tools.skill_provenance import get_current_write_origin  # pyright: ignore[reportUnknownVariableType]
+
+                origin = str(get_current_write_origin())  # pyright: ignore[reportUnknownArgumentType]
+                kind = str(args.get("kind") or "fact")
+                payload = tools.remember_args(str(args["text"]), kind, origin)
+                self._write("remember", {**payload, "scopes": self._scope(), "session_id": self._session_id})
+                out = tools.result({"queued": True})
+        except MemoryUnavailable as exc:
+            self._breaker.record_failure(tool_name, auth=isinstance(exc, MemoryAuthFailed))
+            return tools.error(str(exc))
+        self._breaker.record_ok()
+        return out
+
+    # -- config ------------------------------------------------------------------------------------------------
+
+    def get_config_schema(self) -> list[dict[str, Any]]:
+        return config_schema()
+
+    def save_config(self, values: dict[str, Any], hermes_home: str) -> None:
+        save_config_file(values, Path(hermes_home))
+

@@ -2098,6 +2098,10 @@ dependencies = [
 acp = [
     { name = "agent-client-protocol" },
 ]
+agent-memory = [
+    { name = "surrealdb", extra = ["memory"] },
+    { name = "surrealdb-memory" },
+]
 all = [
     { name = "agent-client-protocol" },
     { name = "aiohttp" },
@@ -2454,6 +2458,8 @@ requires-dist = [
     { name = "starlette", marker = "extra == 'computer-use'", specifier = "==1.3.1" },
     { name = "starlette", marker = "extra == 'mcp'", specifier = "==1.3.1" },
     { name = "starlette", marker = "extra == 'web'", specifier = "==1.3.1" },
+    { name = "surrealdb", extras = ["memory"], marker = "extra == 'agent-memory'", specifier = "==3.0.0b10" },
+    { name = "surrealdb-memory", marker = "extra == 'agent-memory'", specifier = "==1.0.0b1" },
     { name = "tenacity", marker = "python_full_version >= '3.14'", specifier = "==9.1.4" },
     { name = "tomli-w", marker = "python_full_version >= '3.14'", specifier = "==1.2.0" },
     { name = "truststore", marker = "python_full_version >= '3.14'", specifier = "==0.10.4" },
@@ -2467,7 +2473,7 @@ requires-dist = [
     { name = "websockets", marker = "extra == 'google-meet'", specifier = "==15.0.1" },
     { name = "youtube-transcript-api", marker = "extra == 'youtube'", specifier = "==1.2.4" },
 ]
-provides-extras = ["uvloop", "anthropic", "exa", "firecrawl", "parallel-web", "ddgs", "fal", "edge-tts", "neutts", "kittentts", "piper", "modal", "daytona", "vercel", "google-meet", "messaging", "cron", "slack", "tts-premium", "voice", "wake", "telegram", "discord", "stt-whisper", "audio-io", "silk", "wake-openwakeword", "wake-sherpa", "wake-porcupine", "doc-extract", "trace-upload", "vision", "pty", "mcp", "nemo-relay", "whatsapp", "teams", "computer-use", "acp", "mistral", "otlp", "langfuse", "bedrock", "vertex", "azure-identity", "termux", "termux-all", "google", "youtube", "web", "all"]
+provides-extras = ["agent-memory", "uvloop", "anthropic", "exa", "firecrawl", "parallel-web", "ddgs", "fal", "edge-tts", "neutts", "kittentts", "piper", "modal", "daytona", "vercel", "google-meet", "messaging", "cron", "slack", "tts-premium", "voice", "wake", "telegram", "discord", "stt-whisper", "audio-io", "silk", "wake-openwakeword", "wake-sherpa", "wake-porcupine", "doc-extract", "trace-upload", "vision", "pty", "mcp", "nemo-relay", "whatsapp", "teams", "computer-use", "acp", "mistral", "otlp", "langfuse", "bedrock", "vertex", "azure-identity", "termux", "termux-all", "google", "youtube", "web", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -6061,6 +6067,39 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/eb/e3/7c1dc7381d9f8ab7d854328ebfa884e62cb3f3d8549ddfd37c7814f42afa/starlette-1.3.1.tar.gz", hash = "sha256:05d0213193f2fbaae60e2ecb593b4add4262ad4e46536b54abe36f11a71724e0", size = 2703240, upload-time = "2026-06-12T09:23:11.602Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/bb/2799cc2ede3ed41131f8975621e7213dfc7ef4acbbaadfa440f32500c370/starlette-1.3.1-py3-none-any.whl", hash = "sha256:c7372aae11c3c3f26a42df7bd626cec2f47d03483d261d369516a615a53714c6", size = 73632, upload-time = "2026-06-12T09:23:10.017Z" },
+]
+
+[[package]]
+name = "surrealdb"
+version = "3.0.0b10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "pydantic-core" },
+    { name = "requests" },
+    { name = "websockets" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f1/1f/8cffb2604b49e28bd724313c71b22c2cc0732a79f76d8c750a8d755021d9/surrealdb-3.0.0b10.tar.gz", hash = "sha256:aa5fcfe9cf9223d3217db11f3d7574ada6b5a11d19da33673f52f87e0fbc6485", size = 448165, upload-time = "2026-10-08T20:12:59.4Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/44/fa32cce884a48c2620b72143b264b9f5bb83b0491d3a686cac1e359c0d9a/surrealdb-3.0.0b10-py3-none-any.whl", hash = "sha256:43ca2fdbec6a9731a992d1b9f19eeb6b8d65c913ba16717ba3b172f48016f1a3", size = 202223, upload-time = "2026-10-08T20:12:57.498Z" },
+]
+
+[package.optional-dependencies]
+memory = [
+    { name = "surrealdb-memory" },
+]
+
+[[package]]
+name = "surrealdb-memory"
+version = "1.0.0b1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/e6/cfefa0a7ca4b50abb3c5f820feb9d370d6c5db4747df609bd8285ffc31c6/surrealdb_memory-1.0.0b1.tar.gz", hash = "sha256:e1dac1525e2c1da110fad683c1090b5d04a226a522361be982d243a360637748", size = 37432, upload-time = "2026-08-21T08:12:42.973Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/84/eb67f4f915badb7b7d95d32fb0b7e8440abe991b2d520d1cf46d6674e62b/surrealdb_memory-1.0.0b1-py3-none-any.whl", hash = "sha256:dc2357e1442d5868c30b3347485b39c4444d4780bde67526827119790836b482", size = 35451, upload-time = "2026-08-21T08:12:41.522Z" },
 ]
 
 [[package]]
