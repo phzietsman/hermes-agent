@@ -7,13 +7,21 @@ from typing import Any
 import pytest
 from pydantic import SecretStr
 
-from plugins.memory.agent_memory.client import MemoryAuthFailed, MemoryUnavailable, SurrealMemoryAdapter
+from plugins.memory.agent_memory.client import (
+    MemoryAuthFailed, MemoryRejected, MemoryTimeout, MemoryUnavailable, SurrealMemoryAdapter,
+)
 from plugins.memory.agent_memory.config import AgentMemorySettings
 
 
 class _AuthError(Exception): ...
 class _ScopeError(Exception): ...
-class _ApiError(Exception): ...
+class _NotFoundError(Exception): ...
+
+
+class _ApiError(Exception):
+    def __init__(self, message: str, status_code: int = 0) -> None:
+        super().__init__(f"[{status_code}] {message}")
+        self.status_code = status_code
 
 
 class _Resp:
@@ -73,6 +81,7 @@ def adapter(monkeypatch: pytest.MonkeyPatch) -> tuple[SurrealMemoryAdapter, Fake
     sdk = types.ModuleType("surrealdb.memory")
     sdk.Memory = FakeSdkMemory  # type: ignore[attr-defined]  # fake module for the adapter's lazy import
     sdk.MemoryAuthError, sdk.MemoryScopeError, sdk.MemoryAPIError = _AuthError, _ScopeError, _ApiError  # type: ignore[attr-defined]
+    sdk.MemoryNotFoundError = _NotFoundError  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "surrealdb.memory", sdk)
     settings = AgentMemorySettings(endpoint="https://x.example/", context="ctx", api_key=SecretStr("sekret"))  # type: ignore[arg-type]
     a = SurrealMemoryAdapter(settings)
@@ -81,7 +90,7 @@ def adapter(monkeypatch: pytest.MonkeyPatch) -> tuple[SurrealMemoryAdapter, Fake
 
 def test_client_is_built_with_explicit_settings(adapter: tuple[SurrealMemoryAdapter, FakeSdkMemory]) -> None:
     _, sdk = adapter
-    assert sdk.init == {"context": "ctx", "endpoint": "https://x.example", "api_key": "sekret", "timeout": 6.0,
+    assert sdk.init == {"context": "ctx", "endpoint": "https://x.example", "api_key": "sekret", "timeout": 20.0,
                         "max_retries": 2}
 
 
@@ -111,8 +120,14 @@ def test_register_scope_and_forget(adapter: tuple[SurrealMemoryAdapter, FakeSdkM
 
 
 @pytest.mark.parametrize(("error", "expected"), [
-    (_AuthError("no"), MemoryAuthFailed), (_ScopeError("no"), MemoryAuthFailed),
-    (_ApiError("boom"), MemoryUnavailable), (ConnectionResetError("reset"), MemoryUnavailable),
+    (_AuthError("no"), MemoryAuthFailed), (_ApiError("bad key", 401), MemoryAuthFailed),
+    # one request refused (outside scope, malformed): the service is fine
+    (_ScopeError("outside the caller's write region"), MemoryRejected), (_NotFoundError("gone"), MemoryRejected),
+    (_ApiError("unknown variant", 422), MemoryRejected), (_ApiError("bad request", 400), MemoryRejected),
+    # service trouble: retryable
+    (_ApiError("boom", 500), MemoryUnavailable), (_ApiError("slow down", 429), MemoryUnavailable),
+    (_ApiError("request timeout", 408), MemoryUnavailable), (ConnectionResetError("reset"), MemoryUnavailable),
+    (_ApiError("Connection failed: Read timed out. (read timeout=6.0)", 0), MemoryTimeout),
 ])
 def test_sdk_errors_become_provider_errors(adapter: tuple[SurrealMemoryAdapter, FakeSdkMemory], error: Exception,
                                            expected: type[Exception]) -> None:

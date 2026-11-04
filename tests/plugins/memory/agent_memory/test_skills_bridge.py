@@ -30,7 +30,7 @@ def test_created_skill_becomes_a_pointer_with_kind_and_name_labels(home: Path, m
     (entry,) = _outbox(home)
     p = entry["payload"]
     assert entry["op"] == "remember" and p["text"] == "Skill 'deploy-api': Ships the API. Use when deploying."
-    assert p["labels"] == ["kind=skill", "skill=deploy-api"] and p["category"] == "instructions"
+    assert p["labels"] == ["kind=skill", "skill=deploy-api"] and p["category"] == "knowledge"
     assert p["scopes"] == "agent/hermes"
 
 

@@ -7,9 +7,10 @@ from .client import MemoryClient
 
 Kind = Literal["fact", "preference", "instruction", "lesson"]
 
-# Kinds that describe how to behave land in SAM's "instructions" category so the core profile surfaces them.
-_CATEGORY: dict[str, str | None] = {"fact": None, "preference": "preferences", "instruction": "instructions",
-                                    "lesson": "instructions"}
+# SAM accepts only identity | knowledge | context. Who the user is and how they want the agent to behave is
+# identity; learned facts and lessons are knowledge.
+_CATEGORY: dict[str, str | None] = {"fact": "knowledge", "preference": "identity", "instruction": "identity",
+                                    "lesson": "knowledge"}
 
 
 class ToolSchema(TypedDict):

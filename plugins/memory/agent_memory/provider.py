@@ -13,7 +13,9 @@ from agent.memory_provider import MemoryProvider, spawn_context_thread  # pyrigh
 
 from . import tools
 from .breaker import Breaker
-from .client import MemoryAuthFailed, MemoryClient, MemoryUnavailable, Recall, SurrealMemoryAdapter
+from .client import (
+    MemoryAuthFailed, MemoryClient, MemoryRejected, MemoryTimeout, MemoryUnavailable, Recall, SurrealMemoryAdapter,
+)
 from .config import AgentMemorySettings, RecallMode, config_schema, load_settings, save_config_file
 from .core_profile import CoreProfileCache, format_profile
 from .outbox import Outbox, OutboxEntry, OutboxOp, apply_entry
@@ -56,7 +58,9 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
         self._turns = 0
         self._jobs: queue.Queue[Any] = queue.Queue()
         self._worker: threading.Thread | None = None
-        self._warm: tuple[str, str] = ("", "")  # (query, formatted) from queue_prefetch
+        self._done: tuple[str, str] = ("", "")  # (query, formatted) of the last completed recall
+        self._inflight: tuple[str, threading.Event] | None = None
+        self._recall_lock = threading.Lock()
         self._remembered: set[str] = set()  # transcript digests already queued this session
 
     @property
@@ -110,6 +114,8 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
         assert self._client and self._settings and self._cache
         try:
             text = format_profile(self._client.profile(), self._settings.core_profile_max_chars)
+        except MemoryRejected:
+            return self._cache.load()
         except MemoryUnavailable as exc:
             self._breaker.record_failure("profile", auth=isinstance(exc, MemoryAuthFailed))
             return self._cache.load()
@@ -136,7 +142,8 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
         guide = (
             "You have persistent long-term memory (SurrealDB Agent Memory). Call agent_memory_remember for "
             "durable facts, corrections, preferences and lessons; recalled memory appears under "
-            "\"## Recalled memory\". Procedures belong in skills (skill_manage), not memory."
+            "\"## Recalled memory\". If the user refers to something you may have been told before and it is "
+            "not in context, call agent_memory_recall. Procedures belong in skills (skill_manage), not memory."
         )
         return f"{guide}\n\n{self._core_text}" if self._core_text else guide
 
@@ -164,32 +171,42 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
             out += f"\nRelevant skills: {', '.join(dict.fromkeys(skills))} (load with skill_view)"
         return out[:limit]
 
+    def _ensure_recall(self, query: str) -> threading.Event:
+        """Start (or join) a background recall for ``query``; the Event fires when it has finished."""
+        with self._recall_lock:
+            if self._inflight is not None and self._inflight[0] == query and not self._inflight[1].is_set():
+                return self._inflight[1]
+            done = threading.Event()
+            self._inflight = (query, done)
+
+        def _run() -> None:
+            try:
+                self._done = (query, self._recall_text(query))
+                self._breaker.record_ok()
+            except MemoryTimeout:
+                logger.debug("Agent Memory recall timed out; serving the last completed recall")
+            except MemoryUnavailable as exc:
+                self._breaker.record_failure("recall", auth=isinstance(exc, MemoryAuthFailed))
+            finally:
+                done.set()
+
+        spawn_context_thread(_run, name="agent-memory-prefetch").start()  # pyright: ignore[reportUnknownMemberType]
+        return done
+
     def prefetch(self, query: str, *, session_id: str = "") -> str:
+        """Never blocks long: waits up to prefetch_wait_s for this query's recall, else returns the last
+        completed one (the usual case after queue_prefetch warmed it during the previous turn)."""
         if not self._active() or not query.strip() or self._settings is None:
             return ""
         if self._settings.recall_mode is RecallMode.TOOLS:
             return ""
-        if self._warm[0] == query:
-            return self._warm[1]
-        try:
-            text = self._recall_text(query)
-        except MemoryUnavailable as exc:
-            self._breaker.record_failure("prefetch", auth=isinstance(exc, MemoryAuthFailed))
-            return ""
-        self._breaker.record_ok()
-        return text
+        if self._done[0] != query:
+            self._ensure_recall(query).wait(self._settings.prefetch_wait_s)
+        return self._done[1]
 
     def queue_prefetch(self, query: str, *, session_id: str = "") -> None:
-        if not self._active() or not query.strip():
-            return
-
-        def _warm() -> None:
-            try:
-                self._warm = (query, self._recall_text(query))
-            except MemoryUnavailable as exc:
-                self._breaker.record_failure("prefetch", auth=isinstance(exc, MemoryAuthFailed))
-
-        spawn_context_thread(_warm, name="agent-memory-prefetch").start()  # pyright: ignore[reportUnknownMemberType]
+        if self._active() and query.strip():
+            self._ensure_recall(query)
 
     # -- writes (all through the outbox) -----------------------------------------------------------------------
 
@@ -217,12 +234,21 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
             assert self._client
             try:
                 apply_entry(self._client, entry)
+            except MemoryRejected as exc:
+                # Retrying the same request cannot succeed; dropping it keeps the queue moving.
+                logger.warning("Agent Memory rejected a queued %s write; dropped: %s", entry.op, exc)
+                return
             except MemoryUnavailable as exc:
                 self._breaker.record_failure(entry.op, auth=isinstance(exc, MemoryAuthFailed))
                 raise
             self._breaker.record_ok()
 
         self._outbox.replay(_apply)
+
+    def _session_label(self, session_id: str = "") -> str:
+        """Sessions are labels, not the SDK's session_id: the service only accepts session ids it created
+        for the caller, so passing Hermes's own id is a 403."""
+        return f"session={(session_id or self._session_id).replace(' ', '_')}"
 
     def _scope(self) -> str | None:
         return self._settings.default_scope if self._settings else None
@@ -236,8 +262,8 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
             items += [{"role": "tool", "content": str(m["content"])[:2000]} for m in messages
                       if m.get("role") == "tool" and isinstance(m.get("content"), str)][-5:]
         if items:
-            self._write("remember_many", {"items": items, "session_id": session_id or self._session_id,
-                                          "scopes": self._scope(), "labels": ["origin=turn"]})
+            self._write("remember_many", {"items": items, "scopes": self._scope(),
+                                          "labels": ["origin=turn", self._session_label(session_id)]})
 
     def _remember_transcript(self, messages: list[dict[str, Any]]) -> None:
         items = _direct(messages)
@@ -246,8 +272,8 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
         # entry is still pending, so remember what was already queued once the writer has sent it.
         if items and digest not in self._remembered:
             self._remembered.add(digest)
-            self._write("remember_many", {"items": items, "session_id": self._session_id, "scopes": self._scope(),
-                                          "labels": [f"digest={digest}", "origin=session"]})
+            self._write("remember_many", {"items": items, "scopes": self._scope(),
+                                          "labels": [f"digest={digest}", "origin=session", self._session_label()]})
 
     def on_pre_compress(self, messages: list[dict[str, Any]]) -> str:
         self._remember_transcript(messages)
@@ -301,8 +327,13 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
                 origin = str(get_current_write_origin())  # pyright: ignore[reportUnknownArgumentType]
                 kind = str(args.get("kind") or "fact")
                 payload = tools.remember_args(str(args["text"]), kind, origin)
-                self._write("remember", {**payload, "scopes": self._scope(), "session_id": self._session_id})
+                payload["labels"].append(self._session_label())
+                self._write("remember", {**payload, "scopes": self._scope()})
                 out = tools.result({"queued": True})
+        except MemoryTimeout as exc:
+            return tools.error(f"Agent Memory is slow right now ({exc}); try again or continue without it")
+        except MemoryRejected as exc:
+            return tools.error(f"Agent Memory rejected the request: {exc}")
         except MemoryUnavailable as exc:
             self._breaker.record_failure(tool_name, auth=isinstance(exc, MemoryAuthFailed))
             return tools.error(str(exc))

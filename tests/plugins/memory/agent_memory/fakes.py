@@ -4,7 +4,11 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from plugins.memory.agent_memory.client import Hit, MemoryAuthFailed, MemoryUnavailable, Profile, Recall
+import time
+
+from plugins.memory.agent_memory.client import (
+    Hit, MemoryAuthFailed, MemoryRejected, MemoryTimeout, MemoryUnavailable, Profile, Recall,
+)
 from plugins.memory.agent_memory.config import AgentMemorySettings
 from plugins.memory.agent_memory.provider import AgentMemoryProvider
 
@@ -14,7 +18,9 @@ class FakeClient:
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict[str, Any]]] = []
-        self.mode = "ok"  # ok | down | auth
+        self.mode = "ok"  # ok | down | auth | timeout (reads only)
+        self.recall_delay = 0.0
+        self.reject: set[str] = set()  # remember() texts the service refuses outright (4xx)
         self.hits: tuple[Hit, ...] = ()
         self.profile_value = Profile()
         self.context_text = ""
@@ -28,6 +34,8 @@ class FakeClient:
 
     def remember(self, text: str, *, labels: Sequence[str] = (), category: str | None = None,
                  scopes: str | None = None, session_id: str | None = None) -> dict[str, Any]:
+        if text in self.reject:
+            raise MemoryRejected("[422] refused")
         self._gate("remember", text=text, labels=list(labels), category=category, scopes=scopes, session_id=session_id)
         return {}
 
@@ -38,6 +46,9 @@ class FakeClient:
         return {}
 
     def recall(self, query: str, *, k: int, lens: Sequence[str] = ()) -> Recall:
+        time.sleep(self.recall_delay)
+        if self.mode == "timeout":
+            raise MemoryTimeout("read timed out")
         self._gate("recall", query=query, k=k, lens=list(lens))
         return Recall(self.hits)
 

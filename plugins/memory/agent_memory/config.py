@@ -36,8 +36,12 @@ class AgentMemorySettings(BaseModel):
     top_k: int = Field(5, ge=1, le=20)
     max_prefetch_chars: int = Field(4000, ge=500, le=20000)
     core_profile_max_chars: int = Field(1500, ge=200, le=6000)
+    # Per-request budget. Prefetch never waits this long (see prefetch_wait_s); tool calls and background
+    # recall do, and measured recall latency on hosted Sandboxes is 2-25s.
+    timeout_s: float = Field(20.0, gt=0, le=60.0)
+    # How long prefetch() waits for this turn's recall before falling back to the last completed one.
     # Must stay under MemoryManager's 8s prefetch timeout.
-    timeout_s: float = Field(6.0, gt=0, lt=8.0)
+    prefetch_wait_s: float = Field(2.5, ge=0, lt=8.0)
     max_retries: int = Field(2, ge=0, le=5)
     breaker_threshold: int = Field(3, ge=1)
     send_tool_outputs: bool = False

@@ -152,7 +152,7 @@ def test_remember_tool_labels_kind_and_origin_and_routes_instructions(tmp_path: 
     p.shutdown()
     assert out["success"]
     kw = next(kw for n, kw in c.calls if n == "remember")
-    assert kw["category"] == "instructions" and "kind=instruction" in kw["labels"]
+    assert kw["category"] == "identity" and "kind=instruction" in kw["labels"]  # SAM: identity|knowledge|context
     assert any(label.startswith("origin=") for label in kw["labels"]) and kw["scopes"] == "user/default"
 
 
@@ -176,3 +176,85 @@ def test_user_id_becomes_the_default_scope(tmp_path: Path, monkeypatch: pytest.M
     p.sync_turn("a", "b")
     p.shutdown()
     assert next(kw["scopes"] for n, kw in c.calls if n == "remember_many") == "user/alice"
+
+
+def test_prefetch_never_blocks_past_its_wait_and_serves_the_last_completed_recall(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import time
+
+    c = FakeClient()
+    c.hits = (Hit("1", "first answer", 0.9),)
+    p = make(tmp_path, c, monkeypatch, prefetch_wait_s=0.3)
+    assert "first answer" in p.prefetch("turn one")  # fast recall finishes inside the wait
+    c.hits = (Hit("2", "second answer", 0.9),)
+    c.recall_delay = 1.0  # service gets slow
+    started = time.monotonic()
+    out = p.prefetch("turn two")
+    assert time.monotonic() - started < 0.8  # did not wait for the slow recall
+    assert "first answer" in out  # last completed recall, not nothing
+    time.sleep(1.2)  # the background recall lands and serves the next prefetch of that query
+    assert "second answer" in p.prefetch("turn two")
+    p.shutdown()
+
+
+def test_queue_prefetch_warms_the_next_turn(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import time
+
+    c = FakeClient()
+    c.hits = (Hit("1", "warm fact", 0.9),)
+    p = make(tmp_path, c, monkeypatch, prefetch_wait_s=0.0)
+    p.queue_prefetch("what next")
+    time.sleep(0.3)
+    assert "warm fact" in p.prefetch("something else entirely")  # zero wait: only the warmed result is available
+    p.shutdown()
+
+
+def test_slow_reads_do_not_open_the_breaker_but_failures_do(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = FakeClient()
+    p = make(tmp_path, c, monkeypatch, breaker_threshold=3, prefetch_wait_s=1.0)
+    c.mode = "timeout"
+    for i in range(6):
+        p.prefetch(f"query {i}")
+    assert "error" in json.loads(p.handle_tool_call("agent_memory_recall", {"query": "q"}))
+    c.mode = "ok"
+    c.hits = (Hit("1", "still works", 0.9),)
+    assert "still works" in p.prefetch("after the slowness")  # slow is not down
+    c.mode = "down"
+    for i in range(3):
+        p.prefetch(f"down {i}")
+    c.mode = "ok"
+    assert p.prefetch("after the outage") != "still works"  # real failures opened it for the session
+    p.shutdown()
+
+
+def test_writes_never_pass_hermes_session_id_to_the_service_and_label_the_session_instead(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = FakeClient()
+    p = make(tmp_path, c, monkeypatch, session="20261104_abc def")
+    p.sync_turn("a", "b")
+    p.handle_tool_call("agent_memory_remember", {"text": "x"})
+    p.shutdown()
+    writes = [kw for n, kw in c.calls if n in ("remember", "remember_many")]
+    assert writes and all(kw["session_id"] is None for kw in writes)  # the service 403s ids it did not issue
+    assert all("session=20261104_abc_def" in kw["labels"] for kw in writes)
+
+
+def test_a_rejected_write_is_dropped_without_opening_the_breaker_or_blocking_the_queue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = FakeClient()
+    c.reject = {"poison"}
+    p = make(tmp_path, c, monkeypatch)
+    p.handle_tool_call("agent_memory_remember", {"text": "poison"})
+    p.handle_tool_call("agent_memory_remember", {"text": "good one"})
+    p.handle_tool_call("agent_memory_remember", {"text": "good two"})
+    p.shutdown()
+    assert [kw["text"] for n, kw in c.calls if n == "remember"] == ["good one", "good two"]
+    assert not (tmp_path / "agent-memory-outbox.jsonl").exists()  # nothing stuck behind the poison entry
+    c2 = FakeClient()
+    c2.hits = (Hit("1", "fine", 0.9),)
+    q = make(tmp_path, c2, monkeypatch, session="s2")
+    assert "fine" in q.prefetch("q")  # session two is not degraded
+    q.shutdown()

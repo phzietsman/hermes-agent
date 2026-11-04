@@ -49,6 +49,6 @@ def on_skill_lifecycle(*, action: str, skill_name: str, **_: object) -> None:
         outbox.append("remember", {
             "text": pointer_text(skill_name, description),
             "labels": ["kind=skill", f"skill={skill_name}"],
-            "category": "instructions",
+            "category": "knowledge",
             "scopes": settings.agent_scope,
         })

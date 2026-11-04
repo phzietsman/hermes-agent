@@ -12,8 +12,18 @@ class MemoryUnavailable(Exception):
     """Transport/service failure: counts toward the breaker, writes go to the outbox."""
 
 
+class MemoryTimeout(MemoryUnavailable):
+    """The service answered too slowly. Slow is not down: reads do not count it toward the breaker."""
+
+
 class MemoryAuthFailed(MemoryUnavailable):
-    """401/403/scope failure: opens the breaker immediately."""
+    """401: the key is bad. Opens the breaker immediately (retrying cannot help)."""
+
+
+class MemoryRejected(Exception):
+    """The service refused this one request (4xx other than 401/408/429: bad payload, outside the caller's
+    scope). The service is fine, so the breaker is untouched; retrying the same request cannot succeed,
+    so the outbox drops it instead of letting it block everything queued behind it."""
 
 
 @dataclass(frozen=True)
@@ -76,7 +86,8 @@ class SurrealMemoryAdapter:
 
     def __init__(self, settings: AgentMemorySettings) -> None:
         sdk = importlib.import_module("surrealdb.memory")
-        self._auth = (sdk.MemoryAuthError, sdk.MemoryScopeError)
+        self._auth = (sdk.MemoryAuthError,)
+        self._rejected = (sdk.MemoryScopeError, sdk.MemoryNotFoundError)
         self._sdk_errors = (sdk.MemoryAPIError,)
         self._client: Any = sdk.Memory(
             settings.context,
@@ -91,8 +102,16 @@ class SurrealMemoryAdapter:
             return fn(*args, **kwargs)
         except self._auth as exc:
             raise MemoryAuthFailed(str(exc)) from exc
+        except self._rejected as exc:
+            raise MemoryRejected(str(exc)) from exc
         except self._sdk_errors as exc:
-            raise MemoryUnavailable(str(exc)) from exc
+            code = int(getattr(exc, "status_code", 0) or 0)
+            if code == 401:
+                raise MemoryAuthFailed(str(exc)) from exc
+            if 400 <= code < 500 and code not in (408, 429):
+                raise MemoryRejected(str(exc)) from exc
+            # The SDK folds transport timeouts into a generic API error; the message is the only signal.
+            raise (MemoryTimeout if "timed out" in str(exc).lower() else MemoryUnavailable)(str(exc)) from exc
         except OSError as exc:  # connection reset, DNS, timeouts surface as OSError subclasses
             raise MemoryUnavailable(str(exc)) from exc
 
