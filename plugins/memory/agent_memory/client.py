@@ -73,7 +73,7 @@ def _dump(obj: Any) -> dict[str, Any]:
 
 def _entry_text(entry: Any) -> str:
     if isinstance(entry, Mapping):
-        for key in ("text", "value", "content"):
+        for key in ("description", "text", "value", "content"):  # SAM instructions carry a description
             if isinstance(entry.get(key), str):  # pyright: ignore[reportUnknownMemberType]
                 return str(entry[key])  # pyright: ignore[reportUnknownArgumentType]
         return str(dict(entry))  # pyright: ignore[reportUnknownArgumentType]

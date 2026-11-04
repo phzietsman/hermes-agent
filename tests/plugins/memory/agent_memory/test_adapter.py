@@ -70,7 +70,7 @@ class FakeSdkMemory:
         return _Resp(hits=[_Resp(id="h1", text="a fact", score=0.9, source="x")])
 
     def profile(self) -> Any:
-        return _Resp(instructions=[{"text": "be terse"}], preferences=[_Resp(key="editor", value="vim")], static=[])
+        return _Resp(instructions=[{"text": "be terse"}, {"id": "g1", "label": "concise", "description": "answer in one sentence"}], preferences=[_Resp(key="editor", value="vim")], static=[])
 
     def close(self) -> None:
         return None
@@ -109,7 +109,7 @@ def test_recall_and_profile_are_mapped_to_plain_types(adapter: tuple[SurrealMemo
     hit = a.recall("q", k=3, lens=["user/a"]).hits[0]
     assert (hit.id, hit.text, hit.score) == ("h1", "a fact", 0.9)
     p = a.profile()
-    assert p.instructions == ("be terse",) and p.preferences == ("editor: vim",)
+    assert p.instructions == ("be terse", "answer in one sentence") and p.preferences == ("editor: vim",)
 
 
 def test_register_scope_and_forget(adapter: tuple[SurrealMemoryAdapter, FakeSdkMemory]) -> None:

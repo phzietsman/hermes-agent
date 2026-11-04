@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 import queue
 import re
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +18,7 @@ from .client import (
 from .config import AgentMemorySettings, RecallMode, config_schema, load_settings, save_config_file
 from .core_profile import CoreProfileCache, format_profile
 from .outbox import Outbox, OutboxEntry, OutboxOp, apply_entry
+from .transcript import direct_messages, transcript_digest
 
 logger = logging.getLogger(__name__)
 
@@ -28,19 +28,6 @@ _STOP: Any = object()
 _SKILL_HIT = re.compile(r"^Skill '([^']+)':")
 # Contexts that must never write: cron/subagent/flush runs are not the user's conversation.
 _READ_ONLY_CONTEXTS = frozenset({"cron", "subagent", "flush"})
-
-
-def _digest(messages: Sequence[dict[str, Any]]) -> str:
-    h = hashlib.sha256()
-    for m in messages:
-        h.update(f"{m.get('role')}\0{m.get('content')}\0".encode())
-    return h.hexdigest()[:16]
-
-
-def _direct(messages: Sequence[dict[str, Any]]) -> list[dict[str, str]]:
-    """User/assistant prose only: tool rows and system prompts never leave the machine."""
-    return [{"role": str(m["role"]), "content": m["content"]} for m in messages
-            if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str) and m["content"].strip()]
 
 
 class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseClass]
@@ -257,7 +244,7 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
                   messages: list[dict[str, Any]] | None = None, turn_author: dict[str, Any] | None = None) -> None:
         if self._settings is None:
             return
-        items = _direct([{"role": "user", "content": user_content}, {"role": "assistant", "content": assistant_content}])
+        items = direct_messages([{"role": "user", "content": user_content}, {"role": "assistant", "content": assistant_content}])
         if self._settings.send_tool_outputs and messages:
             items += [{"role": "tool", "content": str(m["content"])[:2000]} for m in messages
                       if m.get("role") == "tool" and isinstance(m.get("content"), str)][-5:]
@@ -266,8 +253,8 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
                                           "labels": ["origin=turn", self._session_label(session_id)]})
 
     def _remember_transcript(self, messages: list[dict[str, Any]]) -> None:
-        items = _direct(messages)
-        digest = _digest(messages)
+        items = direct_messages(messages)
+        digest = transcript_digest(messages)
         # pre-compress and session-end often see the same transcript; the outbox only dedupes while an
         # entry is still pending, so remember what was already queued once the writer has sent it.
         if items and digest not in self._remembered:
