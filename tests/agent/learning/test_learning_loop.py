@@ -54,7 +54,7 @@ def drain(queue: SqliteReviewQueue) -> list[ReviewJob]:
 def test_iteration_trigger_fires_inside_one_tool_heavy_user_turn() -> None:
     q = make_queue()
     s = ReviewScheduler(q, ReviewSettings(iteration_interval=5), Clock())
-    fired = [s.on_tool_iteration("s1", texts(i + 1)) for i in range(5)]
+    fired = [s.on_tool_iteration("s1", lambda i=i: texts(i + 1)) for i in range(5)]
     assert fired == [False] * 4 + [True]  # no user turn boundary was crossed
     jobs = drain(q)
     assert len(jobs) == 1 and jobs[0].trigger is ReviewTrigger.ITERATIONS
@@ -138,4 +138,4 @@ def test_crash_recovery_requeues_running_jobs() -> None:
 @pytest.mark.parametrize("n", [0])
 def test_zero_interval_disables_iteration_trigger(n: int) -> None:
     s = ReviewScheduler(make_queue(), ReviewSettings(iteration_interval=n), Clock())
-    assert not any(s.on_tool_iteration("s1", texts(i + 1)) for i in range(50))
+    assert not any(s.on_tool_iteration("s1", lambda i=i: texts(i + 1)) for i in range(50))

@@ -3,7 +3,7 @@
 Agent providers (ACP CLI shims, the codex app-server) run their own tools, so that
 work must never come back as pending ``tool_calls`` (Hermes would re-run it) — but
 the self-improvement loop (replays ``messages``) and the skill-review nudge
-(``_iters_since_skill`` counter) go blind if it is merely summarised into
+(review scheduler's iteration count) go blind if it is merely summarised into
 ``reasoning``. The client hands back ``hermes_projected_messages`` (completed
 assistant/tool rows) and ``hermes_provider_tool_iterations`` on the completion
 object; this helper applies them append-only via ``append_message`` (timestamped,
@@ -42,6 +42,8 @@ def splice_provider_projection(agent: Any, response: Any, messages: list[dict[st
     except (TypeError, ValueError):
         iterations = 0
     if iterations > 0:
-        agent._iters_since_skill = getattr(agent, "_iters_since_skill", 0) + iterations
+        from agent.learning.agent_host import review_on_iteration
+        for _ in range(iterations):
+            review_on_iteration(agent, messages)
 
     return len(rows)

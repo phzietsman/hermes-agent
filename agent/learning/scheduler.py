@@ -61,13 +61,19 @@ class ReviewScheduler:
         self._iters = 0
         return self._queue.enqueue(job)
 
-    def on_tool_iteration(self, session_id: str, texts: list[str]) -> bool:
+    def on_tool_iteration(self, session_id: str, texts: Callable[[], list[str]]) -> bool:
+        """``texts`` is only called when a review is due, so the hot path stays O(1)."""
         self._last_activity = self._clock()
         self._iters += 1
         n = self._settings.iteration_interval
         if n > 0 and self._iters >= n:
-            return self._enqueue(session_id, ReviewTrigger.ITERATIONS, len(texts), texts)
+            t = texts()
+            return self._enqueue(session_id, ReviewTrigger.ITERATIONS, len(t), t)
         return False
+
+    def note_agent_wrote(self) -> None:
+        """The agent saved memory/skills itself, so the pending iteration count restarts."""
+        self._iters = 0
 
     def on_turn_end(self) -> None:
         self._last_activity = self._clock()

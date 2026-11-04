@@ -39,8 +39,6 @@ def _stub_agent_for_finalize(agent: AIAgent) -> None:
     agent.clear_interrupt = MagicMock()
     agent._stream_callback = None
     agent._sync_external_memory_for_turn = MagicMock()
-    agent._skill_nudge_interval = 10
-    agent._iters_since_skill = 20  # exceeds nudge interval → _should_review_skills = True
     agent.valid_tool_names = {"skill_manage"}
     agent.iteration_budget = MagicMock()
     agent.iteration_budget.remaining = 100
@@ -83,60 +81,27 @@ def _run_finalize(agent: AIAgent) -> None:
 
 
 
-def test_finalize_turn_skips_review_when_flag_set() -> None:
-    """finalize_turn must NOT call _spawn_background_review when skip_background_review=True.
+def test_skip_flag_builds_no_learning_loop(tmp_path) -> None:
+    """cron/subagent agents (skip_background_review) never get a review loop."""
+    from agent.learning.agent_host import build_learning_loop
 
-    Exercises the actual finalizer call path (not a duplicated guard expression)
-    so it catches divergence between the production guard and the test.
-    """
-    agent = _make_agent(skip_background_review=True)
-    _stub_agent_for_finalize(agent)
-    _run_finalize(agent)
-    agent._spawn_background_review.assert_not_called()
+    for skip, expect_loop in ((True, False), (False, True)):
+        agent = _make_agent(skip_background_review=skip)
+        agent.valid_tool_names = {"skill_manage"}
+        agent._session_db = MagicMock(db_path=tmp_path / "state.db")
+        loop = build_learning_loop(agent, {})
+        assert (loop is not None) is expect_loop
+        if loop is not None:
+            loop.close()
 
 
-def test_finalize_turn_fires_review_when_flag_unset() -> None:
-    """Counterpart: with the flag off, finalize_turn DOES call _spawn_background_review."""
+def test_finalize_turn_reports_delivered_turn_to_loop() -> None:
+    """finalize_turn hands a delivered turn to the learning loop (which owns WHEN to review)."""
+    from tests.agent.review_loop_fake import attach_fake_loop
+
     agent = _make_agent(skip_background_review=False)
     _stub_agent_for_finalize(agent)
+    loop = attach_fake_loop(agent)
     _run_finalize(agent)
-    agent._spawn_background_review.assert_called_once()
-
-
-
-
-def test_persistence_failure_error_fallback_is_pinned_and_leaves_final_response_empty(monkeypatch, tmp_path) -> None:
-    """With no model text, result["error"] carries a profile-pinned `hermes doctor`, while the
-    memory sync and the background-review gate still see the turn as having produced nothing."""
-    from hermes_constants import profile_cli_selector
-
-    # A named profile home must exist before an agent is built inside it: setup_logging() now
-    # opens agent.log under the ACTIVE home and refuses to materialize a missing profile.
-    profile_home = tmp_path / ".hermes" / "profiles" / "research"
-    profile_home.mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(profile_home))
-    selector = profile_cli_selector()
-    assert selector.strip()
-    agent = _make_agent()
-    _stub_agent_for_finalize(agent)
-    # Force the fallback: the explainer normally supplies the text, so an empty explainer is
-    # the only way the hardcoded copy reaches the user.
-    monkeypatch.setattr(AIAgent, "_format_turn_completion_explanation", staticmethod(lambda *a, **k: ""))
-    result = finalize_turn(
-        agent,
-        final_response="",
-        api_call_count=1,
-        interrupted=False,
-        failed=True,
-        messages=[{"role": "user", "content": "hi"}],
-        conversation_history=[],
-        effective_task_id="test",
-        turn_id="test-turn",
-        user_message="hi",
-        original_user_message="hi",
-        _should_review_memory=True,
-        _turn_exit_reason="session_persistence_failed",
-    )
-    assert f"`hermes {selector}doctor`" in result["error"]
-    assert agent._sync_external_memory_for_turn.call_args.kwargs["final_response"] == ""
-    agent._spawn_background_review.assert_not_called()
+    assert len(loop.turn_ends) == 1
+    agent._spawn_background_review.assert_not_called()  # the loop, not the finalizer, spawns

@@ -1294,9 +1294,6 @@ def _init_memory(agent, _agent_cfg, skip_memory, platform, memory_manager=None):
     agent._memory_store = None
     agent._memory_enabled = False
     agent._user_profile_enabled = False
-    agent._memory_nudge_interval = 10
-    agent._turns_since_memory = 0
-    agent._iters_since_skill = 0
     # skip_memory skips the external *provider*; enabled_toolsets=["memory"] still gets the
     # built-in store so the memory tool never sees store=None.
     # Flush/background agents can still pass enabled_toolsets=["memory"] so the built-in file store exists
@@ -1318,7 +1315,6 @@ def _init_memory(agent, _agent_cfg, skip_memory, platform, memory_manager=None):
             agent._memory_enabled, agent._user_profile_enabled = get_builtin_memory_store_flags(
                 _agent_cfg
             )
-            agent._memory_nudge_interval = int(mem_config.get("nudge_interval", 10))
             if agent._memory_enabled or agent._user_profile_enabled:
                 agent._memory_store = MemoryStore(
                     memory_char_limit=mem_config.get("memory_char_limit", 2200),
@@ -1373,9 +1369,7 @@ def _init_memory(agent, _agent_cfg, skip_memory, platform, memory_manager=None):
 
 def _apply_agent_section(agent, _agent_cfg):
     # Skills config: nudge interval for skill creation reminders
-    agent._skill_nudge_interval = 10
-    with suppress(Exception):
-        agent._skill_nudge_interval = int(_agent_cfg.get("skills", {}).get("creation_nudge_interval", 10))
+    agent._learning_cfg = _agent_cfg  # read lazily by agent.learning.agent_host.learning_loop_for
 
     _agent_section = _cfg_dict(_agent_cfg, "agent")
     agent.budget_warning_ratio = normalize_budget_warning_ratio(

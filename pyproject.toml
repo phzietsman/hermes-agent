@@ -733,6 +733,7 @@ addopts = "-m 'not integration and not live'"
 [tool.mypy]
 strict = true
 warn_unreachable = true
+follow_imports = "silent"  # lazily-imported untyped agent modules must not leak errors into scope
 python_version = "3.13"
 files = ["evals/memory", "agent/learning"]
 plugins = ["pydantic.mypy"]

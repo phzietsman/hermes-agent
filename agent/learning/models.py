@@ -19,6 +19,13 @@ class ReviewTrigger(str, Enum):
     SHUTDOWN = "shutdown"
 
 
+class ReviewOutcome(str, Enum):
+    DONE = "done"
+    SKIPPED = "skipped"  # review disabled/unsupported: nothing to retry
+    INTERRUPTED = "interrupted"  # a live turn or teardown cancelled it: retry, attempts unchanged
+    FAILED = "failed"
+
+
 class ReviewJob(BaseModel):
     """A unit of review work over messages [start_msg_idx, end_msg_idx) of a session."""
 

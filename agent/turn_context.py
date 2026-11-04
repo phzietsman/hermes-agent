@@ -591,7 +591,7 @@ def _bind_turn_identity(
 
 
 # Per-turn agent state reset at turn start (retry counters, guardrail halt, file-mutation
-# verifier). ``_turns_since_memory`` / ``_iters_since_skill`` are deliberately NOT reset.
+# verifier). the review scheduler's iteration count is deliberately NOT reset.
 _PER_TURN_RESET_STATE: Tuple[Tuple[str, Any], ...] = (
     ("_invalid_tool_retries", 0), ("_invalid_json_retries", 0), ("_empty_content_retries", 0),
     ("_incomplete_scratchpad_retries", 0), ("_codex_incomplete_retries", 0),
@@ -739,20 +739,6 @@ def _hydrate_from_history(agent: Any, conversation_history: Optional[List[Any]])
         prior_user_turns = sum(1 for m in conversation_history if m.get("role") == "user")
         if prior_user_turns > 0:
             agent._user_turn_count = prior_user_turns
-            if agent._memory_nudge_interval > 0 and agent._turns_since_memory == 0:
-                agent._turns_since_memory = prior_user_turns % agent._memory_nudge_interval
-
-
-def _tick_memory_nudge(agent: Any) -> bool:
-    """Advance the turn-based memory nudge counter; ``True`` when the review should fire."""
-    if (agent._memory_nudge_interval > 0
-            and "memory" in agent.valid_tool_names
-            and agent._memory_store):
-        agent._turns_since_memory += 1
-        if agent._turns_since_memory >= agent._memory_nudge_interval:
-            agent._turns_since_memory = 0
-            return True
-    return False
 
 
 def _emit_reaction(agent: Any, original_user_message: Any, display_kind: Optional[str] = None) -> None:
@@ -1115,7 +1101,6 @@ def build_turn_context(
 
     # Preserve the original user message (no nudge injection).
     original_user_message = persist_user_message if persist_user_message is not None else user_message
-    should_review_memory = _tick_memory_nudge(agent)
     _emit_reaction(agent, original_user_message, persist_user_display_kind)
 
     if not agent.quiet_mode:
@@ -1198,7 +1183,7 @@ def build_turn_context(
         user_message=user_message, original_user_message=original_user_message, messages=messages,
         conversation_history=conversation_history, active_system_prompt=active_system_prompt,
         effective_task_id=effective_task_id, turn_id=turn_id,
-        current_turn_user_idx=current_turn_user_idx, should_review_memory=should_review_memory,
+        current_turn_user_idx=current_turn_user_idx, should_review_memory=False,
         plugin_user_context=plugin_user_context, ext_prefetch_cache=ext_prefetch_cache,
         preflight_compression_blocked=compaction.blocked,
     )

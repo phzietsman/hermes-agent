@@ -784,7 +784,7 @@ class AIAgent(
     def _spawn_background_review_now(self, messages_snapshot: List[Dict], review_memory: bool = False,
                                      review_skills: bool = False, focus: Optional[str] = None,
                                      task_cfg: Optional[Dict[str, Any]] = None, _requeue_attempts: int = 0,
-                                     explicit: bool = False) -> None:
+                                     explicit: bool = False, on_outcome: Any = None) -> None:
         """Spawn the background memory/skill review thread.
 
         ``threading.Thread`` is constructed here so tests patching ``run_agent.threading.Thread`` keep working.
@@ -800,6 +800,9 @@ class AIAgent(
 
         review_run = prepare_background_review_run(self)
         if review_run is None:
+            if on_outcome is not None:
+                from agent.learning.models import ReviewOutcome
+                on_outcome(ReviewOutcome.SKIPPED)
             return
         try:
             target, _prompt = spawn_background_review_thread(
@@ -809,6 +812,9 @@ class AIAgent(
 
             def _target_with_requeue() -> None:
                 target()
+                if on_outcome is not None:  # agent.learning's runner owns retry; no deferred-queue requeue
+                    on_outcome(review_run.outcome())
+                    return
                 self._maybe_requeue_preempted_review(review_run, dict(
                     messages_snapshot=messages_snapshot, review_memory=review_memory, review_skills=review_skills,
                     focus=focus, task_cfg=task_cfg, _requeue_attempts=_requeue_attempts + 1,
@@ -869,6 +875,9 @@ class AIAgent(
         if getattr(self, "_memory_provider_shutdown", False):
             return
         self._memory_provider_shutdown = True
+        from agent.learning.agent_host import review_on_boundary
+        from agent.learning.models import ReviewTrigger
+        _quietly(lambda: review_on_boundary(self, ReviewTrigger.SHUTDOWN, messages or []))
         if self._memory_manager:
             try:
                 self._memory_manager.on_session_end(messages or [])
@@ -880,6 +889,9 @@ class AIAgent(
     def commit_memory_session(self, messages: list = None) -> None:
         """Flush end-of-session extraction on session_id rotation (/new, compression) without tearing providers
         down."""
+        from agent.learning.agent_host import review_on_boundary
+        from agent.learning.models import ReviewTrigger
+        _quietly(lambda: review_on_boundary(self, ReviewTrigger.SESSION_RESET, messages or []))
         if self._memory_manager:
             _quietly(lambda: self._memory_manager.on_session_end(messages or []))
         _notify_context_engine_session_end(self, messages)

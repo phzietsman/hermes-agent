@@ -14,7 +14,7 @@ import os
 import threading
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple
 
 from agent.i18n import t
 from agent.prompt_cache_scope import resolve_prompt_cache_scope_safe
@@ -23,6 +23,10 @@ from agent.thread_scoped_output import thread_scoped_silence
 logger = logging.getLogger(__name__)
 
 _BACKGROUND_REVIEW_CANCEL_TIMEOUT_SECONDS = 2.0
+
+
+if TYPE_CHECKING:
+    from agent.learning.models import ReviewOutcome
 
 
 class _BackgroundReviewRun:
@@ -34,6 +38,18 @@ class _BackgroundReviewRun:
         self._lock = threading.Lock()
         self._review_agent = None
         self._request_finished = self._cancel_dispatched = False
+        # Outcome signals for agent.learning's runner; the thread itself never raises.
+        self.failed = False
+        self.skipped = False
+
+    def outcome(self) -> "ReviewOutcome":
+        from agent.learning.models import ReviewOutcome
+
+        if self.failed:
+            return ReviewOutcome.FAILED
+        if self.cancel_requested.is_set():
+            return ReviewOutcome.INTERRUPTED
+        return ReviewOutcome.SKIPPED if self.skipped else ReviewOutcome.DONE
 
     def begin_request(self, review_agent: Any) -> bool:
         """Atomically admit the first provider-capable review phase."""
@@ -983,7 +999,7 @@ def build_cache_parity_fork(
     review_agent._memory_store = agent._memory_store
     review_agent._memory_enabled = agent._memory_enabled
     review_agent._user_profile_enabled = agent._user_profile_enabled
-    review_agent._memory_nudge_interval = review_agent._skill_nudge_interval = 0
+    review_agent.skip_background_review = True  # a review fork never schedules its own review
     # _skip_mcp_refresh: the between-turns MCP refresh would add late-connecting MCP tools and
     # break tools[] parity. PERSISTENCE ISOLATION (curator-takeover root cause): sharing the
     # parent's session_id, the fork would otherwise write its harness turn into the REAL session,
@@ -1234,6 +1250,8 @@ def _run_review_in_thread(
             getattr(agent, "provider", "?"),
         )
         _set_thread_approval_callback(None)
+        if review_run is not None:
+            review_run.skipped = True
         return
     st = _ReviewForkState()
     try:
@@ -1275,6 +1293,8 @@ def _run_review_in_thread(
             _publish_review_summary(agent, actions)
     except Exception as e:
         logger.warning("Background memory/skill review failed: %s", e)
+        if review_run is not None:
+            review_run.failed = True
         if st.review_usage:
             _log_review_completion(st.review_usage, "error")
         agent._emit_auxiliary_failure(t("display.review.aux_failure_label"), e)
