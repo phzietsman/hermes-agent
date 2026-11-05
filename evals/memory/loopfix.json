@@ -5,46 +5,142 @@
   "results": [
     {
       "scenario": "1_recall",
-      "passed": 5,
-      "total": 8,
+      "passed": 7,
+      "total": 10,
       "requires_live": false,
       "seed": 1,
-      "detail": {}
-    },
-    {
-      "scenario": "6_write_landing",
-      "passed": 6,
-      "total": 8,
-      "requires_live": false,
-      "seed": 1,
-      "detail": {
-        "landed": 6,
-        "foreground": 0,
-        "review": 6
-      }
-    },
-    {
-      "scenario": "1_recall",
-      "passed": 6,
-      "total": 8,
-      "requires_live": false,
-      "seed": 2,
       "detail": {}
     },
     {
       "scenario": "6_write_landing",
       "passed": 7,
-      "total": 8,
+      "total": 10,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {
+        "landed": 7,
+        "foreground": 2,
+        "review": 5
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 9,
+      "total": 10,
       "requires_live": false,
       "seed": 2,
       "detail": {
-        "landed": 7,
+        "landed": 9,
+        "foreground": 4,
+        "review": 5
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 7,
+      "total": 10,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 8,
+      "total": 10,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {
+        "landed": 8,
         "foreground": 6,
+        "review": 2
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 8,
+      "total": 10,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {
+        "landed": 9,
+        "foreground": 5,
+        "review": 4
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {
+        "landed": 9,
+        "foreground": 7,
+        "review": 2
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 7,
+      "total": 10,
+      "requires_live": false,
+      "seed": 6,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 8,
+      "total": 10,
+      "requires_live": false,
+      "seed": 6,
+      "detail": {
+        "landed": 8,
+        "foreground": 7,
         "review": 1
       }
     },
     {
-      "scenario": "1_recall",
+      "scenario": "2_supersession",
+      "passed": 8,
+      "total": 8,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
       "passed": 7,
       "total": 8,
       "requires_live": false,
@@ -52,63 +148,75 @@
       "detail": {}
     },
     {
-      "scenario": "6_write_landing",
+      "scenario": "2_supersession",
+      "passed": 8,
+      "total": 8,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
       "passed": 7,
       "total": 8,
       "requires_live": false,
-      "seed": 3,
-      "detail": {
-        "landed": 7,
-        "foreground": 7,
-        "review": 0
-      }
-    },
-    {
-      "scenario": "2_supersession",
-      "passed": 4,
-      "total": 4,
-      "requires_live": false,
-      "seed": 1,
+      "seed": 5,
       "detail": {}
     },
     {
       "scenario": "2_supersession",
-      "passed": 2,
-      "total": 4,
+      "passed": 8,
+      "total": 8,
       "requires_live": false,
-      "seed": 2,
-      "detail": {}
-    },
-    {
-      "scenario": "2_supersession",
-      "passed": 3,
-      "total": 4,
-      "requires_live": false,
-      "seed": 3,
+      "seed": 6,
       "detail": {}
     },
     {
       "scenario": "3_abstention",
-      "passed": 4,
-      "total": 4,
+      "passed": 6,
+      "total": 6,
       "requires_live": false,
       "seed": 1,
       "detail": {}
     },
     {
       "scenario": "3_abstention",
-      "passed": 4,
-      "total": 4,
+      "passed": 6,
+      "total": 6,
       "requires_live": false,
       "seed": 2,
       "detail": {}
     },
     {
       "scenario": "3_abstention",
-      "passed": 4,
-      "total": 4,
+      "passed": 6,
+      "total": 6,
       "requires_live": false,
       "seed": 3,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 6,
       "detail": {}
     }
   ]

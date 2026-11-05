@@ -23,7 +23,7 @@ from .models import ArmName, Report, ScenarioResult
 MODEL = "claude-haiku-5-5"
 
 
-def run_one(python: str, checkout: Path, name: str, seed: int, root: Path, sam: bool = False) -> list[ScenarioResult]:
+def run_one(python: str, checkout: Path, name: str, seed: int, root: Path, sam: bool = False, sizes: str = "8,4,4") -> list[ScenarioResult]:
     base = root / f"{name}-{seed}"
     home = base / "hermes"
     (base / "home").mkdir(parents=True)
@@ -31,7 +31,7 @@ def run_one(python: str, checkout: Path, name: str, seed: int, root: Path, sam: 
     env = {**os.environ, "HERMES_HOME": str(home), "HOME": str(base / "home")}
     proc = subprocess.run(
         [python, "-m", "evals.memory.live_scenario", "--scenario", name, "--home", str(home),
-         "--model", MODEL, "--seed", str(seed), *(["--sam"] if sam else [])],
+         "--model", MODEL, "--seed", str(seed), "--sizes", sizes, *(["--sam"] if sam else [])],
         cwd=checkout, env=env, capture_output=True, text=True, timeout=3600, check=False,
     )
     results = [ScenarioResult.model_validate_json(line[len("RESULT "):])
@@ -60,11 +60,12 @@ def main() -> int:
     ap.add_argument("--python", required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--seeds", default="1,2,3")
+    ap.add_argument("--sizes", default="8,4,4", help="questions per seed: recall,supersession,abstention")
     ap.add_argument("--workers", type=int, default=3)
     ns = ap.parse_args()
     seeds = [int(s) for s in ns.seeds.split(",")]
     with tempfile.TemporaryDirectory(prefix="memeval-") as tmp, ThreadPoolExecutor(max_workers=ns.workers) as pool:
-        futures = [pool.submit(run_one, ns.python, ns.checkout, n, s, Path(tmp), ns.arm is ArmName.LOOPFIX_SAM) for n in SCENARIOS for s in seeds]
+        futures = [pool.submit(run_one, ns.python, ns.checkout, n, s, Path(tmp), ns.arm is ArmName.LOOPFIX_SAM, ns.sizes) for n in SCENARIOS for s in seeds]
         results = [r for f in futures for r in f.result()]
     report = Report(arm=ns.arm, seed=seeds[0], harness_only=False, results=results)
     ns.out.write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
