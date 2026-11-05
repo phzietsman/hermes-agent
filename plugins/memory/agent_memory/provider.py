@@ -122,10 +122,11 @@ class AgentMemoryProvider(MemoryProvider):  # pyright: ignore[reportUntypedBaseC
     def _in_fork() -> bool:
         """True inside a background-review fork. Its turns carry the harness prompt, so its transcript is
         never synced and it does not recall; its agent_memory_remember tool calls still land (tagged
-        origin=background_review)."""
-        from tools.skill_provenance import get_current_write_origin  # pyright: ignore[reportUnknownVariableType]
+        origin=background_review). A normal turn's origin is "assistant_tool", not "foreground", so this
+        must test for the review origin rather than for anything-but-foreground."""
+        from tools.skill_provenance import is_background_review  # pyright: ignore[reportUnknownVariableType]
 
-        return str(get_current_write_origin()) != "foreground"  # pyright: ignore[reportUnknownArgumentType]
+        return bool(is_background_review())  # pyright: ignore[reportUnknownArgumentType]
 
     def _active(self) -> bool:
         return self._client is not None and self._settings is not None and not self._breaker.is_open

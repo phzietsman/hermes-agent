@@ -258,3 +258,20 @@ def test_a_rejected_write_is_dropped_without_opening_the_breaker_or_blocking_the
     q = make(tmp_path, c2, monkeypatch, session="s2")
     assert "fine" in q.prefetch("q")  # session two is not degraded
     q.shutdown()
+
+
+@pytest.mark.parametrize("origin,writes", [("assistant_tool", True), ("background_review", False)])
+def test_turn_sync_runs_for_a_normal_turn_origin_and_not_for_a_review_fork(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, origin: str, writes: bool) -> None:
+    """A real turn binds origin "assistant_tool" (agent/turn_context.py), never "foreground"."""
+    from tools.skill_provenance import reset_current_write_origin, set_current_write_origin
+
+    c = FakeClient()
+    p = make(tmp_path, c, monkeypatch)
+    token = set_current_write_origin(origin)
+    try:
+        p.sync_turn("hello there", "hi")
+    finally:
+        reset_current_write_origin(token)
+    p.shutdown()
+    assert ("remember_many" in c.names()) is writes

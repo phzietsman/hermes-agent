@@ -9,6 +9,7 @@ from pathlib import Path
 from .aside_scenarios import aside_abstention, aside_recall, aside_supersession
 from .judge import JevJudge, JudgeScorer
 from .live import LiveArm
+from .live_sam import LiveSamArm
 from .models import ScenarioResult
 
 SCENARIOS = ("recall", "supersession", "abstention")
@@ -29,8 +30,9 @@ def main() -> int:
     ap.add_argument("--home", type=Path, required=True)
     ap.add_argument("--model", required=True)
     ap.add_argument("--seed", type=int, required=True)
+    ap.add_argument("--sam", action="store_true", help="Agent Memory as the memory provider")
     ns = ap.parse_args()
-    arm = LiveArm(ns.home, ns.model)
+    arm = (LiveSamArm if ns.sam else LiveArm)(ns.home, ns.model)
     results = run(ns.scenario, arm, ns.seed)
     print("TOOLS " + json.dumps({"tell": dict(arm.tell_tools), "ask": dict(arm.ask_tools), "files": arm.memory_files()}))
     for r in results:
