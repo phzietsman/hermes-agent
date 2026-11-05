@@ -46,3 +46,30 @@ def test_resilience_loses_nothing_when_the_network_dies_mid_session() -> None:
     assert r.detail["degraded_profile_served"] == 1
     assert r.detail["queued_while_down"] > 0  # the cut really happened
     assert r.detail["outbox_left"] == 0 and r.detail["duplicates"] == 0
+
+
+def test_preference_scenario_asks_only_after_five_unrelated_sessions_and_scores_follows() -> None:
+    from evals.memory.preference_scenario import preference_following
+    from evals.memory.scenarios import SubstringScorer
+
+    class Recording(DictArm):
+        def __init__(self) -> None:
+            super().__init__()
+            self.sessions = 0
+            self.asked_after: list[int] = []
+
+        def start_session(self) -> None:
+            self.sessions += 1
+
+        def ask(self, key: str, question: str) -> str | None:
+            if key != "filler":
+                self.asked_after.append(self.sessions)
+            return super().ask(key, question)
+
+    arm = Recording()
+    (r,) = preference_following(arm, 1, 3, SubstringScorer())
+    assert r.scenario == "4_preference_following" and r.passed == r.total == 3
+    assert arm.asked_after[0] >= 6  # five filler sessions, then a fresh one, before the first preference check
+    forgetful = DictArm(drop_every=1)  # remembers nothing
+    (lost,) = preference_following(forgetful, 1, 3, SubstringScorer())
+    assert lost.passed == 0

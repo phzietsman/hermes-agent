@@ -1,7 +1,7 @@
 """LiveArm with Agent Memory as the provider (the `loopfix_sam` arm).
 
 The core profile is context-wide, not per-scope, so on a shared Sandbox it carries facts from every earlier
-run; the arm therefore serves an empty profile and measures recall and the tools only. Landing is measured at the service boundary: every successful remember/remember_many the real adapter
+run; the arm serves an empty profile unless a scenario admits entries carrying its own run-unique tags. Landing is measured at the service boundary: every successful remember/remember_many the real adapter
 makes is recorded with its origin label, so "landed" means the service accepted it. Each run uses its own
 scopes so runs never read each other's facts. Needs AGENT_MEMORY_API_KEY/ENDPOINT/CONTEXT in the env.
 """
@@ -20,6 +20,8 @@ from typing import Any
 from .live import LiveArm
 
 _RECORDED: list[tuple[str, str]] = []  # (origin, text) of writes the service accepted
+_PROFILE_TAGS: list[str] = []  # run-unique tokens whose profile entries may reach the agent
+_PROFILE_SERVED: list[int] = []  # entries admitted per profile read
 
 
 def _origin(labels: Sequence[str]) -> str:
@@ -32,6 +34,7 @@ def _record_writes() -> None:
         return
     remember: Callable[..., Any] = adapter.remember
     remember_many: Callable[..., Any] = adapter.remember_many
+    remember_profile: Callable[..., Any] = adapter.profile
 
     def one(self: Any, text: str, *, labels: Sequence[str] = (), **kw: Any) -> Any:
         out = remember(self, text, labels=labels, **kw)
@@ -43,10 +46,18 @@ def _record_writes() -> None:
         _RECORDED.append((_origin(labels), "\n".join(str(i["content"]) for i in items)))
         return out
 
-    def no_profile(self: Any) -> Any:
-        return importlib.import_module("plugins.memory.agent_memory.client").Profile()
+    def tagged_profile(self: Any) -> Any:
+        """Only entries carrying this run's tags (empty until a scenario admits some)."""
+        client_mod = importlib.import_module("plugins.memory.agent_memory.client")
+        if not _PROFILE_TAGS:
+            return client_mod.Profile()
+        full = remember_profile(self)
+        keep = {f: tuple(e for e in getattr(full, f) if any(t in e for t in _PROFILE_TAGS))
+                for f in ("instructions", "preferences", "static")}
+        _PROFILE_SERVED.append(sum(len(v) for v in keep.values()))
+        return client_mod.Profile(**keep)
 
-    adapter.remember, adapter.remember_many, adapter.profile = one, many, no_profile
+    adapter.remember, adapter.remember_many, adapter.profile = one, many, tagged_profile
     adapter._eval_recording = True
 
 
@@ -71,6 +82,8 @@ class LiveSamArm(LiveArm):
         client.close()
         _record_writes()
         _RECORDED.clear()
+        _PROFILE_TAGS.clear()
+        _PROFILE_SERVED.clear()
         self.scope = loaded.default_scope
 
     def _count_tools(self, since: int, into: Counter[str]) -> None:
@@ -81,6 +94,12 @@ class LiveSamArm(LiveArm):
                 into[name] += 1
                 if name == "agent_memory_remember" and into is self.tell_tools:
                     self._foreground_args.append(json.dumps(call["function"].get("arguments", "")))
+
+    def allow_profile(self, tags: Sequence[str]) -> None:
+        _PROFILE_TAGS[:] = list(tags)
+
+    def profile_entries_served(self) -> int:
+        return sum(_PROFILE_SERVED)
 
     def memory_files(self) -> dict[str, int]:
         return {}

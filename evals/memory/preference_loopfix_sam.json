@@ -1,0 +1,37 @@
+{
+  "arm": "loopfix_sam",
+  "seed": 1,
+  "harness_only": false,
+  "results": [
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {
+        "profile_entries_served": 56
+      }
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {
+        "profile_entries_served": 80
+      }
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 2,
+      "total": 3,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {
+        "profile_entries_served": 72
+      }
+    }
+  ]
+}

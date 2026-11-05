@@ -1,0 +1,31 @@
+{
+  "arm": "loopfix",
+  "seed": 1,
+  "harness_only": false,
+  "results": [
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    }
+  ]
+}

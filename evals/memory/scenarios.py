@@ -26,6 +26,7 @@ def make_value(rng: random.Random, style: ValueStyle, avoid: str = "") -> str:
 class Scorer(Protocol):
     def recalled(self, fact: Fact, reply: str | None) -> bool: ...
     def abstained(self, reply: str | None) -> bool: ...
+    def followed(self, preference: str, reply: str | None) -> bool: ...
 
 
 class SubstringScorer:
@@ -36,6 +37,10 @@ class SubstringScorer:
 
     def abstained(self, reply: str | None) -> bool:
         return reply is None
+
+    def followed(self, preference: str, reply: str | None) -> bool:
+        # The fake arm can only echo stored text; a preference is followed when its quoted phrase appears.
+        return reply is not None and "'" in preference and preference.split("'")[1] in reply
 
 
 def make_facts(seed: int, n: int, style: ValueStyle = "color") -> list[Fact]:

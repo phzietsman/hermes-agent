@@ -83,6 +83,11 @@ class JudgeScorer:
             return False
         return verdict(self._judge.states_current_value(fact.question, fact.answer, reply)) is True
 
+    def followed(self, preference: str, reply: str | None) -> bool:
+        if reply is None:
+            return False
+        return verdict(self._judge.follows_preference(preference, reply)) is True
+
     def abstained(self, reply: str | None) -> bool:
         if reply is None:
             return True
