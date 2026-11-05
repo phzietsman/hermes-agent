@@ -1,6 +1,7 @@
 """LiveArm with Agent Memory as the provider (the `loopfix_sam` arm).
 
-Landing is measured at the service boundary: every successful remember/remember_many the real adapter
+The core profile is context-wide, not per-scope, so on a shared Sandbox it carries facts from every earlier
+run; the arm therefore serves an empty profile and measures recall and the tools only. Landing is measured at the service boundary: every successful remember/remember_many the real adapter
 makes is recorded with its origin label, so "landed" means the service accepted it. Each run uses its own
 scopes so runs never read each other's facts. Needs AGENT_MEMORY_API_KEY/ENDPOINT/CONTEXT in the env.
 """
@@ -42,7 +43,11 @@ def _record_writes() -> None:
         _RECORDED.append((_origin(labels), "\n".join(str(i["content"]) for i in items)))
         return out
 
-    adapter.remember, adapter.remember_many, adapter._eval_recording = one, many, True
+    def no_profile(self: Any) -> Any:
+        return importlib.import_module("plugins.memory.agent_memory.client").Profile()
+
+    adapter.remember, adapter.remember_many, adapter.profile = one, many, no_profile
+    adapter._eval_recording = True
 
 
 class LiveSamArm(LiveArm):

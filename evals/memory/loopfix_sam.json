@@ -5,7 +5,7 @@
   "results": [
     {
       "scenario": "1_recall",
-      "passed": 6,
+      "passed": 7,
       "total": 8,
       "requires_live": false,
       "seed": 1,
@@ -17,39 +17,39 @@
       "total": 8,
       "requires_live": false,
       "seed": 1,
-      "detail": {
-        "landed": 8,
-        "assistant_tool": 0,
-        "turn": 8,
-        "session": 8,
-        "background_review": 5
-      }
-    },
-    {
-      "scenario": "1_recall",
-      "passed": 5,
-      "total": 8,
-      "requires_live": false,
-      "seed": 2,
-      "detail": {}
-    },
-    {
-      "scenario": "6_write_landing",
-      "passed": 8,
-      "total": 8,
-      "requires_live": false,
-      "seed": 2,
       "detail": {
         "landed": 8,
         "assistant_tool": 4,
         "turn": 8,
         "session": 8,
-        "background_review": 5
+        "background_review": 3
       }
     },
     {
       "scenario": "1_recall",
-      "passed": 6,
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 8,
+      "total": 8,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {
+        "landed": 8,
+        "assistant_tool": 6,
+        "turn": 8,
+        "session": 8,
+        "background_review": 2
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 7,
       "total": 8,
       "requires_live": false,
       "seed": 3,
@@ -63,10 +63,10 @@
       "seed": 3,
       "detail": {
         "landed": 8,
-        "assistant_tool": 7,
+        "assistant_tool": 8,
         "turn": 8,
         "session": 8,
-        "background_review": 1
+        "background_review": 0
       }
     },
     {
@@ -87,7 +87,7 @@
     },
     {
       "scenario": "2_supersession",
-      "passed": 3,
+      "passed": 4,
       "total": 4,
       "requires_live": false,
       "seed": 3,
@@ -95,7 +95,7 @@
     },
     {
       "scenario": "3_abstention",
-      "passed": 3,
+      "passed": 4,
       "total": 4,
       "requires_live": false,
       "seed": 1,
@@ -103,7 +103,7 @@
     },
     {
       "scenario": "3_abstention",
-      "passed": 2,
+      "passed": 4,
       "total": 4,
       "requires_live": false,
       "seed": 2,
@@ -111,7 +111,7 @@
     },
     {
       "scenario": "3_abstention",
-      "passed": 2,
+      "passed": 4,
       "total": 4,
       "requires_live": false,
       "seed": 3,
