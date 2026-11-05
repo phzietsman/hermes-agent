@@ -72,7 +72,7 @@ def main() -> int:
         print(f"{ns.arm.value:9} {name:16} {line}")
     landing = [r for r in results if r.scenario == "6_write_landing"]
     if landing:
-        tot = {k: sum(r.detail.get(k, 0) for r in landing) for k in ("landed", "foreground", "review")}
+        tot = {k: sum(r.detail.get(k, 0) for r in landing) for k in sorted({k for r in landing for k in r.detail})}
         print(f"{ns.arm.value:9} landing attribution (all seeds): {tot}")
     return 0
 
