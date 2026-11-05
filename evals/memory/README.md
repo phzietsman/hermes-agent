@@ -1,7 +1,7 @@
 # evals/memory
 
 Typed, seeded memory eval harness. Scenarios 1, 2, 3, 6 are implemented against a `MemoryArm`
-Protocol; 4, 5, 7, 8 need a live agent arm (marked `requires_live`).
+Protocol; 7 (resilience, `resilience.py`) runs offline against the real provider; 4, 5, 8 need a live agent arm (marked `requires_live`).
 
 `baseline.json` is produced by `DictArm` (`harness_only: true`): it validates the harness only.
 Live results (real agent + Jev judge): `baseline.live.json` (main) and `loopfix.json` (this branch);

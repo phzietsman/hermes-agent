@@ -107,7 +107,6 @@ def write_landing(arm: MemoryArm, seed: int, n: int = 20, style: ValueStyle = "c
 LIVE_ONLY = [
     "4_preference_following",
     "5_procedural",
-    "7_resilience",
     "8_regression",
 ]
 

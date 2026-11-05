@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .arms import DictArm, MemoryArm
 from .models import ArmName, Report
+from .resilience import resilience
 from .scenarios import abstention, live_placeholders, recall_across_sessions, supersession, write_landing
 
 
@@ -15,6 +16,7 @@ def run_all(arm: MemoryArm, arm_name: ArmName, seed: int, harness_only: bool) ->
         supersession(arm, seed),
         abstention(arm, seed),
         write_landing(arm, seed),
+        resilience(seed),
         *live_placeholders(),
     ]
     return Report(arm=arm_name, seed=seed, harness_only=harness_only, results=results)

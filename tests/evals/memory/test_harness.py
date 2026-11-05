@@ -36,3 +36,13 @@ def test_aside_scenarios_run_on_the_fake_arm_and_use_natural_facts() -> None:
     # an aside is a task request plus a durable fact, not a bare "X is Y" pair
     from evals.memory.aside_scenarios import _facts  # noqa: PLC2701
     assert all("?" in f.statement or "." in f.statement and len(f.statement.split()) > 8 for _, f in _facts(1, 4))
+
+
+def test_resilience_loses_nothing_when_the_network_dies_mid_session() -> None:
+    from evals.memory.resilience import resilience
+
+    r = resilience(3)
+    assert r.passed == r.total == 12
+    assert r.detail["degraded_profile_served"] == 1
+    assert r.detail["queued_while_down"] > 0  # the cut really happened
+    assert r.detail["outbox_left"] == 0 and r.detail["duplicates"] == 0
