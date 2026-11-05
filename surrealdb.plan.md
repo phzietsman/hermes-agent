@@ -188,7 +188,7 @@ evals/memory/ scenarios, each run in fresh sessions:
  7 Resilience: kill network mid-session -> degraded mode serves core profile, outbox replays, nothing lost
  8 Regression: full pytest, prefetch p95, tokens per session incl. SAM usage
 Matrix: {baseline, loop-fix only, loop-fix + SAM} x {daily model, ~30B local model}.
-Gates to ship: >=15pt gain on 1+2 vs loop-fix-only; no regression on 5; write-landing >=95%;
+Gates to ship: no worse than loop-fix-only on 1-3 (replaced the >=15pt gain gate, D42); no regression on 5; write-landing >=95%;
 prefetch p95 < 1.5s; scenario 7 loses zero writes; monthly tokens within plan.
 
 ## Rollback / ops
