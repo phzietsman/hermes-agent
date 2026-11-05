@@ -22,6 +22,7 @@ from .live import LiveArm
 _RECORDED: list[tuple[str, str]] = []  # (origin, text) of writes the service accepted
 _PROFILE_TAGS: list[str] = []  # run-unique tokens whose profile entries may reach the agent
 _PROFILE_SERVED: list[int] = []  # entries admitted per profile read
+_PROFILE_LAST: list[str] = []  # the entries admitted by the most recent profile read
 
 
 def _origin(labels: Sequence[str]) -> str:
@@ -55,6 +56,7 @@ def _record_writes() -> None:
         keep = {f: tuple(e for e in getattr(full, f) if any(t in e for t in _PROFILE_TAGS))
                 for f in ("instructions", "preferences", "static")}
         _PROFILE_SERVED.append(sum(len(v) for v in keep.values()))
+        _PROFILE_LAST[:] = [e for v in keep.values() for e in v]
         return client_mod.Profile(**keep)
 
     adapter.remember, adapter.remember_many, adapter.profile = one, many, tagged_profile
@@ -84,6 +86,7 @@ class LiveSamArm(LiveArm):
         _RECORDED.clear()
         _PROFILE_TAGS.clear()
         _PROFILE_SERVED.clear()
+        _PROFILE_LAST.clear()
         self.scope = loaded.default_scope
 
     def _count_tools(self, since: int, into: Counter[str]) -> None:
@@ -94,6 +97,14 @@ class LiveSamArm(LiveArm):
                 into[name] += 1
                 if name == "agent_memory_remember" and into is self.tell_tools:
                     self._foreground_args.append(json.dumps(call["function"].get("arguments", "")))
+
+    def ask(self, key: str, question: str) -> str | None:
+        reply = super().ask(key, question)
+        trace = os.environ.get("EVAL_TRACE")  # optional JSONL of what the agent saw and said, for diagnosis
+        if trace:
+            with open(trace, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"key": key, "question": question, "profile": list(_PROFILE_LAST), "reply": reply}) + "\n")
+        return reply
 
     def allow_profile(self, tags: Sequence[str]) -> None:
         _PROFILE_TAGS[:] = list(tags)

@@ -26,6 +26,54 @@
       "requires_live": false,
       "seed": 3,
       "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 6,
+      "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 7,
+      "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 8,
+      "detail": {}
+    },
+    {
+      "scenario": "4_preference_following",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 9,
+      "detail": {}
     }
   ]
 }
