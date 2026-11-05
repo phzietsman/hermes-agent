@@ -21,7 +21,7 @@ command. A hook with no concrete consumer is speculative infrastructure and is r
   byterover, holographic, retaindb, hindsight, honcho, supermemory, mem0 and openviking providers
   are gone. Another backend ships as a standalone repo implementing the same `MemoryProvider` ABC,
   discovered through the same path and resolved through `plugins.memory.import_provider_module`,
-  never a `plugins.memory.<name>` import (D27 in `DECISIONS.md` tracks this exception).
+  never a `plugins.memory.<name>` import (D27 in `DECISIONS.md`: accepted exception, this fork is never upstreamed).
 - **No new third-party-product plugins (June 2026).** Observability/metrics backends, vendor SaaS
   connectors, analytics dashboards, paid-service tie-ins ship as standalone plugin repos
   (`~/.hermes/plugins/` or pip entry point) promoted in Discord `#plugins-skills-and-skins`. Reason:
