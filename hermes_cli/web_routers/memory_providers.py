@@ -24,7 +24,7 @@ from hermes_cli.web_server_memory import (
 from hermes_cli.web_models import MemoryProviderConfigUpdate, MemoryProviderSetupRequest
 from hermes_cli.web_routers._common import _CONFIG_MUTATION_LOCK, scoped_to_thread
 from plugins.memory.config_schema import (
-    STORAGE_HONCHO_HOST_BLOCK, ProviderConfigSchema, ProviderField, get_provider_config_schema,
+    ProviderConfigSchema, ProviderField, get_provider_config_schema,
 )
 
 _log = logging.getLogger("hermes_cli.web_server")
@@ -122,15 +122,6 @@ def _read_flat_json(provider: ProviderConfigSchema) -> Dict[str, Any]:
     return _read_json_dict(_flat_json_path(provider), "memory provider config")
 
 
-def _honcho_resolvers(name: str):
-    """Host-block resolvers of provider *name*'s own ``client`` module, wherever the provider is
-    installed (bundled or ``$HERMES_HOME/plugins/``)."""
-    from plugins.memory import import_provider_module
-
-    client = import_provider_module(name, "client")
-    return client.resolve_active_host, client.resolve_config_path, client._host_block
-
-
 def _save_submitted_secrets(provider: ProviderConfigSchema, values: Dict[str, str]) -> list:
     """Persist each non-blank secret submission to the env store (when the field has an
     ``env_key``); return the ``(field, submitted)`` pairs for backend-specific handling."""
@@ -178,38 +169,6 @@ def _write_provider_flat(provider: ProviderConfigSchema, values: Dict[str, str])
     _write_json_0600(_flat_json_path(provider), existing)
 
 
-def _write_provider_honcho(provider: ProviderConfigSchema, values: Dict[str, str]) -> None:
-    """Persist submitted fields to Honcho's real config for the active host (partial
-    saves touch only submitted keys; blank text clears a key — see ``_apply_field_values``)."""
-    from plugins.memory import import_provider_module
-
-    oauth = import_provider_module(provider.name, "oauth")
-    resolve_active_host, resolve_config_path, host_block_of = _honcho_resolvers(provider.name)
-    host = resolve_active_host()
-    # Write the file reads resolve, or a save shadows it with a sparse copy.
-    path = resolve_config_path()
-
-    # OAuth rotation is single-use; an unlocked RMW here can revoke the grant.
-    with oauth._refresh_lock, oauth._config_refresh_lock(path):
-        # Strict: a file that exists but does not parse must not be replaced by this host's block alone.
-        cfg = oauth._read_config_strict(path)
-        hosts = cfg.get("hosts")
-        cfg["hosts"] = hosts = hosts if isinstance(hosts, dict) else {}
-        # Update the block reads resolve (legacy dot-form included), never shadow it.
-        existing = host_block_of(cfg, host)
-        host_key = next((k for k, v in hosts.items() if v is existing), host) if existing else host
-        host_block = hosts.setdefault(host_key, existing)
-
-        for field, submitted in _save_submitted_secrets(provider, values):
-            # Persist where the client reads first; an OAuth token owns that slot.
-            stored = host_block.get(field.key)
-            if not (isinstance(stored, str) and stored.startswith(oauth.ACCESS_TOKEN_PREFIX)):
-                host_block[field.key] = submitted
-
-        _apply_field_values(provider, values, lambda field: host_block if field.scope == "host" else cfg)
-        _write_json_0600(path, cfg)
-
-
 def _serialize_field_value(field: ProviderField, value: Any) -> str:
     """Render a stored native value as the string the generic UI edits (``None`` = key
     absent -> declared default; bools -> "true"/"false"; JSON containers re-encoded)."""
@@ -247,20 +206,10 @@ def _declared_field_is_set(field: ProviderField, sources: tuple, env: Dict[str, 
 
 def _declared_provider_payload(provider: ProviderConfigSchema) -> Dict[str, Any]:
     env = load_env()
-    is_honcho = provider.storage == STORAGE_HONCHO_HOST_BLOCK
-    if is_honcho:
-        resolve_active_host, resolve_config_path, host_block_of = _honcho_resolvers(provider.name)
-        host = resolve_active_host()
-        raw = _read_json_dict(resolve_config_path(), "Honcho config")
-        host_block = host_block_of(raw, host)
+    data = _read_flat_json(provider)
 
-        def sources_for(field: ProviderField) -> tuple:
-            return (host_block, raw) if field.scope == "host" else (raw,)
-    else:
-        host, data = "", _read_flat_json(provider)
-
-        def sources_for(field: ProviderField) -> tuple:
-            return (data,)
+    def sources_for(field: ProviderField) -> tuple:
+        return (data,)
 
     fields: List[Dict[str, Any]] = []
     for field in provider.fields:
@@ -273,15 +222,11 @@ def _declared_provider_payload(provider: ProviderConfigSchema) -> Dict[str, Any]
             fields.append(entry)
             continue
         native = _read_field(field, sources, env)
-        if is_honcho and not field.placeholder and field.key in {"workspace", "aiPeer"}:
-            # Blank fields surface the resolved host Honcho will actually use.
-            entry["placeholder"] = host
         value = _serialize_field_value(field, native)
         if field.kind == "select" and value not in field.allowed_values():
             value = field.default
         entry["value"] = value
-        # Presence, not truthiness — a stored False/0 is still "set".
-        entry["is_set"] = native is not None if is_honcho else bool(value)
+        entry["is_set"] = bool(value)
         fields.append(entry)
     return {"name": provider.name, "label": provider.label, "docs_url": provider.docs_url, "fields": fields}
 
@@ -306,8 +251,7 @@ def _memory_section(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _update_memory_provider_config(provider: ProviderConfigSchema, values: Dict[str, str]) -> None:
-    writer = _write_provider_honcho if provider.storage == STORAGE_HONCHO_HOST_BLOCK else _write_provider_flat
-    writer(provider, values)
+    _write_provider_flat(provider, values)
     with _CONFIG_MUTATION_LOCK:  # RMW span vs. the dashboard's config autosave
         config = load_config()
         memory_config = _memory_section(config)
