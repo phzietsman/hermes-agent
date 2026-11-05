@@ -20,10 +20,12 @@ recovery. Every told fact lands exactly once, the outbox drains, the cached core
 means reverting those commits, not flipping a flag.
 
 ## 3. Latency
-Recall on the hosted Sandbox takes 2-25s (median ~6-7s) in every mode (D31), so the "prefetch p95 < 1.5s" gate
-cannot be met against it. The provider waits at most `prefetch_wait_s` (2.5s) and otherwise serves the last
-completed recall, so recall usually arrives one turn late.
-**Open:** needs a faster endpoint or tier, or a different threshold.
+Measured through the real provider on the hosted Sandbox (`evals/memory/regression.json`, D46): raw recall p50
+14.3s / p95 16.2s (an earlier run measured a 6-7s median; it varies, D31). The provider caps the blocking wait at
+`prefetch_wait_s` (2.5s): cold prefetch p50/p95 2.51s, warm prefetch p50 ~0 / p95 2.51s. The plan's "prefetch p95 <
+1.5s" gate is not met and cannot be on this endpoint. In scenario 5 this shows as ~45% more wall time per task
+than loop-fix only (D45). Recall usually arrives one turn late.
+**Open:** a faster tier/endpoint, or accept a lower `prefetch_wait_s`.
 
 ## 4. Write reliability
 The agent claims saves that do not always reach SAM. Live result (Haiku, Jev judge, 3 seeds x 8 facts, D25):
@@ -43,8 +45,10 @@ without notice. Treat anything stored there as non-durable until a production ti
 
 ## 7. Cost
 Background consolidation and extraction run server-side and spend tokens on the vendor's side; recall adds
-latency and prompt tokens per turn (capped by `top_k` and a character budget). The plan's monthly token gate
-(scenario 8) has not been measured: it needs a live run. Vendor pricing can change.
+latency and prompt tokens per turn (capped by `top_k` and a character budget). Client-side tokens per task were
+measured (scenario 5: ~50k per reuse run with SAM vs ~54k without, D45/D46). SAM's own server-side tokens are not
+visible to the client and the plan states no numeric monthly budget, so that gate cannot be judged; get usage from
+the vendor dashboard. Vendor pricing can change.
 
 ## 8. Recall noise and cache safety
 Recalled text is injected into context each turn and can be wrong, stale or irrelevant (supersession showed no
@@ -52,9 +56,9 @@ difference vs `main`, D25, n=12). The core profile is frozen per session so the 
 facts remembered this session reach the model only through recall.
 
 ## 9. Test coverage gaps
-Scenarios 4 (preference following), 5 (procedural reuse) and 8 (regression/token cost) have no live results
-yet. A full-suite run after Phase 3b/3c and D37 was not done; targeted runs only, with the `main`-baseline
-failures listed in D23/D26.
+Scenarios 1-8 all have results (D25, D41-D46). The full suite was run after Phase 3b/3c and D37 (D46): the only
+failures left are ones that also fail on `main`. Sample sizes are small (tens of questions per arm), so gaps of a
+few points are noise. Not measured: SAM's server-side token spend, and behaviour at a large store size.
 
 ## 10. Credentials
 Sandbox and judge keys were pasted into a chat session during development. Rotate them before the repository
