@@ -72,6 +72,10 @@ def main() -> int:
     ns.out.write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
     for name, line in summarize(results).items():
         print(f"{ns.arm.value:9} {name:16} {line}")
+    proc = [r for r in results if r.scenario == "5_procedural"]
+    if proc:
+        keys = sorted({k for r in proc for k in r.detail})
+        print(f"{ns.arm.value:9} procedural totals (all seeds): {{{', '.join(f'{k}: {sum(r.detail.get(k, 0) for r in proc)}' for k in keys)}}}")
     landing = [r for r in results if r.scenario == "6_write_landing"]
     if landing:
         tot = {k: sum(r.detail.get(k, 0) for r in landing) for k in sorted({k for r in landing for k in r.detail})}
