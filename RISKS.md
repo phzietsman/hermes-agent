@@ -25,7 +25,7 @@ Measured through the real provider on the hosted Sandbox (`evals/memory/regressi
 `prefetch_wait_s` (2.5s): cold prefetch p50/p95 2.51s, warm prefetch p50 ~0 / p95 2.51s. The plan's "prefetch p95 <
 1.5s" gate is not met and cannot be on this endpoint. In scenario 5 this shows as ~45% more wall time per task
 than loop-fix only (D45). Recall usually arrives one turn late.
-**Open:** a faster tier/endpoint, or accept a lower `prefetch_wait_s`.
+**Accepted (D47):** the deployment is an async bot; the 2.5s cap is the agreed ceiling.
 
 ## 4. Write reliability
 The agent claims saves that do not always reach SAM. Live result (Haiku, Jev judge, 3 seeds x 8 facts, D25):
