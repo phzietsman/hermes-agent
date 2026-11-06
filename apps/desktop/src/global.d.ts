@@ -850,8 +850,7 @@ export interface DesktopUpdateCommit {
   at: number
 }
 
-export type UpdaterMechanismClient =
-  'electron-updater' | 'external' | 'posix-handoff' | 'manual'
+export type UpdaterMechanismClient = 'electron-updater' | 'external' | 'posix-handoff' | 'manual'
 
 export interface DesktopUpdateStatus {
   supported: boolean

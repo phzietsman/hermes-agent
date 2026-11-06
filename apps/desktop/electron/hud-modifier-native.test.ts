@@ -12,26 +12,22 @@ import { macosSysroot, xcrunClangArgv } from '../scripts/macos-sysroot.mjs'
 // Linux XI2 (-x11.c) helpers both include. Compile its C contract and run it
 // wherever a C toolchain ships with the runner: Linux (the JS CI lane) and
 // macOS.
-test(
-  'native modifier gesture state machine only summons on a clean, bounded two-modifier tap',
-  () => {
-    const dir = mkdtempSync(resolve(tmpdir(), 'hermes-hud-gesture-'))
+test('native modifier gesture state machine only summons on a clean, bounded two-modifier tap', () => {
+  const dir = mkdtempSync(resolve(tmpdir(), 'hermes-hud-gesture-'))
 
-    try {
-      const binary = resolve(dir, 'gesture')
-      const source = resolve(import.meta.dirname, 'native', 'hud-modifier-gesture.test.c')
-      const flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', source, '-o', binary]
+  try {
+    const binary = resolve(dir, 'gesture')
+    const source = resolve(import.meta.dirname, 'native', 'hud-modifier-gesture.test.c')
+    const flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', source, '-o', binary]
 
-      if (process.platform === 'darwin') {
-        execFileSync('xcrun', [...xcrunClangArgv(macosSysroot()), ...flags])
-      } else {
-        execFileSync('cc', flags)
-      }
-
-      assert.match(execFileSync(binary, [], { encoding: 'utf8', timeout: 5_000 }), /assertions passed/)
-    } finally {
-      rmSync(dir, { force: true, recursive: true })
+    if (process.platform === 'darwin') {
+      execFileSync('xcrun', [...xcrunClangArgv(macosSysroot()), ...flags])
+    } else {
+      execFileSync('cc', flags)
     }
-  },
-  30_000
-)
+
+    assert.match(execFileSync(binary, [], { encoding: 'utf8', timeout: 5_000 }), /assertions passed/)
+  } finally {
+    rmSync(dir, { force: true, recursive: true })
+  }
+}, 30_000)

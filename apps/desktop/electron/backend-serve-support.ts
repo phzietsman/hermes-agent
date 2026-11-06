@@ -64,16 +64,12 @@ export function createBackendServeSupportResolver(hermesHome: string, rememberLo
           // is cached for the process lifetime, silently routing a modern
           // runtime through the legacy `dashboard` form. Share the probe budget
           // and its timeout-only retry instead of a thinner local bound.
-          await execProbe(
-            backend.command,
-            [...prefix, 'serve', '--help'],
-            {
-              cwd: backend.root || undefined,
-              env: { ...process.env, HERMES_HOME: hermesHome, ...(backend.env || {}) },
-              timeout: PROBE_TIMEOUT_MS,
-              stdio: 'ignore'
-            }
-          )
+          await execProbe(backend.command, [...prefix, 'serve', '--help'], {
+            cwd: backend.root || undefined,
+            env: { ...process.env, HERMES_HOME: hermesHome, ...(backend.env || {}) },
+            timeout: PROBE_TIMEOUT_MS,
+            stdio: 'ignore'
+          })
           supported = true
         } catch (err) {
           // A timeout says nothing about the runtime, only about this machine

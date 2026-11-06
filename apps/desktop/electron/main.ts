@@ -99,11 +99,7 @@ import {
   sshClientFailedError
 } from './backend-start-failure'
 import { describeBootstrapFailure } from './bootstrap-failure-copy'
-import {
-  detectRemoteDisplay,
-  isWslEnvironment,
-  resolveLinuxPasswordStore
-} from './bootstrap-platform'
+import { detectRemoteDisplay, isWslEnvironment, resolveLinuxPasswordStore } from './bootstrap-platform'
 import { decideBootstrapRepair } from './bootstrap-repair-guard'
 import { runBootstrap } from './bootstrap-runner'
 import { bootstrapSnapshot } from './bootstrap-state'
@@ -611,9 +607,7 @@ import {
   registerUpdateHoldIpc,
   waitForPoolUpdateClearance
 } from './update-hold-wiring'
-import {
-  readLiveUpdateMarker
-} from './update-marker'
+import { readLiveUpdateMarker } from './update-marker'
 import { heldWaitMessage, holdTicker } from './update-marker-gate'
 import { updateConnectionsBeforeLocal } from './update-order'
 import {
@@ -622,10 +616,7 @@ import {
   type UpdaterStatusWire,
   type UpdaterStrategy
 } from './updater'
-import {
-  resolveInstallationLauncher,
-  userLauncherInstallRoot
-} from './updater-process'
+import { resolveInstallationLauncher, userLauncherInstallRoot } from './updater-process'
 import { ChannelResolver, type ChannelTarget } from './updater/channel'
 import { inspectRunningChannelApp } from './updater/channel-native'
 import { ChannelStrategy } from './updater/channel-strategy'
@@ -1722,8 +1713,7 @@ const localBackendLifecycle = createLocalBackendLifecycle<ChildProcess>({
       stopBackendChildImpl(child, {})
     }
   },
-  waitForExit: (child: ChildProcess): Promise<void> =>
-    waitForBackendExit(child, {}),
+  waitForExit: (child: ChildProcess): Promise<void> => waitForBackendExit(child, {}),
   cancelSetup: (): void => {
     firstRunSetupGate?.resetForRetry()
     bootstrapAbortController?.abort()
@@ -3031,7 +3021,12 @@ function resolveGhBinary() {
 
   const home = app.getPath('home')
 
-  const candidates = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh', path.join(home, '.local', 'bin', 'gh')]
+  const candidates = [
+    '/opt/homebrew/bin/gh',
+    '/usr/local/bin/gh',
+    '/usr/bin/gh',
+    path.join(home, '.local', 'bin', 'gh')
+  ]
 
   // PATH hits go through the same probe: a bare findOnPath fallback would
   // re-select an unlaunchable first hit when none of the fixed locations exist.
@@ -4146,10 +4141,7 @@ async function resolveHermesBackend(backendArgs: string[]): Promise<ResolvedHerm
     }
 
     if (hermesCommand) {
-      if (
-        shouldTrustHermesOverride(hermesOverride) ||
-        (await verifyHermesCli(hermesCommand))
-      ) {
+      if (shouldTrustHermesOverride(hermesOverride) || (await verifyHermesCli(hermesCommand))) {
         return {
           label: `existing Hermes CLI at ${hermesCommand}`,
           command: hermesCommand,
@@ -10936,35 +10928,31 @@ async function runPoolBackendStart(
   const parentIdentityEnv = parentWatchdogEnv(process.pid, parentStartMarker, backendNonce)
   assertPoolEntryStillOwned(poolKey, entry, backendPool, localBackendLifecycle.signal)
 
-  const child = spawnOwnedBackend(
-    backend.command,
-    backend.args,
-    {
-      cwd: hermesCwd,
-      env: desktopBackendSpawnEnv(
-        {
-          // Never another profile's dotenv credentials from the Desktop env (#68367), and never
-          // the launch profile's TERMINAL_CWD: a pooled backend serves THIS --profile, whose
-          // placeholder/unset terminal.cwd sessions must resolve their own workspace, not the
-          // app-global one (#87584). The child re-resolves from its profile config like a
-          // standalone `hermes -p X serve`.
-          ...pooledProfileBackendEnv({ hermesHome: HERMES_HOME, profile, backendEnv: backend.env }),
-          HERMES_DASHBOARD_SESSION_TOKEN: token,
-          // Marks this dashboard backend as desktop-spawned so it runs the cron
-          // scheduler tick loop (the gateway isn't running under the app).
-          HERMES_DESKTOP: '1',
-          // Exact parent identity lets the backend self-exit after an unclean
-          // Desktop death without mistaking a reused PID for its owner. If the
-          // optional marker probe fails, retain legacy PID-only tracking.
-          ...parentIdentityEnv,
-          HERMES_WEB_DIST: webDist,
-          ...(readyFile ? { HERMES_DESKTOP_READY_FILE: readyFile } : {})
-        },
-        GUEST_ONBOARDING
-      ),
-      stdio: ['ignore', 'pipe', 'pipe']
-    }
-  )
+  const child = spawnOwnedBackend(backend.command, backend.args, {
+    cwd: hermesCwd,
+    env: desktopBackendSpawnEnv(
+      {
+        // Never another profile's dotenv credentials from the Desktop env (#68367), and never
+        // the launch profile's TERMINAL_CWD: a pooled backend serves THIS --profile, whose
+        // placeholder/unset terminal.cwd sessions must resolve their own workspace, not the
+        // app-global one (#87584). The child re-resolves from its profile config like a
+        // standalone `hermes -p X serve`.
+        ...pooledProfileBackendEnv({ hermesHome: HERMES_HOME, profile, backendEnv: backend.env }),
+        HERMES_DASHBOARD_SESSION_TOKEN: token,
+        // Marks this dashboard backend as desktop-spawned so it runs the cron
+        // scheduler tick loop (the gateway isn't running under the app).
+        HERMES_DESKTOP: '1',
+        // Exact parent identity lets the backend self-exit after an unclean
+        // Desktop death without mistaking a reused PID for its owner. If the
+        // optional marker probe fails, retain legacy PID-only tracking.
+        ...parentIdentityEnv,
+        HERMES_WEB_DIST: webDist,
+        ...(readyFile ? { HERMES_DESKTOP_READY_FILE: readyFile } : {})
+      },
+      GUEST_ONBOARDING
+    ),
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
 
   entry.process = child
   entry.token = token
@@ -11786,39 +11774,35 @@ async function runHermesStart({ supervisorRecovery = false }: { supervisorRecove
 
     backendConnectionState.assertCurrentAttempt(connectionAttempt)
 
-    const hermesProcess = spawnOwnedBackend(
-      backend.command,
-      backend.args,
-      {
-        cwd: hermesCwd,
-        env: desktopBackendSpawnEnv(
-          {
-            // Never another profile's dotenv credentials from the Desktop env (#68367).
-            ...profileBackendParentEnv({ hermesHome: HERMES_HOME, profile: activeProfile }),
-            // Explicitly pin HERMES_HOME for the child so Python's get_hermes_home()
-            // resolves to the SAME location our resolveHermesHome() picked. Without
-            // this pin, Python falls back to ~/.hermes, which can differ from the
-            // directory the desktop picked and would split config / sessions /
-            // .env / logs across two directories.
-            HERMES_HOME,
-            ...backend.env,
-            TERMINAL_CWD: hermesCwd,
-            HERMES_DASHBOARD_SESSION_TOKEN: token,
-            // Marks this dashboard backend as desktop-spawned so it runs the cron
-            // scheduler tick loop (the gateway isn't running under the app).
-            HERMES_DESKTOP: '1',
-            // Exact parent identity lets the backend self-exit after an unclean
-            // Desktop death without mistaking a reused PID for its owner. If the
-            // optional marker probe fails, retain legacy PID-only tracking.
-            ...parentIdentityEnv,
-            HERMES_WEB_DIST: webDist,
-            ...(readyFile ? { HERMES_DESKTOP_READY_FILE: readyFile } : {})
-          },
-          GUEST_ONBOARDING
-        ),
-        stdio: ['ignore', 'pipe', 'pipe']
-      }
-    )
+    const hermesProcess = spawnOwnedBackend(backend.command, backend.args, {
+      cwd: hermesCwd,
+      env: desktopBackendSpawnEnv(
+        {
+          // Never another profile's dotenv credentials from the Desktop env (#68367).
+          ...profileBackendParentEnv({ hermesHome: HERMES_HOME, profile: activeProfile }),
+          // Explicitly pin HERMES_HOME for the child so Python's get_hermes_home()
+          // resolves to the SAME location our resolveHermesHome() picked. Without
+          // this pin, Python falls back to ~/.hermes, which can differ from the
+          // directory the desktop picked and would split config / sessions /
+          // .env / logs across two directories.
+          HERMES_HOME,
+          ...backend.env,
+          TERMINAL_CWD: hermesCwd,
+          HERMES_DASHBOARD_SESSION_TOKEN: token,
+          // Marks this dashboard backend as desktop-spawned so it runs the cron
+          // scheduler tick loop (the gateway isn't running under the app).
+          HERMES_DESKTOP: '1',
+          // Exact parent identity lets the backend self-exit after an unclean
+          // Desktop death without mistaking a reused PID for its owner. If the
+          // optional marker probe fails, retain legacy PID-only tracking.
+          ...parentIdentityEnv,
+          HERMES_WEB_DIST: webDist,
+          ...(readyFile ? { HERMES_DESKTOP_READY_FILE: readyFile } : {})
+        },
+        GUEST_ONBOARDING
+      ),
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
 
     // Buffer stdout+stderr from the instant of spawn (#93608): an early
     // crash's traceback must survive into the claim error and the
@@ -17417,15 +17401,11 @@ async function probeUninstallSummary(): Promise<UninstallSummaryDetails> {
     }
 
     try {
-      const child: ChildProcess = spawn(
-        py,
-        ['-m', 'hermes_cli.main', 'uninstall', '--gui-summary'],
-        {
-          cwd: agentRoot,
-          env: { ...process.env, HERMES_HOME, NO_COLOR: '1' },
-          stdio: ['ignore', 'pipe', 'ignore']
-        }
-      )
+      const child: ChildProcess = spawn(py, ['-m', 'hermes_cli.main', 'uninstall', '--gui-summary'], {
+        cwd: agentRoot,
+        env: { ...process.env, HERMES_HOME, NO_COLOR: '1' },
+        stdio: ['ignore', 'pipe', 'ignore']
+      })
 
       child.stdout.on('data', (chunk: Buffer): void => {
         stdout += chunk.toString()

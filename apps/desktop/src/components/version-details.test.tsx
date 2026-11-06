@@ -51,7 +51,7 @@ describe('VersionDetails', () => {
     // e.g. iris's v0.17.6 .app): named as the installer.
     {
       version: { distribution: 'desktop-app', updateMechanism: 'self', payload: 'bootstrap' },
-      visible: ['Desktop app (installer)'],
+      visible: ['Desktop app (installer)']
     },
     // `hermes desktop` packs the same bootstrap payload from a source checkout;
     // a locally built stamp names the source install, never the installer.

@@ -271,11 +271,13 @@ export function registerTerminalIpc({
     const remote = Boolean(sshTarget)
 
     const ptyProcess = remote
-      ? nodePty.spawn(
-          'ssh',
-          buildInteractiveSshArgs(sshTarget.ssh, String(payload?.cwd || '').trim()),
-          { cols, cwd: app.getPath('home'), env: terminalShellEnv(), name: 'xterm-256color', rows }
-        )
+      ? nodePty.spawn('ssh', buildInteractiveSshArgs(sshTarget.ssh, String(payload?.cwd || '').trim()), {
+          cols,
+          cwd: app.getPath('home'),
+          env: terminalShellEnv(),
+          name: 'xterm-256color',
+          rows
+        })
       : nodePty.spawn(command, args, { cols, cwd, env: terminalShellEnv(), name: 'xterm-256color', rows })
 
     const send = (suffix, payload) => {

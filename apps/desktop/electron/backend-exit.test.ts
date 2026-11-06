@@ -11,10 +11,7 @@ test('backend exit escalation rejects within its bound when no exit or close arr
   try {
     const child = Object.assign(new EventEmitter(), { exitCode: null, signalCode: null, kill: vi.fn() })
 
-    const waiting = assert.rejects(
-      waitForBackendExit(child, {}, 20),
-      /did not exit/
-    )
+    const waiting = assert.rejects(waitForBackendExit(child, {}, 20), /did not exit/)
 
     await Promise.all([waiting, vi.advanceTimersByTimeAsync(1020)])
     assert.equal(child.exitCode, null)

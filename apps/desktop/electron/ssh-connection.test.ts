@@ -112,44 +112,41 @@ test('controlSocketPath default base stays under sun_path even with the temp-lis
   assert.ok(!p.includes('/var/folders/'), 'default base must not be os.tmpdir() on macOS')
 })
 
-test(
-  'deep HOME uses a private short directory and binds a real listener',
-  async () => {
-    const previousHome = process.env.HOME
-    process.env.HOME = path.join(os.tmpdir(), 'deep-home-' + 'x'.repeat(110))
-    const net = await import('node:net')
-    const listener = net.createServer()
+test('deep HOME uses a private short directory and binds a real listener', async () => {
+  const previousHome = process.env.HOME
+  process.env.HOME = path.join(os.tmpdir(), 'deep-home-' + 'x'.repeat(110))
+  const net = await import('node:net')
+  const listener = net.createServer()
 
-    try {
-      const spawnFn = scriptedSpawn(args => (args.includes('check') ? { code: 255 } : { code: 0 }))
-      const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, mux: true })
-      assert.equal(conn.controlPath, controlSocketPath('me', 'box', 22))
-      assert.ok(!conn.controlPath.startsWith(process.env.HOME))
-      await conn.open()
-      const dir = path.dirname(conn.controlPath)
-      const st = fs.lstatSync(dir)
-      assert.ok(st.isDirectory() && !st.isSymbolicLink())
-      assert.equal(st.uid, process.getuid())
-      assert.equal(st.mode & 0o777, 0o700)
-      const temporaryPath = `${conn.controlPath}.0123456789abcdef`
-      assert.ok(Buffer.byteLength(temporaryPath) <= 104)
-      await new Promise<void>((resolve, reject) => {
-        listener.once('error', reject)
-        listener.listen(temporaryPath, resolve)
-      })
-    } finally {
-      if (previousHome === undefined) {
-        delete process.env.HOME
-      } else {
-        process.env.HOME = previousHome
-      }
+  try {
+    const spawnFn = scriptedSpawn(args => (args.includes('check') ? { code: 255 } : { code: 0 }))
+    const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, mux: true })
+    assert.equal(conn.controlPath, controlSocketPath('me', 'box', 22))
+    assert.ok(!conn.controlPath.startsWith(process.env.HOME))
+    await conn.open()
+    const dir = path.dirname(conn.controlPath)
+    const st = fs.lstatSync(dir)
+    assert.ok(st.isDirectory() && !st.isSymbolicLink())
+    assert.equal(st.uid, process.getuid())
+    assert.equal(st.mode & 0o777, 0o700)
+    const temporaryPath = `${conn.controlPath}.0123456789abcdef`
+    assert.ok(Buffer.byteLength(temporaryPath) <= 104)
+    await new Promise<void>((resolve, reject) => {
+      listener.once('error', reject)
+      listener.listen(temporaryPath, resolve)
+    })
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME
+    } else {
+      process.env.HOME = previousHome
+    }
 
-      if (listener.listening) {
-        await new Promise<void>((resolve, reject) => listener.close(error => (error ? reject(error) : resolve())))
-      }
+    if (listener.listening) {
+      await new Promise<void>((resolve, reject) => listener.close(error => (error ? reject(error) : resolve())))
     }
   }
-)
+})
 
 test('baseSshOptions carries the house ControlMaster/BatchMode/accept-new policy', () => {
   const opts = baseSshOptions('/tmp/x.sock', 15000)
@@ -1362,27 +1359,24 @@ test('stopTunnelChild waits for process exit', async () => {
   assert.equal(stopped, true)
 })
 
-test(
-  'withRemoteTimeout runs a healthy probe under a zsh login shell (#111949)',
-  async t => {
-    // SSH runs the remote command through the account's login shell. In
-    // non-interactive zsh, a bare `set -m` is fatal, so the wrapper must still
-    // run a healthy probe rather than reporting the remote as unsupported.
-    const zsh = await execFileAsync('sh', ['-c', 'command -v zsh || true']).then(r => r.stdout.trim())
+test('withRemoteTimeout runs a healthy probe under a zsh login shell (#111949)', async t => {
+  // SSH runs the remote command through the account's login shell. In
+  // non-interactive zsh, a bare `set -m` is fatal, so the wrapper must still
+  // run a healthy probe rather than reporting the remote as unsupported.
+  const zsh = await execFileAsync('sh', ['-c', 'command -v zsh || true']).then(r => r.stdout.trim())
 
-    // CI installs zsh (js-tests.yml); locally a missing zsh must show as a
-    // skip, not a pass, or a wrapper regression stays green unnoticed.
-    if (!zsh) {
-      t.skip('zsh not installed')
+  // CI installs zsh (js-tests.yml); locally a missing zsh must show as a
+  // skip, not a pass, or a wrapper regression stays green unnoticed.
+  if (!zsh) {
+    t.skip('zsh not installed')
 
-      return
-    }
-
-    const { stdout: zshStdout } = await execFileAsync(zsh, ['-fc', withRemoteTimeout('echo zsh-ok', 5)])
-
-    assert.equal(zshStdout, 'zsh-ok\n')
+    return
   }
-)
+
+  const { stdout: zshStdout } = await execFileAsync(zsh, ['-fc', withRemoteTimeout('echo zsh-ok', 5)])
+
+  assert.equal(zshStdout, 'zsh-ok\n')
+})
 
 test('withRemoteTimeout kills a hung probe remotely instead of orphaning it (#110478)', async () => {
   // Shape: POSIX watchdog — macOS remotes have no GNU `timeout`.
@@ -1614,10 +1608,7 @@ test('#103288: every spawn uses the injected sshBinary; the default stays bare s
     return fakeChild({ code: 0 })
   }
 
-  const custom = createSshProbeConnection(
-    { host: 'box', user: 'me' },
-    { spawnFn, sshBinary: '/opt/ssh/bin/ssh' }
-  )
+  const custom = createSshProbeConnection({ host: 'box', user: 'me' }, { spawnFn, sshBinary: '/opt/ssh/bin/ssh' })
 
   await custom.open()
   await custom.exec('true')

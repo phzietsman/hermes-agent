@@ -49,14 +49,7 @@ const COVER_EPSILON_PX = 2
  * are localized, unavailable without permissions on macOS, and empty for most
  * of these anyway.
  */
-const SHELL_APPS = [
-  /^finder$/i,
-  /^dock$/i,
-  /^window ?server$/i,
-  /^windowmanager$/i,
-  /^gnome-shell$/i,
-  /^plasmashell$/i
-]
+const SHELL_APPS = [/^finder$/i, /^dock$/i, /^window ?server$/i, /^windowmanager$/i, /^gnome-shell$/i, /^plasmashell$/i]
 
 export const isShellWindow = (app: string): boolean => SHELL_APPS.some(pattern => pattern.test(app.trim()))
 

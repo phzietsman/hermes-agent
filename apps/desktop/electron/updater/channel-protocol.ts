@@ -418,11 +418,7 @@ function packageEntry(value: unknown): ChannelPackage {
   const platform = fields.text('platform')
   const arch = fields.text('arch')
 
-  if (
-    platform !== 'darwin' ||
-    (arch !== 'x64' && arch !== 'arm64') ||
-    fields.get('variant') !== 'bundled'
-  ) {
+  if (platform !== 'darwin' || (arch !== 'x64' && arch !== 'arm64') || fields.get('variant') !== 'bundled') {
     throw new Error('Unsupported channel package')
   }
 

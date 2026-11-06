@@ -104,10 +104,7 @@ test('opens bare local paths through openLocalPath instead of rejecting them', a
 
   // Every shape `new URL()` cannot express as a web/file URL: POSIX and `~` paths make the parser
   // throw. All previously landed in the "Invalid external URL" reject.
-  for (const raw of [
-    '/tmp/report.pdf',
-    '~/logs/desktop.log'
-  ]) {
+  for (const raw of ['/tmp/report.pdf', '~/logs/desktop.log']) {
     const result = await openExternalUrl(raw, deps)
 
     assert.deepEqual(result, { ok: true }, `expected ${raw} to open as a local path`)
@@ -126,9 +123,7 @@ test('resolves invalid, with the path logged, when openLocalPath cannot resolve 
   const result = await openExternalUrl('/Users/x/a.md', deps)
 
   assert.deepEqual(result, { ok: false, reason: 'invalid' })
-  assert.ok(
-    calls.logged.some(line => line.includes('openPath resolve rejected') && line.includes('/Users/x/a.md'))
-  )
+  assert.ok(calls.logged.some(line => line.includes('openPath resolve rejected') && line.includes('/Users/x/a.md')))
   assert.equal(calls.notified.length, 0)
 })
 

@@ -281,8 +281,7 @@ export function maybeNotifyUpdateAvailable(status: DesktopUpdateStatus | null, t
 
   // Git checks must identify their target commit; a native macOS
   // (electron-updater) check names its target by release tag instead.
-  const hasTargetIdentity: boolean =
-    Boolean(status.targetSha) || Boolean(status.latestTag)
+  const hasTargetIdentity: boolean = Boolean(status.targetSha) || Boolean(status.latestTag)
 
   if (!hasTargetIdentity) {
     return

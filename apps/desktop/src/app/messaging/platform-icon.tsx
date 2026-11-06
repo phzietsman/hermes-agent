@@ -1,9 +1,4 @@
-import {
-  SiDiscord,
-  SiGmail,
-  SiTelegram,
-  SiWhatsapp
-} from '@icons-pack/react-simple-icons'
+import { SiDiscord, SiGmail, SiTelegram, SiWhatsapp } from '@icons-pack/react-simple-icons'
 import type { ComponentPropsWithoutRef, ComponentType, SVGProps } from 'react'
 import { forwardRef, memo } from 'react'
 

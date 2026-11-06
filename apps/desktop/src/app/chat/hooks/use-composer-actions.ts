@@ -348,9 +348,7 @@ function osDropNeedsStaging(candidate: DroppedFile, staging?: OsDropStagingConte
     return true
   }
 
-  return (
-    Boolean(staging.remote) || attachmentPathNeedsUpload(staging.terminalBackend)
-  )
+  return Boolean(staging.remote) || attachmentPathNeedsUpload(staging.terminalBackend)
 }
 
 export function partitionDroppedFiles(

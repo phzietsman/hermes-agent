@@ -10,8 +10,7 @@ import { canImportHermesCli } from './backend-probes'
 
 const REPO: string = path.resolve(import.meta.dirname, '../../..')
 
-const PYTHON: string =
-  process.env.HERMES_PYTHON || process.env.UV_PYTHON || 'python3'
+const PYTHON: string = process.env.HERMES_PYTHON || process.env.UV_PYTHON || 'python3'
 
 interface RuntimeFixture {
   python: string

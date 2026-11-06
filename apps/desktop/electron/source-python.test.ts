@@ -40,10 +40,7 @@ test('the checkout virtualenv is preferred over the flat venv, on both layouts',
     resolveSourcePython(ROOT, { fileExists: checkout([venv, dotVenv]).fileExists }),
     path.join(ROOT, dotVenv)
   )
-  assert.equal(
-    resolveSourcePython(ROOT, { fileExists: checkout([venv]).fileExists }),
-    path.join(ROOT, venv)
-  )
+  assert.equal(resolveSourcePython(ROOT, { fileExists: checkout([venv]).fileExists }), path.join(ROOT, venv))
 })
 
 test('an explicit developer interpreter wins, and is only honoured when it exists', (): void => {
@@ -52,15 +49,9 @@ test('an explicit developer interpreter wins, and is only honoured when it exist
   const { root, fileExists } = checkout(['venv/bin/python'], true)
   const withPreferred = (candidate: string): boolean => candidate === preferred || fileExists(candidate)
 
-  assert.equal(
-    resolveSourcePython(root, { override: preferred, fileExists: withPreferred }),
-    preferred
-  )
+  assert.equal(resolveSourcePython(root, { override: preferred, fileExists: withPreferred }), preferred)
   // An override naming a file that is gone does not resurrect a PATH Python;
   // it falls through to the checkout, then to null.
   assert.equal(resolveSourcePython(root, { override: preferred, fileExists }), aged)
-  assert.equal(
-    resolveSourcePython(ROOT, { override: preferred, fileExists: checkout().fileExists }),
-    null
-  )
+  assert.equal(resolveSourcePython(ROOT, { override: preferred, fileExists: checkout().fileExists }), null)
 })
