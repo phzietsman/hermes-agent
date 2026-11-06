@@ -196,9 +196,7 @@ def _blank_slate_minimize_config(config: dict):
     """Turn OFF every optional config feature; all opt back in via ``hermes setup agent``."""
     config.setdefault("agent", {})["max_turns"] = 90
     config.setdefault("compression", {})["enabled"] = False
-    mem = config.setdefault("memory", {})
-    mem["memory_enabled"] = False
-    mem["user_profile_enabled"] = False
+    config.setdefault("memory", {})["provider"] = ""
     config.setdefault("checkpoints", {})["enabled"] = False
     config.setdefault("smart_model_routing", {})["enabled"] = False
 

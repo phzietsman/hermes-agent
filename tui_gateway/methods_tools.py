@@ -1005,38 +1005,14 @@ def _cmd_compress(rid, params, session, name, arg):
         return _err(rid, 5009, f"compress failed: {exc}")
 
 
-# ─── /memory + /skills write-approval review ─────────────────────────────────
+# ─── /skills write-approval review ───────────────────────────────────────────
 # The review surface (pending / approve / reject / diff / approval) is owned by the shared handler
 # hermes_cli/write_approval_commands.handle_pending_subcommand, which the classic CLI and the
 # messaging gateway already reach. Desktop/TUI clients normally get it through slash.exec ->
-# _SlashWorker (a private HermesCLI), but command.dispatch is their FALLBACK stage — with no
-# route here, a failed worker turned every /memory into the routing refusal "not a quick/
-# plugin/bundle/skill command: memory", so staged writes had no review path at all.
-#
-# The store must resolve under the SAME home as the command, which is why these run inside the
-# dispatcher's `_session_home_scope(session)` block: `load_on_disk_store()` reads the profile's
-# MEMORY.md/USER.md and its memory char limits (see the scope note on `_session_home_scope`,
-# #110695).
-_MEMORY_USAGE = ("Unknown /memory subcommand. "
-                 "Use: pending, approve <id>, reject <id>, approval <on|off>.")
+# _SlashWorker (a private HermesCLI), but command.dispatch is their FALLBACK stage.
 _SKILLS_USAGE = ("Unknown /skills subcommand here. "
                  "Use: pending, approve <id>, reject <id>, diff <id>, approval <on|off>. "
                  "(Search/install/browse are terminal-side.)")
-
-
-def _pending_subcommand_store(session):
-    """Memory store for the session's own profile: the live agent's store when there is one, else a
-    freshly loaded on-disk store — mirroring cli.py's /memory handler and the gateway's (Desktop/TUI
-    sessions have no long-lived agent store). ``None`` when even that fails, which the shared handler
-    reports as "memory store unavailable" instead of claiming the write was applied."""
-    if session:
-        with contextlib.suppress(Exception):
-            store = getattr(session.get("agent"), "_memory_store", None)
-            if store is not None:
-                return store
-    with contextlib.suppress(Exception):
-        return _tools_mod("tools.memory_tool").load_on_disk_store()
-    return None
 
 
 def _write_approval_mode_setter(subsystem: str):
@@ -1047,17 +1023,9 @@ def _write_approval_mode_setter(subsystem: str):
 
 def _run_pending_review(rid, subsystem: str, arg: str, session, *, unknown: str):
     from hermes_cli.write_approval_commands import handle_pending_subcommand
-    from tools import write_approval as wa
     out = handle_pending_subcommand(
-        subsystem, (arg or "").split(),
-        memory_store=_pending_subcommand_store(session) if subsystem == wa.MEMORY else None,
-        set_mode_fn=_write_approval_mode_setter(subsystem))
+        subsystem, (arg or "").split(), set_mode_fn=_write_approval_mode_setter(subsystem))
     return _exec_out(rid, out if out is not None else unknown)
-
-
-def _cmd_memory(rid, params, session, name, arg):
-    """/memory — review staged memory writes, approve/reject them, toggle the gate."""
-    return _run_pending_review(rid, "memory", arg, session, unknown=_MEMORY_USAGE)
 
 
 def _cmd_skills(rid, params, session, name, arg):
@@ -1088,7 +1056,7 @@ _SLASH_BUILTINS = {
     "moa": _cmd_moa, "focus": _cmd_focus, "retry": _cmd_retry, "steer": _cmd_steer, "goal": _cmd_goal,
     "loop": _cmd_loop, "undo": _cmd_undo, "snapshot": _cmd_snapshot, "snap": _cmd_snapshot,
     "compress": _cmd_compress, "compact": _cmd_compress, "initiate-setup": lambda *a: _cmd_initiate_setup(*a),
-    "memory": _cmd_memory, "skills": _cmd_skills}
+    "skills": _cmd_skills}
 
 @method("command.dispatch")
 def _(rid, params: dict) -> dict:

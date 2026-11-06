@@ -186,15 +186,6 @@ def build_update_products(project_root: Path, *, desktop: bool) -> None:
             # One whole line the Desktop hand-off scripts match: the follow-up text is truncated
             # and names whichever products failed first, so it cannot say if THIS app was rebuilt.
             print(f"  Desktop app build owed: {failures[-1][0]} failed")
-    # A configured memory provider that no longer ships in core is installed from the
-    # catalog for every profile home sharing this venv (config, data and tool names
-    # unchanged). The update must finish even if the migration blows up.
-    try:
-        from hermes_cli.memory_provider_migration import migrate_all_homes
-
-        migrate_all_homes()
-    except Exception as exc:  # health: allow BLE001 -- post-commit boundary: printed as ⚠, never fails the committed update; every later update/tail re-runs it
-        print(f"  ⚠ Memory provider migration skipped: {exc}")
     if failures:
         raise ProductBuildError(failures)
 

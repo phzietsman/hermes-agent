@@ -736,10 +736,9 @@ def _dispatch_authorized_once(
             block_body=block_body, block_error_type=block_error_type, guardrail_decision=guardrail_decision,
         )
 
-    if ref.name == "memory":
-        agent._turns_since_memory = 0
-    elif ref.name == "skill_manage":
-        agent._iters_since_skill = 0
+    if ref.name in ("memory", "skill_manage"):  # the agent just did the learning itself; restart the count
+        from agent.learning.agent_host import review_note_agent_wrote
+        review_note_agent_wrote(agent)
 
     from agent.terminal_approval_batch import prepare_current_terminal
     prepare_current_terminal(ref)

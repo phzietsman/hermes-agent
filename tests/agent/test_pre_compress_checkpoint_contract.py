@@ -14,11 +14,13 @@ from types import SimpleNamespace
 
 import pytest
 
+from agent.conversation_compression_memory import (
+    _direct_messages_for_pre_compress_memory,
+    _pre_compress_memory_context,
+)
 from agent.conversation_compression import (
     CompressionCheckpointUnavailable,
     _checkpoint_blocked,
-    _direct_messages_for_pre_compress_memory,
-    _pre_compress_memory_context,
     _warn_checkpoint_required_without_capable_provider,
 )
 from agent.context_compressor import COMPRESSED_SUMMARY_METADATA_KEY
@@ -524,7 +526,6 @@ def test_turn_finalizer_never_micro_compacts_while_checkpoint_gate_armed(
             turn_id="turn",
             user_message="do it",
             original_user_message="do it",
-            _should_review_memory=False,
             _turn_exit_reason="completed",
         )
         return compressor.calls
@@ -550,13 +551,13 @@ def _armed_agent(manager):
 
 def _legacy_manager():
     manager = MemoryManager()
-    manager.add_provider(_BaseStubProvider("holographic"))
+    manager.add_provider(_BaseStubProvider("agent_memory"))
     return manager
 
 
 @pytest.mark.parametrize(
     "manager, expected_label",
-    [(_legacy_manager(), "holographic"), (None, "no active provider")],
+    [(_legacy_manager(), "agent_memory"), (None, "no active provider")],
     ids=["v1-provider", "no-manager"],
 )
 def test_startup_warns_when_checkpoint_required_cannot_pass(caplog, manager, expected_label):

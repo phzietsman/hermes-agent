@@ -33,34 +33,6 @@ def test_density_stats_count_isolated_nodes():
     assert stats["isolated_pct"] == round(100 / 3, 1)
 
 
-
-
-def test_memory_is_cards_split_on_separator(tmp_path):
-    home = tmp_path / ".hermes"
-    (home / "memories").mkdir(parents=True)
-    (home / "memories" / "MEMORY.md").write_text(
-        "Project uses pytest with xdist\n§\nUser prefers concise responses",
-        encoding="utf-8",
-    )
-    token = set_hermes_home_override(home)
-    try:
-        graph = learning_graph.build_learning_graph()
-    finally:
-        reset_hermes_home_override(token)
-
-    titles = [c["title"] for c in graph["memory"]]
-    assert "Project uses pytest with xdist" in titles
-    assert "User prefers concise responses" in titles
-    # Memory cards remain typed cards and also appear as memory-kind nodes.
-    assert all(c["source"] in {"memory", "profile"} for c in graph["memory"])
-    assert all("timestamp" in c for c in graph["memory"])
-    assert any(n["kind"] == "memory" for n in graph["nodes"])
-
-
-
-
-
-
 def test_full_payload_shape_and_edge_integrity(tmp_path):
     home = tmp_path / ".hermes"
     home.mkdir()

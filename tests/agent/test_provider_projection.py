@@ -16,6 +16,8 @@ applying the projection.
 
 from __future__ import annotations
 
+from tests.agent.review_loop_fake import attach_fake_loop
+
 import os
 import sys
 from types import SimpleNamespace
@@ -52,8 +54,10 @@ def _projected_rows():
     return [dict(row) for row in _PROJECTED]
 
 
-def _agent(iters: int = 0) -> SimpleNamespace:
-    return SimpleNamespace(provider="acp-agent", _iters_since_skill=iters)
+def _agent() -> SimpleNamespace:
+    agent = SimpleNamespace(provider="acp-agent", session_id="s1")
+    attach_fake_loop(agent)
+    return agent
 
 
 def _response(**attrs):
@@ -74,7 +78,7 @@ def test_projected_rows_are_appended_and_the_nudge_ticks():
     assert spliced == 2
     assert messages[1]["tool_calls"][0]["function"]["name"] == "acpagent_edit"
     assert messages[2]["content"] == "1 file changed"
-    assert agent._iters_since_skill == 1
+    assert agent._learning_loop.iterations == 1
 
 
 def test_rows_are_stamped_like_every_other_live_transcript_append():
@@ -88,18 +92,19 @@ def test_rows_are_stamped_like_every_other_live_transcript_append():
 
 
 def test_iterations_accumulate_across_calls():
-    agent = _agent(iters=2)
+    agent = _agent()
+    splice_provider_projection(agent, _response(hermes_provider_tool_iterations=2), [])
     splice_provider_projection(agent, _response(hermes_provider_tool_iterations=3), [])
-    assert agent._iters_since_skill == 5
+    assert agent._learning_loop.iterations == 5
 
 
 def test_ordinary_provider_response_is_a_no_op():
-    agent = _agent(iters=1)
+    agent = _agent()
     messages = [{"role": "user", "content": "hi"}]
     # A normal OpenAI completion carries neither attribute.
     assert splice_provider_projection(agent, SimpleNamespace(choices=[]), messages) == 0
     assert messages == [{"role": "user", "content": "hi"}]
-    assert agent._iters_since_skill == 1
+    assert agent._learning_loop.iterations == 0
 
 
 def test_garbage_attributes_cannot_break_the_turn():
@@ -114,7 +119,7 @@ def test_garbage_attributes_cannot_break_the_turn():
         messages,
     ) == 0
     assert messages == []
-    assert agent._iters_since_skill == 0
+    assert agent._learning_loop.iterations == 0
 
     # A list with non-dict entries keeps only the usable rows.
     assert splice_provider_projection(
@@ -172,6 +177,7 @@ def _run_turn(monkeypatch, *, projected, iterations):
         skip_memory=True,
     )
     agent._disable_streaming = True
+    attach_fake_loop(agent)
     result = agent.run_conversation("edit main.py")
     return agent, result
 
@@ -201,7 +207,7 @@ def test_provider_iterations_tick_the_skill_nudge_through_the_real_loop(monkeypa
     with and without provider iterations."""
     agent_with, _ = _run_turn(monkeypatch, projected=_projected_rows(), iterations=1)
     agent_without, _ = _run_turn(monkeypatch, projected=[], iterations=0)
-    assert agent_with._iters_since_skill - agent_without._iters_since_skill == 1
+    assert agent_with._learning_loop.iterations - agent_without._learning_loop.iterations == 1
 
 
 def test_ordinary_provider_turn_is_unchanged(monkeypatch):

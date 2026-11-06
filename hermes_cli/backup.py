@@ -1051,7 +1051,6 @@ _QUICK_STATE_FILES = (
     # schema-init re-creates an empty one (#52889). Skipped when outside HERMES_HOME.
     "projects.db",                      # per-profile project store
     "response_store.db",                # gateway conversation history / tool payloads
-    "memory_store.db",                  # holographic memory facts/entities
     "verification_evidence.db",         # agent verification audit trail
     "kanban.db",                        # default board (back-compat <root>/kanban.db)
     "kanban/boards",                    # non-default boards (workspaces/ + attachments/ skipped as regenerable)

@@ -363,7 +363,7 @@ def close_all_under(directory: str | Path) -> int:
     """Force-close every shared SessionDB whose file lives under *directory*; returns the count.
 
     Profile delete rmtree (and a same-name recreate) fails while this process still holds
-    ``state.db``. Same contract as ``MemoryStore.release_all_under``: a live holder is
+    ``state.db``. Same contract as the other store registries: a live holder is
     expected to fail afterward; a process that holds none is a no-op returning 0.
 
     A final ``release()`` can drop the generation and admit teardown before the physical

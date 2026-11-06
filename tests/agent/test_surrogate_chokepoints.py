@@ -65,7 +65,6 @@ def test_finalize_turn_scrubs_lone_surrogate_from_final_response(monkeypatch):
         turn_id="tid",
         user_message="q",
         original_user_message="q",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(final)",
     )
 
@@ -92,7 +91,6 @@ def test_finalize_turn_leaves_non_string_final_response_alone(monkeypatch):
         turn_id="tid",
         user_message="q",
         original_user_message="q",
-        _should_review_memory=False,
         _turn_exit_reason="interrupted",
     )
     assert result["final_response"] is None

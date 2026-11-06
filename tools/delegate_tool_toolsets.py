@@ -57,7 +57,9 @@ def _expand_parent_toolsets(parent_toolsets: set) -> set:
 def _strip_blocked_tools(toolsets: List[str]) -> List[str]:
     """Remove toolsets whose tools are ALL blocked (derived from DELEGATE_BLOCKED_TOOLS so the two can't drift) plus
     composite toolsets children must never get (``delegation``, ``kanban``)."""
-    blocked_toolset_names = {"delegation", "kanban"} | {
+    # "memory" is named explicitly: it holds no tools of its own (it only gates the memory provider's tools), so
+    # the derivation below cannot find it.
+    blocked_toolset_names = {"delegation", "kanban", "memory"} | {
         name
         for name in TOOLSETS
         if (resolved_tools := resolve_toolset(name, include_registry=False))
@@ -119,6 +121,6 @@ def _resolve_child_toolsets(
         if "delegation" not in child_toolsets:
             child_toolsets.append("delegation")
     child_disabled_toolsets = list(
-        dict.fromkeys(inherited_disabled + _blocked_toolsets_for_role(effective_role) + ["kanban"])
+        dict.fromkeys(inherited_disabled + _blocked_toolsets_for_role(effective_role) + ["kanban", "memory"])
     )
     return child_toolsets, child_disabled_toolsets

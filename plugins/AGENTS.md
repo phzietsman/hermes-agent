@@ -10,21 +10,18 @@ Plugins live in their own directory and work within the ABCs / hooks / `ctx` sur
 A plugin MUST NOT modify `run_agent.py`, `cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.
 If it needs a capability the framework lacks, widen the **generic** plugin surface (new hook, new
 ctx method) and have the plugin use it — never hardcode plugin-specific logic into core (PR #5295
-removed 95 lines of hardcoded honcho argparse from `main.py`). Plugin setup goes through
+removed 95 lines of hardcoded provider argparse from `main.py`). Plugin setup goes through
 `hermes memory setup` → `provider.post_setup(hermes_home, config)`, never a parallel top-level
 command. A hook with no concrete consumer is speculative infrastructure and is rejected (root).
 
 ## What may live in this tree (policy)
 
-- **No new in-tree memory providers (May 2026).** `plugins/memory/` is closed (byterover,
-  holographic, retaindb stay until their Oct 15 2026 removal). hindsight (Sep 2026), honcho,
-  supermemory, mem0 and openviking (Oct 2026) moved to the plugin catalog — `plugin-catalog/<name>.yaml`, auto-installed by
-  `hermes_cli/memory_provider_migration.py` for homes still configured for them. Host-side code a
-  catalog provider still relies on (the `honcho_host_block` config storage kind, profile clone /
-  rename / update-sync hooks) resolves the provider's modules through
-  `plugins.memory.import_provider_module`, never a `plugins.memory.<name>` import. New
-  backends ship as standalone repos implementing the same `MemoryProvider` ABC, discovered through
-  the same path, integrated via `hermes memory setup` / `post_setup()`.
+- **One in-tree memory provider.** `plugins/memory/` ships only `agent_memory` (SurrealDB Agent
+  Memory), the sole memory layer; `MemoryManager` holds exactly one provider. The former
+  byterover, holographic, retaindb, hindsight, honcho, supermemory, mem0 and openviking providers
+  are gone. Another backend ships as a standalone repo implementing the same `MemoryProvider` ABC,
+  discovered through the same path and resolved through `plugins.memory.import_provider_module`,
+  never a `plugins.memory.<name>` import (D27 in `DECISIONS.md`: accepted exception, this fork is never upstreamed).
 - **No new third-party-product plugins (June 2026).** Observability/metrics backends, vendor SaaS
   connectors, analytics dashboards, paid-service tie-ins ship as standalone plugin repos
   (`~/.hermes/plugins/` or pip entry point) promoted in Discord `#plugins-skills-and-skins`. Reason:

@@ -1290,45 +1290,7 @@ def _memory_provider_init_kwargs(agent, platform) -> Dict[str, Any]:
 
 
 def _init_memory(agent, _agent_cfg, skip_memory, platform, memory_manager=None):
-    # Persistent memory (MEMORY.md + USER.md) — loaded from disk
-    agent._memory_store = None
-    agent._memory_enabled = False
-    agent._user_profile_enabled = False
-    agent._memory_nudge_interval = 10
-    agent._turns_since_memory = 0
-    agent._iters_since_skill = 0
-    # skip_memory skips the external *provider*; enabled_toolsets=["memory"] still gets the
-    # built-in store so the memory tool never sees store=None.
-    # Flush/background agents can still pass enabled_toolsets=["memory"] so the built-in file store exists
-    # and the memory tool does not fail with store=None (#65429). A toolset on disabled_toolsets is not a
-    # request: a caller that denylists memory while its default toolset still names it must not get
-    # MEMORY.md loaded by an enabled-only check. (Cron agents now run with skip_memory=False and take the
-    # normal path here.)
-    _memory_toolset_requested = (
-        "memory" in (agent.enabled_toolsets or [])
-        and "memory" not in (agent.disabled_toolsets or [])
-    )
-    if not skip_memory or _memory_toolset_requested:
-        # Memory is optional — don't break agent init
-        with suppress(Exception):
-            from tools.memory_tool import (
-                MemoryStore, get_builtin_memory_config, get_builtin_memory_store_flags,
-            )
-            mem_config = get_builtin_memory_config(_agent_cfg)
-            agent._memory_enabled, agent._user_profile_enabled = get_builtin_memory_store_flags(
-                _agent_cfg
-            )
-            agent._memory_nudge_interval = int(mem_config.get("nudge_interval", 10))
-            if agent._memory_enabled or agent._user_profile_enabled:
-                agent._memory_store = MemoryStore(
-                    memory_char_limit=mem_config.get("memory_char_limit", 2200),
-                    user_char_limit=mem_config.get("user_char_limit", 1375),
-                    memory_enabled=agent._memory_enabled,
-                    user_profile_enabled=agent._user_profile_enabled,
-                )
-                agent._memory_store.load_from_disk()
-
-    # External memory provider plugin (one at a time, alongside built-in): memory.provider.
+    # The memory provider plugin (memory.provider = agent_memory).
     agent._memory_manager = None
     if memory_manager is not None and not skip_memory:
         # A caller that rebuilds the agent per turn (gateway api_server) hands back the session's
@@ -1337,17 +1299,12 @@ def _init_memory(agent, _agent_cfg, skip_memory, platform, memory_manager=None):
         agent._memory_manager = memory_manager
     elif not skip_memory:
         try:
-            _mem_provider_name = mem_config.get("provider", "") if mem_config else ""
+            _mem_provider_name = _cfg_dict(_agent_cfg, "memory").get("provider", "")
             if not is_core_memory_provider(_mem_provider_name):
                 from agent.memory_manager import MemoryManager as _MemoryManager
                 from plugins.memory import load_memory_provider as _load_mem
                 agent._memory_manager = _MemoryManager()
                 _mp = _load_mem(_mem_provider_name)
-                if _mp is None:
-                    # The provider left core for the catalog (or was never installed): fetch it once.
-                    from hermes_cli.memory_provider_migration import recover_at_startup
-                    if recover_at_startup(_mem_provider_name, say=agent._emit_startup_warning):
-                        _mp = _load_mem(_mem_provider_name)
                 if _mp and _mp.is_available():
                     agent._memory_manager.add_provider(_mp)
                 elif _mp is not None and _unavailable_warning_key(_mem_provider_name) not in _warned_unavailable_providers:
@@ -1373,9 +1330,7 @@ def _init_memory(agent, _agent_cfg, skip_memory, platform, memory_manager=None):
 
 def _apply_agent_section(agent, _agent_cfg):
     # Skills config: nudge interval for skill creation reminders
-    agent._skill_nudge_interval = 10
-    with suppress(Exception):
-        agent._skill_nudge_interval = int(_agent_cfg.get("skills", {}).get("creation_nudge_interval", 10))
+    agent._learning_cfg = _agent_cfg  # read lazily by agent.learning.agent_host.learning_loop_for
 
     _agent_section = _cfg_dict(_agent_cfg, "agent")
     agent.budget_warning_ratio = normalize_budget_warning_ratio(

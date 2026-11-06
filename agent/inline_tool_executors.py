@@ -139,29 +139,6 @@ def _session_search(agent, args: dict, ctx: InlineToolContext) -> Any:
     )
 
 
-def _memory(agent, args: dict, ctx: InlineToolContext) -> Any:
-    result = _call_tool(
-        "tools.memory_tool", "memory_tool", args,
-        (
-            ("action", "action"), ("target", "target", "memory"), ("content", "content"),
-            ("old_text", "old_text"), ("new_text", "new_text"), ("operations", "operations"),
-        ),
-        store=agent._memory_store,
-    )
-    # Mirror built-in memory writes to external providers; gating lives in
-    # MemoryManager.notify_memory_tool_write.
-    if agent._memory_manager:
-        agent._memory_manager.notify_memory_tool_write(
-            result,
-            args,
-            build_metadata=lambda: agent._build_memory_write_metadata(
-                task_id=ctx.effective_task_id,
-                tool_call_id=ctx.tool_call_id,
-            ),
-        )
-    return result
-
-
 _read_preview = _callback_tool(
     "tools.read_preview_tool", "read_preview_tool", "read_preview_callback",
     ("start", "start"), ("count", "count"),
@@ -246,7 +223,6 @@ _RAW_INLINE_TOOL_EXECUTORS: Dict[str, InlineToolExecutor] = {
         task_id=lambda agent, ctx: ctx.effective_task_id, agent=lambda agent, ctx: agent,
     ),
     "session_search": _session_search,
-    "memory": _memory,
     "clarify": _tool(
         "tools.clarify_tool", "clarify_tool", ("questions", "questions"),
         callback=lambda agent, ctx: agent.clarify_callback,

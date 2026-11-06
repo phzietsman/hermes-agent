@@ -88,23 +88,6 @@ class TestAtomicWritersRefuseDeletedProfileHome:
             _write_json(profile / "mcp-oauth" / "tokens.json", {"access_token": "x"})
         assert not profile.exists()
 
-    def test_memory_store_add_after_delete(self, tmp_path):
-        from tools.memory_tool_store import MemoryStore
-
-        profile = _tombstoned_profile(tmp_path)
-        token = set_hermes_home_override(profile)
-        try:
-            store = MemoryStore(memory_char_limit=100, user_char_limit=100)
-            with pytest.raises(
-                FileNotFoundError, match="Named profile home does not exist"
-            ):
-                store.add("memory", "entry")
-        finally:
-            from hermes_constants import reset_hermes_home_override
-
-            reset_hermes_home_override(token)
-        assert not profile.exists()
-
     def test_roundtrip_yaml_update_does_not_recreate_home(self, tmp_path):
         from utils import atomic_roundtrip_yaml_update
 

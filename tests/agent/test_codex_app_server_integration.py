@@ -273,24 +273,22 @@ class TestRunConversationCodexPath:
         agent._memory_manager.sync_all.assert_called_once()
         assert agent._memory_manager.sync_all.call_args.kwargs["messages"] == result["messages"]
 
-    def test_nudge_counters_tick(self, fake_session):
-        """The skill nudge counter must accumulate tool_iterations across
-        turns. The memory nudge counter is gated on memory being configured
-        (which we skip via skip_memory=True), so we don't assert on it here —
-        a separate test below covers that path explicitly."""
+    def test_tool_iterations_reach_the_review_loop(self, fake_session):
+        """Codex tool_iterations accumulate in the learning loop across turns."""
+        from tests.agent.review_loop_fake import attach_fake_loop
+
         agent = _make_codex_agent()
-        agent._iters_since_skill = 0
+        loop = attach_fake_loop(agent)
         agent._user_turn_count = 0
-        with patch.object(agent, "_spawn_background_review", return_value=None):
-            agent.run_conversation("first")
-        assert agent._iters_since_skill == 1  # one tool_iteration in fake turn
+        agent.run_conversation("first")
+        assert loop.iterations == 1  # one tool_iteration in fake turn
         # _user_turn_count is incremented by run_conversation pre-loop, not
         # by the codex helper — confirms we delegate that to the standard flow.
         assert agent._user_turn_count == 1
-        with patch.object(agent, "_spawn_background_review", return_value=None):
-            agent.run_conversation("second")
-        assert agent._iters_since_skill == 2
+        agent.run_conversation("second")
+        assert loop.iterations == 2
         assert agent._user_turn_count == 2
+        assert len(loop.turn_ends) == 2
 
     def test_user_message_not_duplicated(self, fake_session):
         """Regression guard: the user message must appear exactly once in
@@ -305,69 +303,37 @@ class TestRunConversationCodexPath:
         )
         assert user_count == 1, f"user message appeared {user_count}× in {result['messages']}"
 
-    def test_background_review_NOT_invoked_below_threshold(self, fake_session):
-        """A single turn shouldn't trigger background review — counters
-        haven't reached the nudge interval (default 10)."""
+    def test_turn_path_never_calls_legacy_spawn(self, fake_session):
+        """Reviews start via the learning loop, not a direct _spawn_background_review call
+        (the original bug: the helper called it with no args after every turn)."""
+        from tests.agent.review_loop_fake import attach_fake_loop
+
         agent = _make_codex_agent()
-        agent._memory_nudge_interval = 10
-        agent._skill_nudge_interval = 10
-        agent._iters_since_skill = 0
-        with patch.object(agent, "_spawn_background_review",
-                          return_value=None) as spawn:
+        attach_fake_loop(agent)
+        with patch.object(agent, "_spawn_background_review", return_value=None) as spawn:
             agent.run_conversation("ping")
-        # Below threshold → review should NOT fire (was a real bug:
-        # the helper was calling _spawn_background_review() with no
-        # args after every turn, which would crash with TypeError).
         assert not spawn.called
 
-    def test_background_review_skill_trigger_fires_above_threshold(
-        self, monkeypatch
-    ):
-        """When tool iterations cross the skill nudge interval, the
-        background review fires with review_skills=True and the right
-        messages_snapshot signature."""
+    def test_many_tool_iterations_are_all_reported(self, monkeypatch):
         from agent.transports.codex_app_server_session import (
             CodexAppServerSession, TurnResult,
         )
-        # Make the fake session report 10 tool iterations in one turn
-        # (matching the default skill threshold).
+        from tests.agent.review_loop_fake import attach_fake_loop
+
         def fake_run_turn(self, user_input: str, **kwargs):
             return TurnResult(
                 final_text=f"echo: {user_input}",
-                projected_messages=[
-                    {"role": "assistant", "content": f"echo: {user_input}"},
-                ],
-                tool_iterations=10,
-                turn_id="t1", thread_id="th1",
+                projected_messages=[{"role": "assistant", "content": f"echo: {user_input}"}],
+                tool_iterations=10, turn_id="t1", thread_id="th1",
             )
         monkeypatch.setattr(CodexAppServerSession, "run_turn", fake_run_turn)
-        monkeypatch.setattr(
-            CodexAppServerSession, "ensure_started", lambda self: "th1"
-        )
+        monkeypatch.setattr(CodexAppServerSession, "ensure_started", lambda self: "th1")
 
         agent = _make_codex_agent()
-        agent._skill_nudge_interval = 10
-        agent._iters_since_skill = 0
-        # Make valid_tool_names include 'skill_manage' so the gate passes
-        agent.valid_tool_names = set(getattr(agent, "valid_tool_names", set()))
-        agent.valid_tool_names.add("skill_manage")
-
-        with patch.object(agent, "_spawn_background_review",
-                          return_value=None) as spawn:
-            agent.run_conversation("do tool work")
-
-        assert spawn.called, "skill threshold tripped but review didn't fire"
-        # Verify the call signature matches what _spawn_background_review
-        # actually expects — this is the regression guard for the original
-        # bug where the codex path called it with no args at all.
-        call = spawn.call_args
-        assert "messages_snapshot" in call.kwargs
-        assert isinstance(call.kwargs["messages_snapshot"], list)
-        assert call.kwargs["review_skills"] is True
-        # Counter should be reset after the review fires
-        assert agent._iters_since_skill == 0
-
-
+        loop = attach_fake_loop(agent)
+        agent.run_conversation("do tool work")
+        assert loop.iterations == 10
+        assert len(loop.turn_ends) == 1 and isinstance(loop.turn_ends[0], list)
 
     def test_gateway_terminal_cwd_seeds_codex_thread_cwd(self, monkeypatch, tmp_path):
         """Gateway sessions set TERMINAL_CWD without pinning agent.session_cwd.
@@ -604,8 +570,6 @@ class TestReviewForkApiModeDowngrade:
             self._memory_store = None
             self._memory_enabled = False
             self._user_profile_enabled = False
-            self._memory_nudge_interval = 0
-            self._skill_nudge_interval = 0
             self.suppress_status_output = False
             self._session_messages = []
 

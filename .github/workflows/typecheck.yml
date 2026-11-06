@@ -1,0 +1,49 @@
+name: Strict typecheck (memory)
+
+# mypy --strict + pyright strict over the modules listed in [tool.mypy].files /
+# [tool.pyright].include (pyproject.toml). Extend those lists as typed packages land.
+
+on:
+  pull_request:
+    paths:
+      - "evals/memory/**"
+      - "agent/learning/**"
+      - "plugins/memory/agent_memory/**"
+      - "tests/evals/memory/**"
+      - "tests/agent/learning/**"
+      - "tests/plugins/memory/agent_memory/**"
+      - "pyproject.toml"
+      - ".github/workflows/typecheck.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: typecheck-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+
+      - name: Set up locked Python and test dependencies
+        uses: ./.github/actions/setup-pm
+        with:
+          extras: '[]'
+          test-environment: 'true'
+
+      - name: mypy --strict
+        run: python -m mypy
+
+      - name: pyright (strict)
+        run: python -m pyright
+
+      - name: ruff
+        run: python -m ruff check evals/memory agent/learning plugins/memory/agent_memory tests/evals/memory tests/agent/learning tests/plugins/memory/agent_memory
+
+      - name: pytest (memory evals)
+        run: scripts/run_tests.sh tests/evals/memory tests/agent/learning tests/plugins/memory/agent_memory

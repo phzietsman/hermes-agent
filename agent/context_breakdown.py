@@ -89,16 +89,12 @@ def _split_tools(tools: Sequence[dict]) -> Tuple[List[dict], List[dict], List[di
 
 
 def _memory_blocks(agent: Any) -> Tuple[str, str]:
-    memory_block = user_block = ""
-    store = getattr(agent, "_memory_store", None)
+    """(memory provider block, "") — the second slot is kept so report consumers see a stable shape."""
+    manager = getattr(agent, "_memory_manager", None)
     try:
-        if store is not None and getattr(agent, "_memory_enabled", True):
-            memory_block = store.format_for_system_prompt("memory") or ""
-        if store is not None and getattr(agent, "_user_profile_enabled", True):
-            user_block = store.format_for_system_prompt("user") or ""
+        return (manager.build_system_prompt() if manager else "") or "", ""
     except Exception:
-        pass
-    return memory_block, user_block
+        return "", ""
 
 
 def _strip_blocks(text: str, *blocks: str) -> str:

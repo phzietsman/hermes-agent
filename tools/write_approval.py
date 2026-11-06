@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Write-approval gate + pending store for memory and skill writes.
+"""Write-approval gate + pending store for skill writes.
 
-A per-subsystem boolean ``write_approval`` gates the agent's cross-session writes —
-**memory** (MEMORY.md / USER.md) and **skills** (SKILL.md + files) — from either
-origin (**foreground** turn or **background_review** fork). ``false`` (default)
-writes freely; ``true`` never commits directly: it prompts inline (memory,
-interactive CLI only) or **stages** the write under
-``<HERMES_HOME>/pending/{memory,skills}/<id>.json`` for out-of-band review.
+A boolean ``skills.write_approval`` gates the agent's skill writes (SKILL.md + files) from either
+origin (**foreground** turn or **background_review** fork). ``false`` (default) writes freely;
+``true`` never commits directly: it **stages** the write under
+``<HERMES_HOME>/pending/skills/<id>.json`` for out-of-band review.
 """
 
 from __future__ import annotations
@@ -29,12 +27,11 @@ from utils import atomic_json_write
 logger = logging.getLogger(__name__)
 
 # Subsystem identifiers
-MEMORY = "memory"
 SKILLS = "skills"
-_SUBSYSTEMS = (MEMORY, SKILLS)
+_SUBSYSTEMS = (SKILLS,)
 
 # Per-subsystem config key. Intentionally a single boolean with no "block all writes"
-# state — to disable a subsystem use its own enable flag (e.g. ``memory.memory_enabled``).
+# state.
 CONFIG_KEY = "write_approval"
 _TRUTHY_STRINGS = frozenset({"on", "true", "yes", "1", "approve", "enabled"})
 
@@ -198,54 +195,12 @@ def _staged(subsystem: str) -> GateDecision:
                                              f"Not yet saved — {where}."))
 
 
-def evaluate_gate(subsystem: str, *, inline_summary: str = "", inline_detail: str = "") -> GateDecision:
-    """Decide what to do with a pending write: gate off → allow; gate on + skills (any origin) or
-    background → stage; gate on + memory + foreground → inline prompt when an interactive channel
-    exists, else stage. The gate only ever delays a write, never silently refuses it; ``blocked``
-    is produced only when the user actively denies the inline prompt."""
+def evaluate_gate(subsystem: str) -> GateDecision:
+    """Gate off -> allow; gate on -> stage. Skills are too big to review inline, and a background write
+    runs in a daemon thread with no user. The gate only ever delays a write, never silently refuses it."""
     if not write_approval_enabled(subsystem):
         return GateDecision(allow=True)
-    # Skills are too big to review inline; a background write runs in a daemon thread with no user.
-    if subsystem == SKILLS or current_origin() == "background_review":
-        return _staged(subsystem)
-    granted = _prompt_inline_memory_approval(inline_summary, inline_detail)
-    if granted is None:
-        return _staged(MEMORY)
-    if granted:
-        return GateDecision(allow=True)
-    return GateDecision(blocked=True, message="Memory write denied by user. The change was not saved.")
-
-
-def _prompt_inline_memory_approval(summary: str, detail: str) -> Optional[bool]:
-    """Prompt inline for a memory write: True approved, False denied, None → stage. Uses the per-thread
-    CLI approval callback (``tools.terminal_tool.set_approval_callback``) directly, not
-    ``prompt_dangerous_approval``: that wrapper falls back to ``input()`` (deadlock-prone under
-    prompt_toolkit; silent deny in gateway sessions) and turns callback errors into a deny, whereas
-    here a missing channel or failed prompt must stage instead.
-
-    ``hermes chat -q`` (and so every kanban worker), cron and unattended platforms can register a callback too,
-    but nobody answers it: stage at once instead of waiting the approval timeout. See #15216.
-    """
-    from tools.approval_context import _no_user_can_answer
-    if _no_user_can_answer():
-        return None
-    try:
-        from tools.terminal_tool import _get_approval_callback
-    except Exception:
-        return None
-    callback = _get_approval_callback()
-    if callback is None:
-        return None
-    header = summary.strip() or "Save to memory?"
-    try:
-        from tools.approval_prompt import callback_accepts
-        extra = {"title": "Save to memory?"} if callback_accepts(callback, "title") else {}
-        choice = callback(detail.strip() or header, f"Save to memory: {header}", allow_permanent=False, **extra)
-    except Exception as e:
-        logger.error("Inline memory approval prompt failed: %s", e)
-        return None
-    # unknown outcome → stage rather than drop
-    return {"once": True, "session": True, "deny": False}.get(choice)
+    return _staged(subsystem)
 
 
 # --- Skill-specific helpers (gist + diff for the review affordances) ---

@@ -72,25 +72,6 @@ class TestMemoryManagerUserIdThreading:
         assert "user_id" not in p._init_kwargs
         assert p._init_kwargs.get("platform") == "cli"
 
-    def test_multiple_providers_all_receive_user_id(self):
-        mgr = MemoryManager()
-        # Use one provider named "builtin" (always accepted) and one external
-        p1 = RecordingProvider("builtin")
-        p2 = RecordingProvider("external")
-        mgr.add_provider(p1)
-        mgr.add_provider(p2)
-
-        mgr.initialize_all(
-            session_id="sess-multi",
-            platform="slack",
-            user_id="slack_U12345",
-        )
-
-        assert p1._init_kwargs.get("user_id") == "slack_U12345"
-        assert p1._init_kwargs.get("platform") == "slack"
-        assert p2._init_kwargs.get("user_id") == "slack_U12345"
-        assert p2._init_kwargs.get("platform") == "slack"
-
     def test_session_title_provenance_and_cwd_reach_provider(self, tmp_path):
         from run_agent import AIAgent
 

@@ -162,9 +162,9 @@ def prepare_iteration(
         except Exception as _step_err:
             logger.debug("step_callback error (iteration %s): %s", api_call_count, _step_err)
 
-    # Tool-calling iterations for the skill nudge; resets whenever skill_manage is used.
-    if agent._skill_nudge_interval > 0 and "skill_manage" in agent.valid_tool_names:
-        agent._iters_since_skill += 1
+    # Tool iterations drive the review scheduler (enqueue only; the review itself starts post-turn).
+    from agent.learning.agent_host import review_on_iteration
+    review_on_iteration(agent, messages)
 
     # Nous agent keys live ~1 h and a single turn can run for hours: adopt the keepalive's fresh
     # key before the one in hand expires (local JWT exp read; no network unless inside the skew)

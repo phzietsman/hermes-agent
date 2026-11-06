@@ -314,8 +314,7 @@ def _finalize_single_query(cli) -> None:
     1. **Session-owned settlement** — the durable flush (transcript retry, token
        drain, ``end_session``), the finalize hook, and memory-provider session
        finalization. Providers finalize THIS session's remote state at
-       ``on_session_end`` (OpenViking synchronously commits ``sessions/{sid}``,
-       Supermemory flushes pending turns stamped with the session id), so this
+       ``on_session_end`` (the outbox flushes pending turns stamped with the session id), so this
        belongs inside ownership — post-release it would run while a successor
        may already be mid-turn on the session. The flush runs first: memory
        shutdown can issue aux-LLM calls and nothing after it may fail in a way

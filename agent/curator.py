@@ -1118,9 +1118,8 @@ def _run_llm_review(prompt: str) -> Dict[str, Any]:
             max_iterations=9999,
             quiet_mode=True, platform="curator", skip_context_files=True, skip_memory=True,
         )
-        # Disable recursive nudges — the curator must never spawn its own review.
-        review_agent._memory_nudge_interval = 0
-        review_agent._skill_nudge_interval = 0
+        # The curator must never spawn its own review.
+        review_agent.skip_background_review = True
         # Tag as autonomous background curation so skill_manage's background-review
         # write guards (external/bundled/hub) fire; turn_context binds this onto
         # the write-origin ContextVar at turn start.

@@ -1299,20 +1299,10 @@ DEFAULT_CONFIG = {
             "info_log_min_delta_mb": 0.0,
         },
     },
-    "memory": {  # Persistent memory — bounded curated memory injected into the system prompt
-        "memory_enabled": True,
-        "user_profile_enabled": True,
-        # Approval gate for memory writes on BOTH foreground turns and the background review fork.
-        # true = foreground writes prompt inline; background writes are staged (/memory
-        # pending|approve <id>|reject <id>). To disable memory: memory_enabled.
-        "write_approval": False,
-        "memory_char_limit": 2200,   # ~800 tokens at 2.75 chars/token
-        "user_char_limit": 1375,     # ~500 tokens at 2.75 chars/token
-        # Periodic built-in memory review; 0 when an external provider auto-extracts.
+    "memory": {  # Persistent memory: the Agent Memory provider (see `learning:` for the review loop)
+        # Deprecated alias of learning.iteration_interval (counts tool iterations, not turns).
         "nudge_interval": 10,
-        # External memory provider plugin (empty = built-in only); only ONE at a time: "holographic",
-        # "retaindb", "byterover", or a catalog-installed one ("honcho", "hindsight", "supermemory",
-        # "mem0", "openviking").
+        # Memory provider plugin: "agent_memory" (SurrealDB Agent Memory). Empty = no memory.
         "provider": "",
     },
     # Subagent delegation — override the provider:model used by delegate_task so children run on a
@@ -1436,6 +1426,9 @@ DEFAULT_CONFIG = {
     },
     # Skills — external skill directories shared across tools/agents. Paths are expanded (~, ${VAR})
     # and resolved; read-only — creation goes to ~/.hermes/skills/ unless create_dir redirects it.
+    # Background learning loop (agent/learning). iteration_interval None = fall back to
+    # skills.creation_nudge_interval, then memory.nudge_interval; 0 disables it (idle_seconds likewise).
+    "learning": {"iteration_interval": None, "idle_seconds": 900, "max_attempts": 5, "backoff_base_s": 30.0, "review_on_boundary": True},
     "skills": {
         "external_dirs": [],   # e.g. ["~/.agents/skills", "/shared/team-skills"]
         # Where skill_manage-created skills go (empty = profile-local dir). When set, new skills
@@ -1511,9 +1504,6 @@ DEFAULT_CONFIG = {
             "keep": 2,  # retain last N regular snapshots
         },
     },
-    # Honcho memory plugin (plugin catalog) — ~/.honcho/config.json is the source of truth (apiKey,
-    # workspace, peerName, sessions, enabled); the plugin reads hermes-specific overrides from here.
-    "honcho": {},
     # IANA timezone (e.g. "Asia/Kolkata", "America/New_York"). Empty = server-local time.
     "timezone": "",
 
@@ -2955,37 +2945,9 @@ OPTIONAL_ENV_VARS = {
         "Airtable API key", "https://airtable.com/create/tokens"),
     "TENOR_API_KEY": _skill("Tenor API key for GIF search (used by the `gif-search` skill)",
         "Tenor API key", "https://developers.google.com/tenor/guides/quickstart"),
-    # ── Honcho ──
-    "HONCHO_API_KEY": _tool("Honcho API key for AI-native persistent memory", "Honcho API key",
-        "https://app.honcho.dev", tools=["honcho_context"]),
-    "HONCHO_BASE_URL": _tool("Base URL for self-hosted Honcho instances (no API key needed)",
-        "Honcho base URL (e.g. http://localhost:8000)", password=None),
-    # ── Hindsight ──
-    "HINDSIGHT_API_KEY": _tool("Hindsight API key for graph-aware persistent memory",
-        "Hindsight API key", "https://hindsight.vectorize.io", tools=["hindsight_recall"]),
-    "HINDSIGHT_API_URL": _tool(
-        "Base URL for the Hindsight API (default: https://api.hindsight.vectorize.io)",
-        "Hindsight API URL", password=None, advanced=True),
-    # ── Supermemory ──
-    "SUPERMEMORY_API_KEY": _tool("Supermemory API key for conversation-scoped persistent memory",
-        "Supermemory API key", "https://supermemory.ai", tools=["supermemory_search"]),
-    # ── Mem0 ──
-    "MEM0_API_KEY": _tool("Mem0 Platform API key for semantic persistent memory", "Mem0 API key",
-        "https://app.mem0.ai", tools=["mem0_search"]),
-    # ── RetainDB ──
-    "RETAINDB_API_KEY": _tool("RetainDB API key for persistent memory", "RetainDB API key",
-        "https://retaindb.com", tools=["retaindb_search"]),
-    "RETAINDB_BASE_URL": _tool(
-        "Base URL for self-hosted RetainDB instances (default: https://api.retaindb.com)",
-        "RetainDB base URL", password=None, advanced=True),
-    # ── ByteRover ──
-    "BRV_API_KEY": _tool("ByteRover API key (optional, for cloud sync — local-first by default)",
-        "ByteRover API key", "https://app.byterover.dev", tools=["brv_query"]),
-    # ── OpenViking ──
-    "OPENVIKING_API_KEY": _tool("OpenViking API key (leave blank for local dev mode)",
-        "OpenViking API key", tools=["viking_search"]),
-    "OPENVIKING_ENDPOINT": _tool("OpenViking server URL (default: http://127.0.0.1:1933)",
-        "OpenViking endpoint", password=None, advanced=True),
+    # ── SurrealDB Agent Memory ──
+    "AGENT_MEMORY_API_KEY": _tool("Agent Memory API key (SurrealDB) for persistent memory", "Agent Memory API key",
+        "https://surrealdb.com/agent-memory", tools=["agent_memory_recall"]),
     # ── Langfuse observability ──
     "HERMES_LANGFUSE_PUBLIC_KEY": _tool("Langfuse project public key (pk-lf-...)",
         "Langfuse public key", "https://cloud.langfuse.com", password=False),

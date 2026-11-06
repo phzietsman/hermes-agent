@@ -1,0 +1,9 @@
+name: agent_memory
+version: 0.1.0
+description: "SurrealDB Agent Memory: provenance-first, tri-temporal agent memory with hybrid recall."
+pip_dependencies:
+  - "surrealdb[memory]"
+requires_env:
+  - AGENT_MEMORY_API_KEY
+hooks:
+  - on_session_end

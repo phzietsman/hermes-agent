@@ -1,0 +1,235 @@
+{
+  "arm": "loopfix_sam",
+  "seed": 1,
+  "harness_only": false,
+  "results": [
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {
+        "landed": 10,
+        "assistant_tool": 6,
+        "turn": 10,
+        "session": 10,
+        "background_review": 3
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {
+        "landed": 10,
+        "assistant_tool": 7,
+        "turn": 10,
+        "session": 10,
+        "background_review": 3
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {
+        "landed": 10,
+        "assistant_tool": 9,
+        "turn": 10,
+        "session": 10,
+        "background_review": 1
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {
+        "landed": 10,
+        "assistant_tool": 7,
+        "turn": 10,
+        "session": 10,
+        "background_review": 1
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {
+        "landed": 10,
+        "assistant_tool": 8,
+        "turn": 10,
+        "session": 10,
+        "background_review": 0
+      }
+    },
+    {
+      "scenario": "1_recall",
+      "passed": 9,
+      "total": 10,
+      "requires_live": false,
+      "seed": 6,
+      "detail": {}
+    },
+    {
+      "scenario": "6_write_landing",
+      "passed": 10,
+      "total": 10,
+      "requires_live": false,
+      "seed": 6,
+      "detail": {
+        "landed": 10,
+        "assistant_tool": 8,
+        "turn": 10,
+        "session": 10,
+        "background_review": 4
+      }
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 8,
+      "total": 8,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 7,
+      "total": 8,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {}
+    },
+    {
+      "scenario": "2_supersession",
+      "passed": 8,
+      "total": 8,
+      "requires_live": false,
+      "seed": 6,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 5,
+      "detail": {}
+    },
+    {
+      "scenario": "3_abstention",
+      "passed": 6,
+      "total": 6,
+      "requires_live": false,
+      "seed": 6,
+      "detail": {}
+    }
+  ]
+}

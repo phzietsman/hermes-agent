@@ -20,9 +20,7 @@ def _make_agent(
         {"type": "function", "function": {"name": "mcp_demo_tool", "description": "mcp"}},
         {"type": "function", "function": {"name": "delegate_task", "description": "spawn"}},
     ]
-    agent._memory_store = None
-    agent._memory_enabled = True
-    agent._user_profile_enabled = True
+    agent._memory_manager = None
     agent.context_compressor = MagicMock(
         context_length=context_length,
         last_prompt_tokens=last_prompt_tokens,

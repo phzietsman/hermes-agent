@@ -163,16 +163,12 @@ def compute_prompt_breakdown(platform: str = "cli") -> Dict[str, Any]:
     skills_match = _SKILLS_BLOCK_RE.search(volatile) or _SKILLS_BLOCK_RE.search(stable)
     skills_index = skills_match.group(0) if skills_match else ""
 
-    # Memory + user profile are joined into ``volatile``; re-derive them from the store so the
-    # numbers stay attributable.
+    # The memory provider's block is joined into ``volatile``; re-derive it so the number stays attributable.
     memory_block = user_block = ""
-    store = getattr(agent, "_memory_store", None)
-    if store is not None:
+    manager = getattr(agent, "_memory_manager", None)
+    if manager is not None:
         try:
-            if getattr(agent, "_memory_enabled", True):
-                memory_block = store.format_for_system_prompt("memory") or ""
-            if getattr(agent, "_user_profile_enabled", True):
-                user_block = store.format_for_system_prompt("user") or ""
+            memory_block = manager.build_system_prompt() or ""
         except Exception:
             pass
 

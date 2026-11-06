@@ -119,7 +119,6 @@ def test_final_response_closes_tool_tail_before_persistence(monkeypatch):
         turn_id="turn",
         user_message="do it",
         original_user_message="do it",
-        _should_review_memory=False,
         _turn_exit_reason="fallback_prior_turn_content",
     )
 
@@ -168,7 +167,6 @@ def test_fallback_timestamp_survives_delayed_sqlite_persistence(
         turn_id="turn",
         user_message="do it",
         original_user_message="do it",
-        _should_review_memory=False,
         _turn_exit_reason="fallback_prior_turn_content",
     )
 
@@ -211,7 +209,6 @@ def test_final_response_fills_pure_tool_call_tail(monkeypatch):
         turn_id="tid",
         user_message="q",
         original_user_message="q",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(final)",
     )
 
@@ -266,7 +263,6 @@ def test_final_response_fill_invalidates_flush_scan_cursor():
         turn_id="tid",
         user_message="q",
         original_user_message="q",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(final)",
     )
 
@@ -323,7 +319,6 @@ def test_empty_final_response_recovers_stream_buffer_into_blank_assistant_row(
         turn_id="turn",
         user_message="summarize",
         original_user_message="summarize",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(final)",
     )
 
@@ -358,7 +353,6 @@ def test_failed_turn_does_not_recover_stream_buffer_as_final_response(monkeypatc
         turn_id="turn",
         user_message="q",
         original_user_message="q",
-        _should_review_memory=False,
         _turn_exit_reason="error",
     )
 
@@ -394,7 +388,6 @@ def test_stream_recovered_final_response_survives_persist_step_failure(monkeypat
         turn_id="turn",
         user_message="q",
         original_user_message="q",
-        _should_review_memory=False,
         _turn_exit_reason="text_response(final)",
     )
 
@@ -436,7 +429,6 @@ def test_delivery_only_reasoning_excerpt_does_not_fill_blank_assistant(monkeypat
         turn_id="turn",
         user_message="what is the answer?",
         original_user_message="what is the answer?",
-        _should_review_memory=False,
         _turn_exit_reason="empty_response_exhausted",
     )
 
@@ -454,7 +446,7 @@ def _finalize(agent, *, exit_reason, final_response, failed=False, api_calls=3):
         agent, final_response=final_response, api_call_count=api_calls, interrupted=False, failed=failed,
         messages=[{"role": "user", "content": "q"}, {"role": "assistant", "content": final_response or ""}],
         conversation_history=[], effective_task_id="task", turn_id="turn", user_message="q",
-        original_user_message="q", _should_review_memory=False, _turn_exit_reason=exit_reason,
+        original_user_message="q", _turn_exit_reason=exit_reason,
     )
 
 

@@ -1,0 +1,91 @@
+{
+  "arm": "loopfix_sam",
+  "seed": 1,
+  "harness_only": false,
+  "results": [
+    {
+      "scenario": "5_procedural",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 1,
+      "detail": {
+        "run1_correct": 1,
+        "run1_calls": 2,
+        "run1_tokens": 32330,
+        "skills_created": 1,
+        "reuse_calls": 10,
+        "reuse_errors": 0,
+        "reuse_tokens": 160110,
+        "reuse_skill_views": 3,
+        "reuse_skill_writes": 0,
+        "reuse_memory_recalls": 0,
+        "reuse_memory_saves": 0,
+        "reuse_ms": 33689
+      }
+    },
+    {
+      "scenario": "5_procedural",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 2,
+      "detail": {
+        "run1_correct": 1,
+        "run1_calls": 2,
+        "run1_tokens": 32058,
+        "skills_created": 1,
+        "reuse_calls": 16,
+        "reuse_errors": 0,
+        "reuse_tokens": 146435,
+        "reuse_skill_views": 3,
+        "reuse_skill_writes": 0,
+        "reuse_memory_recalls": 0,
+        "reuse_memory_saves": 0,
+        "reuse_ms": 32651
+      }
+    },
+    {
+      "scenario": "5_procedural",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 3,
+      "detail": {
+        "run1_correct": 1,
+        "run1_calls": 3,
+        "run1_tokens": 44157,
+        "skills_created": 1,
+        "reuse_calls": 13,
+        "reuse_errors": 0,
+        "reuse_tokens": 154700,
+        "reuse_skill_views": 3,
+        "reuse_skill_writes": 0,
+        "reuse_memory_recalls": 0,
+        "reuse_memory_saves": 0,
+        "reuse_ms": 36264
+      }
+    },
+    {
+      "scenario": "5_procedural",
+      "passed": 3,
+      "total": 3,
+      "requires_live": false,
+      "seed": 4,
+      "detail": {
+        "run1_correct": 1,
+        "run1_calls": 3,
+        "run1_tokens": 44181,
+        "skills_created": 1,
+        "reuse_calls": 11,
+        "reuse_errors": 1,
+        "reuse_tokens": 144147,
+        "reuse_skill_views": 3,
+        "reuse_skill_writes": 0,
+        "reuse_memory_recalls": 0,
+        "reuse_memory_saves": 0,
+        "reuse_ms": 31269
+      }
+    }
+  ]
+}

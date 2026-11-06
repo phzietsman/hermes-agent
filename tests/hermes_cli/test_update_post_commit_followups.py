@@ -110,7 +110,6 @@ def test_failed_web_build_does_not_skip_the_tui(tmp_path, monkeypatch, capsys):
     built = []
     monkeypatch.setattr("hermes_cli.main_install_repair._install_configured_features_missing_deps", lambda root: None)
     monkeypatch.setattr("hermes_cli.update_stage.publish_stage", lambda text: None)
-    monkeypatch.setattr("hermes_cli.memory_provider_migration.migrate_all_homes", lambda: None)
     monkeypatch.setattr(source_build, "source_frontends", lambda root: ("web", "ui-tui"))
     monkeypatch.setattr(source_build, "source_build_env", lambda **kw: {"PATH": ""})
     monkeypatch.setattr(source_build, "prepare_source_dependencies", lambda *a, **kw: None)

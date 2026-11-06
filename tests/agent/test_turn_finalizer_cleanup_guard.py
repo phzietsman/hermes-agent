@@ -135,7 +135,6 @@ def _run(
         turn_id="turn-1",
         user_message="do a thing",
         original_user_message="do a thing",
-        _should_review_memory=False,
         _turn_exit_reason=turn_exit_reason,
     )
 

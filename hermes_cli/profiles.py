@@ -35,10 +35,6 @@ _PROFILE_DIRS = ["memories", "sessions", "skills", "skins", "logs", "plans", "wo
 
 # Files copied during --clone (if they exist in the source).
 _CLONE_CONFIG_FILES = ["config.yaml", ".env", "SOUL.md"]
-# Subdirectory files copied during --clone: memory files are part of the agent's curated
-# identity, as important as SOUL.md for continuity.
-_CLONE_SUBDIR_FILES = ["memories/MEMORY.md", "memories/USER.md"]
-
 # Runtime files stripped after --clone-all. A post-copy step rather than an ignore filter
 # because they are created dynamically and may be absent at copy time.
 _CLONE_ALL_STRIP: list[str] = [
@@ -253,7 +249,7 @@ _DEFAULT_EXPORT_EXCLUDE_ROOT = DEFAULT_EXPORT_EXCLUDE_ROOT = frozenset({
 # (#58394). Add new artifacts here when introduced in ``hermes_constants``.
 _DEFAULT_EXPORT_INCLUDE_ROOT = frozenset({
     # Configuration / persona
-    "config.yaml", "SOUL.md", "MEMORY.md", "USER.md", "todo.json",
+    "config.yaml", "SOUL.md", "todo.json",
     "system_prompt.md", "AGENTS.md", "CLAUDE.md", ".cursorrules",
     # Desktop appearance overlay (written/applied by the desktop app's export/import).
     "desktop.json",
@@ -1307,8 +1303,6 @@ def _bootstrap_profile_dir(profile_dir: Path, source_dir: Optional[Path],
     if source_skills.is_dir():
         shutil.copytree(source_skills, profile_dir / "skills", symlinks=True, ignore=_non_exportable_entries,
                         dirs_exist_ok=True)
-    for relpath in _CLONE_SUBDIR_FILES:
-        _clone_file(source_dir, profile_dir, relpath)
     _clone_plugins(source_dir, profile_dir)
     from hermes_cli.profile_memory_config import active_memory_provider, clone_memory_provider_config
     clone_memory_provider_config(source_dir, profile_dir,
@@ -1814,16 +1808,6 @@ def delete_profile(name: str, yes: bool = False) -> Path:
     from tools.mcp_tool_lifecycle import shutdown_mcp_servers
     shutdown_mcp_servers(scope=hermes_home_key(profile_dir))
 
-    # Release this process's holographic memory-store connections into the profile. The
-    # Desktop's main serve process opens memory_store.db for every profile and is
-    # deliberately not stopped above; its connections would outlive the deleted files.
-    # Inside serve (DELETE /api/profiles/<name>) the handles live here; from the CLI no-op.
-    with contextlib.suppress(Exception):  # best-effort: never block the delete on the release path
-        # 2c. See #88347.
-        from plugins.memory import import_provider_module
-        _released = import_provider_module("holographic", "store").MemoryStore.release_all_under(profile_dir)
-        if _released:
-            print(f"✓ Released {_released} memory-store connection(s) held by this process")
     with contextlib.suppress(Exception):
         from hermes_state_registry import close_all_under as _close_session_dbs_under
         _closed = _close_session_dbs_under(profile_dir)
@@ -2318,44 +2302,6 @@ def _atomic_write_json(path: Path, data: dict) -> bool:
         return False
 
 
-def _migrate_honcho_profile_host(old_name: str, new_name: str, new_dir: Path) -> None:
-    """Rename Honcho host blocks for a renamed profile without changing peers."""
-    old_host = f"hermes_{old_name}"
-    legacy_old_host = f"hermes.{old_name}"
-    new_host = f"hermes_{new_name}"
-    candidates = [
-        new_dir / "honcho.json", _get_default_hermes_home() / "honcho.json", Path.home() / ".honcho" / "config.json"
-    ]
-    seen: set[Path] = set()
-    for path in candidates:
-        try:
-            resolved = path.resolve()
-        except OSError:
-            resolved = path
-        if resolved in seen or not path.is_file():
-            continue
-        seen.add(resolved)
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8-sig"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        hosts = raw.get("hosts")
-        if not isinstance(hosts, dict):
-            continue
-        source_host = old_host if old_host in hosts else legacy_old_host
-        if source_host not in hosts:
-            continue
-        if new_host in hosts:
-            print(f"⚠ Honcho host block not migrated: {new_host} already exists in {path}")
-            continue
-        block = hosts[source_host]
-        if isinstance(block, dict) and "aiPeer" not in block:
-            block["aiPeer"] = old_name  # source_host is ``hermes_<old>`` or legacy ``hermes.<old>``
-        hosts[new_host] = hosts.pop(source_host)
-        if _atomic_write_json(path, raw):
-            print(f"✓ Honcho host updated: {source_host} → {new_host}")
-
-
 def _record_profile_rename(new_dir: Path, old_canon: str) -> None:
     """Append ``old_canon`` to the renamed profile's ``previous_names`` history.
     Best-effort: never raises, so a metadata write failure cannot fail the rename.
@@ -2442,9 +2388,6 @@ def rename_profile(old_name: str, new_name: str) -> Path:
     # member descriptors to the new slug (#110200). Best-effort: a metadata
     # write failure must never fail the rename itself.
     _record_profile_rename(new_dir, old_canon)
-
-    # 3. Update profile-scoped Honcho host blocks, preserving aiPeer identity
-    _migrate_honcho_profile_host(old_canon, new_canon, new_dir)
 
     # 4. Update wrapper script
     remove_wrapper_script(old_canon)

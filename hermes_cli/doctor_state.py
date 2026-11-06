@@ -106,11 +106,6 @@ def _render_state_db_stats(stats: dict, holders=None, host_note: str = "") -> li
     return lines
 
 
-def _memory_store_flags(hermes_home: Path) -> tuple:
-    from tools.memory_tool import get_builtin_memory_store_flags
-    return get_builtin_memory_store_flags({"memory": _doctor_memory_config(hermes_home)})
-
-
 def check_legacy_desktop_checkout() -> None:
     """Report the unused legacy checkout under an embedded desktop install.
 
@@ -184,7 +179,7 @@ def check_legacy_desktop_checkout() -> None:
 
 @doctor_check()
 def _check_directory_structure(should_fix: bool, f: Finding) -> None:
-    """HERMES_HOME, expected subdirs, SOUL.md, and the enabled built-in memory files."""
+    """HERMES_HOME, expected subdirs and SOUL.md."""
     try:
         check_legacy_desktop_checkout()
     except Exception:
@@ -192,10 +187,7 @@ def _check_directory_structure(should_fix: bool, f: Finding) -> None:
     from hermes_cli.doctor import HERMES_HOME, _DHH
     hermes_home = HERMES_HOME
     ensure_dir(f, should_fix, hermes_home, f"{_DHH} directory exists", f"Created {_DHH} directory", f"{_DHH} not found")
-    _memory_enabled, _user_profile_enabled = _memory_store_flags(hermes_home)
-    memory_on = bool(_memory_enabled or _user_profile_enabled)
-    # The built-in file store neither creates nor consumes memories/ when both targets are disabled.
-    for subdir_name in ["cron", "sessions", "logs", "skills"] + (["memories"] if memory_on else []):
+    for subdir_name in ["cron", "sessions", "logs", "skills"]:
         ensure_dir(f, should_fix, hermes_home / subdir_name, f"{_DHH}/{subdir_name}/ exists",
                    f"Created {_DHH}/{subdir_name}/", f"{_DHH}/{subdir_name}/ not found")
     _check_scratch_dir(hermes_home, _DHH)
@@ -215,19 +207,6 @@ def _check_directory_structure(should_fix: bool, f: Finding) -> None:
                                  "You are Hermes, a helpful AI assistant.\n", encoding="utf-8")
             check_ok(f"Created {_DHH}/SOUL.md with basic template")
             f.fixed += 1
-    # Only enabled built-in stores: users can disable either legacy file target, and stale migration files
-    # must not read as active memory usage.
-    memories_dir = hermes_home / "memories"
-    if not memory_on:
-        return check_info("Built-in memory files disabled by config")
-    existed = memories_dir.exists()
-    ensure_dir(f, should_fix, memories_dir, f"{_DHH}/memories/ directory exists", f"Created {_DHH}/memories/",
-               f"{_DHH}/memories/ not found")
-    for fname in [n for on, n in ((_memory_enabled, "MEMORY.md"), (_user_profile_enabled, "USER.md")) if on and existed]:
-        if (memories_dir / fname).exists():
-            check_ok(f"{fname} exists ({len((memories_dir / fname).read_text(encoding='utf-8-sig').strip())} chars)")
-        else:
-            check_info(f"{fname} not created yet (will be created when the agent first writes a memory)")
 
 
 # Cache-root entries at least this big that no pruner covers get a doctor warning.
@@ -601,7 +580,7 @@ _MEMORY_PROVIDER_CHECKS: dict = {}
 
 
 def _memory_provider_generic(name: str) -> None:
-    """Generic check for every memory provider (honcho, hindsight, mem0, openviking, ...)."""
+    """Generic check for the configured memory provider."""
     from plugins.memory import load_memory_provider
     _provider = load_memory_provider(name)
     if _provider and _provider.is_available():
@@ -609,10 +588,7 @@ def _memory_provider_generic(name: str) -> None:
     elif _provider:
         check_warn(f"{name} configured but not available", "run: hermes memory status")
     else:
-        from plugins.memory import find_provider_dir
-        from hermes_cli.memory_provider_migration import catalog_install_hint
-        hint = catalog_install_hint(name, category="memory") if find_provider_dir(name) is None else None
-        check_warn(f"{name} plugin not found", f"run: {hint or 'hermes memory setup'}")
+        check_warn(f"{name} plugin not found", "run: hermes memory setup")
 
 
 @doctor_check()
@@ -621,7 +597,7 @@ def _check_memory_provider(should_fix: bool, f: Finding) -> None:
     from agent.memory_provider import is_core_memory_provider
     name = _doctor_memory_config(HERMES_HOME).get("provider", "")
     if is_core_memory_provider(name):
-        check_ok("Built-in memory active", "(no external provider configured — this is fine)")
+        check_info("No memory provider configured (run: hermes memory setup to enable Agent Memory)")
         return
     checker, missing_row, missing_issue, label = _MEMORY_PROVIDER_CHECKS.get(name, (None, None, None, name))
     try:

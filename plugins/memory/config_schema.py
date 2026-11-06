@@ -24,7 +24,6 @@ KIND_JSON = "json"
 
 # Storage backends understood by web_server (see its read/write dispatch).
 STORAGE_FLAT_JSON = "flat_json"
-STORAGE_HONCHO_HOST_BLOCK = "honcho_host_block"
 
 
 @dataclass(frozen=True)
@@ -57,8 +56,6 @@ class ProviderField:
     group: str = ""
     # Longer help text surfaced as an info tooltip next to the field label.
     info: str = ""
-    # Host-block placement: "host" (per-profile) or "root"; flat-json ignores it.
-    scope: str = "host"
 
     @property
     def is_secret(self) -> bool:

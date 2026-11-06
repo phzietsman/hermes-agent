@@ -31,6 +31,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from agent.auxiliary_client import AuxiliaryExplicitCancellation
 from agent.context_engine import automatic_compaction_status_message, sanitize_memory_context
 from agent.conversation_compression_codex import _codex_compaction_cooldown_remaining
+from agent.conversation_compression_memory import _pre_compress_memory_context
 from agent.conversation_compression_telemetry import _emit_aborted_attempt_telemetry, _emit_compression_attempt_telemetry
 from agent.memory_provider import PRE_COMPRESS_CHECKPOINT_API_VERSION
 from agent.model_metadata import estimate_messages_tokens_rough, estimate_request_tokens_rough
@@ -1866,29 +1867,6 @@ class _CompressionActivityHeartbeat:
             self._emit_progress_status()
 
 
-def _direct_messages_for_pre_compress_memory(messages: Any) -> list[dict[str, Any]]:
-    """Return direct user/assistant evidence safe for memory checkpointing.
-    Summaries, tool rows and system messages are omitted; assistant prose is kept with ``tool_calls``
-    stripped, and pure tool-call wrappers are dropped."""
-    # Deferred import: context_compressor → turn_context → this module would form an import cycle.
-    from agent.context_compressor import COMPRESSED_SUMMARY_METADATA_KEY
-    direct_messages: list[dict[str, Any]] = []
-    for message in messages or []:
-        if not isinstance(message, dict):
-            continue
-        role = message.get("role")
-        if role not in {"user", "assistant"} or message.get(COMPRESSED_SUMMARY_METADATA_KEY):
-            continue
-        if role == "assistant" and message.get("tool_calls"):
-            content = message.get("content")
-            has_prose = bool(content.strip() if isinstance(content, str) else content)
-            if not has_prose:
-                continue
-            message = {k: v for k, v in message.items() if k != "tool_calls"}
-        direct_messages.append(message)
-    return direct_messages
-
-
 class _CompressionLockLeaseRefresher:
     def __init__(
         self, db: Any, session_id: str, holder: str, ttl_seconds: float, refresh_interval_seconds: float | None = None
@@ -2926,45 +2904,6 @@ def _adopt_grown_durable_parent(agent: Any, lease: _CompressionLease, messages: 
         len(durable_parent),
     )
     return durable_parent
-
-
-def _pre_compress_memory_context(agent: Any, messages: list, checkpoint_required: bool) -> str:
-    """Provider ``on_pre_compress()`` insights to surface in the summary ("" if none).
-    Raw messages stay the API v1 provider contract; normalized evidence goes only to API v2+ checkpoint
-    providers inside MemoryManager.on_pre_compress(). Raises :class:`CompressionCheckpointUnavailable` when a
-    required checkpoint cannot be taken."""
-    memory_context = ""
-    memory_manager = getattr(agent, "_memory_manager", None)
-    evidence_messages = _direct_messages_for_pre_compress_memory(messages)
-    # A detached review/side-question fork (no memory manager, session DB or persistence) cannot checkpoint by design.
-    if checkpoint_required and getattr(agent, "_persist_disabled", False) and memory_manager is None:
-        checkpoint_required = getattr(agent, "_session_db", None) is not None
-    if checkpoint_required:
-        supports_checkpoint = getattr(memory_manager, "supports_pre_compress_checkpoint", None)
-        if memory_manager is None or not callable(supports_checkpoint):
-            raise _checkpoint_incapable(f"no active provider implements checkpoint API v{PRE_COMPRESS_CHECKPOINT_API_VERSION}")
-        try:
-            compatible = bool(supports_checkpoint(PRE_COMPRESS_CHECKPOINT_API_VERSION))
-        except Exception as exc:
-            raise _checkpoint_blocked("provider capability probe failed") from exc
-        if not compatible:
-            raise _checkpoint_incapable(f"active provider does not implement checkpoint API v{PRE_COMPRESS_CHECKPOINT_API_VERSION}")
-        try:
-            _maybe_ctx = memory_manager.on_pre_compress(
-                messages, evidence_messages=evidence_messages, require_checkpoint=True,
-                checkpoint_api_version=PRE_COMPRESS_CHECKPOINT_API_VERSION,
-            )
-        except Exception as exc:
-            logger.warning("Required pre-compress checkpoint failed (%s)", type(exc).__name__)
-            raise _checkpoint_blocked(f"provider checkpoint API v{PRE_COMPRESS_CHECKPOINT_API_VERSION} failed") from exc
-        if isinstance(_maybe_ctx, str):
-            memory_context = sanitize_memory_context(_maybe_ctx)
-    elif memory_manager:
-        with contextlib.suppress(Exception):
-            _maybe_ctx = memory_manager.on_pre_compress(messages, evidence_messages=evidence_messages)
-            if isinstance(_maybe_ctx, str):
-                memory_context = sanitize_memory_context(_maybe_ctx)
-    return memory_context
 
 
 def _resolve_compress_call(

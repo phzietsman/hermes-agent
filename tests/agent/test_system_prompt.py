@@ -109,21 +109,14 @@ def test_kanban_guidance_fallback_requires_owned_worker_task(monkeypatch, task_i
         assert (_tool_guidance_block(agent) == KANBAN_GUIDANCE) is expected
 
 
-@pytest.mark.parametrize("stores", [(True, True), (False, True), (True, False), (False, False)])
-@pytest.mark.parametrize("names", [
-    set(), {"memory"}, {"memory", "skill_view", "skills_list"},
-    {"memory", "skill_view", "skills_list", "skill_manage"},
-])
-def test_memory_guidance_respects_available_writes(stores, names, monkeypatch, tmp_path):
+@pytest.mark.parametrize("names", [set(), {"skill_view", "skills_list", "skill_manage"}])
+def test_prompt_has_no_builtin_memory_guidance(names, monkeypatch, tmp_path):
+    """Memory guidance now comes from the memory provider's own block, never the core prompt."""
     monkeypatch.chdir(tmp_path)
-    agent = _make_agent(valid_tool_names=names, skip_context_files=True,
-                        _memory_enabled=stores[0], _user_profile_enabled=stores[1])
+    agent = _make_agent(valid_tool_names=names, skip_context_files=True)
     prompt = build_system_prompt(agent)
-    enabled = "memory" in names and any(stores)
-    assert ("Memory is the narrow exception" in prompt) == enabled
-    assert ("(skill_manage)" in prompt) == (enabled and "skill_manage" in names)
-    if enabled and not stores[0]:
-        assert "never target='memory'" in prompt
+    assert "Memory is the narrow exception" not in prompt
+    assert "never target='memory'" not in prompt
 
 
 class TestContextFileCwd:
@@ -299,8 +292,6 @@ def test_stored_prompt_cwd_ignores_project_host_decoys(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_ENVIRONMENT_HINT", decoy + "\nModel: decoy\nProvider: decoy\nPlatform: decoy")
     agent = _make_agent(
         platform="cli", model="test-model", provider="test-provider",
-        _memory_enabled=True, _user_profile_enabled=False,
-        _memory_store=SimpleNamespace(format_for_system_prompt=lambda _: decoy),
     )
     parts = build_system_prompt_parts(agent)
     full = "\n\n".join(parts.values())

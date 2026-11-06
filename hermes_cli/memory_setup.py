@@ -154,15 +154,6 @@ def _find_provider(providers: list, provider_name: str):
     return next((p for p in providers if p[0] == provider_name), None)
 
 
-def _catalog_install_hint(provider_name: str):
-    """The install command for a catalog memory provider that resolves nowhere, else None."""
-    from plugins.memory import find_provider_dir
-    from hermes_cli.memory_provider_migration import catalog_install_hint
-    if not provider_name or find_provider_dir(provider_name) is not None:
-        return None
-    return catalog_install_hint(provider_name, category="memory")
-
-
 def _post_setup_hook(provider, config: dict) -> bool:
     """Normalize the ``memory`` block; True when the provider's ``post_setup`` took over (it owns
     config, connection test and activation), so the caller must stop."""
@@ -181,11 +172,7 @@ def cmd_setup_provider(provider_name: str) -> None:
     match = _find_provider(_get_available_providers(), provider_name)
     if not match:
         print(f"\n  Memory provider '{provider_name}' not found.")
-        install = _catalog_install_hint(provider_name)
-        if install:
-            print(f"  It is a catalog plugin that is not installed. Install it with: {install}\n")
-        else:
-            print("  Run 'hermes memory setup' to see available providers.\n")
+        print("  Run 'hermes memory setup' to see available providers.\n")
         return
     name, _, provider = match
 
@@ -266,9 +253,9 @@ def cmd_setup(args) -> None:
         return
 
     items = [(name, f"— {desc}") for name, desc, _ in providers]
-    items.append(("Built-in only", "— MEMORY.md / USER.md (default)"))
-    builtin_idx = len(items) - 1
-    selected = _curses_select("Memory provider setup", items, default=builtin_idx, cancel_returns=_CANCELLED)
+    items.append(("No memory", "— the agent keeps nothing between sessions"))
+    off_idx = len(items) - 1
+    selected = _curses_select("Memory provider setup", items, default=0 if off_idx else off_idx, cancel_returns=_CANCELLED)
     if selected == _CANCELLED:
         _print_cancelled_setup()
         return
@@ -279,7 +266,7 @@ def cmd_setup(args) -> None:
     if selected >= len(providers):
         config["memory"]["provider"] = ""
         save_config(config)
-        print("\n  ✓ Memory provider: built-in only")
+        print("\n  ✓ Memory provider: none")
         print("  Saved to config.yaml\n")
         return
 
@@ -370,19 +357,8 @@ def cmd_status(args) -> None:
     mem_config = config.get("memory", {})
     provider_name = mem_config.get("provider", "")
 
-    # Memory tool enablement for the CLI platform via the canonical resolver, respecting the
-    # check_fn gate when both stores are disabled.
-    from hermes_cli.tools_config import _get_platform_tools
-    from tools.memory_tool import check_memory_requirements
-    cli_tools = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
-    memory_tool_enabled = ("memory" in cli_tools) and check_memory_requirements()
-
     print("\nMemory status\n" + "─" * 40)
-    print("  Built-in (MEMORY.md / USER.md):")
-    print(f"    Memory injection:   {_mark(mem_config.get('memory_enabled', True))}")
-    print(f"    User profile:       {_mark(mem_config.get('user_profile_enabled', True))}")
-    print(f"    Memory tool:        {_mark(memory_tool_enabled)}")
-    print(f"  Provider:  {provider_name or '(none — built-in only)'}")
+    print(f"  Provider:  {provider_name or '(none)'}")
 
     providers = _get_available_providers()
     match = _find_provider(providers, provider_name)
@@ -425,11 +401,7 @@ def cmd_status(args) -> None:
                 print("        set any variables above in the service environment.")
         else:
             print("\n  Plugin:    NOT installed ✗")
-            install = _catalog_install_hint(provider_name)
-            if install:
-                print(f"  Install it with: {install}")
-            else:
-                print(f"  Install the '{provider_name}' memory plugin to ~/.hermes/plugins/")
+            print(f"  Install the '{provider_name}' memory plugin to ~/.hermes/plugins/")
 
     if providers:
         print("\n  Installed plugins:")

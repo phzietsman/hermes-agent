@@ -259,15 +259,13 @@ How the wiring stays equivalent:
 
 | | Default runtime | Codex runtime |
 |---|---|---|
-| `_turns_since_memory` increments | per user prompt, in run_conversation pre-loop | same code path, before the early-return |
-| `_iters_since_skill` increments | per tool iteration in the chat-completions loop | by `turn.tool_iterations` after the codex turn returns |
-| Memory trigger (`_turns_since_memory >= _memory_nudge_interval`) | computed in pre-loop, fires after response | computed in pre-loop, passed through to codex helper |
-| Skill trigger (`_iters_since_skill >= _skill_nudge_interval`) | computed after the loop | computed after the codex turn |
-| `_spawn_background_review(messages_snapshot=..., review_memory=..., review_skills=...)` | called when either trigger fires | called identically when either trigger fires |
+| Review trigger | the learning scheduler counts each tool iteration in the chat-completions loop | the scheduler is fed `turn.tool_iterations` after the codex turn returns |
+| Enqueue | a durable job is queued when `learning.iteration_interval` iterations accumulate, or at `/new`, compression, shutdown, or idle | same |
+| Start | after the response is delivered (`review_after_turn`) | same, after the codex turn |
 
 One detail: the review fork itself needs to call Hermes' agent-loop tools (`memory`, `skill_manage`), which require Hermes' own dispatch. So when the parent agent is on `codex_app_server`, the review fork is **downgraded to `codex_responses`** — same OAuth credentials, same `openai-codex` provider, but talks to OpenAI's Responses API directly so Hermes owns the loop and the agent-loop tools work. This is invisible to the user.
 
-Net effect: enable the codex runtime and your memory + skill nudges keep firing exactly as they would otherwise.
+Net effect: enable the codex runtime and your memory + skill reviews keep firing exactly as they would otherwise.
 
 ## How approvals work
 

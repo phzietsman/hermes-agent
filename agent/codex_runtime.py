@@ -693,33 +693,26 @@ def _persist_projected_messages(agent, turn, messages: List[Dict[str, Any]]) -> 
     return flush_ok is True
 
 
-def _finish_codex_turn(agent, turn, messages: List[Dict[str, Any]], *, original_user_message: Any,
-                       should_review_memory: bool) -> dict[str, Any]:
+def _finish_codex_turn(agent, turn, messages: List[Dict[str, Any]], *, original_user_message: Any) -> dict[str, Any]:
     """Post-turn bookkeeping mirroring the chat_completions loop; returns usage fields."""
-    # run_conversation() already bumped _turns_since_memory / _user_turn_count; only _iters_since_skill is ours.
-    agent._iters_since_skill = getattr(agent, "_iters_since_skill", 0) + turn.tool_iterations
+    from agent.learning.agent_host import review_on_iteration
+    for _ in range(turn.tool_iterations):
+        review_on_iteration(agent, messages)
     _record_codex_app_server_compaction(agent, turn)
     usage_result = _record_codex_app_server_usage(agent, turn, messages=messages)
-    # Skill nudge check AFTER iters were incremented (same as chat_completions).
-    should_review_skills = (0 < agent._skill_nudge_interval <= agent._iters_since_skill
-                            and "skill_manage" in agent.valid_tool_names)
-    if should_review_skills:
-        agent._iters_since_skill = 0
     # External memory sync skipped on interrupt/error (no partial transcripts).
     if not turn.interrupted and turn.error is None:
         _call_guarded(getattr(agent, "_sync_external_memory_for_turn", None), "external memory sync raised", kwargs=dict(
             original_user_message=original_user_message, final_response=turn.final_text, interrupted=False, messages=messages,
         ))
-    # Background review fork: only when a trigger tripped AND a real final response exists.
-    if turn.final_text and not turn.interrupted and (should_review_memory or should_review_skills):
-        _call_guarded(getattr(agent, "_spawn_background_review", None), "background review spawn raised", kwargs=dict(
-            messages_snapshot=list(messages), review_memory=should_review_memory, review_skills=should_review_skills,
-        ))
+    if turn.final_text and not turn.interrupted:
+        from agent.learning.agent_host import review_after_turn
+        _call_guarded(review_after_turn, "background review start raised", kwargs=dict(agent=agent, messages=messages))
     return usage_result
 
 
 def run_codex_app_server_turn(agent, *, user_message: str, original_user_message: Any, messages: List[Dict[str, Any]],
-                              effective_task_id: str, should_review_memory: bool = False) -> Dict[str, Any]:
+                              effective_task_id: str) -> Dict[str, Any]:
     """Hand the turn to a ``codex app-server`` subprocess and project its events into ``messages``.
     Returns the chat_completions result shape. The user message is ALREADY in ``messages`` — never append it again."""
     # Defense in depth for compression.checkpoint_required: agent init refuses the combination, but
@@ -754,7 +747,7 @@ def run_codex_app_server_turn(agent, *, user_message: str, original_user_message
     if _persist_projected_messages(agent, turn, messages) and not getattr(turn, "should_retire", False):
         _store_codex_thread_id(agent, turn.thread_id)
     usage_result = _finish_codex_turn(
-        agent, turn, messages, original_user_message=original_user_message, should_review_memory=should_review_memory,
+        agent, turn, messages, original_user_message=original_user_message,
     )
     return _turn_result(
         interrupt, messages, api_calls=1, completed=not turn.interrupted and turn.error is None, error=turn.error,

@@ -247,7 +247,6 @@ _R15_CASES = {
     "scripts/build/web.mjs": ("e2e_upgrade", "e2e_desktop_update"),
     "hermes_cli/_subprocess_compat.py": ("e2e_upgrade", "e2e_desktop_update"),
     "hermes_cli/desktop_build_lock.py": ("e2e_upgrade", "e2e_desktop_update"),
-    "hermes_cli/memory_provider_migration.py": ("e2e_upgrade", "e2e_desktop_update"),
     "hermes_cli/source_build.py": ("e2e_upgrade", "e2e_desktop_update"),
     "hermes_cli/source_completion.py": ("e2e_upgrade", "e2e_desktop_update"),
     "apps/desktop/electron/update-marker.ts": ("e2e_desktop_update",),
