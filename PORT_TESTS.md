@@ -1113,32 +1113,32 @@ Extra status `later`: the file was assigned to this group by import counting but
 |---|---|---|
 | `tests/agent/test_account_policy_block.py` | later | error classification and retry: re-bucket in task 2.1e |
 | `tests/agent/test_anthropic_adapter.py` | behaviour | subset: streaming/response normalisation (2.1c, TestStreamMatchesPythonSDK), request building (2.1b, TestBuildRequestMatchesPython, TestSupportsFastModeMatchesPython), `internal/provider/anthropic` golden tests (TestConvertMessagesMatchesPython, fixtures from the Python converter), TestConvertToolsMatchesPython, TestModelHelpersMatchPython. Request kwargs (2.1b), response normalisation (2.1c) and credentials (2.1d) re-bucket there |
-| `tests/agent/test_anthropic_borrowed_row_authority.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_client_auth.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_credential_persist_failure.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_dead_grant_hints.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_external_login_optout.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_keychain.py` | later | credentials and OAuth: re-bucket in task 2.1d |
+| `tests/agent/test_anthropic_borrowed_row_authority.py` | dropped | credential-pool rows are not ported |
+| `tests/agent/test_anthropic_client_auth.py` | behaviour | subset: `internal/provider/anthropic` TestApplyHeaders, TestTokenResolutionOrder, TestCredentialsWorkWithTheClient (API key vs OAuth bearer and identity). Custom/third-party/Bedrock endpoint styles are dropped |
+| `tests/agent/test_anthropic_credential_persist_failure.py` | behaviour | `internal/provider/anthropic` TestRefreshLoginFailsClosedWhenTheCommitFails, TestWriteFileCreatesAndFailsClosedOnCorruption, TestWriteFileKeepsSiblingsScopesAndMode |
+| `tests/agent/test_anthropic_dead_grant_hints.py` | behaviour | subset: `internal/provider/anthropic` TestOAuthErrorClassification, TestRefreshLoginRemembersADeadGrant, TestExpiredLoginRefreshFailureIsReported. The `hermes auth add` hint wording is CLI text (task 4.1) |
+| `tests/agent/test_anthropic_external_login_optout.py` | behaviour | `internal/provider/anthropic` TestTokenResolutionOrder (adoption off by default: stricter than Python, which adopts by default) |
+| `tests/agent/test_anthropic_keychain.py` | behaviour | `internal/provider/anthropic` TestKeychainFindParsesBothAttributeEncodings, TestKeychainFindReturnsNothingForUnusableOutput, TestStoreReadSources, TestMirrorToKeychainOnlyUpdatesTheItemHoldingTheSpentPair, TestMirrorCommandKeepsTheSecretOffArgvAndHexEncoded, TestRefreshLoginAdoptsAnAlreadyRotatedTokenWithoutPosting, TestConcurrentRefreshesSpendTheSingleUseTokenOnce; all with a fake Keychain, none touch the real one |
 | `tests/agent/test_anthropic_kimi_signed_thinking_replay.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_anthropic_kwargs_sanitize.py` | compiler | Python strips Responses-only kwargs that leaked into a Messages call (api_mode race); Go's typed `Request` cannot carry them |
 | `tests/agent/test_anthropic_mcp_prefix_strip.py` | behaviour | `internal/provider/anthropic` TestUnprefixOAuthToolName (registry lookup, aliases last, only with StripToolPrefix) |
 | `tests/agent/test_anthropic_message_stop.py` | behaviour | `internal/provider/anthropic` TestStreamMatchesPythonSDK (23 SSE scenarios replayed through the real Python SDK and `normalize_response`) and TestStreamEndingWithoutMessageStopIsIncomplete |
 | `tests/agent/test_anthropic_model_cooldowns.py` | later | error classification and retry: re-bucket in task 2.1e |
-| `tests/agent/test_anthropic_oauth_pkce.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_oauth_stress.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_oauth_ua_prefix.py` | later | credentials and OAuth: re-bucket in task 2.1d |
+| `tests/agent/test_anthropic_oauth_pkce.py` | dropped | Hermes's own PKCE login (`hermes auth add anthropic`) is not ported; Stage 1 borrows Claude Code's login or takes a key |
+| `tests/agent/test_anthropic_oauth_stress.py` | behaviour | `internal/provider/anthropic` TestConcurrentRefreshesSpendTheSingleUseTokenOnce (-race), TestLockFileTimesOutAndHonoursContext |
+| `tests/agent/test_anthropic_oauth_ua_prefix.py` | behaviour | `internal/provider/anthropic` TestApplyHeaders (claude-code/<version> (external, cli) for inference, axios for the token endpoint in TestExchangeSendsTheRefreshGrant) |
 | `tests/agent/test_anthropic_output_field_leak.py` | behaviour | `internal/provider/anthropic` golden tests (TestConvertMessagesMatchesPython, fixtures from the Python converter) ordered_blocks_replay (output-only fields such as parsed_output, caller, citations=None are whitelisted away) |
-| `tests/agent/test_anthropic_owned_routing.py` | later | credentials and OAuth: re-bucket in task 2.1d |
+| `tests/agent/test_anthropic_owned_routing.py` | dropped | credential-pool owned routing is not ported |
 | `tests/agent/test_anthropic_request_blank_block_guard.py` | behaviour | `internal/provider/anthropic` golden tests (TestConvertMessagesMatchesPython, fixtures from the Python converter) blank_everything, plus FuzzConvertMessagesInvariants (no blank text block ever reaches the wire) |
 | `tests/agent/test_anthropic_request_client_reuse.py` | dropped | SDK client reuse: the Go client is a plain struct over net/http with a shared transport |
-| `tests/agent/test_anthropic_route_oauth_identity.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/agent/test_anthropic_spent_rotation_verdict.py` | later | credentials and OAuth: re-bucket in task 2.1d |
+| `tests/agent/test_anthropic_route_oauth_identity.py` | dropped | OAuth identity per custom/third-party base URL: Stage 1 is the native endpoint only, where the credential shape decides |
+| `tests/agent/test_anthropic_spent_rotation_verdict.py` | behaviour | `internal/provider/anthropic` TestSpentRotationRegistry, TestSpentRotationInMemoryIsBounded, TestRefreshLoginPreconditions, TestSpentAccessTokenIsRefused |
 | `tests/agent/test_anthropic_stream_fallbacks.py` | behaviour | `internal/provider/anthropic` TestStreamFallsBackToCreateWhenStreamingIsUnavailable, TestStreamFallsBackOnUnexpectedEventOrder, TestOtherStreamFailuresDoNotFallBack, TestEventStreamAnswerToAPlainCreateIsAggregated |
 | `tests/agent/test_anthropic_structured_output.py` | dropped | structured-output (JSON schema output_config) is not used in Stage 1 |
 | `tests/agent/test_anthropic_thinking_block_order.py` | behaviour | `internal/provider/anthropic` golden tests (TestConvertMessagesMatchesPython, fixtures from the Python converter) ordered_blocks_replay, ordered_blocks_nothing_cacheable, thinking_* cases |
 | `tests/agent/test_anthropic_thinking_disable.py` | behaviour | `internal/provider/anthropic` TestBuildRequestMatchesPython (288 cases generated by running Python `build_anthropic_kwargs`): reasoning enabled=false per model family (disabled / between_tools / omitted) |
 | `tests/agent/test_anthropic_third_party_oauth_guard.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_anthropic_token_scope_isolation.py` | later | credentials and OAuth: re-bucket in task 2.1d |
+| `tests/agent/test_anthropic_token_scope_isolation.py` | dropped | multiplexed-profile secret scope is not ported |
 | `tests/agent/test_anthropic_whitespace_text_blocks.py` | behaviour | `internal/provider/anthropic` golden tests (TestConvertMessagesMatchesPython, fixtures from the Python converter) blank_everything / system_blocks_cached, FuzzConvertMessagesInvariants |
 | `tests/agent/test_auth_provider_failover.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_aux_stream_host_deadline_sibling_wires.py` | behaviour | subset: `internal/provider/anthropic` TestOnEventErrorAbandonsTheStream, TestContextCancelStopsTheCall (the caller's deadline seam). Sibling non-Anthropic wires are dropped |
@@ -1154,7 +1154,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_bedrock_guardrail_claude_route.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_bedrock_integration.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_billing_unverified_carrythrough.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_claude_code_version_path.py` | later | credentials and OAuth: re-bucket in task 2.1d |
+| `tests/agent/test_claude_code_version_path.py` | behaviour | `internal/provider/anthropic` TestDetectClaudeCodeVersion (PATH before well-known prefixes, non-numeric output skipped, static fallback) |
 | `tests/agent/test_codex_model_entitlement_rotation.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_codex_reasoning_only_streak.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_codex_xai_oauth_recovery.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1210,8 +1210,8 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/gateway/test_output_caps_removed.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/hermes_cli/test_anthropic_pool_model_discovery.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/hermes_cli/test_auth_commands.py` | later | CLI auth commands: re-bucket in task 4.1 |
-| `tests/hermes_cli/test_claude_code_account_connection.py` | later | credentials and OAuth: re-bucket in task 2.1d |
-| `tests/hermes_cli/test_external_process_cli_prefixes.py` | later | credentials and OAuth: re-bucket in task 2.1d |
+| `tests/hermes_cli/test_claude_code_account_connection.py` | dropped | `hermes` account-connection UI flow is not ported |
+| `tests/hermes_cli/test_external_process_cli_prefixes.py` | dropped | external-process providers are not ported |
 | `tests/hermes_cli/test_moa_config.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/hermes_cli/test_model_switch_opencode_anthropic.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/plugins/model_providers/test_commandcode_profile.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
