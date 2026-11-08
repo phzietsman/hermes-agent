@@ -257,12 +257,6 @@ func (a *Agent) runBatch(ctx context.Context, t *turn, resp llm.Response, conten
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	if a.cfg.Compactor != nil && a.cfg.Compactor.ShouldCompress(t.lastPromptTokens) {
-		a.status("Compressing the conversation")
-		if err := a.compress(ctx); err != nil && ctx.Err() == nil {
-			a.status("Compression failed: %v", err)
-		}
-	}
 	return nil, nil
 }
 

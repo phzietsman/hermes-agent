@@ -853,32 +853,32 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_web_server_sessions_compression.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_web_server_update_status.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_state/test_append_message_after_close.py` | compiler | a closed *sql.DB returns an error by construction; no Python-style reopen/None-connection state exists in Go |
-| `tests/hermes_state/test_append_messages_batch.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_auto_archived_lineage_reactivation.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_append_messages_batch.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_auto_archived_lineage_reactivation.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_auto_vacuum_holder_gate.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_auto_vacuum_in_process_holder_gate.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_automatic_ended_stamp.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_automatic_ended_stamp.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_aux_usage_accounting.py` | behaviour | subset: `internal/session` TestTitleAndUsage (AddUsage totals). Per-model usage table not ported |
 | `tests/hermes_state/test_background_review_session_isolation.py` | later | re-bucket when the owning module ports |
 | `tests/hermes_state/test_bounded_recent_sessions.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_canonical_title_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_clean_close_residual_poison.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_compacted_message_reactions.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_composite_carrier_rewind.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_compression_lease_refresh_before_publish.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_compression_lineage_guard.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_compression_watermark_commit.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_conversation_root.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_compacted_message_reactions.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_composite_carrier_rewind.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_compression_lease_refresh_before_publish.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_compression_lineage_guard.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_compression_watermark_commit.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_conversation_root.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_corrupt_row_robustness.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_dedupe_migration_contention.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_delegate_cascade.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_delegate_child_routing_inheritance.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_delete_compression_chain.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_dedupe_migration_contention.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_delegate_cascade.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_delegate_child_routing_inheritance.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_delete_compression_chain.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_delete_mode_read_busy_wait.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_delete_session_write_guards.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_deleted_wal_checkpoint_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_deleted_wal_generation_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_display_dedupe_pruned_tool_payload.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_display_dedupe_pruned_tool_payload.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_display_projection_parity.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_display_split_heal.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_empty_sweep_archived_transcript.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
@@ -894,71 +894,71 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_state/test_fts_trigram_cron_exclusion.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_fts_trigram_subagent_exclusion.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_fts_update_of_narrowing.py` | behaviour | `internal/session` TestSearchIndexFollowsEditsAndDeletes (UPDATE OF trigger skips non-content writes) |
-| `tests/hermes_state/test_get_anchored_view.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_get_messages_around.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_get_anchored_view.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_get_messages_around.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_get_messages_include_compacted.py` | behaviour | subset: `internal/session` TestMessagesVisibility (display view adds archived, never rewound). Display-order dedupe not ported |
 | `tests/hermes_state/test_hermes_state.py` | behaviour | subset: `internal/session` TestCreateAndGetSession, TestAppendMessageRoundTripAndCounters, TestMessagesOrderIsByIDNotTimestamp, TestMessagesPaging, TestEndSessionFirstReasonWinsAndReopen, TestSystemPromptIsStoredOnce, TestSearchRoutesAndOperators. Batch append, lineage, export, gateway fields and repair cases not ported |
-| `tests/hermes_state/test_hermes_state_compression_busy_retry.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_hermes_state_compression_locks.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_hermes_state_compression_busy_retry.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_hermes_state_compression_locks.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_hermes_state_readonly_preflight.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_hermes_state_ux_messages.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_hermes_state_ux_messages.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_hermes_state_wal_fallback.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_journal_mode_config.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_lease_pid_namespace.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_live_db_guard_ancestry.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_live_db_isolation_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_message_uid.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_named_profile_session_db.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_message_uid.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_named_profile_session_db.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_never_active_keyed_prune.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_no_more_rows_retry.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_orphan_gateway_session_repair.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_orphan_sweep_cross_backend.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_pinned_archived_sidebar.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_pinned_lineage.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_pinned_lineage.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_prune_activity_recency.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_purge_profile_state.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_read_path_transient_ioerr.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_readonly_fts_decode_error.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_reasoning_roundtrip.py` | behaviour | `internal/session` TestAppendMessageRoundTripAndCounters (reasoning, reasoning_content, reasoning_details) |
 | `tests/hermes_state/test_rebuild_table_atomic.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_recent_model_route.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_recent_model_route.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_rekey_profile_state.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_remove_session_files_glob_escape.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_repaired_history_commit_coverage.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_replace_messages_archive_siblings.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_replace_messages_archives_suffix_only.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_resolve_resume_session_id.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_restore_alternation_repair.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_replace_messages_archive_siblings.py` | behaviour | internal/session TestReplaceLiveArchivesAndKeepsSessionID |
+| `tests/hermes_state/test_replace_messages_archives_suffix_only.py` | behaviour | internal/session TestReplaceLiveArchivesAndKeepsSessionID, TestReplaceLiveIsAtomic |
+| `tests/hermes_state/test_resolve_resume_session_id.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_restore_alternation_repair.py` | behaviour | internal/agent TestOutboundHealsBrokenPairs, TestCrashLeftToolTailIsClosedOnNextTurn, CheckAlternation |
 | `tests/hermes_state/test_retired_wal_generation_capture.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_rewind_surfaces_invariant.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_rewind_surfaces_invariant.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_schema_read_probe.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_search_or_relaxed_fallback.py` | behaviour | `internal/session` TestSearchORRelaxedFindsParaphrase, TestOrRelaxed |
 | `tests/hermes_state/test_session_archived_round_trip.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_session_archiving.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_session_db_acp_cwd_backfill.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_db_acp_cwd_backfill.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_session_db_context_manager.py` | compiler | Python with-block lifecycle; Go uses defer Close, which the compiler does not need a test for |
 | `tests/hermes_state/test_session_db_leak_sweep.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_session_db_profile_stamp.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_db_profile_stamp.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_session_db_read_conn_pool.py` | dropped | Python read-connection pool; database/sql owns pooling in Go |
 | `tests/hermes_state/test_session_db_read_path_split.py` | dropped | Python read/write connection split; not ported |
 | `tests/hermes_state/test_session_delete_profile_isolation.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_session_export_timings.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_session_git_metadata_generation.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_session_hidden.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_git_metadata_generation.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_session_hidden.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_session_id_recognition_recovery.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_session_import_keep_flags.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_session_import_value_validation.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
-| `tests/hermes_state/test_session_lifecycle_status.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_import_keep_flags.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_session_import_value_validation.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
+| `tests/hermes_state/test_session_lifecycle_status.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_session_list_index_choice.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_session_md_export.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_session_model_usage_pk_heal.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_session_read_state.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_read_state.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_session_turn_lease.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_session_workspace_binding.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_workspace_binding.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_shared_session_db_registry.py` | dropped | process-wide shared SessionDB registry is a Python singleton; Go callers pass *Store |
 | `tests/hermes_state/test_show_subagents_listing.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_sqlite_lock_safe_inspection.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_stale_tool_call_marker_session_repair.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_stale_tool_call_marker_session_repair.py` | behaviour | internal/agent outbound(): orphan results dropped, unanswered calls answered |
 | `tests/hermes_state/test_startup_maintenance_lease.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_state_db_corrupt_quarantine.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_state_db_file_identity.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
@@ -977,14 +977,14 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_state/test_state_db_write_durability.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_storage_health_latch.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_sweep_orphaned_sessions.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_tail_rewind_semantics.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_tail_rewind_semantics.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_telegram_topic_selfheal.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_unaddressed_rewrite_identity.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_unaddressed_rewrite_identity.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_wal_active_confirmed.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_wal_checkpoint_strategy.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_wal_lock_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_wal_lock_guard_lifecycle.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
-| `tests/hermes_state/test_watermark_interplay.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_watermark_interplay.py` | dropped | session lineage, lease, lock, watermark, rewind or profile-stamp machinery of the Python store is not ported: Go compaction replaces the live rows in one transaction under the same session id |
 | `tests/hermes_state/test_write_lock_patience.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
 | `tests/hermes_state/test_writer_conn_thread_safety.py` | behaviour | `internal/session` TestConcurrentAppendsAreAllStored under -race (BEGIN IMMEDIATE) |
 | `tests/hermes_state/test_zeroed_state_db.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
@@ -1142,14 +1142,14 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_anthropic_whitespace_text_blocks.py` | behaviour | `internal/provider/anthropic` golden tests (TestConvertMessagesMatchesPython, fixtures from the Python converter) blank_everything / system_blocks_cached, FuzzConvertMessagesInvariants |
 | `tests/agent/test_auth_provider_failover.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_aux_stream_host_deadline_sibling_wires.py` | behaviour | subset: `internal/provider/anthropic` TestOnEventErrorAbandonsTheStream, TestContextCancelStopsTheCall (the caller's deadline seam). Sibling non-Anthropic wires are dropped |
-| `tests/agent/test_auxiliary_anthropic_pool_fallback_regression.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
-| `tests/agent/test_auxiliary_client.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
-| `tests/agent/test_auxiliary_client_anthropic_custom.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
-| `tests/agent/test_auxiliary_client_base_url_host_validation.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
-| `tests/agent/test_auxiliary_client_cache_follows_credential.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
+| `tests/agent/test_auxiliary_anthropic_pool_fallback_regression.py` | dropped | the auxiliary client and its routing are not ported: the summarizer is a plain call through the session's own provider (ProviderSummarizer) |
+| `tests/agent/test_auxiliary_client.py` | dropped | the auxiliary client and its routing are not ported: the summarizer is a plain call through the session's own provider (ProviderSummarizer) |
+| `tests/agent/test_auxiliary_client_anthropic_custom.py` | dropped | the auxiliary client and its routing are not ported: the summarizer is a plain call through the session's own provider (ProviderSummarizer) |
+| `tests/agent/test_auxiliary_client_base_url_host_validation.py` | dropped | the auxiliary client and its routing are not ported: the summarizer is a plain call through the session's own provider (ProviderSummarizer) |
+| `tests/agent/test_auxiliary_client_cache_follows_credential.py` | dropped | the auxiliary client and its routing are not ported: the summarizer is a plain call through the session's own provider (ProviderSummarizer) |
 | `tests/agent/test_auxiliary_client_minimax_oauth.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_auxiliary_error_classification.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
-| `tests/agent/test_auxiliary_explicit_base_anthropic.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
+| `tests/agent/test_auxiliary_error_classification.py` | dropped | the auxiliary client and its routing are not ported: the summarizer is a plain call through the session's own provider (ProviderSummarizer) |
+| `tests/agent/test_auxiliary_explicit_base_anthropic.py` | dropped | the auxiliary client and its routing are not ported: the summarizer is a plain call through the session's own provider (ProviderSummarizer) |
 | `tests/agent/test_bedrock_1m_context.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_bedrock_guardrail_claude_route.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_bedrock_integration.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1158,10 +1158,10 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_codex_model_entitlement_rotation.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_codex_reasoning_only_streak.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_codex_xai_oauth_recovery.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_compression_lock_defer.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
-| `tests/agent/test_compression_timeout_terminal.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
+| `tests/agent/test_compression_lock_defer.py` | dropped | cross-process compression locks; one turn at a time per session |
+| `tests/agent/test_compression_timeout_terminal.py` | behaviour | TestSummarizerFailureAbortsWithEscalatingCooldown: a failed or timed-out summary aborts and arms the cooldown ladder |
 | `tests/agent/test_content_policy_blocked.py` | behaviour | `internal/provider/anthropic` TestClassifyMatchesPython 400_safety_block, 400_cyber, 400_content_filter, stream_error_content (deterministic per request: fall back, never retry unchanged) |
-| `tests/agent/test_context_token_tracking.py` | later | context accounting: re-bucket in task 2.4 |
+| `tests/agent/test_context_token_tracking.py` | behaviour | TestShouldCompressThresholdAndCooldown, TestCompactionOnLongRecordedSession (reported prompt size, estimate when unknown) |
 | `tests/agent/test_credential_pool_anthropic_refresh_race.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_auto_detect.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_interrupt.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1192,7 +1192,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_none_deref_guards.py` | compiler | nil handling that Go's types and zero values rule out |
 | `tests/agent/test_nonretryable_result_carries_verdict.py` | behaviour | ported: TestFatalErrorIsNotRetried, TestRetryBudgetThenFailure (TurnResult.Partial and Error carry the verdict) |
 | `tests/agent/test_nous_portal_anthropic_wire.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_overflow_overhead_aware_tokens.py` | later | token accounting for compression: re-bucket in task 2.4 |
+| `tests/agent/test_overflow_overhead_aware_tokens.py` | dropped | provider overhead accounting; overflow errors compress and retry (TestContextOverflowCompressesAndRetries) |
 | `tests/agent/test_primary_runtime_restore.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_private_credential_writers.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_provider_fallback.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1225,7 +1225,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
 | `tests/agent/test_bot_profile_prompt_isolation.py` | dropped | Bot Mode is not ported |
-| `tests/agent/test_compaction_prompt_rebuild.py` | later | compaction rebuild: re-bucket in task 2.4 |
+| `tests/agent/test_compaction_prompt_rebuild.py` | behaviour | TestCompactionOnLongRecordedSession: the system prompt is rebuilt once at compaction with the note, and not again on resume |
 | `tests/agent/test_context_breakdown.py` | dropped | context breakdown display (dashboard/TUI) |
 | `tests/agent/test_context_display_provenance.py` | dropped | context display for the dashboard/TUI |
 | `tests/agent/test_context_file_sources.py` | behaviour | ported: internal/agent/contextfiles_test.go, 48 golden cases from Python |
@@ -1241,7 +1241,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_profile_home_override_precedence.py` | compiler | Home is an explicit option; context override precedence covered by internal/config home tests |
 | `tests/agent/test_prompt_cache_ttl_auto.py` | behaviour | `internal/agent` TestTTLPolicy (auto resolves to 5m for machine-paced sources, 1h for human-paced; effective TTL clamp). Provider-specific clamps for Qwen/Alibaba are dropped |
 | `tests/agent/test_prompt_caching.py` | behaviour | subset: `internal/agent` TestCachePlanMatchesPython (274 cases from Python's real `build_prompt_cache_plan`: both layouts, idempotent re-planning, no input mutation), TestPlanNeverExceedsFourBreakpoints, TestCacheMarkersShareOneTTL, FuzzPlanInvariants. Envelope/OpenRouter/LiteLLM layouts are dropped |
-| `tests/agent/test_protected_tail_pressure.py` | later | compaction: re-bucket in task 2.4 |
+| `tests/agent/test_protected_tail_pressure.py` | behaviour | TestOldToolResultsBecomeStubs, TestPendingToolRoundIsNeverPruned |
 | `tests/agent/test_skill_app_snapshot.py` | dropped | the disk snapshot and prompt cache are not ported (the index is built once per session); the apps gate is covered by the requires_apps_hides golden |
 | `tests/agent/test_skills_guidance_content_filter.py` | behaviour | ported: SKILLS_GUIDANCE only with skill_manage, text verbatim from Python (systemprompt golden) |
 | `tests/agent/test_soul_md_profile_isolation.py` | behaviour | ported: LoadSoulMD reads Home only (Home is explicit, no env fallback); contextfiles_test.go |
@@ -1253,7 +1253,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_turn_base_display_anchor.py` | dropped | UI display anchoring, not loop behaviour |
 | `tests/gateway/test_cached_agent_max_iterations.py` | later | gateway agent cache and iteration cap: re-bucket in task 7.1 |
 | `tests/gateway/test_hosted_room_discussion.py` | later | re-bucket when the owning module ports |
-| `tests/gateway/test_hygiene_compaction_keeps_seeded_prompt.py` | later | compaction rebuild: re-bucket in task 2.4 |
+| `tests/gateway/test_hygiene_compaction_keeps_seeded_prompt.py` | dropped | gateway pre-agent hygiene compaction is not ported |
 | `tests/gateway/test_startup_environment_probe.py` | dropped | the environment probe and runtime hints are not ported |
 | `tests/hermes_cli/test_cli_interrupt_subagent.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
 | `tests/hermes_cli/test_prompt_size.py` | dropped | the `hermes prompt-size` diagnostic is not in Stage 1 |
@@ -1389,111 +1389,111 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/agent/test_aux_stream_host_deadline.py` | | |
-| `tests/agent/test_auxiliary_codex_completion_status.py` | | |
-| `tests/agent/test_bedrock_adapter.py` | | |
-| `tests/agent/test_budget_reasoning_details_exclusion.py` | | |
-| `tests/agent/test_cjk_token_estimation.py` | | |
-| `tests/agent/test_codex_app_server_compaction.py` | | |
-| `tests/agent/test_compaction_ops_notification_anchor.py` | | |
-| `tests/agent/test_compaction_redaction_boundaries.py` | | |
-| `tests/agent/test_compress_context_progress_timeout.py` | | |
-| `tests/agent/test_compress_focus.py` | | |
-| `tests/agent/test_compress_signal_leak.py` | | |
-| `tests/agent/test_compressed_summary_metadata.py` | | |
-| `tests/agent/test_compression_attempt_lifecycle.py` | | |
-| `tests/agent/test_compression_attempt_ownership.py` | | |
-| `tests/agent/test_compression_attempt_telemetry.py` | | |
-| `tests/agent/test_compression_auto_summary_fallback.py` | | |
-| `tests/agent/test_compression_aux_fallback_route.py` | | |
-| `tests/agent/test_compression_boundary.py` | | |
-| `tests/agent/test_compression_busy_steer_anchor.py` | | |
-| `tests/agent/test_compression_concurrent_fork.py` | | |
-| `tests/agent/test_compression_fallback_budget.py` | | |
-| `tests/agent/test_compression_feasibility.py` | | |
-| `tests/agent/test_compression_interrupt_protection.py` | | |
-| `tests/agent/test_compression_last_assistant_anchor.py` | | |
-| `tests/agent/test_compression_marker.py` | | |
-| `tests/agent/test_compression_persistence.py` | | |
-| `tests/agent/test_compression_review.py` | | |
-| `tests/agent/test_compression_rotation_state.py` | | |
-| `tests/agent/test_compression_small_ctx_threshold_floor.py` | | |
-| `tests/agent/test_compression_stall_deterministic_fallback.py` | | |
-| `tests/agent/test_compression_stall_fallback.py` | | |
-| `tests/agent/test_compressor_actionable_tail_anchor.py` | | |
-| `tests/agent/test_compressor_assistant_tail_anchor.py` | | |
-| `tests/agent/test_compressor_fallback_update.py` | | |
-| `tests/agent/test_compressor_historical_media.py` | | |
-| `tests/agent/test_compressor_image_tokens.py` | | |
-| `tests/agent/test_compressor_media_stripping.py` | | |
-| `tests/agent/test_compressor_stale_tool_images.py` | | |
-| `tests/agent/test_compressor_tail_cut_oob_fix.py` | | |
-| `tests/agent/test_compressor_tail_cut_tool_pair_floor.py` | | |
-| `tests/agent/test_compressor_tool_call_budget.py` | | |
-| `tests/agent/test_compressor_truncated_summary_guard.py` | | |
-| `tests/agent/test_compressor_zero_user_guard.py` | | |
-| `tests/agent/test_context_compressor_cross_session_guard.py` | | |
-| `tests/agent/test_context_compressor_custom_providers.py` | | |
-| `tests/agent/test_context_compressor_reasoning_fallback.py` | | |
-| `tests/agent/test_context_compressor_session_end_clears_state.py` | | |
-| `tests/agent/test_context_compressor_structural_backoff.py` | | |
-| `tests/agent/test_context_compressor_summary_continuity.py` | | |
-| `tests/agent/test_context_compressor_summary_hook_compat.py` | | |
-| `tests/agent/test_context_compressor_task_heading.py` | | |
-| `tests/agent/test_context_compressor_temporal_anchoring.py` | | |
-| `tests/agent/test_context_compressor_zero_user_provenance.py` | | |
-| `tests/agent/test_context_engine.py` | | |
-| `tests/agent/test_context_engine_message_uid.py` | | |
-| `tests/agent/test_conversation_compression_manual.py` | | |
-| `tests/agent/test_cron_inflight_prompt_reappend.py` | | |
-| `tests/agent/test_cursor_optimizations_parity.py` | | |
-| `tests/agent/test_estimator_parity.py` | | |
-| `tests/agent/test_ghost_skill_pruning.py` | | |
-| `tests/agent/test_grid_sweep_cli_tui_stream_diagnostics.py` | | |
-| `tests/agent/test_in_place_commit_rollback.py` | | |
-| `tests/agent/test_in_place_persist_marker.py` | | |
-| `tests/agent/test_in_place_preflight_rewind.py` | | |
-| `tests/agent/test_last_total_tokens.py` | | |
-| `tests/agent/test_lean_single_aux_call.py` | | |
-| `tests/agent/test_load_time_durability_stamp.py` | | |
-| `tests/agent/test_model_metadata.py` | | |
-| `tests/agent/test_native_compaction_summary_retention.py` | | |
-| `tests/agent/test_per_model_compression_threshold.py` | | |
-| `tests/agent/test_portal_tags.py` | | |
-| `tests/agent/test_post_compression_trim.py` | | |
-| `tests/agent/test_pre_compress_checkpoint_contract.py` | | |
-| `tests/agent/test_pre_compress_memory_context.py` | | |
-| `tests/agent/test_preflight_timeout_typed_result.py` | | |
-| `tests/agent/test_proactive_prune_rearm_threshold.py` | | |
-| `tests/agent/test_proactive_tool_result_pruning.py` | | |
-| `tests/agent/test_resume_stale_active_task.py` | | |
-| `tests/agent/test_salvage_grown_transcript.py` | | |
-| `tests/agent/test_session_reset_fix.py` | | |
-| `tests/agent/test_skill_todo_retention_parity.py` | | |
-| `tests/agent/test_split_turn_compaction.py` | | |
-| `tests/agent/test_stale_replay_prune.py` | | |
-| `tests/agent/test_summarize_tool_result_type_safety.py` | | |
-| `tests/agent/test_summary_prefix_semantics.py` | | |
-| `tests/agent/test_summary_prefix_tool_use.py` | | |
-| `tests/agent/test_summary_role_template_alternation.py` | | |
-| `tests/agent/test_switch_model_bedrock_sigv4.py` | | |
-| `tests/agent/test_switch_model_reapplies_headers.py` | | |
-| `tests/agent/test_switch_model_stale_base_url.py` | | |
-| `tests/agent/test_token_estimator_shared.py` | | |
-| `tests/agent/test_tool_call_args_sanitizer.py` | | |
-| `tests/agent/test_turn_context_overflow_warning.py` | | |
-| `tests/gateway/test_compaction_heartbeat_gateway_filter.py` | | |
-| `tests/gateway/test_compression_progress_notices.py` | | |
-| `tests/gateway/test_telegram_noise_filter.py` | | |
-| `tests/hermes_cli/test_cli_manual_compress.py` | | |
-| `tests/hermes_cli/test_context_switch_guard.py` | | |
-| `tests/hermes_cli/test_quiet_single_query.py` | | |
-| `tests/hermes_cli/test_shared_metrics_model_attribution.py` | | |
-| `tests/tools/test_computer_use_screenshot_dedup.py` | | |
-| `tests/tools/test_delegate_child_compression_cap.py` | | |
-| `tests/tui_gateway/test_busy_compression_demotion.py` | | |
-| `tests/tui_gateway/test_live_config_context_pin_mirror.py` | | |
-| `tests/tui_gateway/test_manual_compress_history_fence.py` | | |
+| `tests/agent/test_aux_stream_host_deadline.py` | dropped | auxiliary-model streaming deadlines: the summarizer is one ordinary provider call |
+| `tests/agent/test_auxiliary_codex_completion_status.py` | dropped | Codex auxiliary client |
+| `tests/agent/test_bedrock_adapter.py` | dropped | Bedrock provider |
+| `tests/agent/test_budget_reasoning_details_exclusion.py` | dropped | accounting nuance for replayed reasoning; estimateMessage charges reasoning once |
+| `tests/agent/test_cjk_token_estimation.py` | behaviour | internal/agent TestEstimateTokensMatchesPython (CJK, Cyrillic and ASCII samples from Python) |
+| `tests/agent/test_codex_app_server_compaction.py` | dropped | Codex app-server compaction |
+| `tests/agent/test_compaction_ops_notification_anchor.py` | dropped | notification and steer anchoring |
+| `tests/agent/test_compaction_redaction_boundaries.py` | behaviour | internal/redact tests and TestSerializeForSummaryMatchesPython: everything entering a summary is redacted |
+| `tests/agent/test_compress_context_progress_timeout.py` | dropped | progress-timeout plumbing for the Python status UI |
+| `tests/agent/test_compress_focus.py` | behaviour | TestSummaryPromptMatchesPython covers the focus-topic prompt; the /compress command itself is task 4.1 |
+| `tests/agent/test_compress_signal_leak.py` | dropped | Python signal/thread plumbing |
+| `tests/agent/test_compressed_summary_metadata.py` | behaviour | TestCompactionOnLongRecordedSession: the summary row is flagged and found again on resume |
+| `tests/agent/test_compression_attempt_lifecycle.py` | dropped | attempt ownership and staleness machinery for concurrent Python attempts |
+| `tests/agent/test_compression_attempt_ownership.py` | dropped | attempt ownership machinery |
+| `tests/agent/test_compression_attempt_telemetry.py` | dropped | outbound telemetry |
+| `tests/agent/test_compression_auto_summary_fallback.py` | behaviour | TestRejectedSummaryFallsBackToUserWords, TestSummarizerFailureAbortsWithEscalatingCooldown |
+| `tests/agent/test_compression_aux_fallback_route.py` | dropped | auxiliary summarizer routing and fallback chains |
+| `tests/agent/test_compression_boundary.py` | behaviour | TestCompressPreservesStructureOnRandomTranscripts and FuzzCompress: tool groups never split, newest message kept |
+| `tests/agent/test_compression_busy_steer_anchor.py` | dropped | steering is not ported |
+| `tests/agent/test_compression_concurrent_fork.py` | dropped | forked concurrent compressions; one turn at a time per session (ErrTurnInProgress) |
+| `tests/agent/test_compression_fallback_budget.py` | dropped | fallback-budget accounting for the auxiliary route |
+| `tests/agent/test_compression_feasibility.py` | dropped | pre-LLM feasibility skip; the summarizer is always tried, a failure arms the cooldown |
+| `tests/agent/test_compression_interrupt_protection.py` | behaviour | TestCancelledContextIsNotACooldown, TestInterruptDuringToolsClosesTranscript |
+| `tests/agent/test_compression_last_assistant_anchor.py` | dropped | last-assistant tail anchor is not ported; the last user message anchors the tail |
+| `tests/agent/test_compression_marker.py` | behaviour | TestElisionMatchesPython (elide and elide_middle, byte-identical) |
+| `tests/agent/test_compression_persistence.py` | behaviour | internal/session TestReplaceLiveArchivesAndKeepsSessionID, TestCompactionOnLongRecordedSession |
+| `tests/agent/test_compression_review.py` | dropped | Python review harness |
+| `tests/agent/test_compression_rotation_state.py` | dropped | session rotation lineage: Go compaction keeps the session id |
+| `tests/agent/test_compression_small_ctx_threshold_floor.py` | behaviour | TestThresholdsMatchPython (108 window, percent and reservation combinations) |
+| `tests/agent/test_compression_stall_deterministic_fallback.py` | dropped | stall detection is not ported |
+| `tests/agent/test_compression_stall_fallback.py` | dropped | stall detection is not ported |
+| `tests/agent/test_compressor_actionable_tail_anchor.py` | behaviour | findTailCut keeps the latest user message in the tail; TestCompressReplacesTheMiddle, random transcripts |
+| `tests/agent/test_compressor_assistant_tail_anchor.py` | dropped | assistant tail anchor is not ported |
+| `tests/agent/test_compressor_fallback_update.py` | behaviour | TestRejectedSummaryFallsBackToUserWords (the fallback becomes the previous summary) |
+| `tests/agent/test_compressor_historical_media.py` | dropped | images are not in Stage 1 |
+| `tests/agent/test_compressor_image_tokens.py` | dropped | images are not in Stage 1 |
+| `tests/agent/test_compressor_media_stripping.py` | dropped | images are not in Stage 1 |
+| `tests/agent/test_compressor_stale_tool_images.py` | dropped | images are not in Stage 1 |
+| `tests/agent/test_compressor_tail_cut_oob_fix.py` | behaviour | random-transcript and fuzz tests exercise every cut position |
+| `tests/agent/test_compressor_tail_cut_tool_pair_floor.py` | behaviour | alignBackward; random-transcript property: no unanswered or orphaned tool calls |
+| `tests/agent/test_compressor_tool_call_budget.py` | behaviour | estimateMessage prices the whole tool-call envelope (TestVerify via TestPendingToolRoundIsNeverPruned and tail tests) |
+| `tests/agent/test_compressor_truncated_summary_guard.py` | dropped | the Provider interface does not expose a truncated summary; an empty summary aborts |
+| `tests/agent/test_compressor_zero_user_guard.py` | behaviour | assemble forces a user-role summary when no user text survives (TestSummaryPlacementKeepsAlternation) |
+| `tests/agent/test_context_compressor_cross_session_guard.py` | dropped | one Compressor per session: no cross-session state to guard |
+| `tests/agent/test_context_compressor_custom_providers.py` | dropped | custom provider windows; Stage 1 is Anthropic only |
+| `tests/agent/test_context_compressor_reasoning_fallback.py` | dropped | multi-provider reasoning fallbacks |
+| `tests/agent/test_context_compressor_session_end_clears_state.py` | dropped | per-process compressor state; a new session builds a new Compressor |
+| `tests/agent/test_context_compressor_structural_backoff.py` | dropped | structural no-op backoff; a no-op returns immediately and costs nothing |
+| `tests/agent/test_context_compressor_summary_continuity.py` | behaviour | TestSecondCompressionUpdatesThePreviousSummary, TestCompactionOnLongRecordedSession |
+| `tests/agent/test_context_compressor_summary_hook_compat.py` | dropped | plugin summary hooks |
+| `tests/agent/test_context_compressor_task_heading.py` | behaviour | TestSummaryPromptMatchesPython (historical task heading in both prompt forms) |
+| `tests/agent/test_context_compressor_temporal_anchoring.py` | behaviour | TestSummaryPromptMatchesPython (dated, past-tense rule) |
+| `tests/agent/test_context_compressor_zero_user_provenance.py` | behaviour | TestSummaryPromptMatchesPython (the no-user-turn variant) |
+| `tests/agent/test_context_engine.py` | dropped | pluggable context engines are not ported |
+| `tests/agent/test_context_engine_message_uid.py` | dropped | pluggable context engines are not ported |
+| `tests/agent/test_conversation_compression_manual.py` | later | manual /compress: re-bucket in task 4.1 |
+| `tests/agent/test_cron_inflight_prompt_reappend.py` | later | cron single-prompt jobs: re-bucket in task 6.1 |
+| `tests/agent/test_cursor_optimizations_parity.py` | dropped | Python performance parity checks |
+| `tests/agent/test_estimator_parity.py` | behaviour | TestEstimateTokensMatchesPython |
+| `tests/agent/test_ghost_skill_pruning.py` | dropped | skill-pruned markers are not ported |
+| `tests/agent/test_grid_sweep_cli_tui_stream_diagnostics.py` | dropped | TUI stream diagnostics |
+| `tests/agent/test_in_place_commit_rollback.py` | dropped | in-place persistence protocol of the Python store |
+| `tests/agent/test_in_place_persist_marker.py` | dropped | in-place persistence protocol of the Python store |
+| `tests/agent/test_in_place_preflight_rewind.py` | dropped | in-place persistence protocol of the Python store |
+| `tests/agent/test_last_total_tokens.py` | dropped | Python usage-bookkeeping fields |
+| `tests/agent/test_lean_single_aux_call.py` | behaviour | TestCompactionOnLongRecordedSession asserts exactly one summarizer call per compaction |
+| `tests/agent/test_load_time_durability_stamp.py` | dropped | in-place persistence protocol of the Python store |
+| `tests/agent/test_model_metadata.py` | dropped | model metadata discovery; the window is configuration |
+| `tests/agent/test_native_compaction_summary_retention.py` | dropped | provider-native compaction is not used |
+| `tests/agent/test_per_model_compression_threshold.py` | dropped | per-model threshold overrides; one model per session |
+| `tests/agent/test_portal_tags.py` | dropped | portal attribution tags |
+| `tests/agent/test_post_compression_trim.py` | dropped | allocator trimming is a Python/glibc concern |
+| `tests/agent/test_pre_compress_checkpoint_contract.py` | later | memory checkpoint at compaction: re-bucket in task 5.x |
+| `tests/agent/test_pre_compress_memory_context.py` | later | memory context handed to the summarizer: re-bucket in task 5.x |
+| `tests/agent/test_preflight_timeout_typed_result.py` | dropped | Python preflight result typing |
+| `tests/agent/test_proactive_prune_rearm_threshold.py` | dropped | proactive pruning is not ported; pruning happens inside compaction |
+| `tests/agent/test_proactive_tool_result_pruning.py` | dropped | proactive pruning is not ported; pruning happens inside compaction |
+| `tests/agent/test_resume_stale_active_task.py` | dropped | in-flight task replay is not ported |
+| `tests/agent/test_salvage_grown_transcript.py` | dropped | transcript salvage after growth is not ported |
+| `tests/agent/test_session_reset_fix.py` | dropped | per-process compressor state |
+| `tests/agent/test_skill_todo_retention_parity.py` | dropped | skill and todo retention markers are not ported |
+| `tests/agent/test_split_turn_compaction.py` | dropped | splitting an oversized active turn is not ported; an oversized turn is cut at a tool-group boundary and the handoff carries the request |
+| `tests/agent/test_stale_replay_prune.py` | dropped | Codex replay items |
+| `tests/agent/test_summarize_tool_result_type_safety.py` | behaviour | TestToolStubsMatchPython (malformed arguments and content); the type checks are compiler-covered |
+| `tests/agent/test_summary_prefix_semantics.py` | behaviour | prompttext compaction.json holds the prefix verbatim; stripSummaryPrefix and TestSecondCompressionUpdatesThePreviousSummary |
+| `tests/agent/test_summary_prefix_tool_use.py` | behaviour | the prefix's tools-remain-active clause is part of the verbatim text (compaction.json) |
+| `tests/agent/test_summary_role_template_alternation.py` | behaviour | TestSummaryPlacementKeepsAlternation and the random-transcript alternation property |
+| `tests/agent/test_switch_model_bedrock_sigv4.py` | dropped | model switching on Bedrock |
+| `tests/agent/test_switch_model_reapplies_headers.py` | dropped | mid-session model switching changes the cached prefix; not supported |
+| `tests/agent/test_switch_model_stale_base_url.py` | dropped | mid-session model switching changes the cached prefix; not supported |
+| `tests/agent/test_token_estimator_shared.py` | behaviour | TestEstimateTokensMatchesPython |
+| `tests/agent/test_tool_call_args_sanitizer.py` | behaviour | internal/agent TestRepairToolArgumentsMatchesPython (50 cases), FuzzRepairToolArguments |
+| `tests/agent/test_turn_context_overflow_warning.py` | dropped | UI warning text |
+| `tests/gateway/test_compaction_heartbeat_gateway_filter.py` | later | gateway progress messages: re-bucket in task 7.x |
+| `tests/gateway/test_compression_progress_notices.py` | later | gateway progress messages: re-bucket in task 7.x |
+| `tests/gateway/test_telegram_noise_filter.py` | dropped | gateway status filtering for the Python gateway |
+| `tests/hermes_cli/test_cli_manual_compress.py` | later | manual /compress: re-bucket in task 4.1 |
+| `tests/hermes_cli/test_context_switch_guard.py` | dropped | model switching guard; no mid-session model switch |
+| `tests/hermes_cli/test_quiet_single_query.py` | dropped | Python CLI output mode |
+| `tests/hermes_cli/test_shared_metrics_model_attribution.py` | dropped | outbound metrics |
+| `tests/tools/test_computer_use_screenshot_dedup.py` | dropped | computer use is not in Stage 1 |
+| `tests/tools/test_delegate_child_compression_cap.py` | later | child agents: re-bucket in task 3.5 |
+| `tests/tui_gateway/test_busy_compression_demotion.py` | dropped | TUI gateway |
+| `tests/tui_gateway/test_live_config_context_pin_mirror.py` | dropped | TUI gateway |
+| `tests/tui_gateway/test_manual_compress_history_fence.py` | dropped | TUI gateway |
 
 ### approval (60 files, floor 90.2%)
 

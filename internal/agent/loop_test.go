@@ -601,13 +601,13 @@ func TestOverflowGivesUpAfterRepeatedCompressions(t *testing.T) {
 	}
 }
 
-func TestCompactionAfterToolRoundWhenTriggered(t *testing.T) {
+func TestCompactionBeforeACallWhenTriggered(t *testing.T) {
 	r := newRig(t, use(call("a", "echo", `{}`)), say("ok"))
 	fc := &fakeCompactor{should: true}
 	r.cfg.Compactor = fc
 	r.rebuild()
 	r.turn("go")
-	if fc.compressions != 1 {
+	if fc.compressions != 2 { // before the first call and again before the call that follows the tool round
 		t.Fatalf("compressions %d", fc.compressions)
 	}
 }

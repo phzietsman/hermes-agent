@@ -97,6 +97,9 @@ type Agent struct {
 	loaded  bool
 	system  string
 	static  string
+	// lastPrompt is the prompt size the provider reported for the previous call; 0 when unknown (a fresh process
+	// or just after a compaction), when the size is estimated instead.
+	lastPrompt int
 }
 
 // New returns an Agent.
@@ -247,6 +250,12 @@ func (a *Agent) RunTurn(ctx context.Context, userText string) (TurnResult, error
 		if !a.cfg.Budget.Consume() {
 			return a.budgetExhausted(ctx, t)
 		}
+		if err := a.maybeCompress(ctx, t); err != nil {
+			if ctx.Err() != nil {
+				return a.interrupted(ctx, t)
+			}
+			return TurnResult{}, err
+		}
 		res, err := a.step(ctx, t)
 		if err != nil {
 			if ctx.Err() != nil {
@@ -327,6 +336,7 @@ func (a *Agent) step(ctx context.Context, t *turn) (*TurnResult, error) {
 	}
 	t.result.APICalls++
 	t.lastPromptTokens = resp.Usage.InputTokens + resp.Usage.CacheReadTokens + resp.Usage.CacheWriteTokens
+	a.lastPrompt = t.lastPromptTokens
 	t.result.Usage.InputTokens += resp.Usage.InputTokens
 	t.result.Usage.OutputTokens += resp.Usage.OutputTokens
 	t.result.Usage.CacheReadTokens += resp.Usage.CacheReadTokens
@@ -413,3 +423,30 @@ func (a *Agent) handleEmpty(ctx context.Context, t *turn, resp llm.Response) (*T
 }
 
 func sprintf(format string, args ...any) string { return fmt.Sprintf(format, args...) }
+
+// maybeCompress compacts before a call when the transcript has outgrown its threshold. The size is what the
+// provider reported for the previous call, or a rough estimate when there is none yet.
+func (a *Agent) maybeCompress(ctx context.Context, t *turn) error {
+	if a.cfg.Compactor == nil {
+		return nil
+	}
+	size := a.lastPrompt
+	if size == 0 {
+		size = estimateMessages(a.history) + EstimateTokens(a.system)
+		for _, d := range a.tools() {
+			size += EstimateTokens(d.Name + d.Description)
+		}
+	}
+	if !a.cfg.Compactor.ShouldCompress(size) {
+		return nil
+	}
+	a.status("The conversation is large (about %d tokens), compressing", size)
+	err := a.compress(ctx)
+	if err != nil && ctx.Err() == nil {
+		// Aborted or failed: the transcript is unchanged, the compressor holds its cooldown, and the turn goes on.
+		a.status("Compression did not run: %v", err)
+		return nil
+	}
+	a.lastPrompt, t.lastPromptTokens = 0, 0
+	return err
+}
