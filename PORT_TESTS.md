@@ -1049,63 +1049,63 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/agent/test_external_skills.py` | | |
-| `tests/agent/test_external_skills_dirs_cache.py` | | |
-| `tests/agent/test_phantom_tool_references.py` | | |
-| `tests/agent/test_project_skills.py` | | |
-| `tests/agent/test_prompt_cache_boundary.py` | | |
-| `tests/agent/test_read_dedup_rewrite_boundaries.py` | | |
-| `tests/agent/test_skill_applied_notifications.py` | | |
-| `tests/agent/test_skill_bundles.py` | | |
-| `tests/agent/test_skill_cache_thrash.py` | | |
-| `tests/agent/test_skill_commands.py` | | |
-| `tests/agent/test_skill_commands_reload.py` | | |
-| `tests/agent/test_skill_inline_shell_trust.py` | | |
-| `tests/agent/test_skill_invocation_description.py` | | |
-| `tests/agent/test_skill_session_platform_gate.py` | | |
-| `tests/agent/test_skill_utils.py` | | |
-| `tests/agent/test_skills_auto_load.py` | | |
-| `tests/gateway/test_skill_slash_native_boundary.py` | | |
-| `tests/gateway/test_stacked_skill_platform_disabled.py` | | |
-| `tests/gateway/test_unavailable_skill_hint.py` | | |
-| `tests/hermes_cli/test_banner_skills.py` | | |
-| `tests/hermes_cli/test_cli_reload_skills.py` | | |
-| `tests/hermes_cli/test_cli_secret_capture.py` | | |
-| `tests/hermes_cli/test_commands.py` | | |
-| `tests/hermes_cli/test_discord_skill_clamp_warning.py` | | |
-| `tests/hermes_cli/test_oneshot_skills.py` | | |
-| `tests/hermes_cli/test_session_skill_previews.py` | | |
-| `tests/hermes_cli/test_skill_collision_visibility.py` | | |
-| `tests/hermes_cli/test_skills_config.py` | | |
-| `tests/hermes_cli/test_skills_hub.py` | | |
-| `tests/hermes_cli/test_update_modified_notice.py` | | |
-| `tests/hermes_platform/test_declaration.py` | | |
-| `tests/skills/test_google_workspace_credential_files.py` | | |
-| `tests/skills/test_property_listings_skill.py` | | |
-| `tests/skills/test_skill_document_contracts.py` | | |
-| `tests/tools/test_cross_profile_guard.py` | | |
-| `tests/tools/test_plugin_skills.py` | | |
-| `tests/tools/test_skill_create_dir.py` | | |
-| `tests/tools/test_skill_env_passthrough.py` | | |
-| `tests/tools/test_skill_improvements.py` | | |
-| `tests/tools/test_skill_ledger.py` | | |
-| `tests/tools/test_skill_manage_batch.py` | | |
-| `tests/tools/test_skill_manage_schema_diet.py` | | |
-| `tests/tools/test_skill_manager_tool.py` | | |
-| `tests/tools/test_skill_pending_diff_batch.py` | | |
-| `tests/tools/test_skill_size_limits.py` | | |
-| `tests/tools/test_skill_view_dedup.py` | | |
-| `tests/tools/test_skill_view_traversal.py` | | |
-| `tests/tools/test_skills_sync.py` | | |
-| `tests/tools/test_skills_tool.py` | | |
-| `tests/tools/test_skills_tool_discovery_cache.py` | | |
-| `tests/tools/test_skills_tool_profile_scope.py` | | |
-| `tests/tui_gateway/test_command_description_fidelity.py` | | |
-| `tests/tui_gateway/test_human_input_hooks_tui.py` | | |
-| `tests/tui_gateway/test_plugin_skill_slash.py` | | |
-| `tests/tui_gateway/test_protocol.py` | | |
-| `tests/tui_gateway/test_sudo_command_context.py` | | |
-| `tests/tui_gateway/test_tui_gateway_server.py` | | |
+| `tests/agent/test_external_skills.py` | behaviour | subset: `internal/skills` TestLoadSettingsRoots, TestCatalogLocalShadowsExternal |
+| `tests/agent/test_external_skills_dirs_cache.py` | dropped | external-dirs cache is a Python perf memo; Go scans on demand |
+| `tests/agent/test_phantom_tool_references.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_project_skills.py` | dropped | project-local (trust-gated) skills are not ported in Stage 1 |
+| `tests/agent/test_prompt_cache_boundary.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_read_dedup_rewrite_boundaries.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skill_applied_notifications.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skill_bundles.py` | dropped | skill bundles are not ported in Stage 1 |
+| `tests/agent/test_skill_cache_thrash.py` | dropped | skill scan cache and its invalidation are not ported |
+| `tests/agent/test_skill_commands.py` | behaviour | subset: `internal/skills` TestSlugifyName, TestCommands, TestCommandsDuplicateNamesRegisterOnce. Message building, preprocessing and bundles are not in this package (task 2.3/4.1) |
+| `tests/agent/test_skill_commands_reload.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skill_inline_shell_trust.py` | dropped | inline shell expansion in skills is not ported in Stage 1 |
+| `tests/agent/test_skill_invocation_description.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skill_session_platform_gate.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skill_utils.py` | behaviour | subset: `internal/skills` TestParseFrontmatterBOMMatchesPlain, TestIndexFilesPrunesExcludedAndSupportDirs, TestParseConfigStringList, TestLoadSettingsDisabled. Subprocess-home config vars not ported |
+| `tests/agent/test_skills_auto_load.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/gateway/test_skill_slash_native_boundary.py` | later | gateway skill handling: re-bucket in task 7.1 |
+| `tests/gateway/test_stacked_skill_platform_disabled.py` | later | gateway skill handling: re-bucket in task 7.1 |
+| `tests/gateway/test_unavailable_skill_hint.py` | later | gateway skill handling: re-bucket in task 7.1 |
+| `tests/hermes_cli/test_banner_skills.py` | dropped | Python CLI banner |
+| `tests/hermes_cli/test_cli_reload_skills.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
+| `tests/hermes_cli/test_cli_secret_capture.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
+| `tests/hermes_cli/test_commands.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
+| `tests/hermes_cli/test_discord_skill_clamp_warning.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
+| `tests/hermes_cli/test_oneshot_skills.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
+| `tests/hermes_cli/test_session_skill_previews.py` | dropped | dashboard session previews |
+| `tests/hermes_cli/test_skill_collision_visibility.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
+| `tests/hermes_cli/test_skills_config.py` | dropped | skills config UI/CLI (writer) is not ported |
+| `tests/hermes_cli/test_skills_hub.py` | dropped | skills hub (browse/install from registries) is not in Stage 1 |
+| `tests/hermes_cli/test_update_modified_notice.py` | dropped | hermes update flow is not ported |
+| `tests/hermes_platform/test_declaration.py` | dropped | app declarations are not ported: a skill with requires_apps is hidden (see `internal/skills` TestMatchesApps) |
+| `tests/skills/test_google_workspace_credential_files.py` | dropped | tests a specific skill's own Python script, not the loader |
+| `tests/skills/test_property_listings_skill.py` | dropped | tests a specific skill's own Python script, not the loader |
+| `tests/skills/test_skill_document_contracts.py` | behaviour | subset: `internal/skills` TestRepoSkillsLoadWithoutError (every repo SKILL.md parses with frontmatter) |
+| `tests/tools/test_cross_profile_guard.py` | dropped | cross-profile guard for multiplexed profiles is not ported |
+| `tests/tools/test_plugin_skills.py` | dropped | plugin-namespaced skills are not ported (no plugin system in Stage 1) |
+| `tests/tools/test_skill_create_dir.py` | dropped | skills.create_dir tier is not ported |
+| `tests/tools/test_skill_env_passthrough.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_improvements.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_ledger.py` | dropped | skill provenance ledger is not ported |
+| `tests/tools/test_skill_manage_batch.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_manage_schema_diet.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_manager_tool.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_pending_diff_batch.py` | dropped | pending-diff review of skill edits is not ported |
+| `tests/tools/test_skill_size_limits.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_view_dedup.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_view_traversal.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skills_sync.py` | dropped | bundled-skill sync into the profile is Python install machinery |
+| `tests/tools/test_skills_tool.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skills_tool_discovery_cache.py` | dropped | skill discovery cache is not ported |
+| `tests/tools/test_skills_tool_profile_scope.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tui_gateway/test_command_description_fidelity.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
+| `tests/tui_gateway/test_human_input_hooks_tui.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
+| `tests/tui_gateway/test_plugin_skill_slash.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
+| `tests/tui_gateway/test_protocol.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
+| `tests/tui_gateway/test_sudo_command_context.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
+| `tests/tui_gateway/test_tui_gateway_server.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
 
 ### anthropic (108 files, floor 83.8%)
 
