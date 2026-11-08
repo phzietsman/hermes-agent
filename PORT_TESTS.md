@@ -1051,20 +1051,20 @@ Extra status `later`: the file was assigned to this group by import counting but
 |---|---|---|
 | `tests/agent/test_external_skills.py` | behaviour | subset: `internal/skills` TestLoadSettingsRoots, TestCatalogLocalShadowsExternal |
 | `tests/agent/test_external_skills_dirs_cache.py` | dropped | external-dirs cache is a Python perf memo; Go scans on demand |
-| `tests/agent/test_phantom_tool_references.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_phantom_tool_references.py` | behaviour | ported: prompttext ExecutionGuidanceFor drops lines for absent tools (execution_guidance_golden, systemprompt golden execution_filtered_by_tools) |
 | `tests/agent/test_project_skills.py` | dropped | project-local (trust-gated) skills are not ported in Stage 1 |
-| `tests/agent/test_prompt_cache_boundary.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
-| `tests/agent/test_read_dedup_rewrite_boundaries.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
-| `tests/agent/test_skill_applied_notifications.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_prompt_cache_boundary.py` | behaviour | ported: cache_test.go stable-prefix and breakpoint cases (274 golden cases) |
+| `tests/agent/test_read_dedup_rewrite_boundaries.py` | later | read de-duplication is a file-tool concern: re-bucket in task 3.3 |
+| `tests/agent/test_skill_applied_notifications.py` | later | CLI notification: re-bucket in task 4.1 |
 | `tests/agent/test_skill_bundles.py` | dropped | skill bundles are not ported in Stage 1 |
 | `tests/agent/test_skill_cache_thrash.py` | dropped | skill scan cache and its invalidation are not ported |
 | `tests/agent/test_skill_commands.py` | behaviour | subset: `internal/skills` TestSlugifyName, TestCommands, TestCommandsDuplicateNamesRegisterOnce. Message building, preprocessing and bundles are not in this package (task 2.3/4.1) |
-| `tests/agent/test_skill_commands_reload.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skill_commands_reload.py` | dropped | reloading skills mid-session breaks the prompt-cache invariant; the index is built once per session |
 | `tests/agent/test_skill_inline_shell_trust.py` | dropped | inline shell expansion in skills is not ported in Stage 1 |
-| `tests/agent/test_skill_invocation_description.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
-| `tests/agent/test_skill_session_platform_gate.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skill_invocation_description.py` | later | slash-command invocation text: re-bucket in task 4.1 |
+| `tests/agent/test_skill_session_platform_gate.py` | behaviour | ported: skillsindex golden cases session_platform_match, _mismatch and _unknown_fails_open |
 | `tests/agent/test_skill_utils.py` | behaviour | subset: `internal/skills` TestParseFrontmatterBOMMatchesPlain, TestIndexFilesPrunesExcludedAndSupportDirs, TestParseConfigStringList, TestLoadSettingsDisabled. Subprocess-home config vars not ported |
-| `tests/agent/test_skills_auto_load.py` | later | prompt, message building or notifications: re-bucket in task 2.2, 2.3 or 4.1 |
+| `tests/agent/test_skills_auto_load.py` | dropped | skills.auto_load is not ported (decision G17) |
 | `tests/gateway/test_skill_slash_native_boundary.py` | later | gateway skill handling: re-bucket in task 7.1 |
 | `tests/gateway/test_stacked_skill_platform_disabled.py` | later | gateway skill handling: re-bucket in task 7.1 |
 | `tests/gateway/test_unavailable_skill_hint.py` | later | gateway skill handling: re-bucket in task 7.1 |
@@ -1161,7 +1161,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_compression_lock_defer.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
 | `tests/agent/test_compression_timeout_terminal.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
 | `tests/agent/test_content_policy_blocked.py` | behaviour | `internal/provider/anthropic` TestClassifyMatchesPython 400_safety_block, 400_cyber, 400_content_filter, stream_error_content (deterministic per request: fall back, never retry unchanged) |
-| `tests/agent/test_context_token_tracking.py` | later | context accounting: re-bucket in task 2.3/2.4 |
+| `tests/agent/test_context_token_tracking.py` | later | context accounting: re-bucket in task 2.4 |
 | `tests/agent/test_credential_pool_anthropic_refresh_race.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_auto_detect.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_interrupt.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1170,7 +1170,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_credential_pool_routing.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_terminal_refresh_visibility.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credit_404_fallback.py` | behaviour | `internal/provider/anthropic` TestClassifyMatchesPython 404_billing_code, 404_credit (credit exhaustion surfacing as 404 is billing, not model_not_found) |
-| `tests/agent/test_ctx_halving_fix.py` | later | overflow handling: re-bucket in task 2.3 |
+| `tests/agent/test_ctx_halving_fix.py` | behaviour | ported: TestContextOverflowCompressesAndRetries, TestOverflowGivesUpAfterRepeatedCompressions (context-length probing itself is not ported; overflow compresses) |
 | `tests/agent/test_custom_pool_mismatch_guard.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_deepseek_anthropic_thinking.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_entitlement_fail_closed.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1180,19 +1180,19 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_fallback_entry_base_url.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_fallback_exhaustion_cooldown.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_free_tier_rate_limit_class.py` | dropped | Nous free-tier fairshare 429 classification is not ported |
-| `tests/agent/test_image_corrupt_recovery.py` | later | turn loop recovery: re-bucket in task 2.3 |
+| `tests/agent/test_image_corrupt_recovery.py` | dropped | image input and its recovery are not in Stage 1 |
 | `tests/agent/test_injected_param_strip_retry_registry.py` | dropped | strip-and-retry of injected params is a loop recovery for gateways that inject fields: not on the native route |
 | `tests/agent/test_kimi_coding_anthropic_thinking.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_meta_agent_init.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_minimax_provider.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_moa_aggregator_prefix_stability.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_moa_alternation_recovery.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_multimodal_tool_content_recovery.py` | later | turn loop recovery: re-bucket in task 2.3 |
+| `tests/agent/test_multimodal_tool_content_recovery.py` | dropped | multimodal tool results are not in Stage 1 |
 | `tests/agent/test_non_chat_primary_restore.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_none_deref_guards.py` | later | turn loop recovery: re-bucket in task 2.3 |
-| `tests/agent/test_nonretryable_result_carries_verdict.py` | later | carrying the verdict on the turn result is loop behaviour: re-bucket in task 2.3 |
+| `tests/agent/test_none_deref_guards.py` | compiler | nil handling that Go's types and zero values rule out |
+| `tests/agent/test_nonretryable_result_carries_verdict.py` | behaviour | ported: TestFatalErrorIsNotRetried, TestRetryBudgetThenFailure (TurnResult.Partial and Error carry the verdict) |
 | `tests/agent/test_nous_portal_anthropic_wire.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_overflow_overhead_aware_tokens.py` | later | overflow handling: re-bucket in task 2.3 |
+| `tests/agent/test_overflow_overhead_aware_tokens.py` | later | token accounting for compression: re-bucket in task 2.4 |
 | `tests/agent/test_primary_runtime_restore.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_private_credential_writers.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_provider_fallback.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1200,12 +1200,12 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_pydantic_dump_warning_leak.py` | dropped | Python SDK/pydantic model_dump warning; the Go client has no SDK objects |
 | `tests/agent/test_retry_delay_parsers_shared.py` | behaviour | `internal/provider/anthropic` TestRetryHelpersMatchPython (the reset-window grammars, explicit retry-after beating resets-in) |
 | `tests/agent/test_retry_utils.py` | behaviour | subset: `internal/provider/anthropic` TestRetryHelpersMatchPython, TestParseRetryAfterHTTPDate, TestProviderRetryAfter, TestBackoffDelay, TestRetryWait. The Z.AI Coding adaptive backoff is dropped |
-| `tests/agent/test_run_agent.py` | later | turn loop recovery: re-bucket in task 2.3 |
+| `tests/agent/test_run_agent.py` | behaviour | ported: internal/agent loop_test.go and loop_anthropic_test.go (tool rounds, retries, truncation, interrupts, budget) |
 | `tests/agent/test_streaming.py` | behaviour | subset: `internal/provider/anthropic` TestStreamMatchesPythonSDK (23 SSE scenarios replayed through the real Python SDK and `normalize_response`), TestMalformedToolInputIsATypedError, TestNullUsageIsTolerated, TestOnEventSeesEveryEventAndCanAbort. Stream-delta display and the stale-stream watchdog re-bucket in task 2.3 |
 | `tests/agent/test_switch_model_fallback_prune.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_switch_model_pool_reload.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_switch_model_rollback.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_thinking_timeout_guidance.py` | later | turn loop recovery: re-bucket in task 2.3 |
+| `tests/agent/test_thinking_timeout_guidance.py` | dropped | stale-stream guidance copy for a Python-only watchdog |
 | `tests/agent/transports/test_transport.py` | behaviour | subset: `internal/provider/anthropic` TestStreamMatchesPythonSDK (23 SSE scenarios replayed through the real Python SDK and `normalize_response`) (normalize_response, finish-reason map, validate_response). Other transports are dropped |
 | `tests/gateway/test_output_caps_removed.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/hermes_cli/test_anthropic_pool_model_discovery.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1245,12 +1245,12 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_skill_app_snapshot.py` | dropped | the disk snapshot and prompt cache are not ported (the index is built once per session); the apps gate is covered by the requires_apps_hides golden |
 | `tests/agent/test_skills_guidance_content_filter.py` | behaviour | ported: SKILLS_GUIDANCE only with skill_manage, text verbatim from Python (systemprompt golden) |
 | `tests/agent/test_soul_md_profile_isolation.py` | behaviour | ported: LoadSoulMD reads Home only (Home is explicit, no env fallback); contextfiles_test.go |
-| `tests/agent/test_subdirectory_hints.py` | later | subdirectory hints land with the turn loop (2.3) |
+| `tests/agent/test_subdirectory_hints.py` | later | hints come from file-tool results: re-bucket in task 3.3 |
 | `tests/agent/test_system_prompt.py` | behaviour | ported: internal/agent/systemprompt_test.go, 68 golden cases from Python plus the write-once and acceptance tests |
 | `tests/agent/test_system_prompt_restore.py` | behaviour | ported: EnsureSystemPrompt reuses stored bytes on resume (TestEnsureSystemPromptWritesOnce, TestPromptCacheAcceptance) |
-| `tests/agent/test_tool_batch_segmentation.py` | later | turn loop: re-bucket in task 2.3 |
+| `tests/agent/test_tool_batch_segmentation.py` | behaviour | ported: TestToolCallsRunInParallelWhenSafe, TestUnsafeToolsRunSequentially |
 | `tests/agent/test_transcript_decoration_idempotence.py` | behaviour | `internal/agent` TestCachePlanMatchesPython (274 cases from Python's real `build_prompt_cache_plan`: both layouts, idempotent re-planning, no input mutation) (the re-plan half), TestStripCacheControlRestoresStringContent, FuzzPlanInvariants (idempotence) |
-| `tests/agent/test_turn_base_display_anchor.py` | later | turn loop: re-bucket in task 2.3 |
+| `tests/agent/test_turn_base_display_anchor.py` | dropped | UI display anchoring, not loop behaviour |
 | `tests/gateway/test_cached_agent_max_iterations.py` | later | gateway agent cache and iteration cap: re-bucket in task 7.1 |
 | `tests/gateway/test_hosted_room_discussion.py` | later | re-bucket when the owning module ports |
 | `tests/gateway/test_hygiene_compaction_keeps_seeded_prompt.py` | later | compaction rebuild: re-bucket in task 2.4 |
