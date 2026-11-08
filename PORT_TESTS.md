@@ -1589,7 +1589,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/cron/test_cron_run_stale_claim_reap.py` | | |
 | `tests/cron/test_fire_forward_failure_stamp.py` | | |
 | `tests/cron/test_ticker_stall.py` | | |
-| `tests/gateway/test_api_server_toolset.py` | | |
+| `tests/gateway/test_api_server_toolset.py` | dropped | API server platform is not in Stage 1 |
 | `tests/gateway/test_async_delivery_capability.py` | | |
 | `tests/gateway/test_complete_path_at_filter.py` | | |
 | `tests/gateway/test_cron_active_work_drain.py` | | |
@@ -1609,12 +1609,12 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_setup_blank_slate.py` | | |
 | `tests/hermes_cli/test_shared_metrics_harness.py` | | |
 | `tests/hermes_cli/test_shared_metrics_loop.py` | | |
-| `tests/plugins/test_transform_tool_result_hook.py` | | |
+| `tests/plugins/test_transform_tool_result_hook.py` | dropped | plugin hooks are not ported |
 | `tests/plugins/web/test_web_search_provider_plugins.py` | | |
 | `tests/test_hermes_home_key_cache.py` | | |
-| `tests/test_model_tools_async_bridge.py` | | |
-| `tests/test_sanitize_tool_error.py` | | |
-| `tests/test_toolsets_plugin_platform_bundle.py` | | |
+| `tests/test_model_tools_async_bridge.py` | dropped | async handler bridge: handlers are plain Go functions |
+| `tests/test_sanitize_tool_error.py` | behaviour | TestErrorShapingMatchesPython (SanitizeError and Error against Python) |
+| `tests/test_toolsets_plugin_platform_bundle.py` | dropped | plugin platform bundles are not ported |
 | `tests/tools/test_accretion_caps.py` | | |
 | `tests/tools/test_annotate_preview_tool.py` | | |
 | `tests/tools/test_apply_layout_tool.py` | | |
@@ -1625,7 +1625,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_browser_extension_router.py` | | |
 | `tests/tools/test_browser_extension_router_wiring.py` | | |
 | `tests/tools/test_browser_secret_exfil.py` | | |
-| `tests/tools/test_budget_config.py` | | |
+| `tests/tools/test_budget_config.py` | dropped | per-model result budgets: one default limit (DefaultMaxResultChars) bounds a result |
 | `tests/tools/test_clarify_tool.py` | | |
 | `tests/tools/test_code_execution.py` | | |
 | `tests/tools/test_code_execution_file_rpc.py` | | |
@@ -1633,7 +1633,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_computer_use_native_platform.py` | | |
 | `tests/tools/test_config_null_guard.py` | | |
 | `tests/tools/test_connector_bridge_wiring.py` | | |
-| `tests/tools/test_connector_dispatch_policy.py` | | |
+| `tests/tools/test_connector_dispatch_policy.py` | dropped | connector tools are not in Stage 1 |
 | `tests/tools/test_connector_session_scope.py` | | |
 | `tests/tools/test_connectors_mcp.py` | | |
 | `tests/tools/test_connectors_tool.py` | | |
@@ -1648,24 +1648,24 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_delegate_batch_validation.py` | | |
 | `tests/tools/test_delegate_capability_inheritance.py` | | |
 | `tests/tools/test_delegate_child_transcript_release.py` | | |
-| `tests/tools/test_delegate_composite_toolsets.py` | | |
+| `tests/tools/test_delegate_composite_toolsets.py` | later | delegation: task 3.5 |
 | `tests/tools/test_delegate_cost_footer.py` | | |
 | `tests/tools/test_delegate_depth_prompt.py` | | |
-| `tests/tools/test_delegate_group_schema.py` | | |
+| `tests/tools/test_delegate_group_schema.py` | later | delegation: task 3.5 |
 | `tests/tools/test_delegate_images.py` | | |
 | `tests/tools/test_delegate_kanban_isolation.py` | | |
 | `tests/tools/test_delegate_late_child_inherits_stop.py` | | |
 | `tests/tools/test_delegate_liveness_timeout.py` | | |
 | `tests/tools/test_delegate_native_vision.py` | | |
-| `tests/tools/test_delegate_output_schema.py` | | |
+| `tests/tools/test_delegate_output_schema.py` | later | delegation: task 3.5 |
 | `tests/tools/test_delegate_request_overrides.py` | | |
 | `tests/tools/test_delegate_stale_heartbeat_collect.py` | | |
 | `tests/tools/test_delegate_stale_wait_release.py` | | |
 | `tests/tools/test_delegate_subagent_timeout_diagnostic.py` | | |
-| `tests/tools/test_delegate_summary_budget.py` | | |
+| `tests/tools/test_delegate_summary_budget.py` | later | delegation: task 3.5 |
 | `tests/tools/test_delegate_sync_failure_echo_policy.py` | | |
 | `tests/tools/test_delegate_timeout_cleanup.py` | | |
-| `tests/tools/test_delegate_toolset_scope.py` | | |
+| `tests/tools/test_delegate_toolset_scope.py` | later | delegation: task 3.5 |
 | `tests/tools/test_delegation_live_log.py` | | |
 | `tests/tools/test_docker_environment.py` | | |
 | `tests/tools/test_docker_mounted_host_session_cwd.py` | | |
@@ -1682,7 +1682,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_file_ops_env_not_ready.py` | | |
 | `tests/tools/test_file_ops_single_roundtrip.py` | | |
 | `tests/tools/test_file_staleness.py` | | |
-| `tests/tools/test_file_state_registry.py` | | |
+| `tests/tools/test_file_state_registry.py` | later | file-state tracking belongs with the file tools: task 3.3 |
 | `tests/tools/test_file_tools.py` | | |
 | `tests/tools/test_file_tools_container_config.py` | | |
 | `tests/tools/test_file_tools_cwd_resolution.py` | | |
@@ -1707,7 +1707,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_mcp_initial_connect_shutdown.py` | | |
 | `tests/tools/test_mcp_lazy_start.py` | | |
 | `tests/tools/test_mcp_liveness_catalog.py` | | |
-| `tests/tools/test_mcp_schema_cache.py` | | |
+| `tests/tools/test_mcp_schema_cache.py` | dropped | MCP is not in Stage 1 |
 | `tests/tools/test_mcp_shared_connection_resolved_identity.py` | | |
 | `tests/tools/test_multiplex_tool_memo_scope.py` | | |
 | `tests/tools/test_notebook_recovery_path.py` | | |
@@ -1727,13 +1727,13 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_read_shell_line_clamp.py` | | |
 | `tests/tools/test_read_special_file_guard.py` | | |
 | `tests/tools/test_read_unicode_filename_retry.py` | | |
-| `tests/tools/test_registry.py` | | |
+| `tests/tools/test_registry.py` | behaviour | internal/tools TestRegisterValidatesAndRejectsDuplicates, TestBuildSelectsAndGates, TestRunFailuresAreJSONErrors; the registry shape and type checks are compiler-covered |
 | `tests/tools/test_remote_binary_write_guard.py` | | |
 | `tests/tools/test_resolve_path.py` | | |
 | `tests/tools/test_safe_getcwd_permission_error.py` | | |
-| `tests/tools/test_schema_sanitizer.py` | | |
+| `tests/tools/test_schema_sanitizer.py` | dropped | provider-illegal schema keys: Anthropic accepts the schemas the Go tools declare |
 | `tests/tools/test_search_auto_multiline.py` | | |
-| `tests/tools/test_search_budget_truncation.py` | | |
+| `tests/tools/test_search_budget_truncation.py` | later | search result budgets belong with the file tools: task 3.3 |
 | `tests/tools/test_search_error_guard.py` | | |
 | `tests/tools/test_search_files_engine_selection.py` | | |
 | `tests/tools/test_search_giant_line_containment.py` | | |
@@ -1767,13 +1767,13 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_terminal_truncation_spill.py` | | |
 | `tests/tools/test_terminal_yield_to_background.py` | | |
 | `tests/tools/test_timeout_transport_drain.py` | | |
-| `tests/tools/test_tool_result_storage.py` | | |
-| `tests/tools/test_toolsets.py` | | |
+| `tests/tools/test_tool_result_storage.py` | dropped | oversized results are truncated head and tail (TestOversizedResultsKeepHeadAndTail); spilling to a file is not ported |
+| `tests/tools/test_toolsets.py` | behaviour | TestBuildSelectsAndGates: toolset selection and exclusion; named composite toolsets are not ported |
 | `tests/tools/test_tour_tool.py` | | |
 | `tests/tools/test_tts_provider_authority.py` | | |
 | `tests/tools/test_utf16_read.py` | | |
 | `tests/tools/test_video_analyze.py` | | |
-| `tests/tools/test_video_generation_dynamic_schema.py` | | |
+| `tests/tools/test_video_generation_dynamic_schema.py` | dropped | video generation is not in Stage 1 |
 | `tests/tools/test_watch_patterns.py` | | |
 | `tests/tools/test_web_backend_capability_isolation.py` | | |
 | `tests/tools/test_web_extract_robustness.py` | | |
