@@ -1815,11 +1815,11 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_memory_user_id.py` | | |
 | `tests/agent/test_streaming_context_scrubber.py` | | |
 | `tests/gateway/test_memory_flush_on_reset.py` | | |
-| `tests/plugins/memory/agent_memory/test_adapter.py` | | |
+| `tests/plugins/memory/agent_memory/test_adapter.py` | behaviour | sam: TestErrorClassification, TestRetryPolicy, TestTransportFailuresAndTimeouts, TestProfileHealthAndOtherCalls, TestRequestShapeAndHeaders, TestLoadSettings, TestBreaker, TestOutbox*, TestReplay*, TestOutageLosesNoWrites, TestProfileCache |
 | `tests/plugins/memory/agent_memory/test_cli.py` | | |
 | `tests/plugins/memory/agent_memory/test_discovery.py` | | |
 | `tests/plugins/memory/agent_memory/test_importer.py` | | |
-| `tests/plugins/memory/agent_memory/test_live.py` | | |
+| `tests/plugins/memory/agent_memory/test_live.py` | behaviour | sam/live_test.go (build tag `live`): TestLiveWhoamiHealthProfile, read-only |
 | `tests/plugins/memory/agent_memory/test_provider.py` | | |
 | `tests/plugins/memory/agent_memory/test_skills_bridge.py` | | |
 | `tests/plugins/memory/test_multiplex_memory_identity_scope.py` | | |
