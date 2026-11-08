@@ -1,0 +1,81 @@
+"""Stage 1 module groups for the Go port: source globs per group (relative to repo root)."""
+
+GROUPS: dict[str, list[str]] = {
+    "config": [
+        "hermes_constants.py",
+        "hermes_cli/config*.py",
+        "hermes_cli/profiles*.py",
+        "hermes_cli/env_loader.py",
+        "agent/secret_scope.py",
+    ],
+    "session": [
+        "hermes_state.py",
+        "hermes_state_schema.py",
+        "hermes_state_common.py",
+        "hermes_state_fts.py",
+        "hermes_state_messages.py",
+        "hermes_state_sessions.py",
+        "hermes_state_search.py",
+    ],
+    "skills": [
+        "agent/skill_utils.py",
+        "agent/skill_commands.py",
+        "tools/skills_tool.py",
+        "tools/skill_manager_tool.py",
+    ],
+    "anthropic": [
+        "agent/anthropic_*.py",
+        "agent/error_classifier.py",
+        "agent/retry_utils.py",
+        "agent/transports/anthropic.py",
+    ],
+    "prompt": [
+        "agent/system_prompt.py",
+        "agent/prompt_builder.py",
+        "agent/prompt_caching.py",
+        "agent/prompt_cache_boundary.py",
+        "agent/iteration_budget.py",
+    ],
+    "loop": [
+        "agent/conversation_loop.py",
+        "agent/turn_*.py",
+        "agent/tool_executor.py",
+    ],
+    "compaction": [
+        "agent/context_compressor.py",
+        "agent/conversation_compression*.py",
+    ],
+    "approval": [
+        "tools/approval.py",
+        "tools/approval_detection.py",
+        "tools/approval_prompt.py",
+    ],
+    "tools-core": [
+        "tools/registry.py",
+        "tools/terminal_tool.py",
+        "tools/file_tools.py",
+        "tools/file_operations.py",
+        "tools/patch_parser.py",
+        "tools/web_tools.py",
+        "tools/session_search_tool.py",
+        "tools/delegate_tool.py",
+        "tools/cronjob_tools.py",
+    ],
+    "memory": [
+        "plugins/memory/agent_memory/*.py",
+        "agent/memory_manager.py",
+        "agent/memory_provider.py",
+    ],
+    "learning": ["agent/learning/*.py"],
+    "cron": ["cron/*.py"],
+    "gateway-core": [
+        "gateway/run.py",
+        "gateway/session.py",
+        "gateway/pairing.py",
+        "gateway/authz_mixin.py",
+        "gateway/platforms/base.py",
+        "gateway/stream_consumer*.py",
+    ],
+    "telegram": ["plugins/platforms/telegram/*.py"],
+    "discord": ["plugins/platforms/discord/*.py"],
+}
