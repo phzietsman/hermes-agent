@@ -1111,7 +1111,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/agent/test_account_policy_block.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_account_policy_block.py` | behaviour | `internal/provider/anthropic` providerSpecial's account-policy rule (covered in the classifier; no Anthropic-shaped corpus case, unit text in classify.go) |
 | `tests/agent/test_anthropic_adapter.py` | behaviour | subset: streaming/response normalisation (2.1c, TestStreamMatchesPythonSDK), request building (2.1b, TestBuildRequestMatchesPython, TestSupportsFastModeMatchesPython), `internal/provider/anthropic` golden tests (TestConvertMessagesMatchesPython, fixtures from the Python converter), TestConvertToolsMatchesPython, TestModelHelpersMatchPython. Request kwargs (2.1b), response normalisation (2.1c) and credentials (2.1d) re-bucket there |
 | `tests/agent/test_anthropic_borrowed_row_authority.py` | dropped | credential-pool rows are not ported |
 | `tests/agent/test_anthropic_client_auth.py` | behaviour | subset: `internal/provider/anthropic` TestApplyHeaders, TestTokenResolutionOrder, TestCredentialsWorkWithTheClient (API key vs OAuth bearer and identity). Custom/third-party/Bedrock endpoint styles are dropped |
@@ -1123,7 +1123,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_anthropic_kwargs_sanitize.py` | compiler | Python strips Responses-only kwargs that leaked into a Messages call (api_mode race); Go's typed `Request` cannot carry them |
 | `tests/agent/test_anthropic_mcp_prefix_strip.py` | behaviour | `internal/provider/anthropic` TestUnprefixOAuthToolName (registry lookup, aliases last, only with StripToolPrefix) |
 | `tests/agent/test_anthropic_message_stop.py` | behaviour | `internal/provider/anthropic` TestStreamMatchesPythonSDK (23 SSE scenarios replayed through the real Python SDK and `normalize_response`) and TestStreamEndingWithoutMessageStopIsIncomplete |
-| `tests/agent/test_anthropic_model_cooldowns.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_anthropic_model_cooldowns.py` | dropped | per-(credential, model) cooldowns belong to the credential pool, which is not ported |
 | `tests/agent/test_anthropic_oauth_pkce.py` | dropped | Hermes's own PKCE login (`hermes auth add anthropic`) is not ported; Stage 1 borrows Claude Code's login or takes a key |
 | `tests/agent/test_anthropic_oauth_stress.py` | behaviour | `internal/provider/anthropic` TestConcurrentRefreshesSpendTheSingleUseTokenOnce (-race), TestLockFileTimesOutAndHonoursContext |
 | `tests/agent/test_anthropic_oauth_ua_prefix.py` | behaviour | `internal/provider/anthropic` TestApplyHeaders (claude-code/<version> (external, cli) for inference, axios for the token endpoint in TestExchangeSendsTheRefreshGrant) |
@@ -1160,7 +1160,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_codex_xai_oauth_recovery.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_compression_lock_defer.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
 | `tests/agent/test_compression_timeout_terminal.py` | later | auxiliary client and compaction summaries: re-bucket in task 2.4 |
-| `tests/agent/test_content_policy_blocked.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_content_policy_blocked.py` | behaviour | `internal/provider/anthropic` TestClassifyMatchesPython 400_safety_block, 400_cyber, 400_content_filter, stream_error_content (deterministic per request: fall back, never retry unchanged) |
 | `tests/agent/test_context_token_tracking.py` | later | context accounting: re-bucket in task 2.3/2.4 |
 | `tests/agent/test_credential_pool_anthropic_refresh_race.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_auto_detect.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1169,19 +1169,19 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_credential_pool_oauth_writethrough.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_routing.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_credential_pool_terminal_refresh_visibility.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_credit_404_fallback.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_credit_404_fallback.py` | behaviour | `internal/provider/anthropic` TestClassifyMatchesPython 404_billing_code, 404_credit (credit exhaustion surfacing as 404 is billing, not model_not_found) |
 | `tests/agent/test_ctx_halving_fix.py` | later | overflow handling: re-bucket in task 2.3 |
 | `tests/agent/test_custom_pool_mismatch_guard.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_deepseek_anthropic_thinking.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_entitlement_fail_closed.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_error_classifier_observed.py` | later | error classification and retry: re-bucket in task 2.1e |
-| `tests/agent/test_error_classifier_upstream_blocked.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_error_classifier_observed.py` | behaviour | subset: `internal/provider/anthropic` TestClassifyMatchesPython (185 cases: genuine `anthropic` SDK exceptions classified by Python's real `classify_api_error`). Provider-specific observed shapes (Codex, xAI, Nous, OpenRouter, Gemini) are dropped |
+| `tests/agent/test_error_classifier_upstream_blocked.py` | behaviour | `internal/provider/anthropic` TestClassifyMatchesPython 403_cf and 403_blocked (WAF/CDN blocks stay upstream_blocked, not auth) |
 | `tests/agent/test_fallback_api_mode_preservation.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_fallback_entry_base_url.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_fallback_exhaustion_cooldown.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/agent/test_free_tier_rate_limit_class.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_free_tier_rate_limit_class.py` | dropped | Nous free-tier fairshare 429 classification is not ported |
 | `tests/agent/test_image_corrupt_recovery.py` | later | turn loop recovery: re-bucket in task 2.3 |
-| `tests/agent/test_injected_param_strip_retry_registry.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_injected_param_strip_retry_registry.py` | dropped | strip-and-retry of injected params is a loop recovery for gateways that inject fields: not on the native route |
 | `tests/agent/test_kimi_coding_anthropic_thinking.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_meta_agent_init.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_minimax_provider.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1190,7 +1190,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_multimodal_tool_content_recovery.py` | later | turn loop recovery: re-bucket in task 2.3 |
 | `tests/agent/test_non_chat_primary_restore.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_none_deref_guards.py` | later | turn loop recovery: re-bucket in task 2.3 |
-| `tests/agent/test_nonretryable_result_carries_verdict.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_nonretryable_result_carries_verdict.py` | later | carrying the verdict on the turn result is loop behaviour: re-bucket in task 2.3 |
 | `tests/agent/test_nous_portal_anthropic_wire.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_overflow_overhead_aware_tokens.py` | later | overflow handling: re-bucket in task 2.3 |
 | `tests/agent/test_primary_runtime_restore.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
@@ -1198,8 +1198,8 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_provider_fallback.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_provider_profile_recovery_seam.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/agent/test_pydantic_dump_warning_leak.py` | dropped | Python SDK/pydantic model_dump warning; the Go client has no SDK objects |
-| `tests/agent/test_retry_delay_parsers_shared.py` | later | error classification and retry: re-bucket in task 2.1e |
-| `tests/agent/test_retry_utils.py` | later | error classification and retry: re-bucket in task 2.1e |
+| `tests/agent/test_retry_delay_parsers_shared.py` | behaviour | `internal/provider/anthropic` TestRetryHelpersMatchPython (the reset-window grammars, explicit retry-after beating resets-in) |
+| `tests/agent/test_retry_utils.py` | behaviour | subset: `internal/provider/anthropic` TestRetryHelpersMatchPython, TestParseRetryAfterHTTPDate, TestProviderRetryAfter, TestBackoffDelay, TestRetryWait. The Z.AI Coding adaptive backoff is dropped |
 | `tests/agent/test_run_agent.py` | later | turn loop recovery: re-bucket in task 2.3 |
 | `tests/agent/test_streaming.py` | behaviour | subset: `internal/provider/anthropic` TestStreamMatchesPythonSDK (23 SSE scenarios replayed through the real Python SDK and `normalize_response`), TestMalformedToolInputIsATypedError, TestNullUsageIsTolerated, TestOnEventSeesEveryEventAndCanAbort. Stream-delta display and the stale-stream watchdog re-bucket in task 2.3 |
 | `tests/agent/test_switch_model_fallback_prune.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
