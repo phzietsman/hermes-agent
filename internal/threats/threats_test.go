@@ -47,50 +47,51 @@ func split(findings []string) (invisibleSet []string, patterns []string) {
 }
 
 func TestScanMatchesPython(t *testing.T) {
-	bad := 0
 	for _, c := range loadCases(t) {
-		for scope, want := range c.Scopes {
-			got, err := Scan(c.Text, scope)
-			if err != nil {
-				t.Fatal(err)
+		t.Run(c.Name, func(t *testing.T) {
+			t.Parallel() // the long-text cases are slow under -race
+			for scope, want := range c.Scopes {
+				got, err := Scan(c.Text, scope)
+				if err != nil {
+					t.Fatal(err)
+				}
+				gi, gp := split(got)
+				wi, wp := split(want)
+				if !reflect.DeepEqual(gi, wi) || !reflect.DeepEqual(gp, wp) {
+					t.Errorf("[%s]:\n  go     %v\n  python %v", scope, got, want)
+				}
 			}
-			gi, gp := split(got)
-			wi, wp := split(want)
-			if !reflect.DeepEqual(gi, wi) || !reflect.DeepEqual(gp, wp) {
-				bad++
-				t.Errorf("%s [%s]:\n  go     %v\n  python %v", c.Name, scope, got, want)
-			}
-		}
-	}
-	if bad > 0 {
-		t.Fatalf("%d differences from Python", bad)
+		})
 	}
 }
 
 func TestFirstThreatMessageMatchesPython(t *testing.T) {
 	for _, c := range loadCases(t) {
-		for scope, want := range c.First {
-			got, err := FirstThreatMessage(c.Text, scope)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if want == nil {
-				if got != "" {
-					t.Errorf("%s [%s]: got %q, python none", c.Name, scope, got)
+		t.Run(c.Name, func(t *testing.T) {
+			t.Parallel()
+			for scope, want := range c.First {
+				got, err := FirstThreatMessage(c.Text, scope)
+				if err != nil {
+					t.Fatal(err)
 				}
-				continue
-			}
-			// With several invisible codepoints Python names one chosen by set order.
-			if strings.HasPrefix(*want, "Blocked: content contains invisible") {
-				if !strings.HasPrefix(got, "Blocked: content contains invisible") {
-					t.Errorf("%s [%s]: got %q, python %q", c.Name, scope, got, *want)
+				if want == nil {
+					if got != "" {
+						t.Errorf("[%s]: got %q, python none", scope, got)
+					}
+					continue
 				}
-				continue
+				// With several invisible codepoints Python names one chosen by set order.
+				if strings.HasPrefix(*want, "Blocked: content contains invisible") {
+					if !strings.HasPrefix(got, "Blocked: content contains invisible") {
+						t.Errorf("[%s]: got %q, python %q", scope, got, *want)
+					}
+					continue
+				}
+				if got != *want {
+					t.Errorf("[%s]:\n  go     %q\n  python %q", scope, got, *want)
+				}
 			}
-			if got != *want {
-				t.Errorf("%s [%s]:\n  go     %q\n  python %q", c.Name, scope, got, *want)
-			}
-		}
+		})
 	}
 }
 
@@ -145,7 +146,9 @@ func TestBoundComposesLongRepeats(t *testing.T) {
 
 func FuzzScanNeverPanics(f *testing.F) {
 	for _, c := range loadCases(f) {
-		f.Add(c.Text)
+		if len(c.Text) < 5000 { // the long cases only prove the cap, and are slow under -race
+			f.Add(c.Text)
+		}
 	}
 	f.Add("\xff\xfe invalid utf8 \x00")
 	f.Fuzz(func(t *testing.T, text string) {
