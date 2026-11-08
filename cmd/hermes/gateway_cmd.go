@@ -11,6 +11,7 @@ import (
 	"github.com/phzietsman/hermes-agent/internal/app"
 	"github.com/phzietsman/hermes-agent/internal/config"
 	"github.com/phzietsman/hermes-agent/internal/gateway"
+	"github.com/phzietsman/hermes-agent/internal/gateway/discord"
 	"github.com/phzietsman/hermes-agent/internal/gateway/telegram"
 )
 
@@ -18,6 +19,7 @@ import (
 // never at import time.
 func registerPlatforms() {
 	gateway.Register("telegram", telegram.New)
+	gateway.Register("discord", discord.New)
 }
 
 // buildAdapters creates the adapters of every enabled platform. A variable so tests can supply a fake platform.

@@ -166,3 +166,14 @@ func TestTelegramIsAKnownPlatformAndNeedsItsToken(t *testing.T) {
 		t.Errorf("%d %s", code, e.String())
 	}
 }
+
+func TestDiscordIsAKnownPlatformAndNeedsItsToken(t *testing.T) {
+	ctx, home := env(t)
+	t.Setenv("DISCORD_BOT_TOKEN", "")
+	os.WriteFile(filepath.Join(home, "config.yaml"), []byte("gateway:\n  platforms:\n    discord:\n      enabled: true\n"), 0o644)
+	var o, e bytes.Buffer
+	code := run(ctx, []string{"gateway", "run"}, stdio{in: strings.NewReader(""), out: &o, err: &e}, app.Options{Provider: &script{}})
+	if code != 1 || !strings.Contains(e.String(), "DISCORD_BOT_TOKEN") {
+		t.Errorf("%d %s", code, e.String())
+	}
+}
