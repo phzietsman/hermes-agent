@@ -669,381 +669,381 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/acp_adapter/test_empty_session_persistence.py` | | |
-| `tests/acp_adapter/test_session_cwd_column.py` | | |
-| `tests/acp_adapter/test_session_db_private_access.py` | | |
-| `tests/acp_adapter/test_session_provenance.py` | | |
-| `tests/agent/test_860_dedup.py` | | |
-| `tests/agent/test_api_content_row_addressed_backfill.py` | | |
-| `tests/agent/test_async_token_accounting.py` | | |
-| `tests/agent/test_background_review_cache_parity.py` | | |
-| `tests/agent/test_codex_app_server_persist.py` | | |
-| `tests/agent/test_codex_app_server_thread_resume.py` | | |
-| `tests/agent/test_codex_echo_ownership.py` | | |
-| `tests/agent/test_compaction_anti_thrash.py` | | |
-| `tests/agent/test_compression_abort_state_reset.py` | | |
-| `tests/agent/test_compression_adoption_preserves_live_tail.py` | | |
-| `tests/agent/test_compression_anti_thrash_persistence.py` | | |
-| `tests/agent/test_compression_anti_thrash_recovery.py` | | |
-| `tests/agent/test_compression_boundary_hook.py` | | |
-| `tests/agent/test_compression_child_source.py` | | |
-| `tests/agent/test_compression_closed_adoption.py` | | |
-| `tests/agent/test_compression_commit_fence_race.py` | | |
-| `tests/agent/test_compression_count_warning.py` | | |
-| `tests/agent/test_compression_logging_session_context.py` | | |
-| `tests/agent/test_compression_orphan_recovery.py` | | |
-| `tests/agent/test_compression_stall_interrupt.py` | | |
-| `tests/agent/test_compression_supersession_split.py` | | |
-| `tests/agent/test_compression_terminal_activity_persist.py` | | |
-| `tests/agent/test_compression_worker_isolation.py` | | |
-| `tests/agent/test_context_compressor_bench_probe.py` | | |
-| `tests/agent/test_context_engine_host_contract.py` | | |
-| `tests/agent/test_corruption_recovery_guidance.py` | | |
-| `tests/agent/test_cross_process_turn_lease.py` | | |
-| `tests/agent/test_declared_conversation_scope.py` | | |
-| `tests/agent/test_empty_response_recovery_persistence.py` | | |
-| `tests/agent/test_flush_diverts_on_corrupt_state_db.py` | | |
-| `tests/agent/test_hygiene_timeout_cooldown_isolation.py` | | |
-| `tests/agent/test_identity_flush.py` | | |
-| `tests/agent/test_idle_compaction_lock_and_guards.py` | | |
-| `tests/agent/test_in_place_compaction.py` | | |
-| `tests/agent/test_inline_session_search_profile.py` | | |
-| `tests/agent/test_insights.py` | | |
-| `tests/agent/test_live_db_preview_locks.py` | | |
-| `tests/agent/test_message_reactions.py` | | |
-| `tests/agent/test_message_sequence_repair.py` | | |
-| `tests/agent/test_micro_compaction.py` | | |
-| `tests/agent/test_notification_persistence.py` | | |
-| `tests/agent/test_proactive_prune_restart_safety.py` | | |
-| `tests/agent/test_prompt_cache_prefix_contract.py` | | |
-| `tests/agent/test_prompt_cache_scope.py` | | |
-| `tests/agent/test_replay_cleanup.py` | | |
-| `tests/agent/test_rotation_flush_persisted_boundary.py` | | |
-| `tests/agent/test_run_agent_codex_responses.py` | | |
-| `tests/agent/test_session_rotation_flush_cold_resume.py` | | |
-| `tests/agent/test_session_row_under_live_agent_persist.py` | | |
-| `tests/agent/test_session_snapshot_removal.py` | | |
-| `tests/agent/test_steer_compaction_persistence.py` | | |
-| `tests/agent/test_stream_reasoning_details.py` | | |
-| `tests/agent/test_studio_bridge_affinity.py` | | |
-| `tests/agent/test_synthetic_turn_display_kind.py` | | |
-| `tests/agent/test_system_prompt_switch_invalidation.py` | | |
-| `tests/agent/test_token_guard_session_source.py` | | |
-| `tests/agent/test_transform_llm_output_persistence.py` | | |
-| `tests/agent/test_turn_finalizer_final_response_persistence.py` | | |
-| `tests/agent/test_usage_anchor.py` | | |
-| `tests/agent/test_voice_turn_route.py` | | |
-| `tests/agent/test_would_grow_refusal_runway.py` | | |
-| `tests/agent/transports/test_codex_event_projector.py` | | |
-| `tests/conformance/persistence/test_cell2_consume_once.py` | | |
-| `tests/cron/test_scheduler_completion_verification.py` | | |
-| `tests/e2e/core/live/test_live_providers.py` | | |
-| `tests/gateway/test_agent_cache_pressure.py` | | |
-| `tests/gateway/test_api_delegation_delivery_contract.py` | | |
-| `tests/gateway/test_api_server_active_work_drain.py` | | |
-| `tests/gateway/test_api_server_compaction_projection.py` | | |
-| `tests/gateway/test_api_server_declared_conversation.py` | | |
-| `tests/gateway/test_async_session_db.py` | | |
-| `tests/gateway/test_auto_reset_clean_context.py` | | |
-| `tests/gateway/test_channel_continuity_hint.py` | | |
-| `tests/gateway/test_codex_hygiene_compaction.py` | | |
-| `tests/gateway/test_completion_delivery.py` | | |
-| `tests/gateway/test_compression_concurrent_sessions.py` | | |
-| `tests/gateway/test_dedupe_user_turns.py` | | |
-| `tests/gateway/test_delete_session_no_resurrect.py` | | |
-| `tests/gateway/test_handoff_owned_recovery.py` | | |
-| `tests/gateway/test_handoff_watcher_async_db.py` | | |
-| `tests/gateway/test_handoff_watcher_resilience.py` | | |
-| `tests/gateway/test_hosted_rooms.py` | | |
-| `tests/gateway/test_hygiene_failure_cooldown_ladder.py` | | |
-| `tests/gateway/test_hygiene_warning_lifecycle.py` | | |
-| `tests/gateway/test_load_transcript_db_only.py` | | |
-| `tests/gateway/test_multiplex_residue_parity.py` | | |
-| `tests/gateway/test_peer_dm_hidden_e2e.py` | | |
-| `tests/gateway/test_peer_dm_into_open_bot_chat.py` | | |
-| `tests/gateway/test_peer_dm_transient_retry.py` | | |
-| `tests/gateway/test_profile_identity_purge.py` | | |
-| `tests/gateway/test_restart_drain_recovery_dedup.py` | | |
-| `tests/gateway/test_routing_save_fast_path.py` | | |
-| `tests/gateway/test_session_api.py` | | |
-| `tests/gateway/test_session_continuity.py` | | |
-| `tests/gateway/test_session_db_corrupt_fallback.py` | | |
-| `tests/gateway/test_session_db_replaced_fallback.py` | | |
-| `tests/gateway/test_session_db_warning_recheck.py` | | |
-| `tests/gateway/test_session_dm_thread_seeding.py` | | |
-| `tests/gateway/test_session_id_cache_coherence.py` | | |
-| `tests/gateway/test_session_store_expiry_finalized.py` | | |
-| `tests/gateway/test_session_store_stale_prune.py` | | |
-| `tests/gateway/test_shutdown_inflight_transcript_flush.py` | | |
-| `tests/gateway/test_slash_command_profile_scope.py` | | |
-| `tests/gateway/test_stale_self_heal_agent_cache_eviction.py` | | |
-| `tests/gateway/test_switch_session_keeps_model_override.py` | | |
-| `tests/gateway/test_telegram_topic_profile_isolation.py` | | |
-| `tests/gateway/test_timestamp_sidecar_replay.py` | | |
-| `tests/gateway/test_usage_command.py` | | |
-| `tests/gateway/test_wake_delivery.py` | | |
-| `tests/hermes_cli/test_backup.py` | | |
-| `tests/hermes_cli/test_branch_command.py` | | |
-| `tests/hermes_cli/test_chat_c_fail_loudly.py` | | |
-| `tests/hermes_cli/test_cli_insights_command.py` | | |
-| `tests/hermes_cli/test_cli_interrupt_ack_race.py` | | |
-| `tests/hermes_cli/test_cli_new_session.py` | | |
-| `tests/hermes_cli/test_cli_retry.py` | | |
-| `tests/hermes_cli/test_cli_shutdown_memory_messages.py` | | |
-| `tests/hermes_cli/test_cli_yolo_resume_persistence.py` | | |
-| `tests/hermes_cli/test_console_engine.py` | | |
-| `tests/hermes_cli/test_dashboard_plugin_routes_secret_scope.py` | | |
-| `tests/hermes_cli/test_doctor_structural_corruption.py` | | |
-| `tests/hermes_cli/test_empty_session_hygiene.py` | | |
-| `tests/hermes_cli/test_foreign_sessions.py` | | |
-| `tests/hermes_cli/test_fts_optimize_notice.py` | | |
-| `tests/hermes_cli/test_goals.py` | | |
-| `tests/hermes_cli/test_handoff_slow_dispatch_timeout.py` | | |
-| `tests/hermes_cli/test_kanban_resume_guard.py` | | |
-| `tests/hermes_cli/test_kanban_worker_session_source.py` | | |
-| `tests/hermes_cli/test_list_recent_user_messages_handoffs.py` | | |
-| `tests/hermes_cli/test_loops.py` | | |
-| `tests/hermes_cli/test_models_analytics_attribution.py` | | |
-| `tests/hermes_cli/test_models_analytics_dedup.py` | | |
-| `tests/hermes_cli/test_observational_sessiondb_modes.py` | | |
-| `tests/hermes_cli/test_oneshot_resumed_session_persist.py` | | |
-| `tests/hermes_cli/test_oneshot_usage_file.py` | | |
-| `tests/hermes_cli/test_prune_spares_pinned.py` | | |
-| `tests/hermes_cli/test_resolve_last_session.py` | | |
-| `tests/hermes_cli/test_resume_display.py` | | |
-| `tests/hermes_cli/test_resume_model_restore.py` | | |
-| `tests/hermes_cli/test_session_export.py` | | |
-| `tests/hermes_cli/test_session_export_batch.py` | | |
-| `tests/hermes_cli/test_session_handoff.py` | | |
-| `tests/hermes_cli/test_session_list_reader_disposable.py` | | |
-| `tests/hermes_cli/test_session_listing.py` | | |
-| `tests/hermes_cli/test_session_message_page_owner.py` | | |
-| `tests/hermes_cli/test_session_messages_inline_images.py` | | |
-| `tests/hermes_cli/test_session_owner_backfill.py` | | |
-| `tests/hermes_cli/test_session_recovery.py` | | |
-| `tests/hermes_cli/test_session_recovery_lost_and_found.py` | | |
-| `tests/hermes_cli/test_session_recovery_model_config.py` | | |
-| `tests/hermes_cli/test_session_recovery_timestamps.py` | | |
-| `tests/hermes_cli/test_session_schema_history.py` | | |
-| `tests/hermes_cli/test_session_search_context_batch.py` | | |
-| `tests/hermes_cli/test_session_switch_mid_turn_guard.py` | | |
-| `tests/hermes_cli/test_session_system_prompt_dedup.py` | | |
-| `tests/hermes_cli/test_session_timeline.py` | | |
-| `tests/hermes_cli/test_sessions_delete.py` | | |
-| `tests/hermes_cli/test_sessions_error_exit_codes.py` | | |
-| `tests/hermes_cli/test_sessions_export_md_cli.py` | | |
-| `tests/hermes_cli/test_sessions_export_output_dir.py` | | |
-| `tests/hermes_cli/test_sessions_export_retention.py` | | |
-| `tests/hermes_cli/test_sessions_held_store_gate.py` | | |
-| `tests/hermes_cli/test_sessions_list_truncation.py` | | |
-| `tests/hermes_cli/test_sessions_pin.py` | | |
-| `tests/hermes_cli/test_sessions_repair_check_only_exit.py` | | |
-| `tests/hermes_cli/test_sessions_repair_prompts.py` | | |
-| `tests/hermes_cli/test_single_query_session_finalize.py` | | |
-| `tests/hermes_cli/test_status.py` | | |
-| `tests/hermes_cli/test_subagent_notification_display.py` | | |
-| `tests/hermes_cli/test_ux_messages_chat_sessions.py` | | |
-| `tests/hermes_cli/test_web_analytics_corrupt_store.py` | | |
-| `tests/hermes_cli/test_web_plugins_catalog.py` | | |
-| `tests/hermes_cli/test_web_routers_tools_install_on_enable.py` | | |
-| `tests/hermes_cli/test_web_server_auto_archive_profile_config.py` | | |
-| `tests/hermes_cli/test_web_server_files.py` | | |
-| `tests/hermes_cli/test_web_server_messaging_stale_runtime.py` | | |
-| `tests/hermes_cli/test_web_server_session_search_titles.py` | | |
-| `tests/hermes_cli/test_web_server_sessions_compression.py` | | |
-| `tests/hermes_cli/test_web_server_update_status.py` | | |
-| `tests/hermes_state/test_append_message_after_close.py` | | |
-| `tests/hermes_state/test_append_messages_batch.py` | | |
-| `tests/hermes_state/test_auto_archived_lineage_reactivation.py` | | |
-| `tests/hermes_state/test_auto_vacuum_holder_gate.py` | | |
-| `tests/hermes_state/test_auto_vacuum_in_process_holder_gate.py` | | |
-| `tests/hermes_state/test_automatic_ended_stamp.py` | | |
-| `tests/hermes_state/test_aux_usage_accounting.py` | | |
-| `tests/hermes_state/test_background_review_session_isolation.py` | | |
-| `tests/hermes_state/test_bounded_recent_sessions.py` | | |
-| `tests/hermes_state/test_canonical_title_guard.py` | | |
-| `tests/hermes_state/test_clean_close_residual_poison.py` | | |
-| `tests/hermes_state/test_compacted_message_reactions.py` | | |
-| `tests/hermes_state/test_composite_carrier_rewind.py` | | |
-| `tests/hermes_state/test_compression_lease_refresh_before_publish.py` | | |
-| `tests/hermes_state/test_compression_lineage_guard.py` | | |
-| `tests/hermes_state/test_compression_watermark_commit.py` | | |
-| `tests/hermes_state/test_conversation_root.py` | | |
-| `tests/hermes_state/test_corrupt_row_robustness.py` | | |
-| `tests/hermes_state/test_dedupe_migration_contention.py` | | |
-| `tests/hermes_state/test_delegate_cascade.py` | | |
-| `tests/hermes_state/test_delegate_child_routing_inheritance.py` | | |
-| `tests/hermes_state/test_delete_compression_chain.py` | | |
-| `tests/hermes_state/test_delete_mode_read_busy_wait.py` | | |
-| `tests/hermes_state/test_delete_session_write_guards.py` | | |
-| `tests/hermes_state/test_deleted_wal_checkpoint_guard.py` | | |
-| `tests/hermes_state/test_deleted_wal_generation_guard.py` | | |
-| `tests/hermes_state/test_display_dedupe_pruned_tool_payload.py` | | |
-| `tests/hermes_state/test_display_projection_parity.py` | | |
-| `tests/hermes_state/test_display_split_heal.py` | | |
-| `tests/hermes_state/test_empty_sweep_archived_transcript.py` | | |
-| `tests/hermes_state/test_fts_cjk_bigram.py` | | |
-| `tests/hermes_state/test_fts_fresh_bootstrap_admission.py` | | |
-| `tests/hermes_state/test_fts_index_fail_open.py` | | |
-| `tests/hermes_state/test_fts_orphan_shadow_repair.py` | | |
-| `tests/hermes_state/test_fts_projection_integrity.py` | | |
-| `tests/hermes_state/test_fts_rebuild_admission.py` | | |
-| `tests/hermes_state/test_fts_rebuild_corruption_class.py` | | |
-| `tests/hermes_state/test_fts_runtime_rebuild.py` | | |
-| `tests/hermes_state/test_fts_tool_write_bounds.py` | | |
-| `tests/hermes_state/test_fts_trigram_cron_exclusion.py` | | |
-| `tests/hermes_state/test_fts_trigram_subagent_exclusion.py` | | |
-| `tests/hermes_state/test_fts_update_of_narrowing.py` | | |
-| `tests/hermes_state/test_get_anchored_view.py` | | |
-| `tests/hermes_state/test_get_messages_around.py` | | |
-| `tests/hermes_state/test_get_messages_include_compacted.py` | | |
-| `tests/hermes_state/test_hermes_state.py` | | |
-| `tests/hermes_state/test_hermes_state_compression_busy_retry.py` | | |
-| `tests/hermes_state/test_hermes_state_compression_locks.py` | | |
-| `tests/hermes_state/test_hermes_state_readonly_preflight.py` | | |
-| `tests/hermes_state/test_hermes_state_ux_messages.py` | | |
-| `tests/hermes_state/test_hermes_state_wal_fallback.py` | | |
-| `tests/hermes_state/test_journal_mode_config.py` | | |
-| `tests/hermes_state/test_lease_pid_namespace.py` | | |
-| `tests/hermes_state/test_live_db_guard_ancestry.py` | | |
-| `tests/hermes_state/test_live_db_isolation_guard.py` | | |
-| `tests/hermes_state/test_message_uid.py` | | |
-| `tests/hermes_state/test_named_profile_session_db.py` | | |
-| `tests/hermes_state/test_never_active_keyed_prune.py` | | |
-| `tests/hermes_state/test_no_more_rows_retry.py` | | |
-| `tests/hermes_state/test_orphan_gateway_session_repair.py` | | |
-| `tests/hermes_state/test_orphan_sweep_cross_backend.py` | | |
-| `tests/hermes_state/test_pinned_archived_sidebar.py` | | |
-| `tests/hermes_state/test_pinned_lineage.py` | | |
-| `tests/hermes_state/test_prune_activity_recency.py` | | |
-| `tests/hermes_state/test_purge_profile_state.py` | | |
-| `tests/hermes_state/test_read_path_transient_ioerr.py` | | |
-| `tests/hermes_state/test_readonly_fts_decode_error.py` | | |
-| `tests/hermes_state/test_reasoning_roundtrip.py` | | |
-| `tests/hermes_state/test_rebuild_table_atomic.py` | | |
-| `tests/hermes_state/test_recent_model_route.py` | | |
-| `tests/hermes_state/test_rekey_profile_state.py` | | |
-| `tests/hermes_state/test_remove_session_files_glob_escape.py` | | |
-| `tests/hermes_state/test_repaired_history_commit_coverage.py` | | |
-| `tests/hermes_state/test_replace_messages_archive_siblings.py` | | |
-| `tests/hermes_state/test_replace_messages_archives_suffix_only.py` | | |
-| `tests/hermes_state/test_resolve_resume_session_id.py` | | |
-| `tests/hermes_state/test_restore_alternation_repair.py` | | |
-| `tests/hermes_state/test_retired_wal_generation_capture.py` | | |
-| `tests/hermes_state/test_rewind_surfaces_invariant.py` | | |
-| `tests/hermes_state/test_schema_read_probe.py` | | |
-| `tests/hermes_state/test_search_or_relaxed_fallback.py` | | |
-| `tests/hermes_state/test_session_archived_round_trip.py` | | |
-| `tests/hermes_state/test_session_archiving.py` | | |
-| `tests/hermes_state/test_session_db_acp_cwd_backfill.py` | | |
-| `tests/hermes_state/test_session_db_context_manager.py` | | |
-| `tests/hermes_state/test_session_db_leak_sweep.py` | | |
-| `tests/hermes_state/test_session_db_profile_stamp.py` | | |
-| `tests/hermes_state/test_session_db_read_conn_pool.py` | | |
-| `tests/hermes_state/test_session_db_read_path_split.py` | | |
-| `tests/hermes_state/test_session_delete_profile_isolation.py` | | |
-| `tests/hermes_state/test_session_export_timings.py` | | |
-| `tests/hermes_state/test_session_git_metadata_generation.py` | | |
-| `tests/hermes_state/test_session_hidden.py` | | |
-| `tests/hermes_state/test_session_id_recognition_recovery.py` | | |
-| `tests/hermes_state/test_session_import_keep_flags.py` | | |
-| `tests/hermes_state/test_session_import_value_validation.py` | | |
-| `tests/hermes_state/test_session_lifecycle_status.py` | | |
-| `tests/hermes_state/test_session_list_index_choice.py` | | |
-| `tests/hermes_state/test_session_md_export.py` | | |
-| `tests/hermes_state/test_session_model_usage_pk_heal.py` | | |
-| `tests/hermes_state/test_session_read_state.py` | | |
-| `tests/hermes_state/test_session_turn_lease.py` | | |
-| `tests/hermes_state/test_session_workspace_binding.py` | | |
-| `tests/hermes_state/test_shared_session_db_registry.py` | | |
-| `tests/hermes_state/test_show_subagents_listing.py` | | |
-| `tests/hermes_state/test_sqlite_lock_safe_inspection.py` | | |
-| `tests/hermes_state/test_stale_tool_call_marker_session_repair.py` | | |
-| `tests/hermes_state/test_startup_maintenance_lease.py` | | |
-| `tests/hermes_state/test_state_db_corrupt_quarantine.py` | | |
-| `tests/hermes_state/test_state_db_file_identity.py` | | |
-| `tests/hermes_state/test_state_db_fts_segment_collision_probe.py` | | |
-| `tests/hermes_state/test_state_db_lock_fail_closed.py` | | |
-| `tests/hermes_state/test_state_db_maintenance_conformance.py` | | |
-| `tests/hermes_state/test_state_db_malformed_repair.py` | | |
-| `tests/hermes_state/test_state_db_notadb_fail_closed.py` | | |
-| `tests/hermes_state/test_state_db_repair_live_writer_guard.py` | | |
-| `tests/hermes_state/test_state_db_repair_loop_cap.py` | | |
-| `tests/hermes_state/test_state_db_repair_loop_mtime.py` | | |
-| `tests/hermes_state/test_state_db_repair_non_destructive.py` | | |
-| `tests/hermes_state/test_state_db_second_process_maintenance.py` | | |
-| `tests/hermes_state/test_state_db_stats.py` | | |
-| `tests/hermes_state/test_state_db_wal_unlink_race.py` | | |
-| `tests/hermes_state/test_state_db_write_durability.py` | | |
-| `tests/hermes_state/test_storage_health_latch.py` | | |
-| `tests/hermes_state/test_sweep_orphaned_sessions.py` | | |
-| `tests/hermes_state/test_tail_rewind_semantics.py` | | |
-| `tests/hermes_state/test_telegram_topic_selfheal.py` | | |
-| `tests/hermes_state/test_unaddressed_rewrite_identity.py` | | |
-| `tests/hermes_state/test_wal_active_confirmed.py` | | |
-| `tests/hermes_state/test_wal_checkpoint_strategy.py` | | |
-| `tests/hermes_state/test_wal_lock_guard.py` | | |
-| `tests/hermes_state/test_wal_lock_guard_lifecycle.py` | | |
-| `tests/hermes_state/test_watermark_interplay.py` | | |
-| `tests/hermes_state/test_write_lock_patience.py` | | |
-| `tests/hermes_state/test_writer_conn_thread_safety.py` | | |
-| `tests/hermes_state/test_zeroed_state_db.py` | | |
-| `tests/perf_guards/test_pattern_b_scaling.py` | | |
-| `tests/plugins/test_achievements_plugin.py` | | |
-| `tests/test_search_cjk_prefix_wildcard.py` | | |
-| `tests/tools/test_approval_yolo.py` | | |
-| `tests/tools/test_bot_live_owner_delivery.py` | | |
-| `tests/tools/test_bot_mode_canonical_chat_resolution.py` | | |
-| `tests/tools/test_completed_process_results.py` | | |
-| `tests/tools/test_connector_local_batches.py` | | |
-| `tests/tools/test_kanban_provenance.py` | | |
-| `tests/tools/test_skill_provenance_external.py` | | |
-| `tests/tui_gateway/test_backend_heartbeat.py` | | |
-| `tests/tui_gateway/test_bot_relay_methods.py` | | |
-| `tests/tui_gateway/test_branch_system_prompt.py` | | |
-| `tests/tui_gateway/test_composite_carrier_rewind.py` | | |
-| `tests/tui_gateway/test_custom_provider_session_persistence.py` | | |
-| `tests/tui_gateway/test_default_profile_session_name.py` | | |
-| `tests/tui_gateway/test_deferred_model_history.py` | | |
-| `tests/tui_gateway/test_desktop_session_login_identity.py` | | |
-| `tests/tui_gateway/test_desktop_session_row_git_meta.py` | | |
-| `tests/tui_gateway/test_desktop_session_workspace_persistence.py` | | |
-| `tests/tui_gateway/test_finalize_session_persist.py` | | |
-| `tests/tui_gateway/test_gateway_owned_session_reap.py` | | |
-| `tests/tui_gateway/test_history_inline_images.py` | | |
-| `tests/tui_gateway/test_lazy_session_regressions.py` | | |
-| `tests/tui_gateway/test_out_of_band_history_adoption.py` | | |
-| `tests/tui_gateway/test_pending_hidden_consumption.py` | | |
-| `tests/tui_gateway/test_profile_db_readonly.py` | | |
-| `tests/tui_gateway/test_profile_rebuild_commit.py` | | |
-| `tests/tui_gateway/test_profile_target_unavailable.py` | | |
-| `tests/tui_gateway/test_profiles_list_canonical_session.py` | | |
-| `tests/tui_gateway/test_profiles_list_session_field_cache.py` | | |
-| `tests/tui_gateway/test_profiles_list_worker_session.py` | | |
-| `tests/tui_gateway/test_queued_prompt_persistence.py` | | |
-| `tests/tui_gateway/test_queued_prompt_restart_retire.py` | | |
-| `tests/tui_gateway/test_resume_profile_scope.py` | | |
-| `tests/tui_gateway/test_resume_readonly_mount.py` | | |
-| `tests/tui_gateway/test_resume_session_yolo.py` | | |
-| `tests/tui_gateway/test_resume_switched_provider_endpoint.py` | | |
-| `tests/tui_gateway/test_routing_provenance_reopen.py` | | |
-| `tests/tui_gateway/test_seeded_branch_title_routing.py` | | |
-| `tests/tui_gateway/test_seeded_session_create.py` | | |
-| `tests/tui_gateway/test_serve_exit_flush.py` | | |
-| `tests/tui_gateway/test_session_archive_rpc.py` | | |
-| `tests/tui_gateway/test_session_foreign.py` | | |
-| `tests/tui_gateway/test_session_git_metadata_generation.py` | | |
-| `tests/tui_gateway/test_session_hidden_rpc.py` | | |
-| `tests/tui_gateway/test_session_history_codex_sidecar.py` | | |
-| `tests/tui_gateway/test_session_list_lineage_rpc.py` | | |
-| `tests/tui_gateway/test_session_resume_materializes_minted_key.py` | | |
-| `tests/tui_gateway/test_ssh_session_cwd_persistence.py` | | |
-| `tests/tui_gateway/test_startup_orphan_sweep.py` | | |
-| `tests/tui_gateway/test_stream_interrupt_recovery_orphan.py` | | |
-| `tests/tui_gateway/test_subagent_snapshot.py` | | |
-| `tests/tui_gateway/test_submit_row_session_target.py` | | |
-| `tests/tui_gateway/test_submit_time_user_row.py` | | |
-| `tests/tui_gateway/test_todo_state_events.py` | | |
+| `tests/acp_adapter/test_empty_session_persistence.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/acp_adapter/test_session_cwd_column.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/acp_adapter/test_session_db_private_access.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/acp_adapter/test_session_provenance.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/agent/test_860_dedup.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_api_content_row_addressed_backfill.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_async_token_accounting.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_cache_parity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_codex_app_server_persist.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_codex_app_server_thread_resume.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_codex_echo_ownership.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compaction_anti_thrash.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_abort_state_reset.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_adoption_preserves_live_tail.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_anti_thrash_persistence.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_anti_thrash_recovery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_boundary_hook.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_child_source.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_closed_adoption.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_commit_fence_race.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_count_warning.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_logging_session_context.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_orphan_recovery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_stall_interrupt.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_supersession_split.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_terminal_activity_persist.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_worker_isolation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_context_compressor_bench_probe.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_context_engine_host_contract.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_corruption_recovery_guidance.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_cross_process_turn_lease.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_declared_conversation_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_empty_response_recovery_persistence.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_flush_diverts_on_corrupt_state_db.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_hygiene_timeout_cooldown_isolation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_identity_flush.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_idle_compaction_lock_and_guards.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_in_place_compaction.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_inline_session_search_profile.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_insights.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_live_db_preview_locks.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_message_reactions.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_message_sequence_repair.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_micro_compaction.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_notification_persistence.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_proactive_prune_restart_safety.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_prompt_cache_prefix_contract.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_prompt_cache_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_replay_cleanup.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_rotation_flush_persisted_boundary.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_run_agent_codex_responses.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_session_rotation_flush_cold_resume.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_session_row_under_live_agent_persist.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_session_snapshot_removal.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_steer_compaction_persistence.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_stream_reasoning_details.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_studio_bridge_affinity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_synthetic_turn_display_kind.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_system_prompt_switch_invalidation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_token_guard_session_source.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_transform_llm_output_persistence.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_turn_finalizer_final_response_persistence.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_usage_anchor.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_voice_turn_route.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_would_grow_refusal_runway.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/transports/test_codex_event_projector.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/conformance/persistence/test_cell2_consume_once.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/cron/test_scheduler_completion_verification.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/e2e/core/live/test_live_providers.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/gateway/test_agent_cache_pressure.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_delegation_delivery_contract.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_server_active_work_drain.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_server_compaction_projection.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_server_declared_conversation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_async_session_db.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_auto_reset_clean_context.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_channel_continuity_hint.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_codex_hygiene_compaction.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_completion_delivery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_compression_concurrent_sessions.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_dedupe_user_turns.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_delete_session_no_resurrect.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_handoff_owned_recovery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_handoff_watcher_async_db.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_handoff_watcher_resilience.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_hosted_rooms.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_hygiene_failure_cooldown_ladder.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_hygiene_warning_lifecycle.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_load_transcript_db_only.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_residue_parity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_peer_dm_hidden_e2e.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_peer_dm_into_open_bot_chat.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_peer_dm_transient_retry.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_profile_identity_purge.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_restart_drain_recovery_dedup.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_routing_save_fast_path.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_api.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_continuity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_db_corrupt_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_db_replaced_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_db_warning_recheck.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_dm_thread_seeding.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_id_cache_coherence.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_store_expiry_finalized.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_store_stale_prune.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_shutdown_inflight_transcript_flush.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_slash_command_profile_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_stale_self_heal_agent_cache_eviction.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_switch_session_keeps_model_override.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_telegram_topic_profile_isolation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_timestamp_sidecar_replay.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_usage_command.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_wake_delivery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/hermes_cli/test_backup.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_branch_command.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_chat_c_fail_loudly.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_cli_insights_command.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_cli_interrupt_ack_race.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_cli_new_session.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_cli_retry.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_cli_shutdown_memory_messages.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_cli_yolo_resume_persistence.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_console_engine.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_dashboard_plugin_routes_secret_scope.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_doctor_structural_corruption.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_empty_session_hygiene.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_foreign_sessions.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_fts_optimize_notice.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_goals.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_handoff_slow_dispatch_timeout.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_kanban_resume_guard.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_kanban_worker_session_source.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_list_recent_user_messages_handoffs.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_loops.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_models_analytics_attribution.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_models_analytics_dedup.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_observational_sessiondb_modes.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_oneshot_resumed_session_persist.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_oneshot_usage_file.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_prune_spares_pinned.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_resolve_last_session.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_resume_display.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_resume_model_restore.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_export.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_export_batch.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_handoff.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_list_reader_disposable.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_listing.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_message_page_owner.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_messages_inline_images.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_owner_backfill.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_recovery.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_recovery_lost_and_found.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_recovery_model_config.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_recovery_timestamps.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_schema_history.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_search_context_batch.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_switch_mid_turn_guard.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_system_prompt_dedup.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_session_timeline.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_delete.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_error_exit_codes.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_export_md_cli.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_export_output_dir.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_export_retention.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_held_store_gate.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_list_truncation.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_pin.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_repair_check_only_exit.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_sessions_repair_prompts.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_single_query_session_finalize.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_status.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_subagent_notification_display.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_ux_messages_chat_sessions.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_web_analytics_corrupt_store.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_plugins_catalog.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_routers_tools_install_on_enable.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_server_auto_archive_profile_config.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_server_files.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_server_messaging_stale_runtime.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_server_session_search_titles.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_server_sessions_compression.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_cli/test_web_server_update_status.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
+| `tests/hermes_state/test_append_message_after_close.py` | compiler | a closed *sql.DB returns an error by construction; no Python-style reopen/None-connection state exists in Go |
+| `tests/hermes_state/test_append_messages_batch.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_auto_archived_lineage_reactivation.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_auto_vacuum_holder_gate.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_auto_vacuum_in_process_holder_gate.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_automatic_ended_stamp.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_aux_usage_accounting.py` | behaviour | subset: `internal/session` TestTitleAndUsage (AddUsage totals). Per-model usage table not ported |
+| `tests/hermes_state/test_background_review_session_isolation.py` | later | re-bucket when the owning module ports |
+| `tests/hermes_state/test_bounded_recent_sessions.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_canonical_title_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_clean_close_residual_poison.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_compacted_message_reactions.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_composite_carrier_rewind.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_compression_lease_refresh_before_publish.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_compression_lineage_guard.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_compression_watermark_commit.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_conversation_root.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_corrupt_row_robustness.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_dedupe_migration_contention.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_delegate_cascade.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_delegate_child_routing_inheritance.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_delete_compression_chain.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_delete_mode_read_busy_wait.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_delete_session_write_guards.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_deleted_wal_checkpoint_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_deleted_wal_generation_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_display_dedupe_pruned_tool_payload.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_display_projection_parity.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_display_split_heal.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_empty_sweep_archived_transcript.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_cjk_bigram.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_fresh_bootstrap_admission.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_index_fail_open.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_orphan_shadow_repair.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_projection_integrity.py` | behaviour | subset: `internal/session` TestSearchIndexFollowsEditsAndDeletes (view, triggers and index agree). Integrity checker and rebuild not ported |
+| `tests/hermes_state/test_fts_rebuild_admission.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_rebuild_corruption_class.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_runtime_rebuild.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_tool_write_bounds.py` | behaviour | `internal/session` TestSearchToolRoleScansFullBody (indexed prefix bound; tool-role search scans the full body) |
+| `tests/hermes_state/test_fts_trigram_cron_exclusion.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_trigram_subagent_exclusion.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_fts_update_of_narrowing.py` | behaviour | `internal/session` TestSearchIndexFollowsEditsAndDeletes (UPDATE OF trigger skips non-content writes) |
+| `tests/hermes_state/test_get_anchored_view.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_get_messages_around.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_get_messages_include_compacted.py` | behaviour | subset: `internal/session` TestMessagesVisibility (display view adds archived, never rewound). Display-order dedupe not ported |
+| `tests/hermes_state/test_hermes_state.py` | behaviour | subset: `internal/session` TestCreateAndGetSession, TestAppendMessageRoundTripAndCounters, TestMessagesOrderIsByIDNotTimestamp, TestMessagesPaging, TestEndSessionFirstReasonWinsAndReopen, TestSystemPromptIsStoredOnce, TestSearchRoutesAndOperators. Batch append, lineage, export, gateway fields and repair cases not ported |
+| `tests/hermes_state/test_hermes_state_compression_busy_retry.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_hermes_state_compression_locks.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_hermes_state_readonly_preflight.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_hermes_state_ux_messages.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_hermes_state_wal_fallback.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_journal_mode_config.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_lease_pid_namespace.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_live_db_guard_ancestry.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_live_db_isolation_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_message_uid.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_named_profile_session_db.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_never_active_keyed_prune.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_no_more_rows_retry.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_orphan_gateway_session_repair.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_orphan_sweep_cross_backend.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_pinned_archived_sidebar.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_pinned_lineage.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_prune_activity_recency.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_purge_profile_state.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_read_path_transient_ioerr.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_readonly_fts_decode_error.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_reasoning_roundtrip.py` | behaviour | `internal/session` TestAppendMessageRoundTripAndCounters (reasoning, reasoning_content, reasoning_details) |
+| `tests/hermes_state/test_rebuild_table_atomic.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_recent_model_route.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_rekey_profile_state.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_remove_session_files_glob_escape.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_repaired_history_commit_coverage.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_replace_messages_archive_siblings.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_replace_messages_archives_suffix_only.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_resolve_resume_session_id.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_restore_alternation_repair.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_retired_wal_generation_capture.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_rewind_surfaces_invariant.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_schema_read_probe.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_search_or_relaxed_fallback.py` | behaviour | `internal/session` TestSearchORRelaxedFindsParaphrase, TestOrRelaxed |
+| `tests/hermes_state/test_session_archived_round_trip.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_archiving.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_db_acp_cwd_backfill.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_db_context_manager.py` | compiler | Python with-block lifecycle; Go uses defer Close, which the compiler does not need a test for |
+| `tests/hermes_state/test_session_db_leak_sweep.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_db_profile_stamp.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_db_read_conn_pool.py` | dropped | Python read-connection pool; database/sql owns pooling in Go |
+| `tests/hermes_state/test_session_db_read_path_split.py` | dropped | Python read/write connection split; not ported |
+| `tests/hermes_state/test_session_delete_profile_isolation.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_export_timings.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_git_metadata_generation.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_hidden.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_id_recognition_recovery.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_import_keep_flags.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_import_value_validation.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_lifecycle_status.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_list_index_choice.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_md_export.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_model_usage_pk_heal.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_read_state.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_session_turn_lease.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_session_workspace_binding.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_shared_session_db_registry.py` | dropped | process-wide shared SessionDB registry is a Python singleton; Go callers pass *Store |
+| `tests/hermes_state/test_show_subagents_listing.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_sqlite_lock_safe_inspection.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_stale_tool_call_marker_session_repair.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_startup_maintenance_lease.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_corrupt_quarantine.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_file_identity.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_fts_segment_collision_probe.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_lock_fail_closed.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_maintenance_conformance.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_malformed_repair.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_notadb_fail_closed.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_repair_live_writer_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_repair_loop_cap.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_repair_loop_mtime.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_repair_non_destructive.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_second_process_maintenance.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_stats.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_wal_unlink_race.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_state_db_write_durability.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_storage_health_latch.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_sweep_orphaned_sessions.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_tail_rewind_semantics.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_telegram_topic_selfheal.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_unaddressed_rewrite_identity.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_wal_active_confirmed.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_wal_checkpoint_strategy.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_wal_lock_guard.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_wal_lock_guard_lifecycle.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_watermark_interplay.py` | later | compaction, rewind, lineage or message-identity behaviour: re-bucket in task 2.4 (compaction) or 2.3 (loop) |
+| `tests/hermes_state/test_write_lock_patience.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/hermes_state/test_writer_conn_thread_safety.py` | behaviour | `internal/session` TestConcurrentAppendsAreAllStored under -race (BEGIN IMMEDIATE) |
+| `tests/hermes_state/test_zeroed_state_db.py` | dropped | storage repair, WAL/lock guards, FTS maintenance, display projection, archiving, export or gateway state: not carried over (modernc sqlite, one profile per process) |
+| `tests/perf_guards/test_pattern_b_scaling.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/plugins/test_achievements_plugin.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/test_search_cjk_prefix_wildcard.py` | behaviour | `internal/session` TestSearchCJKUsesSubstringScan (trailing * stripped on the LIKE route) |
+| `tests/tools/test_approval_yolo.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_bot_live_owner_delivery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_bot_mode_canonical_chat_resolution.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_completed_process_results.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_connector_local_batches.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_kanban_provenance.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_skill_provenance_external.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tui_gateway/test_backend_heartbeat.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_bot_relay_methods.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_branch_system_prompt.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_composite_carrier_rewind.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_custom_provider_session_persistence.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_default_profile_session_name.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_deferred_model_history.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_desktop_session_login_identity.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_desktop_session_row_git_meta.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_desktop_session_workspace_persistence.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_finalize_session_persist.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_gateway_owned_session_reap.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_history_inline_images.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_lazy_session_regressions.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_out_of_band_history_adoption.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_pending_hidden_consumption.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_profile_db_readonly.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_profile_rebuild_commit.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_profile_target_unavailable.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_profiles_list_canonical_session.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_profiles_list_session_field_cache.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_profiles_list_worker_session.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_queued_prompt_persistence.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_queued_prompt_restart_retire.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_resume_profile_scope.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_resume_readonly_mount.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_resume_session_yolo.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_resume_switched_provider_endpoint.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_routing_provenance_reopen.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_seeded_branch_title_routing.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_seeded_session_create.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_serve_exit_flush.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_session_archive_rpc.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_session_foreign.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_session_git_metadata_generation.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_session_hidden_rpc.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_session_history_codex_sidecar.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_session_list_lineage_rpc.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_session_resume_materializes_minted_key.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_ssh_session_cwd_persistence.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_startup_orphan_sweep.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_stream_interrupt_recovery_orphan.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_subagent_snapshot.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_submit_row_session_target.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_submit_time_user_row.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
+| `tests/tui_gateway/test_todo_state_events.py` | dropped | TUI/desktop backend, ACP, conformance, e2e or perf tooling for the Python stack: not in Stage 1 |
 
 ### skills (57 files, floor 83.1%)
 
