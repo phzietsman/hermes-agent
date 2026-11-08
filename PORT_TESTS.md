@@ -1225,38 +1225,38 @@ Extra status `later`: the file was assigned to this group by import counting but
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
 | `tests/agent/test_bot_profile_prompt_isolation.py` | dropped | Bot Mode is not ported |
-| `tests/agent/test_compaction_prompt_rebuild.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/agent/test_compaction_prompt_rebuild.py` | later | compaction rebuild: re-bucket in task 2.4 |
 | `tests/agent/test_context_breakdown.py` | dropped | context breakdown display (dashboard/TUI) |
 | `tests/agent/test_context_display_provenance.py` | dropped | context display for the dashboard/TUI |
 | `tests/agent/test_context_file_sources.py` | behaviour | ported: internal/agent/contextfiles_test.go, 48 golden cases from Python |
-| `tests/agent/test_failover_identity.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/agent/test_failover_identity.py` | dropped | multi-provider failover identity; Stage 1 is Anthropic only |
 | `tests/agent/test_iteration_budget_race.py` | behaviour | `internal/agent` TestIterationBudget, TestIterationBudgetIsSafeUnderConcurrency (exact cap across goroutines, -race), TestNormalizeBudgetWarningRatio |
 | `tests/agent/test_litellm_tool_part_cache_markers.py` | dropped | LiteLLM-style envelope route: Stage 1 is the native route, where tool results take a top-level marker |
 | `tests/agent/test_moa_loop_mode.py` | dropped | MoA is not ported |
 | `tests/agent/test_oneshot_footprint.py` | dropped | oneshot footprint accounting is not in Stage 1 |
-| `tests/agent/test_platform_hint_cron_delivery.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/agent/test_platform_hint_cron_delivery.py` | behaviour | ported: internal/agent/systemprompt_test.go, 68 golden cases from Python plus the write-once and acceptance tests |
 | `tests/agent/test_platform_hint_desktop.py` | dropped | desktop platform hint: the desktop app is out of scope |
-| `tests/agent/test_platform_hint_overrides.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/agent/test_platform_hint_overrides.py` | behaviour | ported: internal/agent/systemprompt_test.go, 68 golden cases from Python plus the write-once and acceptance tests |
 | `tests/agent/test_plugin_prompt_sections.py` | dropped | plugin prompt sections: there is no plugin system in Stage 1 |
 | `tests/agent/test_profile_home_override_precedence.py` | compiler | Home is an explicit option; context override precedence covered by internal/config home tests |
 | `tests/agent/test_prompt_cache_ttl_auto.py` | behaviour | `internal/agent` TestTTLPolicy (auto resolves to 5m for machine-paced sources, 1h for human-paced; effective TTL clamp). Provider-specific clamps for Qwen/Alibaba are dropped |
 | `tests/agent/test_prompt_caching.py` | behaviour | subset: `internal/agent` TestCachePlanMatchesPython (274 cases from Python's real `build_prompt_cache_plan`: both layouts, idempotent re-planning, no input mutation), TestPlanNeverExceedsFourBreakpoints, TestCacheMarkersShareOneTTL, FuzzPlanInvariants. Envelope/OpenRouter/LiteLLM layouts are dropped |
-| `tests/agent/test_protected_tail_pressure.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/agent/test_protected_tail_pressure.py` | later | compaction: re-bucket in task 2.4 |
 | `tests/agent/test_skill_app_snapshot.py` | dropped | the disk snapshot and prompt cache are not ported (the index is built once per session); the apps gate is covered by the requires_apps_hides golden |
-| `tests/agent/test_skills_guidance_content_filter.py` | later | SKILLS_GUIDANCE block: re-bucket in task 2.2c |
+| `tests/agent/test_skills_guidance_content_filter.py` | behaviour | ported: SKILLS_GUIDANCE only with skill_manage, text verbatim from Python (systemprompt golden) |
 | `tests/agent/test_soul_md_profile_isolation.py` | behaviour | ported: LoadSoulMD reads Home only (Home is explicit, no env fallback); contextfiles_test.go |
 | `tests/agent/test_subdirectory_hints.py` | later | subdirectory hints land with the turn loop (2.3) |
-| `tests/agent/test_system_prompt.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
-| `tests/agent/test_system_prompt_restore.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
-| `tests/agent/test_tool_batch_segmentation.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/agent/test_system_prompt.py` | behaviour | ported: internal/agent/systemprompt_test.go, 68 golden cases from Python plus the write-once and acceptance tests |
+| `tests/agent/test_system_prompt_restore.py` | behaviour | ported: EnsureSystemPrompt reuses stored bytes on resume (TestEnsureSystemPromptWritesOnce, TestPromptCacheAcceptance) |
+| `tests/agent/test_tool_batch_segmentation.py` | later | turn loop: re-bucket in task 2.3 |
 | `tests/agent/test_transcript_decoration_idempotence.py` | behaviour | `internal/agent` TestCachePlanMatchesPython (274 cases from Python's real `build_prompt_cache_plan`: both layouts, idempotent re-planning, no input mutation) (the re-plan half), TestStripCacheControlRestoresStringContent, FuzzPlanInvariants (idempotence) |
-| `tests/agent/test_turn_base_display_anchor.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/agent/test_turn_base_display_anchor.py` | later | turn loop: re-bucket in task 2.3 |
 | `tests/gateway/test_cached_agent_max_iterations.py` | later | gateway agent cache and iteration cap: re-bucket in task 7.1 |
 | `tests/gateway/test_hosted_room_discussion.py` | later | re-bucket when the owning module ports |
-| `tests/gateway/test_hygiene_compaction_keeps_seeded_prompt.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
-| `tests/gateway/test_startup_environment_probe.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
+| `tests/gateway/test_hygiene_compaction_keeps_seeded_prompt.py` | later | compaction rebuild: re-bucket in task 2.4 |
+| `tests/gateway/test_startup_environment_probe.py` | dropped | the environment probe and runtime hints are not ported |
 | `tests/hermes_cli/test_cli_interrupt_subagent.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
-| `tests/hermes_cli/test_prompt_size.py` | later | prompt content: re-bucket in task 2.2c |
+| `tests/hermes_cli/test_prompt_size.py` | dropped | the `hermes prompt-size` diagnostic is not in Stage 1 |
 | `tests/hermes_cli/test_sessions_rest_scaffold_notices.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
 | `tests/tools/test_delegate_child_cache_ttl.py` | later | delegate children's cache TTL: re-bucket in task 3.5 |
 | `tests/tools/test_docker_network_config.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
