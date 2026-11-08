@@ -277,3 +277,80 @@ type Response struct {
 	StopDetails any
 	Usage       Usage
 }
+
+// CloneBlock deep-copies JSON-shaped data (maps, slices and scalars), so a copy never aliases the original.
+func CloneBlock(b Block) Block {
+	if b == nil {
+		return nil
+	}
+	return cloneValue(b).(map[string]any)
+}
+
+// CloneBlocks deep-copies a block list.
+func CloneBlocks(bs []Block) []Block {
+	if bs == nil {
+		return nil
+	}
+	out := make([]Block, len(bs))
+	for i, b := range bs {
+		out[i] = CloneBlock(b)
+	}
+	return out
+}
+
+func cloneValue(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, x := range t {
+			out[k] = cloneValue(x)
+		}
+		return out
+	case []any:
+		out := make([]any, len(t))
+		for i, x := range t {
+			out[i] = cloneValue(x)
+		}
+		return out
+	case []Block:
+		return CloneBlocks(t)
+	}
+	return v
+}
+
+// Clone deep-copies the message so decorating the copy never rewrites the stored transcript.
+func (m Message) Clone() Message {
+	c := m
+	c.ToolCalls = append([]ToolCall(nil), m.ToolCalls...)
+	c.ReasoningDetails = CloneBlocks(m.ReasoningDetails)
+	c.ContentBlocks = CloneBlocks(m.ContentBlocks)
+	c.StashedBlocks = CloneBlocks(m.StashedBlocks)
+	if m.CacheControl != nil {
+		cc := *m.CacheControl
+		c.CacheControl = &cc
+	}
+	if m.ReasoningContent != nil {
+		rc := *m.ReasoningContent
+		c.ReasoningContent = &rc
+	}
+	switch {
+	case m.Content.multimodal != nil:
+		mm := *m.Content.multimodal
+		mm.Parts = CloneBlocks(mm.Parts)
+		c.Content = MultimodalContent(mm)
+	case m.Content.isParts:
+		c.Content = Content{parts: CloneBlocks(m.Content.parts), isParts: true}
+	}
+	return c
+}
+
+// Clone copies the tool definition, including its schema.
+func (t ToolDef) Clone() ToolDef {
+	c := t
+	c.Parameters = CloneBlock(t.Parameters)
+	if t.CacheControl != nil {
+		cc := *t.CacheControl
+		c.CacheControl = &cc
+	}
+	return c
+}
