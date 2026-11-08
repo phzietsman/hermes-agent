@@ -1,0 +1,39 @@
+{
+ "expected_messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "readable but unsigned",
+     "type": "text"
+    },
+    {
+     "text": "a",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": "a",
+   "reasoning_details": [
+    {
+     "thinking": "readable but unsigned",
+     "type": "thinking"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

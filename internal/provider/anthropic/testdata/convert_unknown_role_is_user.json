@@ -1,0 +1,29 @@
+{
+ "expected_messages": [
+  {
+   "content": "treated as user",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "ok",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "treated as user",
+   "role": "developer"
+  },
+  {
+   "content": "ok",
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

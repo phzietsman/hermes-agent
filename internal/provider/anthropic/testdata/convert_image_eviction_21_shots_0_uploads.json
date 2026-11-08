@@ -1,0 +1,1244 @@
+{
+ "expected_messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c0",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c0",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c1",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c1",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c2",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c2",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c3",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c3",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c4",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c4",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c5",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c5",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c6",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c6",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c7",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "[screenshot removed to save context]",
+       "type": "text"
+      }
+     ],
+     "tool_use_id": "c7",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c8",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG8",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c8",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c9",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG9",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c9",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c10",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG10",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c10",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c11",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG11",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c11",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c12",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG12",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c12",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c13",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG13",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c13",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c14",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG14",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c14",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c15",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG15",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c15",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c16",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG16",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c16",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c17",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG17",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c17",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c18",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG18",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c18",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c19",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG19",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c19",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c20",
+     "input": {},
+     "name": "screenshot",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "source": {
+        "data": "IMG20",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c20",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c0",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG0"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s0"
+   },
+   "role": "tool",
+   "tool_call_id": "c0"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c1",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG1"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s1"
+   },
+   "role": "tool",
+   "tool_call_id": "c1"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c2",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG2"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s2"
+   },
+   "role": "tool",
+   "tool_call_id": "c2"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c3",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG3"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s3"
+   },
+   "role": "tool",
+   "tool_call_id": "c3"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c4",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG4"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s4"
+   },
+   "role": "tool",
+   "tool_call_id": "c4"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c5",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG5"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s5"
+   },
+   "role": "tool",
+   "tool_call_id": "c5"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c6",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG6"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s6"
+   },
+   "role": "tool",
+   "tool_call_id": "c6"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c7",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG7"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s7"
+   },
+   "role": "tool",
+   "tool_call_id": "c7"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c8",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG8"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s8"
+   },
+   "role": "tool",
+   "tool_call_id": "c8"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c9",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG9"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s9"
+   },
+   "role": "tool",
+   "tool_call_id": "c9"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c10",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG10"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s10"
+   },
+   "role": "tool",
+   "tool_call_id": "c10"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c11",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG11"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s11"
+   },
+   "role": "tool",
+   "tool_call_id": "c11"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c12",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG12"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s12"
+   },
+   "role": "tool",
+   "tool_call_id": "c12"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c13",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG13"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s13"
+   },
+   "role": "tool",
+   "tool_call_id": "c13"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c14",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG14"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s14"
+   },
+   "role": "tool",
+   "tool_call_id": "c14"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c15",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG15"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s15"
+   },
+   "role": "tool",
+   "tool_call_id": "c15"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c16",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG16"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s16"
+   },
+   "role": "tool",
+   "tool_call_id": "c16"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c17",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG17"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s17"
+   },
+   "role": "tool",
+   "tool_call_id": "c17"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c18",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG18"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s18"
+   },
+   "role": "tool",
+   "tool_call_id": "c18"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c19",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG19"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s19"
+   },
+   "role": "tool",
+   "tool_call_id": "c19"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "screenshot"
+     },
+     "id": "c20",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": {
+    "_multimodal": true,
+    "content": [
+     {
+      "image_url": {
+       "url": "data:image/png;base64,IMG20"
+      },
+      "type": "image_url"
+     }
+    ],
+    "text_summary": "s20"
+   },
+   "role": "tool",
+   "tool_call_id": "c20"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

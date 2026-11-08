@@ -1,0 +1,115 @@
+{
+ "expected": [
+  {
+   "description": "d",
+   "input_schema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "c1"
+  },
+  {
+   "description": "d",
+   "input_schema": {
+    "properties": {
+     "a": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "name": "c2"
+  },
+  {
+   "description": "d",
+   "input_schema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "c3"
+  },
+  {
+   "description": "d",
+   "input_schema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "c4"
+  },
+  {
+   "description": "d",
+   "input_schema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "c5"
+  }
+ ],
+ "tools": [
+  {
+   "function": {
+    "description": "d",
+    "name": "c1",
+    "parameters": {
+     "anyOf": [
+      {
+       "type": "object"
+      },
+      {
+       "type": "string"
+      }
+     ]
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "d",
+    "name": "c2",
+    "parameters": {
+     "oneOf": [
+      {
+       "required": [
+        "a"
+       ]
+      }
+     ],
+     "properties": {
+      "a": {
+       "type": "string"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "d",
+    "name": "c3",
+    "parameters": {
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "d",
+    "name": "c4",
+    "parameters": {}
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "d",
+    "name": "c5",
+    "parameters": null
+   },
+   "type": "function"
+  }
+ ]
+}

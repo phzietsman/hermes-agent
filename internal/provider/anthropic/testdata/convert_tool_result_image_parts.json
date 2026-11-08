@@ -1,0 +1,86 @@
+{
+ "expected_messages": [
+  {
+   "content": "look",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c1",
+     "input": {},
+     "name": "view",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "content": [
+      {
+       "text": "t",
+       "type": "text"
+      },
+      {
+       "source": {
+        "data": "/9j/4AAQ",
+        "media_type": "image/jpeg",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c1",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "look",
+   "role": "user"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "view"
+     },
+     "id": "c1",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "cache_control": {
+    "type": "ephemeral"
+   },
+   "content": [
+    {
+     "text": "t",
+     "type": "text"
+    },
+    {
+     "image_url": {
+      "url": "data:image/jpg;base64,/9j/4AAQ"
+     },
+     "type": "image_url"
+    }
+   ],
+   "role": "tool",
+   "tool_call_id": "c1"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

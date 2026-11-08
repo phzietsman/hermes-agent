@@ -1,0 +1,47 @@
+{
+ "expected_messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "(tool call removed)",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": "never mind",
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "t"
+     },
+     "id": "c1",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": "never mind",
+   "role": "user"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

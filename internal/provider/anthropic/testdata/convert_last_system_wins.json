@@ -1,0 +1,24 @@
+{
+ "expected_messages": [
+  {
+   "content": "hi",
+   "role": "user"
+  }
+ ],
+ "expected_system": "second",
+ "messages": [
+  {
+   "content": "first",
+   "role": "system"
+  },
+  {
+   "content": "second",
+   "role": "system"
+  },
+  {
+   "content": "hi",
+   "role": "user"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

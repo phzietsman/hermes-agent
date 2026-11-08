@@ -1,0 +1,61 @@
+{
+ "expected_messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "a",
+     "type": "text"
+    },
+    {
+     "id": "c1",
+     "input": {},
+     "name": "t",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": "r",
+     "tool_use_id": "c1",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": "a",
+   "role": "assistant",
+   "tool_calls": [
+    {},
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "t"
+     },
+     "id": "c1",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": "r",
+   "role": "tool",
+   "tool_call_id": "c1"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

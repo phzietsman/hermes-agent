@@ -1,0 +1,43 @@
+{
+ "expected_messages": [
+  {
+   "content": [
+    {
+     "text": "hi",
+     "type": "text"
+    },
+    {
+     "text": "(tool result removed)",
+     "type": "text"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "ok",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "hi",
+   "role": "user"
+  },
+  {
+   "content": "stale",
+   "role": "tool",
+   "tool_call_id": "gone"
+  },
+  {
+   "content": "ok",
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

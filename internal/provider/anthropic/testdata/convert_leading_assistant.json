@@ -1,0 +1,38 @@
+{
+ "expected_messages": [
+  {
+   "content": [
+    {
+     "text": "(empty)",
+     "type": "text"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "summary of earlier chat",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": "continue",
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "summary of earlier chat",
+   "role": "assistant"
+  },
+  {
+   "content": "continue",
+   "role": "user"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

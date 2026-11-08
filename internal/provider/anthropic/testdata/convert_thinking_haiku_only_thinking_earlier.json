@@ -1,0 +1,57 @@
+{
+ "expected_messages": [
+  {
+   "content": "q1",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "(thinking elided)",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": "q2",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "a2",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q1",
+   "role": "user"
+  },
+  {
+   "content": null,
+   "reasoning_details": [
+    {
+     "signature": "s1",
+     "thinking": "first",
+     "type": "thinking"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": "q2",
+   "role": "user"
+  },
+  {
+   "content": "a2",
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-haiku-4-5"
+}

@@ -1,0 +1,128 @@
+{
+ "expected": [
+  {
+   "description": "d",
+   "input_schema": {
+    "properties": {
+     "list": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "multi": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "nested": {
+      "properties": {
+       "inner": {
+        "title": "T",
+        "type": "integer"
+       }
+      },
+      "type": "object"
+     },
+     "opt": {
+      "default": "x",
+      "description": "outer",
+      "type": "string"
+     },
+     "ref": {
+      "$ref": "#/$defs/x"
+     }
+    },
+    "type": "object"
+   },
+   "name": "n"
+  }
+ ],
+ "tools": [
+  {
+   "function": {
+    "description": "d",
+    "name": "n",
+    "parameters": {
+     "properties": {
+      "list": {
+       "items": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      "multi": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "nested": {
+       "properties": {
+        "inner": {
+         "oneOf": [
+          {
+           "type": "integer"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "title": "T"
+        }
+       },
+       "type": "object"
+      },
+      "opt": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": "x",
+       "description": "outer"
+      },
+      "ref": {
+       "anyOf": [
+        {
+         "$ref": "#/$defs/x"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": null
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "function"
+  }
+ ]
+}
