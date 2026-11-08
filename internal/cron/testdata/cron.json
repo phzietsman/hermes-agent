@@ -1,0 +1,507 @@
+{
+ "grace": [
+  {
+   "grace": 120,
+   "schedule": "1m"
+  },
+  {
+   "grace": 900,
+   "schedule": "30m"
+  },
+  {
+   "grace": 3600,
+   "schedule": "2h"
+  },
+  {
+   "grace": 7200,
+   "schedule": "1d"
+  },
+  {
+   "grace": 7200,
+   "schedule": "0 9 * * *"
+  },
+  {
+   "grace": 150,
+   "schedule": "*/5 * * * *"
+  },
+  {
+   "grace": 7200,
+   "schedule": "0 9 1 * *"
+  }
+ ],
+ "intervals": [
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "minutes": 1,
+   "next": "2026-06-01T12:01:00-04:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "minutes": 30,
+   "next": "2026-06-01T12:30:00-04:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "minutes": 90,
+   "next": "2026-06-01T13:30:00-04:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "minutes": 1440,
+   "next": "2026-06-02T12:00:00-04:00"
+  }
+ ],
+ "next": [
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "expr": "0 9 * * *",
+   "next": "2026-06-02T09:00:00-04:00"
+  },
+  {
+   "base": "2026-06-01T14:00:00-04:00",
+   "expr": "0 9 * * *",
+   "next": "2026-06-02T09:00:00-04:00"
+  },
+  {
+   "base": "2026-06-01T12:07:00-04:00",
+   "expr": "*/15 * * * *",
+   "next": "2026-06-01T12:15:00-04:00"
+  },
+  {
+   "base": "2026-06-05T14:00:00-04:00",
+   "expr": "0 9 * * MON-FRI",
+   "next": "2026-06-08T09:00:00-04:00"
+  },
+  {
+   "base": "2026-06-06T14:00:00-04:00",
+   "expr": "0 9 * * MON-FRI",
+   "next": "2026-06-08T09:00:00-04:00"
+  },
+  {
+   "base": "2026-03-07T12:00:00-05:00",
+   "expr": "30 2 * * *",
+   "next": "2026-03-08T02:30:00-05:00"
+  },
+  {
+   "base": "2026-11-01T01:45:00-04:00",
+   "expr": "30 1 * * *",
+   "next": "2026-11-02T01:30:00-05:00"
+  },
+  {
+   "base": "2026-11-01T01:45:00-05:00",
+   "expr": "30 1 * * *",
+   "next": "2026-11-02T01:30:00-05:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "expr": "0 9 29 2 *",
+   "next": "2028-02-29T09:00:00-05:00"
+  },
+  {
+   "base": "2026-04-15T12:00:00-04:00",
+   "expr": "0 0 31 * *",
+   "next": "2026-05-31T00:00:00-04:00"
+  },
+  {
+   "base": "2026-06-15T14:00:00-04:00",
+   "expr": "0 9 1,15 * *",
+   "next": "2026-07-01T09:00:00-04:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "expr": "0 12 15 * 1",
+   "next": "2026-06-08T12:00:00-04:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "expr": "5 4 * * sun",
+   "next": "2026-06-07T04:05:00-04:00"
+  },
+  {
+   "base": "2026-06-05T17:50:00-04:00",
+   "expr": "*/20 9-17 * * 1-5",
+   "next": "2026-06-08T09:00:00-04:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00-04:00",
+   "expr": "0 0 * * 7",
+   "next": "2026-06-07T00:00:00-04:00"
+  },
+  {
+   "base": "2026-12-31T23:59:00-05:00",
+   "expr": "59 23 31 12 *",
+   "next": "2027-12-31T23:59:00-05:00"
+  },
+  {
+   "base": "2026-06-01T12:00:00+00:00",
+   "expr": "0 9 * * *",
+   "next": "2026-06-01T09:00:00-04:00"
+  }
+ ],
+ "now": "2026-06-01T12:00:00-04:00",
+ "parse": [
+  {
+   "in": "30m",
+   "out": {
+    "display": "every 30m",
+    "kind": "interval",
+    "minutes": 30
+   }
+  },
+  {
+   "in": "every 30m",
+   "out": {
+    "display": "every 30m",
+    "kind": "interval",
+    "minutes": 30
+   }
+  },
+  {
+   "in": "every 2h",
+   "out": {
+    "display": "every 120m",
+    "kind": "interval",
+    "minutes": 120
+   }
+  },
+  {
+   "in": "every hour",
+   "out": {
+    "display": "every 60m",
+    "kind": "interval",
+    "minutes": 60
+   }
+  },
+  {
+   "in": "every day",
+   "out": {
+    "display": "every 1440m",
+    "kind": "interval",
+    "minutes": 1440
+   }
+  },
+  {
+   "in": "1d",
+   "out": {
+    "display": "every 1440m",
+    "kind": "interval",
+    "minutes": 1440
+   }
+  },
+  {
+   "in": "2 hours",
+   "out": {
+    "display": "every 120m",
+    "kind": "interval",
+    "minutes": 120
+   }
+  },
+  {
+   "in": "hour",
+   "out": {
+    "display": "every 60m",
+    "kind": "interval",
+    "minutes": 60
+   }
+  },
+  {
+   "in": "every 90 minutes",
+   "out": {
+    "display": "every 90m",
+    "kind": "interval",
+    "minutes": 90
+   }
+  },
+  {
+   "in": "45 min",
+   "out": {
+    "display": "every 45m",
+    "kind": "interval",
+    "minutes": 45
+   }
+  },
+  {
+   "in": "every monday 9am",
+   "out": {
+    "display": "every monday 9am",
+    "expr": "0 9 * * 1",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every Monday at 9:30am",
+   "out": {
+    "display": "every Monday at 9:30am",
+    "expr": "30 9 * * 1",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "weekdays at 9am",
+   "out": {
+    "display": "weekdays at 9am",
+    "expr": "0 9 * * 1-5",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every weekday 17:00",
+   "out": {
+    "display": "every weekday 17:00",
+    "expr": "0 17 * * 1-5",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every day at 9am",
+   "out": {
+    "display": "every day at 9am",
+    "expr": "0 9 * * *",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "daily 7",
+   "out": {
+    "display": "daily 7",
+    "expr": "0 7 * * *",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every mon, wed and fri at 6pm",
+   "out": {
+    "display": "every mon, wed and fri at 6pm",
+    "expr": "0 18 * * 1,3,5",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every weekend noon",
+   "out": {
+    "display": "every weekend noon",
+    "expr": "0 12 * * 0,6",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every sat midnight",
+   "out": {
+    "display": "every sat midnight",
+    "expr": "0 0 * * 6",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every sunday 12am",
+   "out": {
+    "display": "every sunday 12am",
+    "expr": "0 0 * * 0",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "every tuesday 12pm",
+   "out": {
+    "display": "every tuesday 12pm",
+    "expr": "0 12 * * 2",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "0 9 * * *",
+   "out": {
+    "display": "0 9 * * *",
+    "expr": "0 9 * * *",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "*/15 * * * *",
+   "out": {
+    "display": "*/15 * * * *",
+    "expr": "*/15 * * * *",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "0 9 * * MON-FRI",
+   "out": {
+    "display": "0 9 * * MON-FRI",
+    "expr": "0 9 * * MON-FRI",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "30 2 1 JAN-MAR *",
+   "out": {
+    "display": "30 2 1 JAN-MAR *",
+    "expr": "30 2 1 JAN-MAR *",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "0 0 29 2 *",
+   "out": {
+    "display": "0 0 29 2 *",
+    "expr": "0 0 29 2 *",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "5 4 * * sun",
+   "out": {
+    "display": "5 4 * * sun",
+    "expr": "5 4 * * sun",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "0 9 1,15 * *",
+   "out": {
+    "display": "0 9 1,15 * *",
+    "expr": "0 9 1,15 * *",
+    "kind": "cron"
+   }
+  },
+  {
+   "in": "in 30m",
+   "out": {
+    "display": "once in 30m",
+    "kind": "once",
+    "run_at": "2026-06-01T12:30:00-04:00"
+   }
+  },
+  {
+   "in": "in 2h",
+   "out": {
+    "display": "once in 2h",
+    "kind": "once",
+    "run_at": "2026-06-01T14:00:00-04:00"
+   }
+  },
+  {
+   "in": "in 1d",
+   "out": {
+    "display": "once in 1d",
+    "kind": "once",
+    "run_at": "2026-06-02T12:00:00-04:00"
+   }
+  },
+  {
+   "in": "2026-06-02T09:00:00",
+   "out": {
+    "display": "once at 2026-06-02 09:00",
+    "kind": "once",
+    "run_at": "2026-06-02T09:00:00-04:00"
+   }
+  },
+  {
+   "in": "2026-06-02T09:00:00Z",
+   "out": {
+    "display": "once at 2026-06-02 09:00",
+    "kind": "once",
+    "run_at": "2026-06-02T09:00:00+00:00"
+   }
+  },
+  {
+   "in": "2026-06-02T09:00:00+02:00",
+   "out": {
+    "display": "once at 2026-06-02 09:00",
+    "kind": "once",
+    "run_at": "2026-06-02T09:00:00+02:00"
+   }
+  },
+  {
+   "in": "2026-06-02",
+   "out": {
+    "display": "once at 2026-06-02 00:00",
+    "kind": "once",
+    "run_at": "2026-06-02T00:00:00-04:00"
+   }
+  },
+  {
+   "in": "",
+   "out": {
+    "error": "Invalid schedule ''. Use:\n  - Interval: '30m', 'every 30m', 'every 2h' (recurring)\n  - One-shot delay: 'in 30m', 'in 2h' (fires once)\n  - Weekly/daily: 'every monday 9am', 'weekdays at 9am' (recurring)\n  - Cron: '0 9 * * *' (cron expression)\n  - Timestamp: '2026-02-03T14:00:00' (one-shot at time)"
+   }
+  },
+  {
+   "in": "tomorrow",
+   "out": {
+    "error": "Invalid schedule 'tomorrow'. Use:\n  - Interval: '30m', 'every 30m', 'every 2h' (recurring)\n  - One-shot delay: 'in 30m', 'in 2h' (fires once)\n  - Weekly/daily: 'every monday 9am', 'weekdays at 9am' (recurring)\n  - Cron: '0 9 * * *' (cron expression)\n  - Timestamp: '2026-02-03T14:00:00' (one-shot at time)"
+   }
+  },
+  {
+   "in": "every",
+   "out": {
+    "error": "Invalid schedule 'every'. Use:\n  - Interval: '30m', 'every 30m', 'every 2h' (recurring)\n  - One-shot delay: 'in 30m', 'in 2h' (fires once)\n  - Weekly/daily: 'every monday 9am', 'weekdays at 9am' (recurring)\n  - Cron: '0 9 * * *' (cron expression)\n  - Timestamp: '2026-02-03T14:00:00' (one-shot at time)"
+   }
+  },
+  {
+   "in": "every blah",
+   "out": {
+    "error": "Invalid duration: 'blah'. Use format like '30m', '2h', '1d', or a bare unit like 'hour' (defaults to 1)."
+   }
+  },
+  {
+   "in": "99 * * * *",
+   "out": {
+    "error": "Invalid cron expression '99 * * * *': [99 * * * *] is not acceptable, out of range"
+   }
+  },
+  {
+   "in": "0 25 * * *",
+   "out": {
+    "error": "Invalid cron expression '0 25 * * *': [0 25 * * *] is not acceptable, out of range"
+   }
+  },
+  {
+   "in": "in",
+   "out": {
+    "error": "Invalid schedule 'in'. Use:\n  - Interval: '30m', 'every 30m', 'every 2h' (recurring)\n  - One-shot delay: 'in 30m', 'in 2h' (fires once)\n  - Weekly/daily: 'every monday 9am', 'weekdays at 9am' (recurring)\n  - Cron: '0 9 * * *' (cron expression)\n  - Timestamp: '2026-02-03T14:00:00' (one-shot at time)"
+   }
+  },
+  {
+   "in": "in banana",
+   "out": {
+    "error": "Invalid duration 'banana' after 'in '. Use e.g. 'in 30m', 'in 2h'."
+   }
+  },
+  {
+   "in": "2026-13-45",
+   "out": {
+    "error": "Invalid timestamp '2026-13-45': month must be in 1..12, not 13"
+   }
+  },
+  {
+   "in": "every monday",
+   "out": {
+    "error": "Invalid duration: 'monday'. Use format like '30m', '2h', '1d', or a bare unit like 'hour' (defaults to 1)."
+   }
+  },
+  {
+   "in": "0 9 * *",
+   "out": {
+    "error": "Invalid schedule '0 9 * *'. Use:\n  - Interval: '30m', 'every 30m', 'every 2h' (recurring)\n  - One-shot delay: 'in 30m', 'in 2h' (fires once)\n  - Weekly/daily: 'every monday 9am', 'weekdays at 9am' (recurring)\n  - Cron: '0 9 * * *' (cron expression)\n  - Timestamp: '2026-02-03T14:00:00' (one-shot at time)"
+   }
+  },
+  {
+   "in": "every 0m",
+   "out": {
+    "display": "every 0m",
+    "kind": "interval",
+    "minutes": 0
+   }
+  },
+  {
+   "in": "0m",
+   "out": {
+    "display": "every 0m",
+    "kind": "interval",
+    "minutes": 0
+   }
+  }
+ ],
+ "tz": "America/Toronto"
+}

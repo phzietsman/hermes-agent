@@ -19,7 +19,7 @@ import (
 // (the Python bug fixed in ce4e7f5417).
 var (
 	blockedToolsets = []string{"delegation", "memory", "cron", "kanban"}
-	blockedTools    = []string{"delegate_task", "clarify", "cronjob", "send_message"}
+	blockedTools    = []string{"delegate_task", "clarify", "cronjob", "cronjob_manage", "send_message"}
 )
 
 // ChildSelection narrows a parent's selection to what a child may use.

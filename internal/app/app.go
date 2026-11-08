@@ -18,6 +18,7 @@ import (
 	"github.com/phzietsman/hermes-agent/internal/agent"
 	"github.com/phzietsman/hermes-agent/internal/approval"
 	"github.com/phzietsman/hermes-agent/internal/config"
+	"github.com/phzietsman/hermes-agent/internal/cron"
 	"github.com/phzietsman/hermes-agent/internal/learning"
 	"github.com/phzietsman/hermes-agent/internal/llm"
 	"github.com/phzietsman/hermes-agent/internal/memory"
@@ -26,6 +27,7 @@ import (
 	"github.com/phzietsman/hermes-agent/internal/session"
 	"github.com/phzietsman/hermes-agent/internal/skills"
 	"github.com/phzietsman/hermes-agent/internal/tools"
+	"github.com/phzietsman/hermes-agent/internal/tools/crontool"
 	"github.com/phzietsman/hermes-agent/internal/tools/delegate"
 	"github.com/phzietsman/hermes-agent/internal/tools/filetools"
 	"github.com/phzietsman/hermes-agent/internal/tools/sessiontools"
@@ -68,6 +70,11 @@ type Runtime struct {
 	// ContextLength is the model window used for compaction thresholds.
 	ContextLength int
 
+	// CronDeliverer sends cron output to chat platforms; the gateway sets it. Nil keeps outputs local.
+	CronDeliverer cron.Deliverer
+
+	cronOnce    sync.Once
+	cron        *CronService
 	longRunning bool
 	loopsMu     sync.Mutex
 	loops       []*learning.Loop
@@ -184,6 +191,7 @@ func (rt *Runtime) registerTools(o Options) {
 	if rt.Memory != nil {
 		memory.RegisterTools(r, rt.Memory)
 	}
+	crontool.Register(r, rt.Cron())
 	delegate.Register(r, rt.childFactory, rt.Config.Int("delegation.max_concurrent_children", delegate.DefaultMaxChildren))
 }
 
@@ -204,6 +212,8 @@ type SessionOptions struct {
 	// UserID scopes memory to this person (gateway sessions); ReadOnly sessions never write memory.
 	UserID   string
 	ReadOnly bool
+	// ChatID and ThreadID say where a platform conversation lives, so scheduled work can be addressed back to it.
+	ChatID, ThreadID string
 	// Selection limits the session's tools (an eval offers only memory and skills). A review fork of the session
 	// gets the same selection, so its tools array matches its parent's.
 	Selection tools.Selection
@@ -271,7 +281,7 @@ func (rt *Runtime) NewSession(ctx context.Context, so SessionOptions) (*Session,
 		return nil, err
 	}
 	box := rt.Registry.Build(so.Selection)
-	runner := &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, CWD: cwd, Gate: rt.Gate,
+	runner := &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, CWD: cwd, Platform: so.Platform, ChatID: so.ChatID, ThreadID: so.ThreadID, Gate: rt.Gate,
 		Approval: approval.Check{SessionID: id, Prompter: so.Prompter}}}
 	var mem *memory.Provider
 	block := ""

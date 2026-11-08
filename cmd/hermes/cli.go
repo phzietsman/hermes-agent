@@ -20,6 +20,7 @@ const usage = `usage: hermes <command> [flags]
 
 commands:
   chat          talk to the agent (interactive, or one question with -q)
+  cron          scheduled jobs: list, add, edit, pause, resume, remove, run, tick, daemon, status
   agent_memory  long-term memory: status, doctor, scopes-init, replay, import
 
 run "hermes <command> -h" for a command's flags.
@@ -37,6 +38,8 @@ func run(ctx context.Context, args []string, io stdio, opts app.Options) int {
 	switch args[0] {
 	case "chat":
 		return chat(ctx, args[1:], io, opts)
+	case "cron":
+		return cronCmd(ctx, args[1:], io, opts)
 	case "agent_memory":
 		return agentMemory(ctx, args[1:], io, opts)
 	}

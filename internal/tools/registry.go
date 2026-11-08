@@ -248,6 +248,9 @@ type CallEnv struct {
 	Home      string
 	SessionID string
 	CWD       string
+	// Platform, ChatID and ThreadID say where the conversation lives (empty for the CLI), so a tool that schedules
+	// work can address its results back to it.
+	Platform, ChatID, ThreadID string
 	// Gate and Approval carry the approval policy and the way to reach a human; nil Gate means no approval layer.
 	Gate     *approval.Gate
 	Approval approval.Check

@@ -1837,192 +1837,192 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/agent/test_curator_backup.py` | | |
-| `tests/agent/test_curator_reports.py` | | |
-| `tests/agent/test_exit_cleanup_interrupt.py` | | |
-| `tests/cron/test_agent_scheduling_gate.py` | | |
-| `tests/cron/test_atomic_paused_creation.py` | | |
-| `tests/cron/test_blueprint_catalog.py` | | |
-| `tests/cron/test_bot_chat_cli_home.py` | | |
-| `tests/cron/test_bot_chat_delivery_child_env.py` | | |
-| `tests/cron/test_bot_chat_own_profile_multiplex_home.py` | | |
-| `tests/cron/test_bot_chat_pending.py` | | |
-| `tests/cron/test_bot_chat_pending_identity.py` | | |
-| `tests/cron/test_bot_chat_timeout_marker.py` | | |
-| `tests/cron/test_bot_chat_warning_replay.py` | | |
-| `tests/cron/test_catchup_policy.py` | | |
-| `tests/cron/test_claim_job_for_fire.py` | | |
-| `tests/cron/test_cleanup_timeout.py` | | |
-| `tests/cron/test_codex_execution_paths.py` | | |
-| `tests/cron/test_compute_next_run_dst.py` | | |
-| `tests/cron/test_compute_next_run_last_run_at.py` | | |
-| `tests/cron/test_context_from_response_extraction.py` | | |
-| `tests/cron/test_continuity_silent_audits.py` | | |
-| `tests/cron/test_cron_bot_chat_delivery.py` | | |
-| `tests/cron/test_cron_context_from.py` | | |
-| `tests/cron/test_cron_delivery_redaction.py` | | |
-| `tests/cron/test_cron_emfile_stall.py` | | |
-| `tests/cron/test_cron_empty_payload.py` | | |
-| `tests/cron/test_cron_execution_identity.py` | | |
-| `tests/cron/test_cron_explicit_empty_toolsets.py` | | |
-| `tests/cron/test_cron_failure_deliver.py` | | |
-| `tests/cron/test_cron_failure_notice_copy.py` | | |
-| `tests/cron/test_cron_failure_summarizer_inactivity.py` | | |
-| `tests/cron/test_cron_home_target_profile_scope.py` | | |
-| `tests/cron/test_cron_import_error_skew_hint.py` | | |
-| `tests/cron/test_cron_inactivity_timeout.py` | | |
-| `tests/cron/test_cron_incidents.py` | | |
-| `tests/cron/test_cron_incidents_resolve.py` | | |
-| `tests/cron/test_cron_kanban_env_isolation.py` | | |
-| `tests/cron/test_cron_live_bot_delivery.py` | | |
-| `tests/cron/test_cron_live_delivery_confirmation.py` | | |
-| `tests/cron/test_cron_mcp_toolset_empty_block.py` | | |
-| `tests/cron/test_cron_memory_contract.py` | | |
-| `tests/cron/test_cron_multiplex_desktop_ticker_scope.py` | | |
-| `tests/cron/test_cron_multiplex_inflight_release.py` | | |
-| `tests/cron/test_cron_multiplex_liveness_and_pools.py` | | |
-| `tests/cron/test_cron_multiplex_profile_route_preflight.py` | | |
-| `tests/cron/test_cron_multiplex_served_profile_parity.py` | | |
-| `tests/cron/test_cron_multiplex_shared_route_delivery.py` | | |
-| `tests/cron/test_cron_multiplex_tick_ownership.py` | | |
-| `tests/cron/test_cron_next_run_profile_timezone.py` | | |
-| `tests/cron/test_cron_no_agent.py` | | |
-| `tests/cron/test_cron_non_push_origin.py` | | |
-| `tests/cron/test_cron_origin_synthetic_thread.py` | | |
-| `tests/cron/test_cron_pinned_job_fallback.py` | | |
-| `tests/cron/test_cron_pre_agent_fallback_notice.py` | | |
-| `tests/cron/test_cron_profile_isolation.py` | | |
-| `tests/cron/test_cron_prompt_injection_skill.py` | | |
-| `tests/cron/test_cron_provider_pin.py` | | |
-| `tests/cron/test_cron_reasoning_effort.py` | | |
-| `tests/cron/test_cron_reconnect_only_rejection.py` | | |
-| `tests/cron/test_cron_relay_delivery_guards.py` | | |
-| `tests/cron/test_cron_relay_dm_origin_user_id.py` | | |
-| `tests/cron/test_cron_relay_run_forward.py` | | |
-| `tests/cron/test_cron_run_metrics.py` | | |
-| `tests/cron/test_cron_script.py` | | |
-| `tests/cron/test_cron_session_workdir.py` | | |
-| `tests/cron/test_cron_thread_seed_dm_keying.py` | | |
-| `tests/cron/test_cron_tick_stale_yield.py` | | |
-| `tests/cron/test_cron_ticker_drift.py` | | |
-| `tests/cron/test_cron_timezone_migration_catchup.py` | | |
-| `tests/cron/test_cron_workdir.py` | | |
-| `tests/cron/test_cronjob_gateway_liveness.py` | | |
-| `tests/cron/test_dead_owner_claim_reclaim.py` | | |
-| `tests/cron/test_delivery_queue.py` | | |
-| `tests/cron/test_delivery_queue_retention_race.py` | | |
-| `tests/cron/test_dispatch_lateness_stamp.py` | | |
-| `tests/cron/test_due_scan_dst_fold.py` | | |
-| `tests/cron/test_due_scan_save_failure.py` | | |
-| `tests/cron/test_due_stale_cron_edit.py` | | |
-| `tests/cron/test_duration_dst.py` | | |
-| `tests/cron/test_estop.py` | | |
-| `tests/cron/test_execution_ledger.py` | | |
-| `tests/cron/test_execution_progress_stamp.py` | | |
-| `tests/cron/test_external_worker_config_hooks.py` | | |
-| `tests/cron/test_external_worker_secret_sources.py` | | |
-| `tests/cron/test_fire_claim_lost_after_delivery.py` | | |
-| `tests/cron/test_idle_tick_config_skip.py` | | |
-| `tests/cron/test_inflight_stale_guard.py` | | |
-| `tests/cron/test_jobs.py` | | |
-| `tests/cron/test_jobs_changed_notify.py` | | |
-| `tests/cron/test_jobs_crossprocess_lock.py` | | |
-| `tests/cron/test_jobs_file_ownership.py` | | |
-| `tests/cron/test_jobs_shrink_merge.py` | | |
-| `tests/cron/test_last_failure_stamp.py` | | |
-| `tests/cron/test_lifecycle_guard_budget.py` | | |
-| `tests/cron/test_lifecycle_guard_heredoc_walk.py` | | |
-| `tests/cron/test_lifecycle_guard_live_db.py` | | |
-| `tests/cron/test_media_delivery_parity.py` | | |
-| `tests/cron/test_media_send_timeout.py` | | |
-| `tests/cron/test_mirror_origin_fallback.py` | | |
-| `tests/cron/test_misfire_backstop_oneshot_grace.py` | | |
-| `tests/cron/test_misfire_catchup.py` | | |
-| `tests/cron/test_missed_window_catchup.py` | | |
-| `tests/cron/test_monitor_kind.py` | | |
-| `tests/cron/test_notepad.py` | | |
-| `tests/cron/test_oneshot_dispatch_failure_run_claim.py` | | |
-| `tests/cron/test_oneshot_grace_due_scan.py` | | |
-| `tests/cron/test_oneshot_guard_warning.py` | | |
-| `tests/cron/test_owner_start_time_drift.py` | | |
-| `tests/cron/test_parallel_pool.py` | | |
-| `tests/cron/test_persisted_error_rearm_legality.py` | | |
-| `tests/cron/test_preflight_config.py` | | |
-| `tests/cron/test_preflight_credential_verdict_names_home.py` | | |
-| `tests/cron/test_preflight_managed_routes.py` | | |
-| `tests/cron/test_quota_hold.py` | | |
-| `tests/cron/test_recurring_persisted_error_recovery.py` | | |
-| `tests/cron/test_recurring_wedge_selfheal.py` | | |
-| `tests/cron/test_registration_ownership.py` | | |
-| `tests/cron/test_relay_fronted_delivery.py` | | |
-| `tests/cron/test_restart_safe_worker.py` | | |
-| `tests/cron/test_restart_safe_worker_death_evidence.py` | | |
-| `tests/cron/test_retirement_dispatch.py` | | |
-| `tests/cron/test_rewrite_skill_refs.py` | | |
-| `tests/cron/test_run_error_diagnostics.py` | | |
-| `tests/cron/test_run_one_job.py` | | |
-| `tests/cron/test_scheduled_occurrence.py` | | |
-| `tests/cron/test_scheduler.py` | | |
-| `tests/cron/test_scheduler_provider.py` | | |
-| `tests/cron/test_scheduler_shutdown_guard.py` | | |
-| `tests/cron/test_script_claim_heartbeat.py` | | |
-| `tests/cron/test_sessiondb_init_hang.py` | | |
-| `tests/cron/test_shutdown_interrupt.py` | | |
-| `tests/cron/test_stale_running_recovery.py` | | |
-| `tests/cron/test_suggestions.py` | | |
-| `tests/cron/test_terminal_job_rearm.py` | | |
-| `tests/cron/test_ticker_startup_survival.py` | | |
-| `tests/cron/test_timezone.py` | | |
-| `tests/cron/test_unreachable_retry.py` | | |
-| `tests/cron/test_usage_audit_logger.py` | | |
-| `tests/cron/test_warning_delivery_policy.py` | | |
-| `tests/cron/test_warning_execution_outcome.py` | | |
-| `tests/cron/test_warning_transport_contract.py` | | |
-| `tests/e2e/core/delivery/test_cron_virtual_clock_soak.py` | | |
-| `tests/gateway/relay/test_explicit_disable.py` | | |
-| `tests/gateway/relay/test_relay_inchannel_continuable.py` | | |
-| `tests/gateway/test_api_server_jobs.py` | | |
-| `tests/gateway/test_cron_delivery_housekeeping.py` | | |
-| `tests/gateway/test_cron_drain_floor.py` | | |
-| `tests/gateway/test_cron_fire_startup_gate.py` | | |
-| `tests/gateway/test_cron_fire_webhook.py` | | |
-| `tests/gateway/test_cron_interrupt_notification.py` | | |
-| `tests/gateway/test_cron_profile_gate.py` | | |
-| `tests/gateway/test_drain_active_work_report.py` | | |
-| `tests/gateway/test_restart_drain.py` | | |
-| `tests/gateway/test_scale_to_zero_dashboard_client.py` | | |
-| `tests/gateway/test_shutdown_kill_off_loop.py` | | |
-| `tests/gateway/test_update_cron_drain.py` | | |
-| `tests/hermes_cli/test_config_guard_surfaces.py` | | |
-| `tests/hermes_cli/test_cron.py` | | |
-| `tests/hermes_cli/test_cron_dashboard_off_loop.py` | | |
-| `tests/hermes_cli/test_cron_delivery_targets_scope.py` | | |
-| `tests/hermes_cli/test_cron_dispatch_visibility.py` | | |
-| `tests/hermes_cli/test_cron_satellite_diagnostics.py` | | |
-| `tests/hermes_cli/test_cron_status_next_run.py` | | |
-| `tests/hermes_cli/test_cron_status_profile_isolation.py` | | |
-| `tests/hermes_cli/test_data_uninstall_holders.py` | | |
-| `tests/hermes_cli/test_desktop_cron_ticker_gateway_standdown.py` | | |
-| `tests/hermes_cli/test_desktop_cron_ticker_profiles.py` | | |
-| `tests/hermes_cli/test_multiplex_host_topology_reporting.py` | | |
-| `tests/hermes_cli/test_sqlite_util_canonical.py` | | |
-| `tests/hermes_cli/test_update_stale_gateway_yield.py` | | |
-| `tests/hermes_cli/test_web_server_cron_profiles.py` | | |
-| `tests/hermes_cli/test_web_server_idle_exit.py` | | |
-| `tests/hermes_cli/test_webhook_cli.py` | | |
-| `tests/hermes_cli/test_worktree_pushed_tier.py` | | |
-| `tests/monitoring/test_cron_health_export.py` | | |
-| `tests/plugins/test_chronos_cron.py` | | |
-| `tests/plugins/test_plugin_automation_blueprints.py` | | |
-| `tests/skills/test_product_price_monitor_skill.py` | | |
-| `tests/skills/test_skill_blueprint_contracts.py` | | |
-| `tests/skills/test_weekly_review_planning_skill.py` | | |
-| `tests/test_atomic_json_writers_unified.py` | | |
-| `tests/tools/test_blueprints.py` | | |
-| `tests/tools/test_cronjob_run_background.py` | | |
-| `tests/tools/test_cronjob_run_immediate.py` | | |
-| `tests/tools/test_cronjob_run_primary_routed.py` | | |
-| `tests/tools/test_send_message_plugin_extensibility.py` | | |
+| `tests/agent/test_curator_backup.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/agent/test_curator_reports.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/agent/test_exit_cleanup_interrupt.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_agent_scheduling_gate.py` | behaviour | app: TestCronRunExecutesAJobInAReadOnlySession... (a cron run is not offered the cron tool); delegate: TestChildSelection... |
+| `tests/cron/test_atomic_paused_creation.py` | behaviour | cron: TestCreateFillsTheRecordLikePython (paused creation), TestPausedAndDisabledJobsDoNotFireButRunNowDoes |
+| `tests/cron/test_blueprint_catalog.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/cron/test_bot_chat_cli_home.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_bot_chat_delivery_child_env.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_bot_chat_own_profile_multiplex_home.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_bot_chat_pending.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_bot_chat_pending_identity.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_bot_chat_timeout_marker.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_bot_chat_warning_replay.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_catchup_policy.py` | behaviour | cron: TestRecurringCatchUpRunsOnceAndSkipHonoursConfig, TestGraceMatchesPython |
+| `tests/cron/test_claim_job_for_fire.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_cleanup_timeout.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_codex_execution_paths.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_compute_next_run_dst.py` | behaviour | cron: TestNextRunMatchesPythonAcrossDST (spring-forward gap, repeated hour, Feb 29, day-of-month OR day-of-week) |
+| `tests/cron/test_compute_next_run_last_run_at.py` | behaviour | cron: TestNextRunMatchesPythonAcrossDST (recurring kinds anchor on the last run) |
+| `tests/cron/test_context_from_response_extraction.py` | behaviour | cron: TestLastOutputIsTheLatestNonSilentResponse |
+| `tests/cron/test_continuity_silent_audits.py` | dropped | cron machinery beyond Stage 1 (see decision G30) |
+| `tests/cron/test_cron_bot_chat_delivery.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_context_from.py` | behaviour | cron: TestLastOutputIsTheLatestNonSilentResponse; app: TestCronRunExecutesAJobInAReadOnlySession... |
+| `tests/cron/test_cron_delivery_redaction.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_emfile_stall.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_cron_empty_payload.py` | behaviour | cron: TestCreateRejections (empty payload; skills-only is valid) |
+| `tests/cron/test_cron_execution_identity.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_explicit_empty_toolsets.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_failure_deliver.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_failure_notice_copy.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_failure_summarizer_inactivity.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_home_target_profile_scope.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_import_error_skew_hint.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_inactivity_timeout.py` | behaviour | app: TestCronInactivityWatchdogStopsAStalledRunButNotAnActiveOne |
+| `tests/cron/test_cron_incidents.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_incidents_resolve.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_kanban_env_isolation.py` | dropped | kanban is not in Stage 1 |
+| `tests/cron/test_cron_live_bot_delivery.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_live_delivery_confirmation.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_mcp_toolset_empty_block.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_memory_contract.py` | behaviour | app: TestCronRunExecutesAJobInAReadOnlySession... (a cron run never writes memory) |
+| `tests/cron/test_cron_multiplex_desktop_ticker_scope.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_multiplex_inflight_release.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_multiplex_liveness_and_pools.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_multiplex_profile_route_preflight.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_multiplex_served_profile_parity.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_multiplex_shared_route_delivery.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_multiplex_tick_ownership.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_next_run_profile_timezone.py` | behaviour | cron: TestNextRunMatchesPythonAcrossDST; app: Runtime.Cron reads the timezone key |
+| `tests/cron/test_cron_no_agent.py` | dropped | script, monitor and no_agent jobs are not in Stage 1 |
+| `tests/cron/test_cron_non_push_origin.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_origin_synthetic_thread.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_pinned_job_fallback.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_pre_agent_fallback_notice.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_profile_isolation.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/cron/test_cron_prompt_injection_skill.py` | behaviour | cron: TestScanPrompt, TestCreateRejections (injection) |
+| `tests/cron/test_cron_provider_pin.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_reasoning_effort.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_reconnect_only_rejection.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_relay_delivery_guards.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_relay_dm_origin_user_id.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_relay_run_forward.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_run_metrics.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_cron_script.py` | dropped | script, monitor and no_agent jobs are not in Stage 1 |
+| `tests/cron/test_cron_session_workdir.py` | behaviour | app: cronRunner passes the job workdir as the session cwd |
+| `tests/cron/test_cron_thread_seed_dm_keying.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_cron_tick_stale_yield.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_cron_ticker_drift.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_cron_timezone_migration_catchup.py` | dropped | timezone-migration repair and delivery housekeeping are not in Stage 1 |
+| `tests/cron/test_cron_workdir.py` | behaviour | cron: TestCreateRejections (workdir must be an absolute existing directory); app: the run uses it as the session cwd |
+| `tests/cron/test_cronjob_gateway_liveness.py` | dropped | cron machinery beyond Stage 1 (see decision G30) |
+| `tests/cron/test_dead_owner_claim_reclaim.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_delivery_queue.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_delivery_queue_retention_race.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_dispatch_lateness_stamp.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_due_scan_dst_fold.py` | behaviour | cron: TestNextRunMatchesPythonAcrossDST (fall-back fold) |
+| `tests/cron/test_due_scan_save_failure.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_due_stale_cron_edit.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_duration_dst.py` | behaviour | cron: TestParseScheduleMatchesPython (durations are elapsed time, added in absolute time) |
+| `tests/cron/test_estop.py` | behaviour | cron: Scheduler.Run stops on context cancellation (TestSchedulerLoopRunsAndStops) |
+| `tests/cron/test_execution_ledger.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_execution_progress_stamp.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_external_worker_config_hooks.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_external_worker_secret_sources.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_fire_claim_lost_after_delivery.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_idle_tick_config_skip.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_inflight_stale_guard.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_jobs.py` | behaviour | cron: TestCreateFillsTheRecordLikePython, TestCreateRejections, TestUpdatePauseResumeRemove, TestStoreKeepsUnknownFieldsAndReadsPythonNulls |
+| `tests/cron/test_jobs_changed_notify.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_jobs_crossprocess_lock.py` | behaviour | cron: TestConcurrentWritersLoseNothing, TestTickLockKeepsTwoProcessesApart |
+| `tests/cron/test_jobs_file_ownership.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_jobs_shrink_merge.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_last_failure_stamp.py` | behaviour | cron: TestFailuresSilenceAndDelivery (status, error text, failure streak) |
+| `tests/cron/test_lifecycle_guard_budget.py` | dropped | the gateway-lifecycle command guard is ported with the gateway (7.x) |
+| `tests/cron/test_lifecycle_guard_heredoc_walk.py` | dropped | the gateway-lifecycle command guard is ported with the gateway (7.x) |
+| `tests/cron/test_lifecycle_guard_live_db.py` | dropped | the gateway-lifecycle command guard is ported with the gateway (7.x) |
+| `tests/cron/test_media_delivery_parity.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_media_send_timeout.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_mirror_origin_fallback.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_misfire_backstop_oneshot_grace.py` | behaviour | cron: TestOneShotRunsThenCompletesAndExpiredOnesAreMissed |
+| `tests/cron/test_misfire_catchup.py` | behaviour | cron: TestRecurringCatchUpRunsOnceAndSkipHonoursConfig |
+| `tests/cron/test_missed_window_catchup.py` | behaviour | cron: TestRecurringCatchUpRunsOnceAndSkipHonoursConfig |
+| `tests/cron/test_monitor_kind.py` | dropped | script, monitor and no_agent jobs are not in Stage 1 |
+| `tests/cron/test_notepad.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/cron/test_oneshot_dispatch_failure_run_claim.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_oneshot_grace_due_scan.py` | behaviour | cron: TestOneShotRunsThenCompletesAndExpiredOnesAreMissed |
+| `tests/cron/test_oneshot_guard_warning.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_owner_start_time_drift.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_parallel_pool.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_persisted_error_rearm_legality.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_preflight_config.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_preflight_credential_verdict_names_home.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_preflight_managed_routes.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_quota_hold.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_recurring_persisted_error_recovery.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_recurring_wedge_selfheal.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_registration_ownership.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_relay_fronted_delivery.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_restart_safe_worker.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_restart_safe_worker_death_evidence.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_retirement_dispatch.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_rewrite_skill_refs.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/cron/test_run_error_diagnostics.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_run_one_job.py` | behaviour | app: TestCronRunExecutesAJobInAReadOnlySession..., TestCronRunFailsCleanlyWhenTheModelFails |
+| `tests/cron/test_scheduled_occurrence.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_scheduler.py` | behaviour | cron: TestTickRunsDueJobsOnceAndAdvancesFirst, TestFailuresSilenceAndDelivery, TestRepeatLimitCompletesTheJob, TestPausedAndDisabledJobs... |
+| `tests/cron/test_scheduler_provider.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_scheduler_shutdown_guard.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_script_claim_heartbeat.py` | dropped | script, monitor and no_agent jobs are not in Stage 1 |
+| `tests/cron/test_sessiondb_init_hang.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_shutdown_interrupt.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_stale_running_recovery.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_suggestions.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/cron/test_terminal_job_rearm.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/cron/test_ticker_startup_survival.py` | behaviour | cron: Scheduler.Run logs a failing tick and carries on (TestSchedulerLoopRunsAndStops) |
+| `tests/cron/test_timezone.py` | behaviour | cron: TestNextRunMatchesPythonAcrossDST (America/Toronto wall clock) |
+| `tests/cron/test_unreachable_retry.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_usage_audit_logger.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/cron/test_warning_delivery_policy.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_warning_execution_outcome.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/cron/test_warning_transport_contract.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/e2e/core/delivery/test_cron_virtual_clock_soak.py` | dropped | cron machinery beyond Stage 1 (see decision G30) |
+| `tests/gateway/relay/test_explicit_disable.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/relay/test_relay_inchannel_continuable.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_api_server_jobs.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_cron_delivery_housekeeping.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_cron_drain_floor.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_cron_fire_startup_gate.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_cron_fire_webhook.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_cron_interrupt_notification.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_cron_profile_gate.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_drain_active_work_report.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_restart_drain.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_scale_to_zero_dashboard_client.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_shutdown_kill_off_loop.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/test_update_cron_drain.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/hermes_cli/test_config_guard_surfaces.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/hermes_cli/test_cron.py` | behaviour | cmd/hermes: TestCronAddListEditPauseResumeRemove, TestCronCLIErrors |
+| `tests/hermes_cli/test_cron_dashboard_off_loop.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/hermes_cli/test_cron_delivery_targets_scope.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/hermes_cli/test_cron_dispatch_visibility.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/hermes_cli/test_cron_satellite_diagnostics.py` | dropped | per-job provider pins, fallbacks, preflight, quota holds, retry ladders and failure copy are not in Stage 1 |
+| `tests/hermes_cli/test_cron_status_next_run.py` | behaviour | cmd/hermes: TestCronStatusReportsAStalledTicker |
+| `tests/hermes_cli/test_cron_status_profile_isolation.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/hermes_cli/test_data_uninstall_holders.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/hermes_cli/test_desktop_cron_ticker_gateway_standdown.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/hermes_cli/test_desktop_cron_ticker_profiles.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/hermes_cli/test_multiplex_host_topology_reporting.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/hermes_cli/test_sqlite_util_canonical.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/hermes_cli/test_update_stale_gateway_yield.py` | dropped | multi-process claim, fence, ledger and crash-recovery machinery is replaced by the tick lock, the advance-before-dispatch rule and the file lock (G30) |
+| `tests/hermes_cli/test_web_server_cron_profiles.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/hermes_cli/test_web_server_idle_exit.py` | dropped | multiplexed profiles are not in Stage 1: one process serves one profile |
+| `tests/hermes_cli/test_webhook_cli.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
+| `tests/hermes_cli/test_worktree_pushed_tier.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/monitoring/test_cron_health_export.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/plugins/test_chronos_cron.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/plugins/test_plugin_automation_blueprints.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/skills/test_product_price_monitor_skill.py` | dropped | script, monitor and no_agent jobs are not in Stage 1 |
+| `tests/skills/test_skill_blueprint_contracts.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/skills/test_weekly_review_planning_skill.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/test_atomic_json_writers_unified.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
+| `tests/tools/test_blueprints.py` | dropped | blueprints, suggestions, notepads and cron skills/plugins are not in Stage 1 |
+| `tests/tools/test_cronjob_run_background.py` | behaviour | crontool: TestCreateListUpdatePauseResumeRemoveRun (run returns at once); app: RunAsync |
+| `tests/tools/test_cronjob_run_immediate.py` | behaviour | cron: TestPausedAndDisabledJobsDoNotFireButRunNowDoes; cmd/hermes: TestCronRunAndTickDriveTheAgent |
+| `tests/tools/test_cronjob_run_primary_routed.py` | dropped | cron machinery beyond Stage 1 (see decision G30) |
+| `tests/tools/test_send_message_plugin_extensibility.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
 
 ### gateway-core (556 files, floor 83.8%)
 
