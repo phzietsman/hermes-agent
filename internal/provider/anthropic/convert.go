@@ -31,7 +31,7 @@ type WireMessage struct {
 
 // MarshalJSON writes role and content.
 func (w WireMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
+	return marshalNoEscape(struct {
 		Role    string `json:"role"`
 		Content any    `json:"content"`
 	}{w.Role, w.content})

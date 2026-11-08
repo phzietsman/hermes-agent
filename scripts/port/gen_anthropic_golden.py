@@ -13,6 +13,8 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
+from agent.anthropic_adapter import build_anthropic_kwargs  # noqa: E402
+from agent.model_metadata import is_anthropic_fast_mode_model  # noqa: E402
 from agent.anthropic_message_convert import (  # noqa: E402
     convert_messages_to_anthropic,
     convert_tools_to_anthropic,
@@ -293,6 +295,86 @@ THINKING_MODELS = [
 ]
 
 
+BUILD_SYSTEM = (
+    "You are Hermes Agent, built by Nous Research. Read the hermes-agent skill, "
+    "see skill_view(name='hermes-agent'), https://hermes-agent.nousresearch.com, NousResearch/hermes-agent, "
+    "~/.hermes/hermes-agent/venv, 'hermes-agent', hermes-agent. Use session_search to recall; "
+    "files live in tools/session_search_tool.py. Hermes agent keeps a memory."
+)
+BUILD_MESSAGES = [
+    {"role": "system", "content": BUILD_SYSTEM},
+    {"role": "user", "content": "hello"},
+    {"role": "assistant", "content": "checking", "tool_calls": [tc("c1", "session_search", '{"q":"x"}'), tc("c2", "read_file", '{"p":"a"}'), tc("c3", "mcp_srv_tool")]},
+    {"role": "tool", "tool_call_id": "c1", "content": "r1"},
+    {"role": "tool", "tool_call_id": "c2", "content": "r2"},
+    {"role": "tool", "tool_call_id": "c3", "content": "r3"},
+    {"role": "user", "content": "thanks"},
+]
+BUILD_TOOLS = [
+    {"type": "function", "function": {"name": n, "description": f"{n}: use session_search and memory wisely", "parameters": {"type": "object", "properties": {"q": {"type": "string"}}}}}
+    for n in ("read_file", "session_search", "memory", "mcp_srv_tool", "mcp__already")
+]
+BUILD_MODELS = [
+    "claude-opus-4-5", "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8", "claude-sonnet-4-6", "claude-sonnet-5-5",
+    "claude-opus-5-5", "claude-fable-5-1", "claude-haiku-4-5", "claude-3-5-sonnet", "claude-sonnet-4.5",
+    "anthropic/claude-opus-4.6", "claude-opus-4-20250514", "claude-3-haiku", "some-other-model", "claude-future-9",
+]
+REASONING = [None, {}, {"enabled": False}, {"enabled": True}, {"effort": "low"}, {"effort": "medium"}, {"effort": "high"},
+             {"effort": "xhigh"}, {"effort": "max"}, {"effort": "minimal"}, {"effort": "ultra"}, {"effort": "bogus"}, {"effort": "HIGH"}]
+
+
+def build_cases():
+    cases = []
+
+    def add(**kw):
+        kw.setdefault("model", "claude-opus-4-5")
+        kw.setdefault("max_tokens", None)
+        kw.setdefault("reasoning", None)
+        kw.setdefault("tool_choice", None)
+        kw.setdefault("oauth", False)
+        kw.setdefault("context_length", None)
+        kw.setdefault("fast", False)
+        kw.setdefault("tools", True)
+        cases.append(kw)
+
+    for m in BUILD_MODELS:
+        for r in REASONING:
+            add(model=m, reasoning=r)
+    for tcz in (None, "auto", "required", "none", "read_file", "session_search", "memory", "mcp_srv_tool", "unknown_tool"):
+        for oauth in (False, True):
+            add(tool_choice=tcz, oauth=oauth)
+    add(tools=False)
+    add(tools=False, oauth=True)
+    for mt in (None, 1000, 0, -5, 50000, 10_000_000):
+        for cl in (None, 8000, 200000, 1):
+            add(max_tokens=mt, context_length=cl)
+    for m in ("claude-opus-4-5", "claude-opus-4-8", "claude-opus-5", "claude-opus-5-5", "claude-opus-5.5", "anthropic/claude-opus-5.5",
+              "claude-opus-4-8-20260601", "claude-opus-4-7", "claude-sonnet-5-5", "claude-opus-4-8:fast"):
+        for oauth in (False, True):
+            add(model=m, fast=True, oauth=oauth)
+    for m in BUILD_MODELS:
+        add(model=m, reasoning={"effort": "high"}, oauth=True, max_tokens=2000)
+    return cases
+
+
+def run_build(c):
+    kw = build_anthropic_kwargs(
+        c["model"], json.loads(json.dumps(BUILD_MESSAGES)), json.loads(json.dumps(BUILD_TOOLS)) if c["tools"] else None,
+        c["max_tokens"], c["reasoning"], tool_choice=c["tool_choice"], is_oauth=c["oauth"],
+        context_length=c["context_length"], fast_mode=c["fast"],
+    )
+    headers = kw.pop("extra_headers", None) or {}
+    body = {**kw, **kw.pop("extra_body", {})}
+    body.pop("extra_body", None)
+    return {"case": c, "expected_body": body, "expected_headers": headers}
+
+
+def fast_cases():
+    names = ["claude-opus-4-8", "claude-opus-5", "claude-opus-5-5", "claude-opus-5.5", "anthropic/claude-opus-5.5", "claude-opus-4-8-20260601",
+             "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-opus-4-8:fast", "claude-opus-4-8-fast", "", "Claude-Opus-5-5", "x/y/claude-opus-5"]
+    return [{"model": n, "want": is_anthropic_fast_mode_model(n)} for n in names]
+
+
 def retire_cases():
     carriers = [[], [1], [1] * 20, [1] * 21, [1] * 30, [1] * 45, [1] * 100, [2] * 15, [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8, 4, 6],
                 [5] * 5, [1] * 10 + [8] * 10]
@@ -319,7 +401,9 @@ def main(outdir: str) -> None:
         "preserves_prior_thinking": [{"model": m, "want": model_preserves_prior_thinking(m)} for m in THINKING_MODELS],
         "image_retire": retire_cases(),
     }, indent=1) + "\n")
-    print(f"wrote {len(cases)} convert, {len(TOOLS)} tools fixtures to {out}")
+    builds = [run_build(c) for c in build_cases()]
+    (out / "build.json").write_text(json.dumps({"messages": BUILD_MESSAGES, "tools": BUILD_TOOLS, "cases": builds, "fast": fast_cases()}, indent=1, sort_keys=True) + "\n")
+    print(f"wrote {len(cases)} convert, {len(TOOLS)} tools, {len(builds)} build fixtures to {out}")
 
 
 if __name__ == "__main__":
