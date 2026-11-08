@@ -251,6 +251,8 @@ type CallEnv struct {
 	// Platform, ChatID and ThreadID say where the conversation lives (empty for the CLI), so a tool that schedules
 	// work can address its results back to it.
 	Platform, ChatID, ThreadID string
+	// Gateway is true in a long-running process (the messaging gateway): commands that would stop it are refused.
+	Gateway bool
 	// Gate and Approval carry the approval policy and the way to reach a human; nil Gate means no approval layer.
 	Gate     *approval.Gate
 	Approval approval.Check

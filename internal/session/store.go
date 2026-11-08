@@ -290,3 +290,13 @@ func (s *Store) RecentSessions(ctx context.Context, limit int, exclude string) (
 // DB exposes the connection pool for stores that keep their own tables in state.db (the review queue). Callers
 // create their own tables and never touch the session tables.
 func (s *Store) DB() *sql.DB { return s.db }
+
+// LatestBySessionKey returns the id of the newest session carrying key (a gateway chat), or "" when none does.
+func (s *Store) LatestBySessionKey(ctx context.Context, key string) (string, error) {
+	var id string
+	err := s.db.QueryRowContext(ctx, `SELECT id FROM sessions WHERE session_key = ? ORDER BY started_at DESC, id DESC LIMIT 1`, key).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return id, err
+}

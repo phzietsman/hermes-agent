@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/phzietsman/hermes-agent/internal/filelock"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/phzietsman/hermes-agent/internal/lifecycle"
 )
 
 const (
@@ -126,7 +129,7 @@ func (s *Store) Edit(fn func(jobs []Job) ([]Job, bool, error)) error {
 		return err
 	}
 	defer lf.Close()
-	unlock, err := flock(lf)
+	unlock, err := filelock.Lock(lf)
 	if err != nil {
 		return err
 	}
@@ -257,6 +260,9 @@ func (s *Store) Create(o CreateOptions) (*Job, error) {
 		return nil, bad("A job needs a prompt, skills, or both: say what the scheduled run should do.")
 	}
 	if msg := ScanPrompt(prompt); msg != "" {
+		return nil, bad("%s", msg)
+	}
+	if msg := lifecycle.Check(prompt); msg != "" {
 		return nil, bad("%s", msg)
 	}
 	var times *int
@@ -427,6 +433,9 @@ func (s *Store) Update(id string, u UpdateOptions) (*Job, error) {
 		now := s.now()
 		if u.Prompt != nil {
 			if msg := ScanPrompt(*u.Prompt); msg != "" {
+				return bad("%s", msg)
+			}
+			if msg := lifecycle.Check(*u.Prompt); msg != "" {
 				return bad("%s", msg)
 			}
 			j.Prompt = strings.TrimSpace(*u.Prompt)

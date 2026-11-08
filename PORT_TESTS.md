@@ -259,7 +259,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_context_cache_switch_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_credential_lifecycle.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_cron_fire_dashboard.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
-| `tests/hermes_cli/test_cron_run_scheduler_ownership.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_cron_run_scheduler_ownership.py` | dropped | gateway and cron ownership guards for multi-process and multi-profile hosts are not in Stage 1 |
 | `tests/hermes_cli/test_cross_profile_kill_refusal.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
 | `tests/hermes_cli/test_custom_provider_context_length.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_custom_provider_extra_headers.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
@@ -301,11 +301,11 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_fleet_matrix_down_state.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_fleet_matrix_self_restart_pending.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_focus_view.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
-| `tests/hermes_cli/test_gateway.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_gateway.py` | behaviour | cmd/hermes: TestGatewayRunServesAPlatformUntilInterrupted, TestGatewayWithoutPlatformsExplainsAndUsageIsShown |
 | `tests/hermes_cli/test_gateway_migrate_multiplex.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
 | `tests/hermes_cli/test_gateway_multiplex_lifecycle.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
 | `tests/hermes_cli/test_gateway_multiplex_status.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
-| `tests/hermes_cli/test_gateway_served_guard_ownership.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_gateway_served_guard_ownership.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
 | `tests/hermes_cli/test_gemini_free_tier_setup_block.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_get_env_value_scope.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_gmi_provider.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
@@ -350,9 +350,9 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_mcp_security.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_mcp_startup.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_mem_trim.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
-| `tests/hermes_cli/test_memory_setup.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
-| `tests/hermes_cli/test_memory_setup_env_denylist.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
-| `tests/hermes_cli/test_memory_status_env_hint.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_memory_setup.py` | dropped | memory setup wizards are not in Stage 1: agent-memory.json and AGENT_MEMORY_API_KEY are written by hand |
+| `tests/hermes_cli/test_memory_setup_env_denylist.py` | dropped | memory setup wizards are not in Stage 1: agent-memory.json and AGENT_MEMORY_API_KEY are written by hand |
+| `tests/hermes_cli/test_memory_status_env_hint.py` | dropped | memory setup wizards are not in Stage 1: agent-memory.json and AGENT_MEMORY_API_KEY are written by hand |
 | `tests/hermes_cli/test_meta_prompt_cache.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_moa_preset_config_warnings.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
 | `tests/hermes_cli/test_moa_preset_deletion.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
@@ -784,12 +784,12 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/gateway/test_wake_delivery.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/hermes_cli/test_backup.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_branch_command.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
-| `tests/hermes_cli/test_chat_c_fail_loudly.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_chat_c_fail_loudly.py` | dropped | CLI surface beyond Stage 1 (chat -c, session listing UX) |
 | `tests/hermes_cli/test_cli_insights_command.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_cli_interrupt_ack_race.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_cli_new_session.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_cli_retry.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
-| `tests/hermes_cli/test_cli_shutdown_memory_messages.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_cli_shutdown_memory_messages.py` | dropped | memory setup wizards are not in Stage 1: agent-memory.json and AGENT_MEMORY_API_KEY are written by hand |
 | `tests/hermes_cli/test_cli_yolo_resume_persistence.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_console_engine.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_dashboard_plugin_routes_secret_scope.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
@@ -842,7 +842,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_single_query_session_finalize.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_status.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_subagent_notification_display.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
-| `tests/hermes_cli/test_ux_messages_chat_sessions.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_ux_messages_chat_sessions.py` | dropped | CLI surface beyond Stage 1 (chat -c, session listing UX) |
 | `tests/hermes_cli/test_web_analytics_corrupt_store.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_web_plugins_catalog.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
 | `tests/hermes_cli/test_web_routers_tools_install_on_enable.py` | dropped | hermes_cli feature outside Stage 1 (sessions browser, repair, export, setup, update, ...) |
@@ -1065,9 +1065,9 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_skill_session_platform_gate.py` | behaviour | ported: skillsindex golden cases session_platform_match, _mismatch and _unknown_fails_open |
 | `tests/agent/test_skill_utils.py` | behaviour | subset: `internal/skills` TestParseFrontmatterBOMMatchesPlain, TestIndexFilesPrunesExcludedAndSupportDirs, TestParseConfigStringList, TestLoadSettingsDisabled. Subprocess-home config vars not ported |
 | `tests/agent/test_skills_auto_load.py` | dropped | skills.auto_load is not ported (decision G17) |
-| `tests/gateway/test_skill_slash_native_boundary.py` | later | gateway skill handling: re-bucket in task 7.1 |
-| `tests/gateway/test_stacked_skill_platform_disabled.py` | later | gateway skill handling: re-bucket in task 7.1 |
-| `tests/gateway/test_unavailable_skill_hint.py` | later | gateway skill handling: re-bucket in task 7.1 |
+| `tests/gateway/test_skill_slash_native_boundary.py` | dropped | skill slash commands are not offered in the gateway in Stage 1 (the CLI has them); skills still load through skill_view |
+| `tests/gateway/test_stacked_skill_platform_disabled.py` | dropped | skill slash commands are not offered in the gateway in Stage 1 (the CLI has them); skills still load through skill_view |
+| `tests/gateway/test_unavailable_skill_hint.py` | dropped | skill slash commands are not offered in the gateway in Stage 1 (the CLI has them); skills still load through skill_view |
 | `tests/hermes_cli/test_banner_skills.py` | dropped | Python CLI banner |
 | `tests/hermes_cli/test_cli_reload_skills.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
 | `tests/hermes_cli/test_cli_secret_capture.py` | later | CLI skill commands, reload, preload or secret capture: re-bucket in task 4.1 (Discord clamp in 7.3) |
@@ -1251,7 +1251,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_tool_batch_segmentation.py` | behaviour | ported: TestToolCallsRunInParallelWhenSafe, TestUnsafeToolsRunSequentially |
 | `tests/agent/test_transcript_decoration_idempotence.py` | behaviour | `internal/agent` TestCachePlanMatchesPython (274 cases from Python's real `build_prompt_cache_plan`: both layouts, idempotent re-planning, no input mutation) (the re-plan half), TestStripCacheControlRestoresStringContent, FuzzPlanInvariants (idempotence) |
 | `tests/agent/test_turn_base_display_anchor.py` | dropped | UI display anchoring, not loop behaviour |
-| `tests/gateway/test_cached_agent_max_iterations.py` | later | gateway agent cache and iteration cap: re-bucket in task 7.1 |
+| `tests/gateway/test_cached_agent_max_iterations.py` | dropped | a chat holds one agent for its session (no cache to evict); the iteration cap is agent.max_turns |
 | `tests/gateway/test_hosted_room_discussion.py` | later | re-bucket when the owning module ports |
 | `tests/gateway/test_hygiene_compaction_keeps_seeded_prompt.py` | dropped | gateway pre-agent hygiene compaction is not ported |
 | `tests/gateway/test_startup_environment_probe.py` | dropped | the environment probe and runtime hints are not ported |
@@ -1482,8 +1482,8 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_token_estimator_shared.py` | behaviour | TestEstimateTokensMatchesPython |
 | `tests/agent/test_tool_call_args_sanitizer.py` | behaviour | internal/agent TestRepairToolArgumentsMatchesPython (50 cases), FuzzRepairToolArguments |
 | `tests/agent/test_turn_context_overflow_warning.py` | dropped | UI warning text |
-| `tests/gateway/test_compaction_heartbeat_gateway_filter.py` | later | gateway progress messages: re-bucket in task 7.x |
-| `tests/gateway/test_compression_progress_notices.py` | later | gateway progress messages: re-bucket in task 7.x |
+| `tests/gateway/test_compaction_heartbeat_gateway_filter.py` | dropped | compaction progress notices are not shown in chat; tool progress lines are (TestToolProgressLinesAreShownWhenEnabled) |
+| `tests/gateway/test_compression_progress_notices.py` | dropped | compaction progress notices are not shown in chat; tool progress lines are (TestToolProgressLinesAreShownWhenEnabled) |
 | `tests/gateway/test_telegram_noise_filter.py` | dropped | gateway status filtering for the Python gateway |
 | `tests/hermes_cli/test_cli_manual_compress.py` | later | manual /compress: re-bucket in task 4.1 |
 | `tests/hermes_cli/test_context_switch_guard.py` | dropped | model switching guard; no mid-session model switch |
@@ -1506,10 +1506,10 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_shell_hooks.py` | dropped | shell hooks are not ported |
 | `tests/cron/test_scheduler_cron_session_isolation.py` | later | cron session isolation: task 6.1 |
 | `tests/gateway/test_api_server_runs.py` | dropped | API server platform is not in Stage 1 |
-| `tests/gateway/test_approval_timeout_notice.py` | later | gateway approval surfaces: task 7.x |
+| `tests/gateway/test_approval_timeout_notice.py` | behaviour | approval: Gate timeout fails closed (TestGate...); the chat prompt is gateway: TestDangerousCommandsAreApprovedInTheChat |
 | `tests/gateway/test_chat_completions_approval.py` | dropped | API server platform is not in Stage 1 |
 | `tests/gateway/test_slack_approval_buttons.py` | dropped | Slack is not a Stage 1 platform |
-| `tests/gateway/test_telegram_approval_buttons.py` | later | Telegram approval buttons: task 7.x (a Prompter implementation) |
+| `tests/gateway/test_telegram_approval_buttons.py` | dropped | approval uses text replies on every platform (once, session, always, deny); inline buttons are not in Stage 1 |
 | `tests/gateway/test_whatsapp_cloud.py` | dropped | WhatsApp is not a Stage 1 platform |
 | `tests/hermes_cli/test_approval_transport.py` | dropped | plugin approval transports are not ported |
 | `tests/hermes_cli/test_approvals_suggest.py` | dropped | CLI approvals suggestion command is not in Stage 1 |
@@ -1523,7 +1523,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_approval_bun_deno_eval.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
 | `tests/tools/test_approval_cancelled_attribution.py` | behaviour | TestPromptFailuresFailClosed: an interrupt is cancelled, not a refusal by the user |
 | `tests/tools/test_approval_deny_rules.py` | behaviour | TestUserDenyRulesBeatYoloAndContainers, TestFnmatchMatchesPython, TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
-| `tests/tools/test_approval_gateway_wait_late_choice.py` | later | gateway round-trip wait: task 7.x |
+| `tests/tools/test_approval_gateway_wait_late_choice.py` | behaviour | gateway: TestDangerousCommandsAreApprovedInTheChat (the answer reaches the blocked turn inline; a late answer after the turn ended is just a message) |
 | `tests/tools/test_approval_grep_in_substitution.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
 | `tests/tools/test_approval_hook_session_id.py` | dropped | approval plugin hooks are not ported |
 | `tests/tools/test_approval_interrupt.py` | behaviour | TestPromptFailuresFailClosed |
@@ -1692,7 +1692,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_file_write_safety.py` | behaviour | TestSensitiveAndCredentialPathsAreRefused, TestReadGuards (guards.go) |
 | `tests/tools/test_file_write_surrogate_roundtrip.py` | dropped | Python surrogateescape handling; Go strings are bytes and JSON input is valid UTF-8 |
 | `tests/tools/test_finite_delegation_outcomes.py` | | |
-| `tests/tools/test_gateway_cwd_contract.py` | later | gateway session working directories: task 7.x |
+| `tests/tools/test_gateway_cwd_contract.py` | dropped | gateway sessions use the process working directory; per-chat working directories are not in Stage 1 |
 | `tests/tools/test_generation_source_confinement.py` | | |
 | `tests/tools/test_image_generation_image_to_image.py` | | |
 | `tests/tools/test_image_source.py` | | |
@@ -1814,7 +1814,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_memory_sync_redaction.py` | behaviour | memory: TestTranscriptIsRememberedOnce... (tool output never leaves the machine; only user/assistant prose is synced) |
 | `tests/agent/test_memory_user_id.py` | behaviour | memory: TestUserIDScopesTheDefaultScopeOnly |
 | `tests/agent/test_streaming_context_scrubber.py` | dropped | Go never streams or stores recalled memory: it joins the request only, so there is nothing to scrub |
-| `tests/gateway/test_memory_flush_on_reset.py` | later | gateway /new and reset flush: re-bucket in task 7.1 (CLI /new calls Session.End) |
+| `tests/gateway/test_memory_flush_on_reset.py` | behaviour | gateway: TestNewStartsAFreshSessionAndRestartResumesTheOldOne, TestShutdownEndsSessionsAndStopsAdapters (the session end flushes memory) |
 | `tests/plugins/memory/agent_memory/test_adapter.py` | behaviour | sam: TestErrorClassification, TestRetryPolicy, TestTransportFailuresAndTimeouts, TestProfileHealthAndOtherCalls, TestRequestShapeAndHeaders, TestLoadSettings, TestBreaker, TestOutbox*, TestReplay*, TestOutageLosesNoWrites, TestProfileCache |
 | `tests/plugins/memory/agent_memory/test_cli.py` | behaviour | cmd/hermes: TestAgentMemoryCommands, TestAgentMemoryUnconfigured |
 | `tests/plugins/memory/agent_memory/test_discovery.py` | dropped | plugin discovery is Python machinery; memory is wired explicitly in app.Open |
@@ -1979,20 +1979,20 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/cron/test_warning_execution_outcome.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
 | `tests/cron/test_warning_transport_contract.py` | dropped | platform delivery routing belongs to the gateway (Telegram and Discord only, 7.1 to 7.3); cron hands text to a Deliverer |
 | `tests/e2e/core/delivery/test_cron_virtual_clock_soak.py` | dropped | cron machinery beyond Stage 1 (see decision G30) |
-| `tests/gateway/relay/test_explicit_disable.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/relay/test_relay_inchannel_continuable.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_api_server_jobs.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_cron_delivery_housekeeping.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_cron_drain_floor.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_cron_fire_startup_gate.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_cron_fire_webhook.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_cron_interrupt_notification.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_cron_profile_gate.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_drain_active_work_report.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_restart_drain.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_scale_to_zero_dashboard_client.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_shutdown_kill_off_loop.py` | later | gateway cron wiring: re-bucket in task 7.1 |
-| `tests/gateway/test_update_cron_drain.py` | later | gateway cron wiring: re-bucket in task 7.1 |
+| `tests/gateway/relay/test_explicit_disable.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/relay/test_relay_inchannel_continuable.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_api_server_jobs.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_cron_delivery_housekeeping.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_cron_drain_floor.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_cron_fire_startup_gate.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_cron_fire_webhook.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_cron_interrupt_notification.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_cron_profile_gate.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_drain_active_work_report.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_restart_drain.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_scale_to_zero_dashboard_client.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_shutdown_kill_off_loop.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
+| `tests/gateway/test_update_cron_drain.py` | dropped | gateway cron plumbing beyond Stage 1: no drain floor, fire webhook, API-server jobs, relay or dashboard clients; the ticker runs in the gateway process and delivers through Deliver (G31) |
 | `tests/hermes_cli/test_config_guard_surfaces.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |
 | `tests/hermes_cli/test_cron.py` | behaviour | cmd/hermes: TestCronAddListEditPauseResumeRemove, TestCronCLIErrors |
 | `tests/hermes_cli/test_cron_dashboard_off_loop.py` | dropped | unrelated to the Go cron: dashboard, update, curator or monitoring machinery |

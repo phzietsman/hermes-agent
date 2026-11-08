@@ -20,6 +20,8 @@ const usage = `usage: hermes <command> [flags]
 
 commands:
   chat          talk to the agent (interactive, or one question with -q)
+  gateway       serve chat platforms and run the cron ticker: hermes gateway run
+  pairing       who may talk to the bot: list, approve, revoke
   cron          scheduled jobs: list, add, edit, pause, resume, remove, run, tick, daemon, status
   agent_memory  long-term memory: status, doctor, scopes-init, replay, import
 
@@ -38,6 +40,10 @@ func run(ctx context.Context, args []string, io stdio, opts app.Options) int {
 	switch args[0] {
 	case "chat":
 		return chat(ctx, args[1:], io, opts)
+	case "gateway":
+		return gatewayCmd(ctx, args[1:], io, opts)
+	case "pairing":
+		return pairingCmd(ctx, args[1:], io)
 	case "cron":
 		return cronCmd(ctx, args[1:], io, opts)
 	case "agent_memory":

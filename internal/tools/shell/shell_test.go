@@ -274,3 +274,18 @@ func TestStdinIsNotInherited(t *testing.T) {
 		t.Fatalf("a command waiting on stdin hung: %v", m)
 	}
 }
+
+func TestGatewayLifecycleCommandsAreRefusedInsideAGatewayOnly(t *testing.T) {
+	in := tools.WithEnv(context.Background(), tools.CallEnv{SessionID: "s", Gateway: true})
+	for _, cmd := range []string{"hermes gateway restart", "pkill -9 python3", "systemctl restart hermes-gateway"} {
+		out, _ := handle(in, tools.Args{"command": cmd})
+		if !strings.Contains(out, "Blocked") || !strings.Contains(out, `"status": "blocked"`) && !strings.Contains(out, "blocked") {
+			t.Errorf("%q ran inside a gateway: %s", cmd, out)
+		}
+	}
+	// The CLI user's own agent may manage the gateway: nothing there is hosted by it.
+	out, _ := handle(tools.WithEnv(context.Background(), tools.CallEnv{SessionID: "s2"}), tools.Args{"command": "echo hermes gateway restart"})
+	if strings.Contains(out, "Blocked") {
+		t.Errorf("a harmless echo was refused outside a gateway: %s", out)
+	}
+}

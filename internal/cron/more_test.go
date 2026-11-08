@@ -189,3 +189,17 @@ func TestEmojiJoinersAndNextRunEdges(t *testing.T) {
 		t.Error("grace falls back to the minimum")
 	}
 }
+
+func TestJobsThatWouldRestartTheGatewayAreRefused(t *testing.T) {
+	f := newFx(t)
+	for _, p := range []string{"every night run hermes gateway restart", "then pkill -9 python3", "systemctl restart hermes-gateway to refresh"} {
+		if _, err := f.store.Create(CreateOptions{Prompt: p, Schedule: "30m"}); err == nil {
+			t.Errorf("created a job from %q", p)
+		}
+	}
+	j := f.create("Check gateway status", "30m")
+	bad := "hermes gateway stop"
+	if _, err := f.store.Update(j.ID, UpdateOptions{Prompt: &bad}); err == nil {
+		t.Error("updated a job into a gateway restart")
+	}
+}

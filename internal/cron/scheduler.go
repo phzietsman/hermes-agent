@@ -3,6 +3,7 @@ package cron
 import (
 	"context"
 	"fmt"
+	"github.com/phzietsman/hermes-agent/internal/filelock"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -117,7 +118,7 @@ func (s *Scheduler) Tick(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	defer lf.Close()
-	unlock, ok := tryFlock(lf)
+	unlock, ok := filelock.TryLock(lf)
 	if !ok {
 		return 0, nil // another process is ticking this store
 	}

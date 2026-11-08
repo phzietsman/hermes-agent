@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/phzietsman/hermes-agent/internal/lifecycle"
 	"github.com/phzietsman/hermes-agent/internal/redact"
 	"github.com/phzietsman/hermes-agent/internal/tools"
 )
@@ -109,6 +110,11 @@ func handle(ctx context.Context, args tools.Args) (string, error) {
 	command := args.String("command", "")
 	if strings.TrimSpace(command) == "" {
 		return errorJSON("command is required", ""), nil
+	}
+	if env.Gateway {
+		if msg := lifecycle.Check(command); msg != "" {
+			return errorJSON(msg, "blocked"), nil
+		}
 	}
 	timeout := args.Int("timeout", defaultTimeout)
 	if timeout < 1 {

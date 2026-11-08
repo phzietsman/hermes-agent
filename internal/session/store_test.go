@@ -256,3 +256,17 @@ func TestRecentSessionsNewestFirstSkipsExcludedAndEmpty(t *testing.T) {
 		t.Errorf("RecentSessions = %v, want [c a]", ids)
 	}
 }
+
+func TestLatestBySessionKey(t *testing.T) {
+	ctx := context.Background()
+	st := open(t)
+	st.CreateSession(ctx, NewSession{ID: "a", Source: "telegram", SessionKey: "telegram:1"})
+	st.CreateSession(ctx, NewSession{ID: "b", Source: "telegram", SessionKey: "telegram:1"})
+	st.CreateSession(ctx, NewSession{ID: "c", Source: "telegram", SessionKey: "telegram:2"})
+	if id, err := st.LatestBySessionKey(ctx, "telegram:1"); err != nil || id != "b" {
+		t.Errorf("%q %v", id, err)
+	}
+	if id, _ := st.LatestBySessionKey(ctx, "nope"); id != "" {
+		t.Errorf("%q", id)
+	}
+}

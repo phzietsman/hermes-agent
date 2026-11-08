@@ -214,6 +214,8 @@ type SessionOptions struct {
 	ReadOnly bool
 	// ChatID and ThreadID say where a platform conversation lives, so scheduled work can be addressed back to it.
 	ChatID, ThreadID string
+	// SessionKey names a gateway conversation (platform, chat, thread); sessions are looked up by it.
+	SessionKey string
 	// Selection limits the session's tools (an eval offers only memory and skills). A review fork of the session
 	// gets the same selection, so its tools array matches its parent's.
 	Selection tools.Selection
@@ -273,7 +275,7 @@ func (rt *Runtime) NewSession(ctx context.Context, so SessionOptions) (*Session,
 	}
 	if _, err := rt.Store.GetSession(ctx, id); errors.Is(err, session.ErrNotFound) {
 		err = rt.Store.CreateSession(ctx, session.NewSession{ID: id, Source: orDefault(so.Source, "cli"), Model: rt.Model, Cwd: cwd,
-			ProfileName: config.ProfileName(rt.Home)})
+			ProfileName: config.ProfileName(rt.Home), SessionKey: so.SessionKey, ChatID: so.ChatID, ThreadID: so.ThreadID, UserID: so.UserID})
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +283,7 @@ func (rt *Runtime) NewSession(ctx context.Context, so SessionOptions) (*Session,
 		return nil, err
 	}
 	box := rt.Registry.Build(so.Selection)
-	runner := &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, CWD: cwd, Platform: so.Platform, ChatID: so.ChatID, ThreadID: so.ThreadID, Gate: rt.Gate,
+	runner := &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, CWD: cwd, Gateway: rt.longRunning, Platform: so.Platform, ChatID: so.ChatID, ThreadID: so.ThreadID, Gate: rt.Gate,
 		Approval: approval.Check{SessionID: id, Prompter: so.Prompter}}}
 	var mem *memory.Provider
 	block := ""
