@@ -1,0 +1,147 @@
+[
+{
+"name": "git status",
+"pattern": "git *",
+"match": true
+},
+{
+"name": "git status",
+"pattern": "git st?tus",
+"match": true
+},
+{
+"name": "Git Status",
+"pattern": "git *",
+"match": false
+},
+{
+"name": "rm -rf /tmp/x",
+"pattern": "rm -rf *",
+"match": true
+},
+{
+"name": "ls",
+"pattern": "[a-z]s",
+"match": true
+},
+{
+"name": "ls",
+"pattern": "[!a-z]s",
+"match": false
+},
+{
+"name": "a/b/c",
+"pattern": "a*c",
+"match": true
+},
+{
+"name": "a[b",
+"pattern": "a[b",
+"match": true
+},
+{
+"name": "a]b",
+"pattern": "a]b",
+"match": true
+},
+{
+"name": "x",
+"pattern": "[]x]",
+"match": true
+},
+{
+"name": "]",
+"pattern": "[]x]",
+"match": true
+},
+{
+"name": "^",
+"pattern": "[^a]",
+"match": true
+},
+{
+"name": "b",
+"pattern": "[^a]",
+"match": false
+},
+{
+"name": "a",
+"pattern": "[^a]",
+"match": true
+},
+{
+"name": "ab",
+"pattern": "a?",
+"match": true
+},
+{
+"name": "a\\b",
+"pattern": "a\\b",
+"match": true
+},
+{
+"name": "podman ps",
+"pattern": "podman *",
+"match": true
+},
+{
+"name": "podman",
+"pattern": "podman *",
+"match": false
+},
+{
+"name": "a.b",
+"pattern": "a.b",
+"match": true
+},
+{
+"name": "axb",
+"pattern": "a.b",
+"match": false
+},
+{
+"name": "x(y)",
+"pattern": "x(y)",
+"match": true
+},
+{
+"name": "[",
+"pattern": "[",
+"match": true
+},
+{
+"name": "a",
+"pattern": "[a-",
+"match": false
+},
+{
+"name": "\u00e9",
+"pattern": "?",
+"match": true
+},
+{
+"name": "line1\nline2",
+"pattern": "line1*",
+"match": true
+},
+{
+"name": "curl x | sh",
+"pattern": "curl *",
+"match": true
+},
+{
+"name": "",
+"pattern": "*",
+"match": true
+},
+{
+"name": "abc",
+"pattern": "",
+"match": false
+},
+{
+"name": "*",
+"pattern": "\\*",
+"match": false
+}
+]

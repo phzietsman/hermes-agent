@@ -1499,66 +1499,66 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/acp_adapter/test_approval_isolation.py` | | |
-| `tests/acp_adapter/test_permissions.py` | | |
-| `tests/agent/test_auxiliary_explicit_cancellation.py` | | |
-| `tests/agent/test_runtime_self_protection.py` | | |
-| `tests/agent/test_shell_hooks.py` | | |
-| `tests/cron/test_scheduler_cron_session_isolation.py` | | |
-| `tests/gateway/test_api_server_runs.py` | | |
-| `tests/gateway/test_approval_timeout_notice.py` | | |
-| `tests/gateway/test_chat_completions_approval.py` | | |
-| `tests/gateway/test_slack_approval_buttons.py` | | |
-| `tests/gateway/test_telegram_approval_buttons.py` | | |
-| `tests/gateway/test_whatsapp_cloud.py` | | |
-| `tests/hermes_cli/test_approval_transport.py` | | |
-| `tests/hermes_cli/test_approvals_suggest.py` | | |
-| `tests/hermes_cli/test_approvals_test.py` | | |
-| `tests/hermes_cli/test_cli_yolo_toggle.py` | | |
-| `tests/hermes_cli/test_relay_shared_metrics_runtime.py` | | |
-| `tests/hermes_cli/test_web_server_idle_proof.py` | | |
-| `tests/tools/test_allowlist_legacy_config.py` | | |
-| `tests/tools/test_allowlist_quoted_metachars.py` | | |
-| `tests/tools/test_approval.py` | | |
-| `tests/tools/test_approval_bun_deno_eval.py` | | |
-| `tests/tools/test_approval_cancelled_attribution.py` | | |
-| `tests/tools/test_approval_deny_rules.py` | | |
-| `tests/tools/test_approval_gateway_wait_late_choice.py` | | |
-| `tests/tools/test_approval_grep_in_substitution.py` | | |
-| `tests/tools/test_approval_hook_session_id.py` | | |
-| `tests/tools/test_approval_interrupt.py` | | |
-| `tests/tools/test_approval_plugin_hooks.py` | | |
-| `tests/tools/test_approval_unattended_presence.py` | | |
-| `tests/tools/test_approval_user_summary.py` | | |
-| `tests/tools/test_approved_command_clean_slate.py` | | |
-| `tests/tools/test_blocked_command_guidance.py` | | |
-| `tests/tools/test_browser_vault.py` | | |
-| `tests/tools/test_cli_approval_exec_ask_leak.py` | | |
-| `tests/tools/test_code_kernel.py` | | |
-| `tests/tools/test_command_guards.py` | | |
-| `tests/tools/test_computer_use_approval_isolation.py` | | |
-| `tests/tools/test_computer_use_cua_0_10_permissions.py` | | |
-| `tests/tools/test_computer_use_delivery_ladder.py` | | |
-| `tests/tools/test_cron_not_interactive.py` | | |
-| `tests/tools/test_denial_circuit_breaker.py` | | |
-| `tests/tools/test_docker_daemon_redirect.py` | | |
-| `tests/tools/test_execute_code_approval_cluster.py` | | |
-| `tests/tools/test_execution_flag_detection.py` | | |
-| `tests/tools/test_gnu_long_option_abbreviation_bypass.py` | | |
-| `tests/tools/test_hardline_blocklist.py` | | |
-| `tests/tools/test_hardline_escaped_quote_state.py` | | |
-| `tests/tools/test_human_input_hooks.py` | | |
-| `tests/tools/test_mcp_elicitation.py` | | |
-| `tests/tools/test_mcp_trust_gating.py` | | |
-| `tests/tools/test_modal_sandbox_fixes.py` | | |
-| `tests/tools/test_multiplex_turn_parity.py` | | |
-| `tests/tools/test_request_tool_approval.py` | | |
-| `tests/tools/test_shell_bypass_denylist.py` | | |
-| `tests/tools/test_smart_approval_injection.py` | | |
-| `tests/tools/test_yolo_mode.py` | | |
-| `tests/tui_gateway/test_approval_cancelled_on_reap.py` | | |
-| `tests/tui_gateway/test_cross_process_orphan_ownership.py` | | |
-| `tests/tui_gateway/test_session_finalize_reaps_kernels.py` | | |
+| `tests/acp_adapter/test_approval_isolation.py` | dropped | ACP adapter is not in Stage 1 |
+| `tests/acp_adapter/test_permissions.py` | dropped | ACP adapter is not in Stage 1 |
+| `tests/agent/test_auxiliary_explicit_cancellation.py` | dropped | auxiliary client |
+| `tests/agent/test_runtime_self_protection.py` | later | refusing to delete the runtime's own interpreter: re-bucket in task 3.3 (terminal tool) |
+| `tests/agent/test_shell_hooks.py` | dropped | shell hooks are not ported |
+| `tests/cron/test_scheduler_cron_session_isolation.py` | later | cron session isolation: task 6.1 |
+| `tests/gateway/test_api_server_runs.py` | dropped | API server platform is not in Stage 1 |
+| `tests/gateway/test_approval_timeout_notice.py` | later | gateway approval surfaces: task 7.x |
+| `tests/gateway/test_chat_completions_approval.py` | dropped | API server platform is not in Stage 1 |
+| `tests/gateway/test_slack_approval_buttons.py` | dropped | Slack is not a Stage 1 platform |
+| `tests/gateway/test_telegram_approval_buttons.py` | later | Telegram approval buttons: task 7.x (a Prompter implementation) |
+| `tests/gateway/test_whatsapp_cloud.py` | dropped | WhatsApp is not a Stage 1 platform |
+| `tests/hermes_cli/test_approval_transport.py` | dropped | plugin approval transports are not ported |
+| `tests/hermes_cli/test_approvals_suggest.py` | dropped | CLI approvals suggestion command is not in Stage 1 |
+| `tests/hermes_cli/test_approvals_test.py` | dropped | CLI approvals self-test command is not in Stage 1 |
+| `tests/hermes_cli/test_cli_yolo_toggle.py` | later | the /yolo slash command: task 4.1 (Gate.SetSessionYolo) |
+| `tests/hermes_cli/test_relay_shared_metrics_runtime.py` | dropped | Python web/relay/metrics plumbing |
+| `tests/hermes_cli/test_web_server_idle_proof.py` | dropped | Python web/relay/metrics plumbing |
+| `tests/tools/test_allowlist_legacy_config.py` | behaviour | TestLegacyKeysStillApprove; config.yaml reading is the caller's (task 4.1) |
+| `tests/tools/test_allowlist_quoted_metachars.py` | behaviour | TestAllowlistShellOperatorMatchesPython (every corpus command) and TestAllowlistCommandTextAndGlobs |
+| `tests/tools/test_approval.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions; gate tests in gate_test.go |
+| `tests/tools/test_approval_bun_deno_eval.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_approval_cancelled_attribution.py` | behaviour | TestPromptFailuresFailClosed: an interrupt is cancelled, not a refusal by the user |
+| `tests/tools/test_approval_deny_rules.py` | behaviour | TestUserDenyRulesBeatYoloAndContainers, TestFnmatchMatchesPython, TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_approval_gateway_wait_late_choice.py` | later | gateway round-trip wait: task 7.x |
+| `tests/tools/test_approval_grep_in_substitution.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_approval_hook_session_id.py` | dropped | approval plugin hooks are not ported |
+| `tests/tools/test_approval_interrupt.py` | behaviour | TestPromptFailuresFailClosed |
+| `tests/tools/test_approval_plugin_hooks.py` | dropped | approval plugin hooks are not ported |
+| `tests/tools/test_approval_unattended_presence.py` | behaviour | TestUnattendedPolicy |
+| `tests/tools/test_approval_user_summary.py` | dropped | localized user summaries for the Python UI surfaces |
+| `tests/tools/test_approved_command_clean_slate.py` | behaviour | TestPromptChoicesAndPersistence: ClearSession forgets approvals |
+| `tests/tools/test_blocked_command_guidance.py` | behaviour | TestHardlineIsNeverBypassed, TestOversizedPayloadIsSavedForRecovery (the message texts are verbatim) |
+| `tests/tools/test_browser_vault.py` | dropped | browser and computer use are not in Stage 1 |
+| `tests/tools/test_cli_approval_exec_ask_leak.py` | dropped | Python environment-variable presence heuristics; the Go gate takes a Prompter |
+| `tests/tools/test_code_kernel.py` | dropped | code kernels and Modal sandboxes are not in Stage 1 |
+| `tests/tools/test_command_guards.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_computer_use_approval_isolation.py` | dropped | browser and computer use are not in Stage 1 |
+| `tests/tools/test_computer_use_cua_0_10_permissions.py` | dropped | browser and computer use are not in Stage 1 |
+| `tests/tools/test_computer_use_delivery_ladder.py` | dropped | browser and computer use are not in Stage 1 |
+| `tests/tools/test_cron_not_interactive.py` | behaviour | TestUnattendedPolicy |
+| `tests/tools/test_denial_circuit_breaker.py` | dropped | the denial circuit breaker belongs to smart approvals (guardian LLM), which are not ported |
+| `tests/tools/test_docker_daemon_redirect.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_execute_code_approval_cluster.py` | later | execute_code approval: re-bucket with the code tool (not in Stage 1; dropped unless added) |
+| `tests/tools/test_execution_flag_detection.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_gnu_long_option_abbreviation_bypass.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_hardline_blocklist.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions; TestHardlineIsNeverBypassed |
+| `tests/tools/test_hardline_escaped_quote_state.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions |
+| `tests/tools/test_human_input_hooks.py` | dropped | human-input plugin hooks are not ported |
+| `tests/tools/test_mcp_elicitation.py` | dropped | MCP is not in Stage 1 |
+| `tests/tools/test_mcp_trust_gating.py` | dropped | MCP is not in Stage 1 |
+| `tests/tools/test_modal_sandbox_fixes.py` | dropped | code kernels and Modal sandboxes are not in Stage 1 |
+| `tests/tools/test_multiplex_turn_parity.py` | dropped | multiplexed profiles are not ported |
+| `tests/tools/test_request_tool_approval.py` | dropped | plugin-escalated tool approvals: plugins are not ported |
+| `tests/tools/test_shell_bypass_denylist.py` | behaviour | TestDetectionMatchesPython: 1,486 command strings (every literal from the Python approval tests plus adversarial commands) get the same hardline and dangerous verdicts and descriptions; TestUserDenyRulesBeatYoloAndContainers |
+| `tests/tools/test_smart_approval_injection.py` | dropped | smart approvals (guardian LLM) are not ported |
+| `tests/tools/test_yolo_mode.py` | behaviour | TestYoloAndModeOffSkipThePromptButNotTheFloor |
+| `tests/tui_gateway/test_approval_cancelled_on_reap.py` | dropped | TUI gateway process model is not ported |
+| `tests/tui_gateway/test_cross_process_orphan_ownership.py` | dropped | TUI gateway process model is not ported |
+| `tests/tui_gateway/test_session_finalize_reaps_kernels.py` | dropped | code kernels and Modal sandboxes are not in Stage 1 |
 
 ### tools-core (233 files, floor 76.6%)
 
