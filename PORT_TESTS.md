@@ -2684,3 +2684,11 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/plugins/platforms/test_bracket_list_allowlists.py` | | |
 | `tests/plugins/test_discord_runtime_failure.py` | | |
 | `tests/tools/test_discord_send_message_caption.py` | | |
+
+### threats (added in task 2.2b1: tools/threat_patterns.py was not in the original module list)
+
+| File | Bucket | Go counterpart / reason |
+|---|---|---|
+| `tests/tools/test_threat_patterns.py` | behaviour | `internal/threats` TestScanMatchesPython, TestFirstThreatMessageMatchesPython (76 corpus cases run through Python's real `scan_for_threats` in all three scopes), TestScopesAreCumulative, TestScanCapsTheScannedText, TestBoundComposesLongRepeats, FuzzScanNeverPanics |
+| `tests/tools/test_translate_execute_context.py` | behaviour | subset: `internal/threats` TestScanMatchesPython translate_execute case. The code-execution translation tool itself is dropped |
+| `tests/tools/test_cron_prompt_injection.py` | later | cron prompt scanning uses `threats.Scan`: re-bucket in task 6.1 |
