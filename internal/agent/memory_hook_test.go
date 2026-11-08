@@ -20,7 +20,9 @@ func (f *fakeMemory) Prefetch(_ context.Context, q string) string {
 	f.prefetch = append(f.prefetch, q)
 	return f.recall
 }
-func (f *fakeMemory) SyncTurn(_ context.Context, u, a string) { f.synced = append(f.synced, [2]string{u, a}) }
+func (f *fakeMemory) SyncTurn(_ context.Context, u, a string) {
+	f.synced = append(f.synced, [2]string{u, a})
+}
 func (f *fakeMemory) PreCompress(_ context.Context, h []llm.Message) {
 	f.pre = append(f.pre, append([]llm.Message(nil), h...))
 }
@@ -111,5 +113,53 @@ func TestPreCompressSeesTheTranscriptBeforeItIsReplaced(t *testing.T) {
 	}
 	if len(mem.pre) != 1 || len(mem.pre[0]) != 2 || contentText(mem.pre[0][0].Content) != "question" {
 		t.Errorf("PreCompress saw %v", mem.pre)
+	}
+}
+
+type fakeLearning struct {
+	iters    [][]string
+	turnEnds int
+	pre      int
+}
+
+func (f *fakeLearning) OnToolIteration(_ string, _ []llm.Message, names []string) {
+	f.iters = append(f.iters, names)
+}
+func (f *fakeLearning) OnTurnEnd(string, []llm.Message)     { f.turnEnds++ }
+func (f *fakeLearning) OnPreCompress(string, []llm.Message) { f.pre++ }
+
+func TestLearningHooksCountToolRoundsTurnsAndCompactions(t *testing.T) {
+	r := newRig(t, use(call("c1", "echo", `{}`), call("c2", "echo", `{"a":1}`)), use(call("c3", "echo", `{}`)),
+		llm.Response{Content: strp("done"), FinishReason: "stop"})
+	l := &fakeLearning{}
+	r.cfg.Learning, r.cfg.Compactor = l, noopCompactor{}
+	r.rebuild()
+	r.turn("go")
+	if len(l.iters) != 2 || len(l.iters[0]) != 2 || l.iters[0][0] != "echo" || len(l.iters[1]) != 1 {
+		t.Errorf("tool rounds seen: %v (the final answer is not an iteration)", l.iters)
+	}
+	if l.turnEnds != 1 {
+		t.Errorf("turn ends %d", l.turnEnds)
+	}
+	if err := r.agent.compress(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if l.pre != 1 {
+		t.Errorf("pre-compress %d", l.pre)
+	}
+}
+
+func TestSeedReplacesTheStoredTranscriptWithoutWritingIt(t *testing.T) {
+	r := newRig(t, llm.Response{Content: strp("reviewed"), FinishReason: "stop"})
+	r.cfg.Seed = []llm.Message{{Role: llm.RoleUser, Content: llm.Text("earlier")}, {Role: llm.RoleAssistant, Content: llm.Text("reply")}}
+	r.rebuild()
+	r.turn("review this")
+	msgs := r.prov.calls[0].Messages
+	if len(msgs) != 4 || contentText(msgs[1].Content) != "earlier" || contentText(msgs[3].Content) != "review this" {
+		t.Errorf("request %v", msgs)
+	}
+	rows := r.rows()
+	if len(rows) != 2 || rows[0].Content != "review this" {
+		t.Errorf("only the fork's own messages are stored: %d rows", len(rows))
 	}
 }

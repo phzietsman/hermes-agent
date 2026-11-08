@@ -286,3 +286,7 @@ func (s *Store) RecentSessions(ctx context.Context, limit int, exclude string) (
 	}
 	return out, nil
 }
+
+// DB exposes the connection pool for stores that keep their own tables in state.db (the review queue). Callers
+// create their own tables and never touch the session tables.
+func (s *Store) DB() *sql.DB { return s.db }

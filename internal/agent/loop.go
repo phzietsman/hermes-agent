@@ -47,6 +47,17 @@ type Memory interface {
 	PreCompress(ctx context.Context, history []llm.Message)
 }
 
+// Learning is the optional learning loop: it counts tool iterations and decides when a background review is due.
+// Its methods only enqueue; they must not block.
+type Learning interface {
+	// OnToolIteration runs after a model call whose tool calls (named in tools) were handled.
+	OnToolIteration(sessionID string, history []llm.Message, tools []string)
+	// OnTurnEnd runs once the response is delivered, whether or not the turn completed.
+	OnTurnEnd(sessionID string, history []llm.Message)
+	// OnPreCompress runs before a compaction replaces the transcript.
+	OnPreCompress(sessionID string, history []llm.Message)
+}
+
 // Events observes a turn. Every field is optional.
 type Events struct {
 	// Text sees streamed assistant text.
@@ -72,9 +83,13 @@ type Config struct {
 	ContextLength int
 	Budget        *IterationBudget
 	Compactor     Compactor
-	// Memory is optional.
-	Memory Memory
-	Events Events
+	// Seed, when set, is the starting transcript instead of the stored one (a review fork replays its parent's
+	// conversation; the seed is not written to the fork's own session).
+	Seed []llm.Message
+	// Memory and Learning are optional.
+	Memory   Memory
+	Learning Learning
+	Events   Events
 	// MaxRetries is how many times a retryable API error is retried (default 3).
 	MaxRetries int
 	Backoff    anthropic.Backoff
@@ -194,6 +209,13 @@ func (a *Agent) begin(ctx context.Context) error {
 	if a.loaded {
 		return nil
 	}
+	if a.cfg.Seed != nil {
+		for _, m := range a.cfg.Seed {
+			a.history = append(a.history, m.Clone())
+		}
+		a.loaded = true
+		return nil
+	}
 	rows, err := a.cfg.Store.Messages(ctx, a.cfg.SessionID, session.ListOptions{})
 	if err != nil {
 		return err
@@ -248,6 +270,7 @@ func (a *Agent) RunTurn(ctx context.Context, userText string) (TurnResult, error
 		return TurnResult{}, ErrTurnInProgress
 	}
 	defer a.mu.Unlock()
+	defer a.turnEnded()
 	if err := a.begin(ctx); err != nil {
 		return TurnResult{}, err
 	}
@@ -289,6 +312,13 @@ func (a *Agent) RunTurn(ctx context.Context, userText string) (TurnResult, error
 			}
 			return *res, nil
 		}
+	}
+}
+
+// turnEnded tells the learning loop the response is delivered.
+func (a *Agent) turnEnded() {
+	if a.cfg.Learning != nil {
+		a.cfg.Learning.OnTurnEnd(a.cfg.SessionID, a.history)
 	}
 }
 
@@ -372,7 +402,15 @@ func (a *Agent) step(ctx context.Context, t *turn) (*TurnResult, error) {
 	}
 	t.outputCap = 0
 	if len(resp.ToolCalls) > 0 {
-		return a.handleToolCalls(ctx, t, resp)
+		res, err := a.handleToolCalls(ctx, t, resp)
+		if err == nil && a.cfg.Learning != nil {
+			names := make([]string, len(resp.ToolCalls))
+			for i, c := range resp.ToolCalls {
+				names[i] = c.Function.Name
+			}
+			a.cfg.Learning.OnToolIteration(a.cfg.SessionID, a.history, names)
+		}
+		return res, err
 	}
 	return a.handleFinal(ctx, t, resp)
 }

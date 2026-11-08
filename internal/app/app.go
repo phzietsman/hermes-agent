@@ -12,11 +12,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/phzietsman/hermes-agent/internal/agent"
 	"github.com/phzietsman/hermes-agent/internal/approval"
 	"github.com/phzietsman/hermes-agent/internal/config"
+	"github.com/phzietsman/hermes-agent/internal/learning"
 	"github.com/phzietsman/hermes-agent/internal/llm"
 	"github.com/phzietsman/hermes-agent/internal/memory"
 	"github.com/phzietsman/hermes-agent/internal/memory/sam"
@@ -46,6 +48,9 @@ type Options struct {
 	Web webtools.Options
 	// SAM replaces the memory HTTP client (tests).
 	SAM *sam.Client
+	// LongRunning is set by processes that outlive a conversation (the gateway, cron): a session end then starts
+	// its review at once, instead of leaving it queued for the next process.
+	LongRunning bool
 }
 
 // Runtime is one profile's running state, shared by every session served from it.
@@ -62,6 +67,11 @@ type Runtime struct {
 	Model  string
 	// ContextLength is the model window used for compaction thresholds.
 	ContextLength int
+
+	longRunning bool
+	queueOnce   sync.Once
+	queue       learning.Queue
+	queueErr    error
 }
 
 // Open loads the profile at home (creating its skeleton), opens the session store and builds the registry and
@@ -79,7 +89,7 @@ func Open(ctx context.Context, home string, o Options) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	rt := &Runtime{Home: home, Config: cfg, Secrets: secrets, Store: store, Registry: tools.NewRegistry()}
+	rt := &Runtime{longRunning: o.LongRunning, Home: home, Config: cfg, Secrets: secrets, Store: store, Registry: tools.NewRegistry()}
 	rt.Model = defaultModel
 	if m := strings.TrimSpace(cfg.String("model", "")); m != "" {
 		rt.Model = anthropic.NormalizeModelName(m)
@@ -193,16 +203,29 @@ type Session struct {
 	Agent *agent.Agent
 	Tools *tools.Toolbox
 	mem   *memory.Provider
+	learn *learningHook
 }
 
 // End records the finished conversation in long-term memory and waits for the writer, so nothing queued is lost
 // when the process exits. It is safe to call without memory.
 func (s *Session) End(ctx context.Context) {
-	if s.mem == nil {
-		return
+	if s.learn != nil {
+		s.learn.loop.OnBoundary(s.ID, learning.TriggerSessionEnd, s.Agent.History(), s.learn.rt.longRunning)
+		if !s.learn.rt.longRunning {
+			s.learn.loop.Close()
+		}
 	}
-	s.mem.EndSession(ctx, s.Agent.History())
-	s.mem.Flush()
+	if s.mem != nil {
+		s.mem.EndSession(ctx, s.Agent.History())
+		s.mem.Flush()
+	}
+}
+
+// Close stops the session's background work (an idle timer, a running review: the queue keeps its job).
+func (s *Session) Close() {
+	if s.learn != nil {
+		s.learn.loop.Close()
+	}
 }
 
 // NewSession starts or resumes a session. The system prompt is built (and stored) on the first turn only.
@@ -237,7 +260,11 @@ func (rt *Runtime) NewSession(ctx context.Context, so SessionOptions) (*Session,
 	if mem != nil {
 		cfg.Memory = mem
 	}
-	return &Session{ID: id, Agent: agent.New(cfg), Tools: box, mem: mem}, nil
+	learn := rt.newLearning(ctx, id, so.ReadOnly)
+	if learn != nil {
+		cfg.Learning = learn
+	}
+	return &Session{ID: id, Agent: agent.New(cfg), Tools: box, mem: mem, learn: learn}, nil
 }
 
 func orDefault(s, def string) string {

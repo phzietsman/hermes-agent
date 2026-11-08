@@ -46,6 +46,7 @@ type Provider struct {
 	// Origin labels memory writes made through the tools.
 	Origin        string
 	writesEnabled bool
+	fork          bool
 	coreText      string
 
 	jobs      chan func()
@@ -75,6 +76,9 @@ type Options struct {
 	ReadOnly bool
 	// Client overrides the HTTP client (tests).
 	Client *sam.Client
+	// Fork marks a background-review fork: its writes carry origin=background_review, and it neither recalls nor
+	// syncs (its turns carry the review harness, not the user's conversation).
+	Fork bool
 }
 
 // New builds the provider, loads the core profile (frozen for the session: a change mid-session would break the
@@ -87,13 +91,16 @@ func New(ctx context.Context, s *sam.Settings, o Options) *Provider {
 	p := &Provider{
 		settings: &settings, client: o.Client, breaker: sam.NewBreaker(settings.BreakerThreshold),
 		outbox: sam.NewOutbox(filepath.Join(o.Home, outboxFile)), cache: sam.ProfileCache{Path: filepath.Join(o.Home, profileFile)},
-		sessionID: o.SessionID, Origin: OriginTool, writesEnabled: !o.ReadOnly, jobs: make(chan func(), 256),
+		sessionID: o.SessionID, Origin: OriginTool, writesEnabled: !o.ReadOnly, fork: o.Fork, jobs: make(chan func(), 256),
 		remembered: map[string]bool{},
 	}
 	if p.client == nil {
 		p.client = settings.Client()
 	} else {
 		p.client.Context, p.client.Endpoint = orStr(p.client.Context, settings.Context), orStr(p.client.Endpoint, settings.Endpoint)
+	}
+	if p.fork {
+		p.Origin = OriginReview
 	}
 	p.coreText = p.loadCoreProfile(ctx)
 	p.wg.Add(1)
@@ -280,7 +287,7 @@ func (p *Provider) ensureRecall(query string) <-chan struct{} {
 // Prefetch never blocks long: it waits up to prefetch_wait_s for this query's recall, else returns the last
 // completed one (the usual case once QueueNext warmed it during the previous turn).
 func (p *Provider) Prefetch(ctx context.Context, query string) string {
-	if !p.active() || strings.TrimSpace(query) == "" || p.settings.RecallMode == sam.RecallTools {
+	if p.fork || !p.active() || strings.TrimSpace(query) == "" || p.settings.RecallMode == sam.RecallTools {
 		return ""
 	}
 	p.mu.Lock()
@@ -363,6 +370,9 @@ func itemsPayload(items []sam.Message) []any {
 
 // SyncTurn queues the finished turn and, every replay_every_n_turns turns, a replay of anything still pending.
 func (p *Provider) SyncTurn(_ context.Context, user, assistant string) {
+	if p.fork {
+		return
+	}
 	items := direct([]sam.Message{{Role: "user", Content: user}, {Role: "assistant", Content: assistant}})
 	if len(items) > 0 {
 		p.write(sam.OpRememberMany, map[string]any{"items": itemsPayload(items), "scopes": p.settings.DefaultScope,
@@ -403,6 +413,9 @@ func transcriptDigest(history []llm.Message) string {
 }
 
 func (p *Provider) rememberTranscript(history []llm.Message) {
+	if p.fork {
+		return
+	}
 	msgs := messagesOf(history)
 	items := direct(msgs)
 	// pre-compress and session end often see the same transcript; the outbox only dedupes while an entry is
@@ -428,7 +441,7 @@ func (p *Provider) PreCompress(_ context.Context, history []llm.Message) {
 // EndSession queues the transcript and, when configured, asks the service to consolidate.
 func (p *Provider) EndSession(_ context.Context, history []llm.Message) {
 	p.rememberTranscript(history)
-	if p.settings.ConsolidateOnEnd && p.writesEnabled {
+	if !p.fork && p.settings.ConsolidateOnEnd && p.writesEnabled {
 		p.enqueue(p.consolidate)
 	}
 }

@@ -60,11 +60,11 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_aux_progress_streaming.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_auxiliary_client_azure_foundry.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_auxiliary_client_ssl_verify.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_background_review_cost_controls.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_background_review_input_budget.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_background_review_tool_call_guard.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_background_review_toolset_restriction.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_background_review_usage.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_cost_controls.py` | dropped | cost controls for a separate review model and token budgets are not ported (the fork uses the parent model; learning.max_iterations bounds it) |
+| `tests/agent/test_background_review_input_budget.py` | dropped | review input budgeting is not ported: the fork replays the whole transcript and compacts like any session |
+| `tests/agent/test_background_review_tool_call_guard.py` | behaviour | app: TestReviewForkSharesTheParentPrefixAndMayOnlySaveAndRead (non-whitelisted calls refused with a message naming the substitute) |
+| `tests/agent/test_background_review_toolset_restriction.py` | behaviour | app: TestReviewForkSharesTheParentPrefixAndMayOnlySaveAndRead (dispatch-side whitelist, identical tools array, no forget, no skill delete) |
+| `tests/agent/test_background_review_usage.py` | dropped | per-review usage accounting is not ported |
 | `tests/agent/test_bitwarden_secrets.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_cache_disabled_on_stubs.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_codex_app_server_integration.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -120,7 +120,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_provider_reset_cooldown.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_reasoning_echo_resolver_e2e.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_relay_session_segments.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_review_engine.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_review_engine.py` | behaviour | learning/app: the loop, queue and fork tests (TestLoop*, TestReviewFork...) |
 | `tests/agent/test_sanitiser_escalation.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_secret_scope.py` | behaviour | subset: `internal/config` TestParseEnv (quotes, escapes, inline comments), TestParseEnvBOMDoesNotMangleFirstKey. Profile-scope and multiplex cases dropped |
 | `tests/agent/test_secret_scope_env_cache.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -676,7 +676,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_860_dedup.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_api_content_row_addressed_backfill.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_async_token_accounting.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_background_review_cache_parity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_cache_parity.py` | behaviour | app: TestReviewForkSharesTheParentPrefixAndMayOnlySaveAndRead (same stored system prompt bytes, same tools array) |
 | `tests/agent/test_codex_app_server_persist.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_codex_app_server_thread_resume.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_codex_echo_ownership.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -1829,9 +1829,9 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/agent/learning/test_agent_host.py` | | |
-| `tests/agent/learning/test_learning_loop.py` | | |
-| `tests/agent/learning/test_loop_wiring.py` | | |
+| `tests/agent/learning/test_agent_host.py` | behaviour | app: TestReviewForkSharesTheParentPrefixAndMayOnlySaveAndRead, TestReadOnlySessionsAndDisabledConfigNeverReview, TestLearningSettingsFromConfig |
+| `tests/agent/learning/test_learning_loop.py` | behaviour | learning: TestQueue*, TestScheduler*, TestRunner*, TestLoop*, TestHostExecutorTimeoutAndMissingTranscript |
+| `tests/agent/learning/test_loop_wiring.py` | behaviour | agent: TestLearningHooksCountToolRoundsTurnsAndCompactions; app: TestSessionEndQueuesAReviewForTheNextProcess |
 
 ### cron (186 files, floor 87.2%)
 

@@ -176,3 +176,12 @@ func CheckAlternation(msgs []llm.Message) error {
 	}
 	return nil
 }
+
+// FromRows converts stored rows to transcript messages.
+func FromRows(rows []session.Message) []llm.Message {
+	out := make([]llm.Message, len(rows))
+	for i, r := range rows {
+		out[i] = fromRow(r)
+	}
+	return out
+}

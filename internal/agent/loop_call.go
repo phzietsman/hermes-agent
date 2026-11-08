@@ -113,6 +113,9 @@ func (a *Agent) compress(ctx context.Context) error {
 	if a.cfg.Memory != nil {
 		a.cfg.Memory.PreCompress(context.WithoutCancel(ctx), before)
 	}
+	if a.cfg.Learning != nil {
+		a.cfg.Learning.OnPreCompress(a.cfg.SessionID, before)
+	}
 	out, err := a.cfg.Compactor.Compress(ctx, before)
 	if err != nil {
 		return err

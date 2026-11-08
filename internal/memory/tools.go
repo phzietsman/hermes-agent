@@ -40,6 +40,27 @@ func NewManager(home string, lookup func(string) (string, bool)) (*Manager, stri
 
 // ForSession returns the session's provider, building it on first use.
 func (m *Manager) ForSession(ctx context.Context, sessionID, userID string, readOnly bool) *Provider {
+	return m.build(ctx, sessionID, Options{UserID: userID, ReadOnly: readOnly})
+}
+
+// ForFork returns the provider of a background-review fork's session: writes labelled background_review, no
+// recall, no transcript sync.
+func (m *Manager) ForFork(ctx context.Context, sessionID string) *Provider {
+	return m.build(ctx, sessionID, Options{Fork: true})
+}
+
+// Drop closes and forgets a session's provider.
+func (m *Manager) Drop(sessionID string) {
+	m.mu.Lock()
+	p := m.byID[sessionID]
+	delete(m.byID, sessionID)
+	m.mu.Unlock()
+	if p != nil {
+		p.Close()
+	}
+}
+
+func (m *Manager) build(ctx context.Context, sessionID string, o Options) *Provider {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if p := m.byID[sessionID]; p != nil {
@@ -50,7 +71,8 @@ func (m *Manager) ForSession(ctx context.Context, sessionID, userID string, read
 		cc := *m.Client
 		c = &cc
 	}
-	p := New(ctx, m.Settings, Options{Home: m.Home, SessionID: sessionID, UserID: userID, ReadOnly: readOnly, Client: c})
+	o.Home, o.SessionID, o.Client = m.Home, sessionID, c
+	p := New(ctx, m.Settings, o)
 	m.byID[sessionID] = p
 	return p
 }
