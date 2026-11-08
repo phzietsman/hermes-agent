@@ -18,6 +18,8 @@ import (
 	"github.com/phzietsman/hermes-agent/internal/approval"
 	"github.com/phzietsman/hermes-agent/internal/config"
 	"github.com/phzietsman/hermes-agent/internal/llm"
+	"github.com/phzietsman/hermes-agent/internal/memory"
+	"github.com/phzietsman/hermes-agent/internal/memory/sam"
 	"github.com/phzietsman/hermes-agent/internal/provider/anthropic"
 	"github.com/phzietsman/hermes-agent/internal/session"
 	"github.com/phzietsman/hermes-agent/internal/skills"
@@ -42,6 +44,8 @@ type Options struct {
 	Provider agent.Provider
 	// Web replaces the web tool options (tests).
 	Web webtools.Options
+	// SAM replaces the memory HTTP client (tests).
+	SAM *sam.Client
 }
 
 // Runtime is one profile's running state, shared by every session served from it.
@@ -53,7 +57,9 @@ type Runtime struct {
 	Registry *tools.Registry
 	Gate     *approval.Gate
 	Provider agent.Provider
-	Model    string
+	// Memory is nil when long-term memory is not configured (no key, or no agent-memory.json).
+	Memory *memory.Manager
+	Model  string
 	// ContextLength is the model window used for compaction thresholds.
 	ContextLength int
 }
@@ -86,12 +92,21 @@ func Open(ctx context.Context, home string, o Options) (*Runtime, error) {
 		}
 	}
 	rt.Gate = rt.newGate()
+	if m, _ := memory.NewManager(home, secrets.Lookup); m != nil {
+		m.Client = o.SAM
+		rt.Memory = m
+	}
 	rt.registerTools(o)
 	return rt, nil
 }
 
 // Close releases the store.
-func (rt *Runtime) Close() error { return rt.Store.Close() }
+func (rt *Runtime) Close() error {
+	if rt.Memory != nil {
+		rt.Memory.Close()
+	}
+	return rt.Store.Close()
+}
 
 func (rt *Runtime) anthropicProvider(ctx context.Context) (agent.Provider, error) {
 	creds := &anthropic.Credentials{
@@ -144,6 +159,9 @@ func (rt *Runtime) registerTools(o Options) {
 		web.APIKey = func() string { return rt.Secrets.Get("TAVILY_API_KEY", "") }
 	}
 	webtools.Register(r, web)
+	if rt.Memory != nil {
+		memory.RegisterTools(r, rt.Memory)
+	}
 	delegate.Register(r, rt.childFactory, rt.Config.Int("delegation.max_concurrent_children", delegate.DefaultMaxChildren))
 }
 
@@ -161,6 +179,9 @@ type SessionOptions struct {
 	Source   string // "cli", "telegram", ...
 	Platform string // the prompt's platform hint key; "" for none
 	CWD      string
+	// UserID scopes memory to this person (gateway sessions); ReadOnly sessions never write memory.
+	UserID   string
+	ReadOnly bool
 	// Prompter answers approval prompts; nil means nobody can answer (the unattended policy applies).
 	Prompter approval.Prompter
 	Events   agent.Events
@@ -171,6 +192,17 @@ type Session struct {
 	ID    string
 	Agent *agent.Agent
 	Tools *tools.Toolbox
+	mem   *memory.Provider
+}
+
+// End records the finished conversation in long-term memory and waits for the writer, so nothing queued is lost
+// when the process exits. It is safe to call without memory.
+func (s *Session) End(ctx context.Context) {
+	if s.mem == nil {
+		return
+	}
+	s.mem.EndSession(ctx, s.Agent.History())
+	s.mem.Flush()
 }
 
 // NewSession starts or resumes a session. The system prompt is built (and stored) on the first turn only.
@@ -195,8 +227,17 @@ func (rt *Runtime) NewSession(ctx context.Context, so SessionOptions) (*Session,
 	box := rt.Registry.Build(tools.Selection{})
 	runner := &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, CWD: cwd, Gate: rt.Gate,
 		Approval: approval.Check{SessionID: id, Prompter: so.Prompter}}}
-	a := agent.New(rt.agentConfig(id, runner, box, so.Platform, cwd, so.Events))
-	return &Session{ID: id, Agent: a, Tools: box}, nil
+	var mem *memory.Provider
+	block := ""
+	if rt.Memory != nil {
+		mem = rt.Memory.ForSession(ctx, id, so.UserID, so.ReadOnly)
+		block = mem.SystemPromptBlock()
+	}
+	cfg := rt.agentConfig(id, runner, box, so.Platform, cwd, block, so.Events)
+	if mem != nil {
+		cfg.Memory = mem
+	}
+	return &Session{ID: id, Agent: agent.New(cfg), Tools: box, mem: mem}, nil
 }
 
 func orDefault(s, def string) string {
@@ -206,7 +247,7 @@ func orDefault(s, def string) string {
 	return def
 }
 
-func (rt *Runtime) agentConfig(id string, runner agent.ToolRunner, box *tools.Toolbox, platform, cwd string, ev agent.Events) agent.Config {
+func (rt *Runtime) agentConfig(id string, runner agent.ToolRunner, box *tools.Toolbox, platform, cwd, memoryBlock string, ev agent.Events) agent.Config {
 	maxTokens := anthropic.MaxOutputTokens(rt.Model)
 	comp := agent.NewCompressor(agent.CompressorConfig{
 		ContextLength: rt.ContextLength, MaxTokens: maxTokens, SessionID: id, Summarize: agent.ProviderSummarizer(rt.Provider),
@@ -219,7 +260,7 @@ func (rt *Runtime) agentConfig(id string, runner agent.ToolRunner, box *tools.To
 			return agent.BuildSystemPromptParts(agent.PromptInput{
 				Home: rt.Home, SessionID: id, RootSessionID: id, SessionStart: time.Now(), Model: rt.Model, Provider: "anthropic",
 				Platform: platform, Tools: box.Names(), Toolsets: box.Toolsets(), CWD: cwd, ContextLength: rt.ContextLength,
-				SkillsIndex: agent.SkillsIndexOptions{Settings: rt.skillSettings(rt.Home), Filter: skills.HostFilter()},
+				MemoryBlock: memoryBlock, SkillsIndex: agent.SkillsIndexOptions{Settings: rt.skillSettings(rt.Home), Filter: skills.HostFilter()},
 			})
 		},
 	}
@@ -238,7 +279,7 @@ func (rt *Runtime) childFactory(ctx context.Context, parent, system string) (*ag
 	// A child's file and shell calls are gated like its parent's, but nobody can answer a prompt for it: the
 	// unattended policy (deny by default) applies.
 	runner := &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, Gate: rt.Gate, Approval: approval.Check{SessionID: id}}}
-	cfg := rt.agentConfig(id, runner, box, "", "", agent.Events{})
+	cfg := rt.agentConfig(id, runner, box, "", "", "", agent.Events{})
 	cfg.Budget = agent.NewIterationBudget(rt.Config.Int("delegation.max_iterations", 50))
 	cfg.Prompt = func() agent.PromptParts { return agent.PromptParts{Stable: system} }
 	return agent.New(cfg), nil

@@ -21,7 +21,7 @@ const contextOverflowText = "The conversation no longer fits the model's context
 // replays without preserved thinking. Anything else ends the turn as a failure with a plain explanation.
 func (a *Agent) callModel(ctx context.Context, t *turn) (llm.Response, error) {
 	for attempt := 1; ; attempt++ {
-		msgs := a.withSystem(outbound(a.history, t.stripThinking))
+		msgs := a.withSystem(withRecall(outbound(a.history, t.stripThinking), t))
 		resp, err := a.cfg.Provider.Complete(ctx, CallInput{Messages: msgs, Tools: a.tools(), MaxTokens: a.maxTokens(t), StaticPrefix: a.static}, a.cfg.Events.Text)
 		if err == nil {
 			return resp, nil
@@ -110,6 +110,9 @@ func (a *Agent) compressForRetry(ctx context.Context, t *turn, ce anthropic.Clas
 // rebuilt here and only here, because the cached prefix is being rewritten anyway.
 func (a *Agent) compress(ctx context.Context) error {
 	before := append([]llm.Message(nil), a.history...)
+	if a.cfg.Memory != nil {
+		a.cfg.Memory.PreCompress(context.WithoutCancel(ctx), before)
+	}
 	out, err := a.cfg.Compactor.Compress(ctx, before)
 	if err != nil {
 		return err
@@ -195,4 +198,22 @@ func ProviderSummarizer(p Provider) func(ctx context.Context, prompt string) (st
 		}
 		return deref(resp.Content), nil
 	}
+}
+
+// withRecall adds the turn's recalled memory to this turn's user message in a request-local copy. The same text is
+// added on every call of the turn, so the bytes the provider caches stay stable within it.
+func withRecall(msgs []llm.Message, t *turn) []llm.Message {
+	if t.recall == "" {
+		return msgs
+	}
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if msgs[i].Role == llm.RoleUser && contentText(msgs[i].Content) == t.userText {
+			m := msgs[i].Clone()
+			m.Content = llm.Text(t.userText + "\n\n" + t.recall)
+			out := append([]llm.Message(nil), msgs...)
+			out[i] = m
+			return out
+		}
+	}
+	return msgs
 }

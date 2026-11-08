@@ -1802,28 +1802,28 @@ Extra status `later`: the file was assigned to this group by import counting but
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/agent/test_api_content_sidecar.py` | | |
-| `tests/agent/test_credits_cold_start.py` | | |
-| `tests/agent/test_memory_async_sync.py` | | |
-| `tests/agent/test_memory_boundary_commit.py` | | |
-| `tests/agent/test_memory_context_dedupe.py` | | |
-| `tests/agent/test_memory_provider.py` | | |
-| `tests/agent/test_memory_recall_indicator.py` | | |
-| `tests/agent/test_memory_session_switch.py` | | |
-| `tests/agent/test_memory_skill_scaffolding.py` | | |
-| `tests/agent/test_memory_sync_redaction.py` | | |
-| `tests/agent/test_memory_user_id.py` | | |
-| `tests/agent/test_streaming_context_scrubber.py` | | |
-| `tests/gateway/test_memory_flush_on_reset.py` | | |
+| `tests/agent/test_api_content_sidecar.py` | dropped | the api_content sidecar belongs to the gateway/provider message cache; Go keeps the column (session.Message.APIContent) with no sidecar logic |
+| `tests/agent/test_credits_cold_start.py` | dropped | provider credit display is not in Stage 1 |
+| `tests/agent/test_memory_async_sync.py` | behaviour | memory: TestSyncTurnDeliversThroughTheOutbox, TestPeriodicReplayRunsEveryNTurns, TestWritesSurviveAnOutageAndReplayOnTheNextSession |
+| `tests/agent/test_memory_boundary_commit.py` | behaviour | memory: TestTranscriptIsRememberedOnceAcrossPreCompressAndSessionEnd; agent: TestPreCompressSeesTheTranscriptBeforeItIsReplaced |
+| `tests/agent/test_memory_context_dedupe.py` | behaviour | agent: TestRecallJoinsTheUserMessageOfEveryCallInTheTurnButIsNeverStored (recall is request-local, never stored, so it cannot duplicate) |
+| `tests/agent/test_memory_provider.py` | behaviour | memory: TestToolsRecallRememberForgetReflect, TestPrefetchModes, TestCoreProfileIsFrozen...; agent: TestNoRecallLeavesTheRequestAlone |
+| `tests/agent/test_memory_recall_indicator.py` | dropped | recall indicator is a TUI/gateway display feature |
+| `tests/agent/test_memory_session_switch.py` | dropped | a Go provider is built per session (app.NewSession); there is no provider-level session switch |
+| `tests/agent/test_memory_skill_scaffolding.py` | dropped | builtin MEMORY.md scaffolding is replaced by the importer |
+| `tests/agent/test_memory_sync_redaction.py` | behaviour | memory: TestTranscriptIsRememberedOnce... (tool output never leaves the machine; only user/assistant prose is synced) |
+| `tests/agent/test_memory_user_id.py` | behaviour | memory: TestUserIDScopesTheDefaultScopeOnly |
+| `tests/agent/test_streaming_context_scrubber.py` | dropped | Go never streams or stores recalled memory: it joins the request only, so there is nothing to scrub |
+| `tests/gateway/test_memory_flush_on_reset.py` | later | gateway /new and reset flush: re-bucket in task 7.1 (CLI /new calls Session.End) |
 | `tests/plugins/memory/agent_memory/test_adapter.py` | behaviour | sam: TestErrorClassification, TestRetryPolicy, TestTransportFailuresAndTimeouts, TestProfileHealthAndOtherCalls, TestRequestShapeAndHeaders, TestLoadSettings, TestBreaker, TestOutbox*, TestReplay*, TestOutageLosesNoWrites, TestProfileCache |
-| `tests/plugins/memory/agent_memory/test_cli.py` | | |
-| `tests/plugins/memory/agent_memory/test_discovery.py` | | |
-| `tests/plugins/memory/agent_memory/test_importer.py` | | |
+| `tests/plugins/memory/agent_memory/test_cli.py` | behaviour | cmd/hermes: TestAgentMemoryCommands, TestAgentMemoryUnconfigured |
+| `tests/plugins/memory/agent_memory/test_discovery.py` | dropped | plugin discovery is Python machinery; memory is wired explicitly in app.Open |
+| `tests/plugins/memory/agent_memory/test_importer.py` | behaviour | memory: TestImportMemoryFilesIsIdempotentAndResumable, TestImportSessionsBackfillsOnceAndSkipsToolRows |
 | `tests/plugins/memory/agent_memory/test_live.py` | behaviour | sam/live_test.go (build tag `live`): TestLiveWhoamiHealthProfile, read-only |
-| `tests/plugins/memory/agent_memory/test_provider.py` | | |
-| `tests/plugins/memory/agent_memory/test_skills_bridge.py` | | |
-| `tests/plugins/memory/test_multiplex_memory_identity_scope.py` | | |
-| `tests/plugins/memory/test_provider_threads_inherit_profile.py` | | |
+| `tests/plugins/memory/agent_memory/test_provider.py` | behaviour | memory: provider and tool tests (TestPrefetch*, TestSyncTurn*, TestReadOnlySessionsNeverWrite, TestToolsFailureModes); cmd/hermes: TestChatUsesMemoryEndToEnd |
+| `tests/plugins/memory/agent_memory/test_skills_bridge.py` | dropped | skill pointers in memory are not ported in Stage 1 (decision G27) |
+| `tests/plugins/memory/test_multiplex_memory_identity_scope.py` | dropped | multiplexed profiles are not in Stage 1 |
+| `tests/plugins/memory/test_provider_threads_inherit_profile.py` | dropped | Python thread/profile context inheritance; Go passes the home explicitly |
 
 ### learning (3 files, floor 82.3%)
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/phzietsman/hermes-agent/internal/app"
 	"github.com/phzietsman/hermes-agent/internal/config"
+	"github.com/phzietsman/hermes-agent/internal/session"
 )
 
 type stdio struct {
@@ -18,7 +19,8 @@ type stdio struct {
 const usage = `usage: hermes <command> [flags]
 
 commands:
-  chat      talk to the agent (interactive, or one question with -q)
+  chat          talk to the agent (interactive, or one question with -q)
+  agent_memory  long-term memory: status, doctor, scopes-init, replay, import
 
 run "hermes <command> -h" for a command's flags.
 `
@@ -35,6 +37,8 @@ func run(ctx context.Context, args []string, io stdio, opts app.Options) int {
 	switch args[0] {
 	case "chat":
 		return chat(ctx, args[1:], io, opts)
+	case "agent_memory":
+		return agentMemory(ctx, args[1:], io, opts)
 	}
 	fmt.Fprintf(io.err, "hermes: unknown command %q\n\n%s", args[0], usage)
 	return 2
@@ -58,3 +62,5 @@ func fatal(w io.Writer, err error) int {
 	fmt.Fprintf(w, "hermes: %v\n", err)
 	return 1
 }
+
+func openStore(home string) (*session.Store, error) { return session.Open(home) }

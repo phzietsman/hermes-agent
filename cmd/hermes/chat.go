@@ -48,6 +48,7 @@ func chat(ctx context.Context, args []string, io stdio, opts app.Options) int {
 	if err := c.start(ctx, *resume); err != nil {
 		return fatal(io.err, err)
 	}
+	defer func() { c.sess.End(context.WithoutCancel(ctx)) }()
 	if *query != "" {
 		if !c.turn(ctx, *query) {
 			return 1
@@ -185,6 +186,7 @@ func (c *cli) slash(ctx context.Context, line string) bool {
 	case "help":
 		fmt.Fprint(c.io.err, chatHelp)
 	case "new":
+		c.sess.End(context.WithoutCancel(ctx))
 		if err := c.start(ctx, ""); err != nil {
 			fmt.Fprintf(c.io.err, "hermes: %v\n", err)
 			return false

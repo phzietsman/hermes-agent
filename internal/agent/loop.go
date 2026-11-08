@@ -35,6 +35,18 @@ type Compactor interface {
 	Compress(ctx context.Context, history []llm.Message) ([]llm.Message, error)
 }
 
+// Memory is the optional long-term memory the loop consults. Every method must return quickly: they run on the
+// turn's critical path (Prefetch) or right after it.
+type Memory interface {
+	// Prefetch returns recalled text for this turn's user message, or "". The text joins that one message in the
+	// request only; it is never stored, so the stored transcript (and every cached prefix before it) is untouched.
+	Prefetch(ctx context.Context, query string) string
+	// SyncTurn records a finished turn.
+	SyncTurn(ctx context.Context, user, assistant string)
+	// PreCompress sees the transcript about to be compacted, so nothing is lost to the summary.
+	PreCompress(ctx context.Context, history []llm.Message)
+}
+
 // Events observes a turn. Every field is optional.
 type Events struct {
 	// Text sees streamed assistant text.
@@ -60,7 +72,9 @@ type Config struct {
 	ContextLength int
 	Budget        *IterationBudget
 	Compactor     Compactor
-	Events        Events
+	// Memory is optional.
+	Memory Memory
+	Events Events
 	// MaxRetries is how many times a retryable API error is retried (default 3).
 	MaxRetries int
 	Backoff    anthropic.Backoff
@@ -158,6 +172,8 @@ type turn struct {
 	stripThinking    bool // a rejected thinking signature: replay without preserved thinking
 	lastPromptTokens int
 	authRetried      bool
+	userText         string
+	recall           string // Prefetch's text for this turn: joins the user message in every request of the turn
 }
 
 func (a *Agent) begin(ctx context.Context) error {
@@ -239,7 +255,10 @@ func (a *Agent) RunTurn(ctx context.Context, userText string) (TurnResult, error
 	if err := a.closeTail(ctx, ""); err != nil {
 		return TurnResult{}, err
 	}
-	t := &turn{}
+	t := &turn{userText: userText}
+	if a.cfg.Memory != nil {
+		t.recall = a.cfg.Memory.Prefetch(ctx, userText)
+	}
 	if err := a.add(ctx, llm.Message{Role: llm.RoleUser, Content: llm.Text(userText)}, "", "", true); err != nil {
 		return TurnResult{}, err
 	}
@@ -265,6 +284,9 @@ func (a *Agent) RunTurn(ctx context.Context, userText string) (TurnResult, error
 		}
 		if res != nil {
 			res.APICalls, res.Usage = t.result.APICalls, t.result.Usage
+			if res.Completed && a.cfg.Memory != nil {
+				a.cfg.Memory.SyncTurn(context.WithoutCancel(ctx), userText, res.FinalResponse)
+			}
 			return *res, nil
 		}
 	}

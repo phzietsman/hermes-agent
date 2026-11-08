@@ -9,7 +9,9 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-from plugins.memory.agent_memory.client import Profile, _entry_text  # noqa: E402
+from plugins.memory.agent_memory.client import Hit, Profile, Recall, _entry_text  # noqa: E402
+from plugins.memory.agent_memory.provider import AgentMemoryProvider  # noqa: E402
+from plugins.memory.agent_memory.transcript import transcript_digest  # noqa: E402
 from plugins.memory.agent_memory.core_profile import format_profile  # noqa: E402
 from plugins.memory.agent_memory.outbox import entry_id_for  # noqa: E402
 
@@ -42,6 +44,23 @@ FLAT = [
 ]
 
 
+HITS = [
+    ([], 4000),
+    ([("a", "likes tea", 0.9123)], 4000),
+    ([("a", "Skill 'deploy': ship it", 0.5), ("b", "plain", 0.25), ("c", "Skill 'deploy': again", 0.2), ("d", "Skill 'lint': x", 0.1)], 4000),
+    ([("a", "  padded  ", 1.0)], 4000),
+    ([("a", "x" * 300, 0.5)], 100),
+    ([("a", "日本語 " * 40, 0.123456)], 60),
+    ([("a", "line\nbreak", 0.0)], 4000),
+]
+DIGESTS = [
+    [],
+    [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "yo"}],
+    [{"role": "assistant", "content": None}, {"role": "tool", "content": "r"}],
+    [{"role": "user", "content": "日本語 😀"}],
+]
+
+
 def main(outdir):
     out = pathlib.Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
@@ -49,6 +68,9 @@ def main(outdir):
         "entry_ids": [{"op": op, "payload": p, "id": entry_id_for(op, p)} for op, p in ENTRIES],
         "profiles": [{"instructions": list(p.instructions), "preferences": list(p.preferences), "static": list(p.static),
                       "max": m, "out": format_profile(p, m)} for p, m in PROFILES],
+        "hits": [{"hits": [{"id": i, "text": t, "score": sc} for i, t, sc in h], "limit": lim,
+                  "out": AgentMemoryProvider._format_hits(Recall(tuple(Hit(i, t, sc) for i, t, sc in h)), lim)} for h, lim in HITS],
+        "digests": [{"messages": m, "digest": transcript_digest(m)} for m in DIGESTS],
         "flat": [{"entry": e, "text": _entry_text(e)} for e in FLAT],
     }
     (out / "sam.json").write_text(json.dumps(data, indent=1, ensure_ascii=False, sort_keys=True) + "\n")
