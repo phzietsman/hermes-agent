@@ -2,11 +2,15 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"os"
+	"os/signal"
+
+	"github.com/phzietsman/hermes-agent/internal/app"
 )
 
 func main() {
-	fmt.Fprintln(os.Stderr, "hermes: not implemented yet")
-	os.Exit(1)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	os.Exit(run(ctx, os.Args[1:], stdio{in: os.Stdin, out: os.Stdout, err: os.Stderr}, app.Options{}))
 }
