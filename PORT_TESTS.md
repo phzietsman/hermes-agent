@@ -1242,8 +1242,8 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_prompt_cache_ttl_auto.py` | behaviour | `internal/agent` TestTTLPolicy (auto resolves to 5m for machine-paced sources, 1h for human-paced; effective TTL clamp). Provider-specific clamps for Qwen/Alibaba are dropped |
 | `tests/agent/test_prompt_caching.py` | behaviour | subset: `internal/agent` TestCachePlanMatchesPython (274 cases from Python's real `build_prompt_cache_plan`: both layouts, idempotent re-planning, no input mutation), TestPlanNeverExceedsFourBreakpoints, TestCacheMarkersShareOneTTL, FuzzPlanInvariants. Envelope/OpenRouter/LiteLLM layouts are dropped |
 | `tests/agent/test_protected_tail_pressure.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
-| `tests/agent/test_skill_app_snapshot.py` | later | prompt content: re-bucket in task 2.2b3 |
-| `tests/agent/test_skills_guidance_content_filter.py` | later | prompt content: re-bucket in task 2.2b3 |
+| `tests/agent/test_skill_app_snapshot.py` | dropped | the disk snapshot and prompt cache are not ported (the index is built once per session); the apps gate is covered by the requires_apps_hides golden |
+| `tests/agent/test_skills_guidance_content_filter.py` | later | SKILLS_GUIDANCE block: re-bucket in task 2.2c |
 | `tests/agent/test_soul_md_profile_isolation.py` | behaviour | ported: LoadSoulMD reads Home only (Home is explicit, no env fallback); contextfiles_test.go |
 | `tests/agent/test_subdirectory_hints.py` | later | subdirectory hints land with the turn loop (2.3) |
 | `tests/agent/test_system_prompt.py` | later | system-prompt assembly, platform hints, restore and rebuild: re-bucket in task 2.2c (compaction rebuild also 2.4) |
