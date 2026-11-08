@@ -11,6 +11,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"github.com/phzietsman/hermes-agent/internal/approval"
 	"github.com/phzietsman/hermes-agent/internal/llm"
 )
 
@@ -221,6 +222,13 @@ func limitResult(s string, limit int) string {
 	if n <= limit {
 		return s
 	}
+	if json.Valid([]byte(s)) {
+		// Cutting JSON in the middle would hand the model a broken document, so say it was too large instead.
+		r := []rune(s)
+		return Error(fmt.Sprintf("The tool result was %d characters, over the %d-character limit, and was not delivered. "+
+			"Narrow the request (a smaller range, a tighter query). The start of it follows in preview.", n, limit),
+			Field{Key: "preview", Value: string(r[:min(len(r), 2000)])})
+	}
 	marker := fmt.Sprintf("\n\n[... %d of %d characters omitted by the tool-result limit ...]\n\n", n-limit, n)
 	r := []rune(s)
 	head := limit * 7 / 10
@@ -232,9 +240,14 @@ type envKey struct{}
 
 // CallEnv is what a handler may need beyond its arguments.
 type CallEnv struct {
+	// Home is the profile home (credential stores, caches); SessionID keys per-session tool state; CWD is the
+	// session's working directory for relative paths.
 	Home      string
 	SessionID string
 	CWD       string
+	// Gate and Approval carry the approval policy and the way to reach a human; nil Gate means no approval layer.
+	Gate     *approval.Gate
+	Approval approval.Check
 }
 
 // WithEnv attaches per-call facts to ctx.

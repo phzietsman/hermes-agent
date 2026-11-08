@@ -63,3 +63,18 @@ func FuzzText(f *testing.F) {
 		}
 	})
 }
+
+func TestTokensLeavesAssignmentsAlone(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"token = compute(x)", "token = compute(x)"},
+		{"API_KEY=abc123", "API_KEY=abc123"},
+		{`{"api_key": "zzzz1111aaaa2222"}`, `{"api_key": "zzzz1111aaaa2222"}`},
+		{"ghp_abcdefghij1234567890 in prose", Mask + " in prose"},
+		{"Authorization: Bearer abc123def456ghi789", "Authorization: Bearer " + Mask},
+		{"postgres://admin:s3cr3tpw@db/app", "postgres://" + Mask + "@db/app"},
+	} {
+		if got := Tokens(c.in); got != c.want {
+			t.Errorf("Tokens(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}

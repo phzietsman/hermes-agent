@@ -71,7 +71,15 @@ var secretHeaderNames = []string{"x-api-key", "api-key", "x-auth-token", "x-acce
 
 // Text redacts every credential it recognises in s. Each pattern is guarded by a cheap substring test, so text
 // that cannot contain that kind of secret (most of it) costs a few memchr passes, not a regex scan.
-func Text(s string) string {
+func Text(s string) string { return redact(s, true) }
+
+// Tokens redacts credentials that identify themselves (provider key prefixes, authorization headers, private
+// keys, JWTs, credentials in URLs and connection strings) but leaves KEY=value assignments and JSON secret
+// fields alone. Use it for source code and command output, where "token = compute()" is not a secret; use Text for
+// dumps whose lines are KEY=value pairs (env, printenv).
+func Tokens(s string) string { return redact(s, false) }
+
+func redact(s string, assignments bool) string {
 	if s == "" {
 		return s
 	}
@@ -89,11 +97,13 @@ func Text(s string) string {
 	if strings.Contains(lower, ":") && containsAny(lower, secretHeaderNames) {
 		s = secretHdrRe.ReplaceAllString(s, "${1}"+Mask)
 	}
-	if strings.Contains(s, `"`) && strings.Contains(s, ":") {
+	if assignments && strings.Contains(s, `"`) && strings.Contains(s, ":") {
 		s = jsonFieldRe.ReplaceAllString(s, `${1}${2}"`+Mask+`"`)
 	}
 	if strings.Contains(s, "=") {
-		s = envAssignRe.ReplaceAllStringFunc(s, redactAssignment)
+		if assignments {
+			s = envAssignRe.ReplaceAllStringFunc(s, redactAssignment)
+		}
 		if strings.ContainsAny(s, "?&") {
 			s = urlSecretRe.ReplaceAllString(s, "${1}"+Mask)
 		}

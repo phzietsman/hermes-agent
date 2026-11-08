@@ -1572,14 +1572,14 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_agent_guardrails.py` | | |
 | `tests/agent/test_codex_runtime_prompt_handoff.py` | | |
 | `tests/agent/test_display_emoji.py` | | |
-| `tests/agent/test_file_safety_credentials.py` | | |
-| `tests/agent/test_file_safety_session_state.py` | | |
+| `tests/agent/test_file_safety_credentials.py` | behaviour | TestSensitiveAndCredentialPathsAreRefused, TestReadGuards (guards.go) |
+| `tests/agent/test_file_safety_session_state.py` | dropped | Python session-scoped file-safety state and in-place persistence |
 | `tests/agent/test_inline_edit_persistence.py` | | |
 | `tests/agent/test_interrupt_compat.py` | | |
 | `tests/agent/test_relay_cwd.py` | | |
 | `tests/agent/test_subagent_progress.py` | | |
 | `tests/agent/test_subagent_stop_hook.py` | | |
-| `tests/agent/test_terminal_approval_batch.py` | | |
+| `tests/agent/test_terminal_approval_batch.py` | dropped | smart approvals, batched guards and sudo prompts are not ported |
 | `tests/agent/test_token_persistence_non_cli.py` | | |
 | `tests/agent/test_tool_guardrails.py` | | |
 | `tests/agent/test_turn_user_intervened.py` | | |
@@ -1618,18 +1618,18 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_accretion_caps.py` | | |
 | `tests/tools/test_annotate_preview_tool.py` | | |
 | `tests/tools/test_apply_layout_tool.py` | | |
-| `tests/tools/test_approval_outcome_parity.py` | | |
+| `tests/tools/test_approval_outcome_parity.py` | dropped | smart approvals, batched guards and sudo prompts are not ported |
 | `tests/tools/test_async_delegation.py` | | |
-| `tests/tools/test_binary_document_write_guard.py` | | |
+| `tests/tools/test_binary_document_write_guard.py` | dropped | document-format write guard is not ported |
 | `tests/tools/test_bot_mode_dm.py` | | |
 | `tests/tools/test_browser_extension_router.py` | | |
 | `tests/tools/test_browser_extension_router_wiring.py` | | |
 | `tests/tools/test_browser_secret_exfil.py` | | |
 | `tests/tools/test_budget_config.py` | dropped | per-model result budgets: one default limit (DefaultMaxResultChars) bounds a result |
 | `tests/tools/test_clarify_tool.py` | | |
-| `tests/tools/test_code_execution.py` | | |
-| `tests/tools/test_code_execution_file_rpc.py` | | |
-| `tests/tools/test_code_execution_modes.py` | | |
+| `tests/tools/test_code_execution.py` | dropped | execute_code is not in Stage 1 |
+| `tests/tools/test_code_execution_file_rpc.py` | dropped | execute_code is not in Stage 1 |
+| `tests/tools/test_code_execution_modes.py` | dropped | execute_code is not in Stage 1 |
 | `tests/tools/test_computer_use_native_platform.py` | | |
 | `tests/tools/test_config_null_guard.py` | | |
 | `tests/tools/test_connector_bridge_wiring.py` | | |
@@ -1637,7 +1637,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_connector_session_scope.py` | | |
 | `tests/tools/test_connectors_mcp.py` | | |
 | `tests/tools/test_connectors_tool.py` | | |
-| `tests/tools/test_container_cwd_sanitize.py` | | |
+| `tests/tools/test_container_cwd_sanitize.py` | dropped | remote and container terminal backends are not in Stage 1 |
 | `tests/tools/test_cron_prompt_injection.py` | | |
 | `tests/tools/test_cronjob_run_delivery_notice.py` | | |
 | `tests/tools/test_cronjob_tools.py` | | |
@@ -1667,42 +1667,42 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_delegate_timeout_cleanup.py` | | |
 | `tests/tools/test_delegate_toolset_scope.py` | later | delegation: task 3.5 |
 | `tests/tools/test_delegation_live_log.py` | | |
-| `tests/tools/test_docker_environment.py` | | |
-| `tests/tools/test_docker_mounted_host_session_cwd.py` | | |
-| `tests/tools/test_docker_orphan_reaper_integration.py` | | |
-| `tests/tools/test_docker_session_isolation.py` | | |
-| `tests/tools/test_docker_teardown_drain.py` | | |
-| `tests/tools/test_ensure_task_env.py` | | |
-| `tests/tools/test_execute_code_lifecycle_guard_deadline.py` | | |
-| `tests/tools/test_execute_helper_contract.py` | | |
-| `tests/tools/test_file_operations.py` | | |
-| `tests/tools/test_file_operations_delete.py` | | |
-| `tests/tools/test_file_operations_edge_cases.py` | | |
-| `tests/tools/test_file_ops_cwd_tracking.py` | | |
-| `tests/tools/test_file_ops_env_not_ready.py` | | |
-| `tests/tools/test_file_ops_single_roundtrip.py` | | |
-| `tests/tools/test_file_staleness.py` | | |
+| `tests/tools/test_docker_environment.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_docker_mounted_host_session_cwd.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_docker_orphan_reaper_integration.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_docker_session_isolation.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_docker_teardown_drain.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_ensure_task_env.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_execute_code_lifecycle_guard_deadline.py` | dropped | execute_code is not in Stage 1 |
+| `tests/tools/test_execute_helper_contract.py` | dropped | execute_code is not in Stage 1 |
+| `tests/tools/test_file_operations.py` | behaviour | internal/tools/filetools: TestReadFileMatchesPython (25 reads against Python's read_file), TestPatchReplaceMatchesPython (18), TestV4AMatchesPython (31 patches) and tools_test.go |
+| `tests/tools/test_file_operations_delete.py` | behaviour | V4A delete and move cases in TestV4AMatchesPython |
+| `tests/tools/test_file_operations_edge_cases.py` | behaviour | internal/tools/filetools: TestReadFileMatchesPython (25 reads against Python's read_file), TestPatchReplaceMatchesPython (18), TestV4AMatchesPython (31 patches) and tools_test.go |
+| `tests/tools/test_file_ops_cwd_tracking.py` | behaviour | resolve(): session cwd for relative paths, ~ expansion (every filetools test runs through it) |
+| `tests/tools/test_file_ops_env_not_ready.py` | dropped | shell and container backends for file operations; Go reads the local filesystem |
+| `tests/tools/test_file_ops_single_roundtrip.py` | dropped | shell and container backends for file operations; Go reads the local filesystem |
+| `tests/tools/test_file_staleness.py` | behaviour | TestWriteRefusesToOverwriteWhatWasNeverRead, TestWriteRefusesAfterExternalChange, TestPartialReadIsNotAFullView, TestPatchWarnsWhenFileChangedSinceRead |
 | `tests/tools/test_file_state_registry.py` | later | file-state tracking belongs with the file tools: task 3.3 |
-| `tests/tools/test_file_tools.py` | | |
-| `tests/tools/test_file_tools_container_config.py` | | |
-| `tests/tools/test_file_tools_cwd_resolution.py` | | |
-| `tests/tools/test_file_tools_live.py` | | |
-| `tests/tools/test_file_tools_plugin_container_cwd.py` | | |
-| `tests/tools/test_file_tools_tilde_profile.py` | | |
-| `tests/tools/test_file_write_safety.py` | | |
-| `tests/tools/test_file_write_surrogate_roundtrip.py` | | |
+| `tests/tools/test_file_tools.py` | behaviour | filetools/tools_test.go drives the real tools through a Toolbox |
+| `tests/tools/test_file_tools_container_config.py` | dropped | shell and container backends for file operations; Go reads the local filesystem |
+| `tests/tools/test_file_tools_cwd_resolution.py` | behaviour | resolve(): session cwd for relative paths, ~ expansion (every filetools test runs through it) |
+| `tests/tools/test_file_tools_live.py` | behaviour | filetools/tools_test.go drives the real tools through a Toolbox |
+| `tests/tools/test_file_tools_plugin_container_cwd.py` | dropped | shell and container backends for file operations; Go reads the local filesystem |
+| `tests/tools/test_file_tools_tilde_profile.py` | behaviour | resolve(): session cwd for relative paths, ~ expansion (every filetools test runs through it) |
+| `tests/tools/test_file_write_safety.py` | behaviour | TestSensitiveAndCredentialPathsAreRefused, TestReadGuards (guards.go) |
+| `tests/tools/test_file_write_surrogate_roundtrip.py` | dropped | Python surrogateescape handling; Go strings are bytes and JSON input is valid UTF-8 |
 | `tests/tools/test_finite_delegation_outcomes.py` | | |
-| `tests/tools/test_gateway_cwd_contract.py` | | |
+| `tests/tools/test_gateway_cwd_contract.py` | later | gateway session working directories: task 7.x |
 | `tests/tools/test_generation_source_confinement.py` | | |
 | `tests/tools/test_image_generation_image_to_image.py` | | |
 | `tests/tools/test_image_source.py` | | |
-| `tests/tools/test_interrupted_command_cwd.py` | | |
+| `tests/tools/test_interrupted_command_cwd.py` | behaviour | TestWorkingDirectoryFollowsCd, TestInterruptStopsTheCommand |
 | `tests/tools/test_kanban_unknown_arguments.py` | | |
-| `tests/tools/test_known_file_write_baseline.py` | | |
-| `tests/tools/test_line_ending_preservation.py` | | |
-| `tests/tools/test_live_env_cwd_override_sanitize.py` | | |
-| `tests/tools/test_macos_protected_search.py` | | |
-| `tests/tools/test_managed_browserbase_and_modal.py` | | |
+| `tests/tools/test_known_file_write_baseline.py` | behaviour | TestWriteRefusesToOverwriteWhatWasNeverRead, TestWriteRefusesAfterExternalChange, TestPartialReadIsNotAFullView, TestPatchWarnsWhenFileChangedSinceRead |
+| `tests/tools/test_line_ending_preservation.py` | behaviour | TestWriteKeepsBOMAndCRLF and the crlf/BOM patch goldens |
+| `tests/tools/test_live_env_cwd_override_sanitize.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_macos_protected_search.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
+| `tests/tools/test_managed_browserbase_and_modal.py` | dropped | remote and container terminal backends are not in Stage 1 |
 | `tests/tools/test_mcp_dynamic_discovery.py` | | |
 | `tests/tools/test_mcp_initial_connect_shutdown.py` | | |
 | `tests/tools/test_mcp_lazy_start.py` | | |
@@ -1711,70 +1711,70 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_mcp_shared_connection_resolved_identity.py` | | |
 | `tests/tools/test_multiplex_tool_memo_scope.py` | | |
 | `tests/tools/test_notebook_recovery_path.py` | | |
-| `tests/tools/test_notify_on_complete.py` | | |
+| `tests/tools/test_notify_on_complete.py` | dropped | background processes and PTYs are not in Stage 1 |
 | `tests/tools/test_parse_env_var.py` | | |
-| `tests/tools/test_patch_already_applied.py` | | |
-| `tests/tools/test_patch_parser.py` | | |
-| `tests/tools/test_patch_v4a_gate.py` | | |
-| `tests/tools/test_process_heartbeat.py` | | |
+| `tests/tools/test_patch_already_applied.py` | behaviour | fuzzy TestIsAlreadyApplied and the V4A already-applied golden case |
+| `tests/tools/test_patch_parser.py` | behaviour | TestV4AMatchesPython (parse errors, markers, CRLF, implicit context lines, moves) |
+| `tests/tools/test_patch_v4a_gate.py` | dropped | model-family gating of the V4A schema; the Go patch schema is replace-only and the handler accepts both |
+| `tests/tools/test_process_heartbeat.py` | dropped | background processes and PTYs are not in Stage 1 |
 | `tests/tools/test_project_tools.py` | | |
-| `tests/tools/test_protected_instruction_cli_channel.py` | | |
-| `tests/tools/test_read_binary_type_disclosure.py` | | |
-| `tests/tools/test_read_extract.py` | | |
-| `tests/tools/test_read_file_utf8_binary_regression.py` | | |
-| `tests/tools/test_read_loop_detection.py` | | |
-| `tests/tools/test_read_past_eof_note.py` | | |
-| `tests/tools/test_read_shell_line_clamp.py` | | |
-| `tests/tools/test_read_special_file_guard.py` | | |
-| `tests/tools/test_read_unicode_filename_retry.py` | | |
+| `tests/tools/test_protected_instruction_cli_channel.py` | behaviour | TestProtectedInstructionFilesAlwaysAsk |
+| `tests/tools/test_read_binary_type_disclosure.py` | behaviour | read golden cases png.raw, nul.raw and badutf8.txt |
+| `tests/tools/test_read_extract.py` | dropped | document extraction, UTF-16 transcoding and Unicode-spelling retry are not ported |
+| `tests/tools/test_read_file_utf8_binary_regression.py` | behaviour | read golden cases png.raw, nul.raw and badutf8.txt |
+| `tests/tools/test_read_loop_detection.py` | behaviour | TestRepeatedIdenticalReadsAreCalledOut |
+| `tests/tools/test_read_past_eof_note.py` | behaviour | read golden: three.txt offset 9 |
+| `tests/tools/test_read_shell_line_clamp.py` | behaviour | read golden: long.txt (3,000-character line) and TestRunawayOutputIsCappedInMemory for the byte clamp |
+| `tests/tools/test_read_special_file_guard.py` | behaviour | TestReadGuards (device paths, directories) |
+| `tests/tools/test_read_unicode_filename_retry.py` | dropped | document extraction, UTF-16 transcoding and Unicode-spelling retry are not ported |
 | `tests/tools/test_registry.py` | behaviour | internal/tools TestRegisterValidatesAndRejectsDuplicates, TestBuildSelectsAndGates, TestRunFailuresAreJSONErrors; the registry shape and type checks are compiler-covered |
-| `tests/tools/test_remote_binary_write_guard.py` | | |
-| `tests/tools/test_resolve_path.py` | | |
-| `tests/tools/test_safe_getcwd_permission_error.py` | | |
+| `tests/tools/test_remote_binary_write_guard.py` | dropped | document-format write guard is not ported |
+| `tests/tools/test_resolve_path.py` | behaviour | resolve(): session cwd for relative paths, ~ expansion (every filetools test runs through it) |
+| `tests/tools/test_safe_getcwd_permission_error.py` | dropped | remote and container terminal backends are not in Stage 1 |
 | `tests/tools/test_schema_sanitizer.py` | dropped | provider-illegal schema keys: Anthropic accepts the schemas the Go tools declare |
-| `tests/tools/test_search_auto_multiline.py` | | |
+| `tests/tools/test_search_auto_multiline.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
 | `tests/tools/test_search_budget_truncation.py` | later | search result budgets belong with the file tools: task 3.3 |
-| `tests/tools/test_search_error_guard.py` | | |
-| `tests/tools/test_search_files_engine_selection.py` | | |
-| `tests/tools/test_search_giant_line_containment.py` | | |
-| `tests/tools/test_search_hidden_dirs.py` | | |
-| `tests/tools/test_search_native_rg.py` | | |
-| `tests/tools/test_search_zero_match_and_multipath.py` | | |
-| `tests/tools/test_session_cwd_store.py` | | |
-| `tests/tools/test_shared_container_task_id.py` | | |
-| `tests/tools/test_shell_arg_transport.py` | | |
-| `tests/tools/test_ssh_environment.py` | | |
-| `tests/tools/test_ssh_remote_cwd.py` | | |
-| `tests/tools/test_ssh_session_cwd.py` | | |
+| `tests/tools/test_search_error_guard.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
+| `tests/tools/test_search_files_engine_selection.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
+| `tests/tools/test_search_giant_line_containment.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
+| `tests/tools/test_search_hidden_dirs.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
+| `tests/tools/test_search_native_rg.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
+| `tests/tools/test_search_zero_match_and_multipath.py` | dropped | search_files is not a Stage 1 tool; searching is done with grep, rg and find through terminal |
+| `tests/tools/test_session_cwd_store.py` | behaviour | TestWorkingDirectoryFollowsCd, TestInterruptStopsTheCommand |
+| `tests/tools/test_shared_container_task_id.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_shell_arg_transport.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_ssh_environment.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_ssh_remote_cwd.py` | dropped | remote and container terminal backends are not in Stage 1 |
+| `tests/tools/test_ssh_session_cwd.py` | dropped | remote and container terminal backends are not in Stage 1 |
 | `tests/tools/test_subagent_process_handoff.py` | | |
 | `tests/tools/test_subagent_steer.py` | | |
-| `tests/tools/test_subagent_sudo_prompt.py` | | |
-| `tests/tools/test_terminal_backend_unavailable_reason.py` | | |
-| `tests/tools/test_terminal_cwd_echo.py` | | |
-| `tests/tools/test_terminal_degraded_mode.py` | | |
-| `tests/tools/test_terminal_error_redaction.py` | | |
-| `tests/tools/test_terminal_foreground_timeout_cap.py` | | |
-| `tests/tools/test_terminal_heredoc_background_guard.py` | | |
-| `tests/tools/test_terminal_none_command_guard.py` | | |
-| `tests/tools/test_terminal_output_transform_hook.py` | | |
-| `tests/tools/test_terminal_pre_guard_deadline.py` | | |
-| `tests/tools/test_terminal_requirements.py` | | |
-| `tests/tools/test_terminal_task_cwd.py` | | |
-| `tests/tools/test_terminal_tool.py` | | |
-| `tests/tools/test_terminal_tool_exception_redaction.py` | | |
-| `tests/tools/test_terminal_tool_pty_fallback.py` | | |
-| `tests/tools/test_terminal_tool_requirements.py` | | |
-| `tests/tools/test_terminal_truncation_spill.py` | | |
-| `tests/tools/test_terminal_yield_to_background.py` | | |
-| `tests/tools/test_timeout_transport_drain.py` | | |
+| `tests/tools/test_subagent_sudo_prompt.py` | dropped | smart approvals, batched guards and sudo prompts are not ported |
+| `tests/tools/test_terminal_backend_unavailable_reason.py` | dropped | plugin hooks, remote-backend deadlines and degradation are not ported |
+| `tests/tools/test_terminal_cwd_echo.py` | behaviour | TestWorkingDirectoryFollowsCd, TestInterruptStopsTheCommand |
+| `tests/tools/test_terminal_degraded_mode.py` | dropped | plugin hooks, remote-backend deadlines and degradation are not ported |
+| `tests/tools/test_terminal_error_redaction.py` | behaviour | TestOutputIsCleanedAndRedacted |
+| `tests/tools/test_terminal_foreground_timeout_cap.py` | behaviour | TestTimeoutIsClampedAndExplained (Python promotes to a background process; Go has none and clamps with a note) |
+| `tests/tools/test_terminal_heredoc_background_guard.py` | dropped | background processes and PTYs are not in Stage 1 |
+| `tests/tools/test_terminal_none_command_guard.py` | behaviour | TestEmptyCommandIsRefused |
+| `tests/tools/test_terminal_output_transform_hook.py` | dropped | plugin hooks, remote-backend deadlines and degradation are not ported |
+| `tests/tools/test_terminal_pre_guard_deadline.py` | dropped | plugin hooks, remote-backend deadlines and degradation are not ported |
+| `tests/tools/test_terminal_requirements.py` | dropped | backend requirement checks; the terminal tool's Check is whether a shell exists |
+| `tests/tools/test_terminal_task_cwd.py` | behaviour | TestWorkingDirectoryFollowsCd, TestInterruptStopsTheCommand |
+| `tests/tools/test_terminal_tool.py` | behaviour | internal/tools/shell/shell_test.go |
+| `tests/tools/test_terminal_tool_exception_redaction.py` | behaviour | TestOutputIsCleanedAndRedacted |
+| `tests/tools/test_terminal_tool_pty_fallback.py` | dropped | background processes and PTYs are not in Stage 1 |
+| `tests/tools/test_terminal_tool_requirements.py` | dropped | backend requirement checks; the terminal tool's Check is whether a shell exists |
+| `tests/tools/test_terminal_truncation_spill.py` | behaviour | TestOutputIsBoundedHeadAndTail (the spill of the full output to a file is not ported) |
+| `tests/tools/test_terminal_yield_to_background.py` | dropped | background processes and PTYs are not in Stage 1 |
+| `tests/tools/test_timeout_transport_drain.py` | dropped | plugin hooks, remote-backend deadlines and degradation are not ported |
 | `tests/tools/test_tool_result_storage.py` | dropped | oversized results are truncated head and tail (TestOversizedResultsKeepHeadAndTail); spilling to a file is not ported |
 | `tests/tools/test_toolsets.py` | behaviour | TestBuildSelectsAndGates: toolset selection and exclusion; named composite toolsets are not ported |
 | `tests/tools/test_tour_tool.py` | | |
 | `tests/tools/test_tts_provider_authority.py` | | |
-| `tests/tools/test_utf16_read.py` | | |
+| `tests/tools/test_utf16_read.py` | dropped | document extraction, UTF-16 transcoding and Unicode-spelling retry are not ported |
 | `tests/tools/test_video_analyze.py` | | |
 | `tests/tools/test_video_generation_dynamic_schema.py` | dropped | video generation is not in Stage 1 |
-| `tests/tools/test_watch_patterns.py` | | |
+| `tests/tools/test_watch_patterns.py` | dropped | background processes and PTYs are not in Stage 1 |
 | `tests/tools/test_web_backend_capability_isolation.py` | | |
 | `tests/tools/test_web_extract_robustness.py` | | |
 | `tests/tools/test_web_keyless_rescue.py` | | |
@@ -1786,11 +1786,11 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_web_tools_perplexity.py` | | |
 | `tests/tools/test_web_tools_tavily.py` | | |
 | `tests/tools/test_web_tools_truncate.py` | | |
-| `tests/tools/test_write_file_rewrite_hint.py` | | |
-| `tests/tools/test_write_file_syntax_gate.py` | | |
-| `tests/tools/test_write_verification.py` | | |
+| `tests/tools/test_write_file_rewrite_hint.py` | dropped | the whole-file-rewrite cost hint is advisory text, not behaviour |
+| `tests/tools/test_write_file_syntax_gate.py` | behaviour | TestWriteRefusesReadOutputAndBadJSON (JSON only; YAML and TOML gates are not ported) |
+| `tests/tools/test_write_verification.py` | behaviour | TestWriteCreatesFilesAndParents (verified), patchReplace's post-write read-back |
 | `tests/tools/test_xlsx_phonetic_text.py` | | |
-| `tests/tools/test_zombie_process_cleanup.py` | | |
+| `tests/tools/test_zombie_process_cleanup.py` | behaviour | TestTimeoutKillsTheWholeProcessGroup, TestInterruptStopsTheCommand |
 | `tests/tui_gateway/contracts/test_generated.py` | | |
 | `tests/tui_gateway/test_backend_dir_entries_preconfirmed.py` | | |
 | `tests/tui_gateway/test_init_targets_session_cwd.py` | | |

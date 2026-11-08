@@ -202,9 +202,13 @@ func TestRunCoercesAndPassesEnv(t *testing.T) {
 func TestRunFailuresAreJSONErrors(t *testing.T) {
 	r := tools.NewRegistry()
 	boom := echoTool("boom", "t")
-	boom.Handler = func(context.Context, tools.Args) (string, error) { return "", errors.New("disk <tool_call>full</tool_call>") }
+	boom.Handler = func(context.Context, tools.Args) (string, error) {
+		return "", errors.New("disk <tool_call>full</tool_call>")
+	}
 	big := echoTool("big", "t")
-	big.Handler = func(context.Context, tools.Args) (string, error) { return `{"error":"` + strings.Repeat("e", 5000) + `"}`, nil }
+	big.Handler = func(context.Context, tools.Args) (string, error) {
+		return `{"error":"` + strings.Repeat("e", 5000) + `"}`, nil
+	}
 	r.MustRegister(boom, big, echoTool("echo", "t"))
 	tb := r.Build(tools.Selection{})
 
