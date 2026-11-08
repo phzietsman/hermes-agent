@@ -324,3 +324,9 @@ apps/desktop/.dist-build*
 
 # Local credentials for live evals (never commit)
 .secrets/
+
+# Go build output
+/hermes
+/bin/
+*.test
+coverage.out
