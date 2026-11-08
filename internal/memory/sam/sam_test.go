@@ -689,3 +689,13 @@ func TestReplayHonoursCancellation(t *testing.T) {
 		t.Error("a cancelled replay must keep every entry")
 	}
 }
+
+func TestHitIDMayBeANumber(t *testing.T) {
+	var h []Hit
+	if err := json.Unmarshal([]byte(`[{"id":"a","text":"t","score":0.5},{"id":7,"text":"u","score":1},{"text":"v"}]`), &h); err != nil {
+		t.Fatal(err)
+	}
+	if h[0].ID != "a" || h[1].ID != "7" || h[2].ID != "" || h[1].Text != "u" || h[1].Score != 1 {
+		t.Errorf("%+v", h)
+	}
+}

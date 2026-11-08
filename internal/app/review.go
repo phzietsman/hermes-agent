@@ -56,7 +56,7 @@ func (rt *Runtime) reviewQueue(ctx context.Context) (learning.Queue, error) {
 }
 
 // newLearning builds a session's loop, or nil when reviews cannot run for it.
-func (rt *Runtime) newLearning(ctx context.Context, sessionID string, readOnly bool) *learningHook {
+func (rt *Runtime) newLearning(ctx context.Context, sessionID string, readOnly bool, sel tools.Selection) *learningHook {
 	if !rt.reviewsEnabled() || readOnly {
 		return nil
 	}
@@ -65,8 +65,12 @@ func (rt *Runtime) newLearning(ctx context.Context, sessionID string, readOnly b
 		slog.Warn("learning loop disabled: review queue unavailable", "err", err)
 		return nil
 	}
-	host := &reviewHost{rt: rt, parent: sessionID}
-	return &learningHook{loop: learning.NewLoop(q, rt.learningSettings(), host, nil), rt: rt}
+	host := &reviewHost{rt: rt, parent: sessionID, sel: sel}
+	loop := learning.NewLoop(q, rt.learningSettings(), host, nil)
+	rt.loopsMu.Lock()
+	rt.loops = append(rt.loops, loop)
+	rt.loopsMu.Unlock()
+	return &learningHook{loop: loop, rt: rt}
 }
 
 // learningHook adapts the loop to the agent's Learning interface.
@@ -95,6 +99,7 @@ func (h *learningHook) OnPreCompress(session string, history []llm.Message) {
 type reviewHost struct {
 	rt     *Runtime
 	parent string
+	sel    tools.Selection
 }
 
 func (h *reviewHost) LoadMessages(ctx context.Context, sessionID string) []llm.Message {
@@ -137,7 +142,7 @@ func (h *reviewHost) run(ctx context.Context, msgs []llm.Message) learning.Outco
 	if p, err := rt.Store.GetSession(ctx, h.parent); err == nil {
 		system = p.SystemPrompt
 	}
-	box := rt.Registry.Build(tools.Selection{})
+	box := rt.Registry.Build(h.sel)
 	var inner agent.ToolRunner = &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, Gate: rt.Gate, Approval: approval.Check{SessionID: id}}}
 	if rt.Memory != nil {
 		defer rt.Memory.Drop(id)

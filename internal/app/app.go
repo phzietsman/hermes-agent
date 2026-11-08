@@ -69,6 +69,8 @@ type Runtime struct {
 	ContextLength int
 
 	longRunning bool
+	loopsMu     sync.Mutex
+	loops       []*learning.Loop
 	queueOnce   sync.Once
 	queue       learning.Queue
 	queueErr    error
@@ -112,6 +114,16 @@ func Open(ctx context.Context, home string, o Options) (*Runtime, error) {
 
 // Close releases the store.
 func (rt *Runtime) Close() error {
+	// Stop every session's learning loop and wait for its drain before the store goes away; a review cut short
+	// is released back to the queue, not lost.
+	rt.loopsMu.Lock()
+	loops := rt.loops
+	rt.loops = nil
+	rt.loopsMu.Unlock()
+	for _, l := range loops {
+		l.Close()
+		l.Wait(10 * time.Second)
+	}
 	if rt.Memory != nil {
 		rt.Memory.Close()
 	}
@@ -192,6 +204,9 @@ type SessionOptions struct {
 	// UserID scopes memory to this person (gateway sessions); ReadOnly sessions never write memory.
 	UserID   string
 	ReadOnly bool
+	// Selection limits the session's tools (an eval offers only memory and skills). A review fork of the session
+	// gets the same selection, so its tools array matches its parent's.
+	Selection tools.Selection
 	// Prompter answers approval prompts; nil means nobody can answer (the unattended policy applies).
 	Prompter approval.Prompter
 	Events   agent.Events
@@ -221,6 +236,14 @@ func (s *Session) End(ctx context.Context) {
 	}
 }
 
+// WaitReviews blocks until this session's background review drain has finished, or the timeout passes.
+func (s *Session) WaitReviews(timeout time.Duration) bool {
+	if s.learn == nil {
+		return true
+	}
+	return s.learn.loop.Wait(timeout)
+}
+
 // Close stops the session's background work (an idle timer, a running review: the queue keeps its job).
 func (s *Session) Close() {
 	if s.learn != nil {
@@ -247,7 +270,7 @@ func (rt *Runtime) NewSession(ctx context.Context, so SessionOptions) (*Session,
 	} else if err != nil {
 		return nil, err
 	}
-	box := rt.Registry.Build(tools.Selection{})
+	box := rt.Registry.Build(so.Selection)
 	runner := &envTools{Toolbox: box, env: tools.CallEnv{Home: rt.Home, SessionID: id, CWD: cwd, Gate: rt.Gate,
 		Approval: approval.Check{SessionID: id, Prompter: so.Prompter}}}
 	var mem *memory.Provider
@@ -260,7 +283,7 @@ func (rt *Runtime) NewSession(ctx context.Context, so SessionOptions) (*Session,
 	if mem != nil {
 		cfg.Memory = mem
 	}
-	learn := rt.newLearning(ctx, id, so.ReadOnly)
+	learn := rt.newLearning(ctx, id, so.ReadOnly, so.Selection)
 	if learn != nil {
 		cfg.Learning = learn
 	}

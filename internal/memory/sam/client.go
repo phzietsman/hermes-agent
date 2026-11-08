@@ -255,6 +255,24 @@ type Hit struct {
 	Score float64 `json:"score"`
 }
 
+// UnmarshalJSON accepts an id given as a string or a number (Python stringified whatever it got).
+func (h *Hit) UnmarshalJSON(b []byte) error {
+	var aux struct {
+		ID    json.RawMessage `json:"id"`
+		Text  string          `json:"text"`
+		Score float64         `json:"score"`
+	}
+	if err := json.Unmarshal(b, &aux); err != nil {
+		return err
+	}
+	h.Text, h.Score = aux.Text, aux.Score
+	h.ID = strings.Trim(string(aux.ID), `"`)
+	if h.ID == "null" {
+		h.ID = ""
+	}
+	return nil
+}
+
 // RememberOptions are the optional fields of a single write.
 type RememberOptions struct {
 	Labels    []string

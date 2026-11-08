@@ -97,7 +97,14 @@ func New(ctx context.Context, s *sam.Settings, o Options) *Provider {
 	if p.client == nil {
 		p.client = settings.Client()
 	} else {
-		p.client.Context, p.client.Endpoint = orStr(p.client.Context, settings.Context), orStr(p.client.Endpoint, settings.Endpoint)
+		c := p.client
+		c.Context, c.Endpoint, c.APIKey = orStr(c.Context, settings.Context), orStr(c.Endpoint, settings.Endpoint), orStr(c.APIKey, settings.APIKey)
+		if c.Timeout == 0 {
+			c.Timeout = settings.Timeout
+		}
+		if c.MaxRetries == 0 {
+			c.MaxRetries = settings.MaxRetries
+		}
 	}
 	if p.fork {
 		p.Origin = OriginReview
@@ -471,4 +478,13 @@ func (p *Provider) Flush() {
 func (p *Provider) enqueueBlocking(f func()) {
 	defer func() { _ = recover() }()
 	p.jobs <- f
+}
+
+// QueuePrefetch starts a background recall for query (the next turn's likely question) without waiting for it,
+// so the following Prefetch usually finds it done.
+func (p *Provider) QueuePrefetch(query string) {
+	if p.fork || !p.active() || strings.TrimSpace(query) == "" || p.settings.RecallMode == sam.RecallTools {
+		return
+	}
+	p.ensureRecall(query)
 }
