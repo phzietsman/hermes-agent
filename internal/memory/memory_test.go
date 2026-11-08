@@ -581,3 +581,43 @@ func TestImportSessionsBackfillsOnceAndSkipsToolRows(t *testing.T) {
 		t.Errorf("second run %+v", r2)
 	}
 }
+
+func TestAForkWritesAsAReviewAndNeverRecallsOrSyncs(t *testing.T) {
+	f := newFake(t)
+	f.hits = []sam.Hit{{ID: "1", Text: "likes tea", Score: 0.9}}
+	m, _ := newManager(t, f)
+	fork := m.ForFork(context.Background(), "fork1")
+	if fork.Origin != OriginReview {
+		t.Errorf("origin %q", fork.Origin)
+	}
+	if fork.Prefetch(context.Background(), "what do I drink?") != "" {
+		t.Error("a fork never recalls")
+	}
+	fork.QueuePrefetch("warm it")
+	fork.SyncTurn(context.Background(), "review prompt", "review answer")
+	fork.EndSession(context.Background(), []llm.Message{{Role: llm.RoleUser, Content: llm.Text("x")}})
+	fork.Flush()
+	if f.count("/query") != 0 || f.count("/facts/batch") != 0 || f.count("/consolidate") != 0 {
+		t.Errorf("a fork touched recall, sync or consolidation: %v", f.requests)
+	}
+	toolCall(t, m, "fork1", "agent_memory_remember", map[string]any{"text": "learned in review"})
+	fork.Flush()
+	if !strings.Contains(f.factsText(), "origin=background_review") {
+		t.Error("the review's write was not labelled")
+	}
+	m.Drop("fork1")
+	if m.Lookup("fork1") != nil {
+		t.Error("Drop must forget the provider")
+	}
+	m.Drop("never-existed")
+	// The normal provider warms recall ahead of the next turn.
+	p := m.Lookup("s1")
+	p.QueuePrefetch("what do I drink?")
+	waitUntil := time.Now().Add(5 * time.Second)
+	for f.count("/query") == 0 && time.Now().Before(waitUntil) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if f.count("/query") == 0 {
+		t.Error("QueuePrefetch did not start a recall")
+	}
+}
