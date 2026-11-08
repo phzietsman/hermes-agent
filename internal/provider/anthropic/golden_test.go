@@ -118,3 +118,5 @@ func TestModelHelpersMatchPython(t *testing.T) {
 		}
 	}
 }
+
+func readFile(path string) ([]byte, error) { return os.ReadFile(path) }

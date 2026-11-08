@@ -240,3 +240,40 @@ func (t *ToolDef) UnmarshalJSON(b []byte) error {
 	*t = ToolDef{Name: w.Function.Name, Description: w.Function.Description, Parameters: w.Function.Parameters, CacheControl: w.CacheControl}
 	return nil
 }
+
+// Usage is one API call's token accounting as the provider reports it. Anthropic counts cached
+// tokens separately from InputTokens, so the prompt size is the sum of the three input fields.
+type Usage struct {
+	InputTokens      int
+	OutputTokens     int
+	CacheReadTokens  int
+	CacheWriteTokens int
+}
+
+// Finish reasons, in the OpenAI vocabulary the loop speaks.
+const (
+	FinishStop          = "stop"
+	FinishToolCalls     = "tool_calls"
+	FinishLength        = "length"
+	FinishContentFilter = "content_filter"
+)
+
+// Response is a normalised model reply.
+type Response struct {
+	// Content is the joined text, nil when the reply had no text block (an empty text block is "").
+	Content   *string
+	ToolCalls []ToolCall
+	// Reasoning is the plain thinking text, nil when there was none.
+	Reasoning    *string
+	FinishReason string
+	// StopReason is the provider's raw stop reason.
+	StopReason string
+	// ReasoningDetails are the preserved thinking and redacted_thinking blocks.
+	ReasoningDetails []Block
+	// ContentBlocks is the ordered block list, kept only when signed thinking interleaves with tool_use
+	// (the one shape the parallel lists above reconstruct in the wrong order).
+	ContentBlocks []Block
+	// StopDetails is the provider's structured refusal detail, if any.
+	StopDetails any
+	Usage       Usage
+}
