@@ -561,8 +561,8 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_computer_use_capture_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_connectors_catalog.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_cron_approval_mode.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_delegate_control_actions.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_delegate_cron_sync_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_delegate_control_actions.py` | dropped | list/steer/stop control actions need background delegation, not in Stage 1 (calls are synchronous) |
+| `tests/tools/test_delegate_cron_sync_fallback.py` | dropped | background/sync delegation split: Stage 1 delegation is always synchronous |
 | `tests/tools/test_discord_tool.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_docker_config_migrate.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_file_read_guards.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -1218,7 +1218,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/plugins/test_langfuse_plugin.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/plugins/test_transform_api_error_classification_hook.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
 | `tests/tools/test_computer_use.py` | dropped | other providers/routes, the credential pool, multi-provider failover, MoA or plugins: Stage 1 is Anthropic-only with one credential |
-| `tests/tools/test_delegate_fallback_matrix.py` | later | delegate tool: re-bucket in task 3.5 |
+| `tests/tools/test_delegate_fallback_matrix.py` | dropped | provider fallback chains are not in Stage 1 (Anthropic only) |
 
 ### prompt (39 files, floor 81.8%)
 
@@ -1258,7 +1258,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_cli_interrupt_subagent.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
 | `tests/hermes_cli/test_prompt_size.py` | dropped | the `hermes prompt-size` diagnostic is not in Stage 1 |
 | `tests/hermes_cli/test_sessions_rest_scaffold_notices.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
-| `tests/tools/test_delegate_child_cache_ttl.py` | later | delegate children's cache TTL: re-bucket in task 3.5 |
+| `tests/tools/test_delegate_child_cache_ttl.py` | dropped | children use the parent provider settings through the factory; no per-child TTL logic |
 | `tests/tools/test_docker_network_config.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
 | `tests/tools/test_translate_execute_context.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
 | `tests/tui_gateway/test_hud_surface_note.py` | dropped | TUI/dashboard/CLI display, hosted rooms, docker or code-execution translation: not in Stage 1 |
@@ -1338,7 +1338,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_retry_exhaustion_partial_retention.py` | | |
 | `tests/agent/test_run_budget.py` | | |
 | `tests/agent/test_send_path_history_isolation.py` | | |
-| `tests/agent/test_sequential_deadline_delegate_exempt.py` | | |
+| `tests/agent/test_sequential_deadline_delegate_exempt.py` | dropped | sequential tool deadline is not ported |
 | `tests/agent/test_sequential_tool_interrupt.py` | | |
 | `tests/agent/test_sequential_tool_timeout.py` | | |
 | `tests/agent/test_skip_background_review.py` | | |
@@ -1382,7 +1382,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_quiet_turn_author.py` | | |
 | `tests/tools/test_approval_timeout_overflow.py` | | |
 | `tests/tools/test_bot_relay.py` | | |
-| `tests/tools/test_delegate_capacity_interrupt.py` | | |
+| `tests/tools/test_delegate_capacity_interrupt.py` | behaviour | TestFactoryFailureAndInterruptAreReportedPerChild (cancel stops all running children) |
 | `tests/tools/test_preview_scope_gate.py` | | |
 
 ### compaction (105 files, floor 82.2%)
@@ -1490,7 +1490,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/hermes_cli/test_quiet_single_query.py` | dropped | Python CLI output mode |
 | `tests/hermes_cli/test_shared_metrics_model_attribution.py` | dropped | outbound metrics |
 | `tests/tools/test_computer_use_screenshot_dedup.py` | dropped | computer use is not in Stage 1 |
-| `tests/tools/test_delegate_child_compression_cap.py` | later | child agents: re-bucket in task 3.5 |
+| `tests/tools/test_delegate_child_compression_cap.py` | dropped | children compact through the same Compactor as the parent; no separate cap |
 | `tests/tui_gateway/test_busy_compression_demotion.py` | dropped | TUI gateway |
 | `tests/tui_gateway/test_live_config_context_pin_mirror.py` | dropped | TUI gateway |
 | `tests/tui_gateway/test_manual_compress_history_fence.py` | dropped | TUI gateway |
@@ -1642,30 +1642,30 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_cronjob_run_delivery_notice.py` | | |
 | `tests/tools/test_cronjob_tools.py` | | |
 | `tests/tools/test_deferral_fixes.py` | | |
-| `tests/tools/test_delegate.py` | | |
-| `tests/tools/test_delegate_apiserver_background.py` | | |
-| `tests/tools/test_delegate_batch_tag.py` | | |
-| `tests/tools/test_delegate_batch_validation.py` | | |
-| `tests/tools/test_delegate_capability_inheritance.py` | | |
-| `tests/tools/test_delegate_child_transcript_release.py` | | |
-| `tests/tools/test_delegate_composite_toolsets.py` | later | delegation: task 3.5 |
-| `tests/tools/test_delegate_cost_footer.py` | | |
-| `tests/tools/test_delegate_depth_prompt.py` | | |
-| `tests/tools/test_delegate_group_schema.py` | later | delegation: task 3.5 |
-| `tests/tools/test_delegate_images.py` | | |
-| `tests/tools/test_delegate_kanban_isolation.py` | | |
-| `tests/tools/test_delegate_late_child_inherits_stop.py` | | |
-| `tests/tools/test_delegate_liveness_timeout.py` | | |
-| `tests/tools/test_delegate_native_vision.py` | | |
-| `tests/tools/test_delegate_output_schema.py` | later | delegation: task 3.5 |
-| `tests/tools/test_delegate_request_overrides.py` | | |
-| `tests/tools/test_delegate_stale_heartbeat_collect.py` | | |
-| `tests/tools/test_delegate_stale_wait_release.py` | | |
-| `tests/tools/test_delegate_subagent_timeout_diagnostic.py` | | |
-| `tests/tools/test_delegate_summary_budget.py` | later | delegation: task 3.5 |
-| `tests/tools/test_delegate_sync_failure_echo_policy.py` | | |
-| `tests/tools/test_delegate_timeout_cleanup.py` | | |
-| `tests/tools/test_delegate_toolset_scope.py` | later | delegation: task 3.5 |
+| `tests/tools/test_delegate.py` | behaviour | TestChildrenRunInOwnSessionsAndReturnSummaries, TestFactoryFailureAndInterruptAreReportedPerChild |
+| `tests/tools/test_delegate_apiserver_background.py` | dropped | API server background delegation is not in Stage 1 |
+| `tests/tools/test_delegate_batch_tag.py` | dropped | batch progress tags are display text for the TUI/gateway progress, out of scope |
+| `tests/tools/test_delegate_batch_validation.py` | behaviour | TestTaskLimitAndValidation |
+| `tests/tools/test_delegate_capability_inheritance.py` | behaviour | TestChildSelectionBlocksDelegationAndMemory |
+| `tests/tools/test_delegate_child_transcript_release.py` | dropped | transcript paths for background children are not ported |
+| `tests/tools/test_delegate_composite_toolsets.py` | behaviour | TestChildSelectionBlocksDelegationAndMemory |
+| `tests/tools/test_delegate_cost_footer.py` | dropped | cost footer is not ported |
+| `tests/tools/test_delegate_depth_prompt.py` | behaviour | TestChildrenRunInOwnSessionsAndReturnSummaries (child prompt text; children are leaves) |
+| `tests/tools/test_delegate_group_schema.py` | dropped | independent_completions groups are not ported |
+| `tests/tools/test_delegate_images.py` | dropped | image inputs for children are not in Stage 1 |
+| `tests/tools/test_delegate_kanban_isolation.py` | behaviour | TestChildSelectionBlocksDelegationAndMemory (kanban toolset blocked) |
+| `tests/tools/test_delegate_late_child_inherits_stop.py` | dropped | background late-child stop inheritance: children are synchronous, cancel propagates through ctx |
+| `tests/tools/test_delegate_liveness_timeout.py` | dropped | heartbeat liveness for background children is not ported |
+| `tests/tools/test_delegate_native_vision.py` | dropped | vision children are not in Stage 1 |
+| `tests/tools/test_delegate_output_schema.py` | dropped | output_schema validation is not ported |
+| `tests/tools/test_delegate_request_overrides.py` | dropped | per-child provider/model overrides are not in Stage 1 |
+| `tests/tools/test_delegate_stale_heartbeat_collect.py` | dropped | heartbeat collection for background children is not ported |
+| `tests/tools/test_delegate_stale_wait_release.py` | dropped | background wait release is not ported |
+| `tests/tools/test_delegate_subagent_timeout_diagnostic.py` | dropped | timeout diagnostics for background children are not ported |
+| `tests/tools/test_delegate_summary_budget.py` | dropped | summary budget text: the child prompt asks for a tight summary (TestChildrenRun...) |
+| `tests/tools/test_delegate_sync_failure_echo_policy.py` | dropped | echo policy for background failures is not ported |
+| `tests/tools/test_delegate_timeout_cleanup.py` | dropped | background timeout cleanup is not ported |
+| `tests/tools/test_delegate_toolset_scope.py` | behaviour | TestChildSelectionBlocksDelegationAndMemory (parent restriction kept, never widened) |
 | `tests/tools/test_delegation_live_log.py` | | |
 | `tests/tools/test_docker_environment.py` | dropped | remote and container terminal backends are not in Stage 1 |
 | `tests/tools/test_docker_mounted_host_session_cwd.py` | dropped | remote and container terminal backends are not in Stage 1 |

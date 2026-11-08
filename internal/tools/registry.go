@@ -99,6 +99,8 @@ type Selection struct {
 	Toolsets []string
 	// Exclude removes individual tools by name.
 	Exclude []string
+	// ExcludeToolsets removes whole toolsets, also when Toolsets is empty (every toolset).
+	ExcludeToolsets []string
 }
 
 // Toolbox is the tool set of one session, resolved once: the gates have been asked and the definitions are
@@ -116,10 +118,11 @@ func (r *Registry) Build(sel Selection) *Toolbox {
 	defer r.mu.RUnlock()
 	wantSet := toSet(sel.Toolsets)
 	skip := toSet(sel.Exclude)
+	skipSets := toSet(sel.ExcludeToolsets)
 	tb := &Toolbox{tools: map[string]Tool{}}
 	for _, name := range sortedKeys(r.tools) {
 		t := r.tools[name]
-		if skip[name] || (len(wantSet) > 0 && !wantSet[t.Toolset]) || !envSet(t.RequiresEnv) || (t.Check != nil && !t.Check()) {
+		if skip[name] || skipSets[t.Toolset] || (len(wantSet) > 0 && !wantSet[t.Toolset]) || !envSet(t.RequiresEnv) || (t.Check != nil && !t.Check()) {
 			continue
 		}
 		tb.tools[name] = t
