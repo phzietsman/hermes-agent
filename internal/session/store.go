@@ -256,3 +256,33 @@ UPDATE sessions SET input_tokens = input_tokens + ?, output_tokens = output_toke
 WHERE id = ?`, u.Input, u.Output, u.CacheRead, u.CacheWrite, u.Reasoning, id)
 	return err
 }
+
+// RecentSessions lists up to limit sessions that have messages, newest first, skipping exclude (the live one).
+func (s *Store) RecentSessions(ctx context.Context, limit int, exclude string) ([]Session, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id FROM sessions WHERE id != ? AND message_count > 0 ORDER BY started_at DESC, id DESC LIMIT ?`, exclude, limit)
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]Session, 0, len(ids))
+	for _, id := range ids {
+		x, err := s.GetSession(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *x)
+	}
+	return out, nil
+}

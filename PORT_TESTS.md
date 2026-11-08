@@ -588,7 +588,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_read_file_schema_gating.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_refresh_agent_mcp_tools.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_removed_backend_migration.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_session_search.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_session_search.py` | behaviour | sessiontools: TestDiscoverHydratesTopAndExcludesCurrent, TestDiscoverNoMatchAndBadBounds, TestScrollAndRead, TestReadCapsLongSessionsAndClipsMessages, TestBrowseListsRecentExcludingCurrent, TestArchivedRowsStaySearchableAndTokensAreRedacted, TestParseBound |
 | `tests/tools/test_single_query_approval_mode.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_skillevaluator_scan.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_strict_provider_selection.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -607,7 +607,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_tts_pythonpath_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_tts_streaming.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_tts_xai_speech_tags.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_url_safety.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_url_safety.py` | behaviour | netguard: TestBlockReason, TestCheckURL, TestClientRefusesLoopbackAtDialTime, TestClientRefusesRedirectToCredentialURL |
 | `tests/tools/test_vercel_sandbox_environment.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_video_generation_tool_surface_matrix.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_vision_history_budget.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -619,11 +619,11 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_voice_mode.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_voice_stop_phrase.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_wake_word.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_web_free_fast_search.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_web_keyless_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_web_managed_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_web_providers.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/tools/test_web_providers_searxng.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_web_free_fast_search.py` | dropped | multi-provider free/fast search routing: Stage 1 has one search backend |
+| `tests/tools/test_web_keyless_fallback.py` | dropped | multi-provider keyless fallback: Stage 1 has one search backend |
+| `tests/tools/test_web_managed_routing.py` | dropped | managed gateway routing is not in Stage 1 |
+| `tests/tools/test_web_providers.py` | dropped | provider registry: Stage 1 has one search backend |
+| `tests/tools/test_web_providers_searxng.py` | dropped | SearXNG provider is not in Stage 1 |
 | `tests/tools/test_write_approval.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_x_search_tool.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/tools/test_xai_http_credentials.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -707,7 +707,7 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/agent/test_identity_flush.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_idle_compaction_lock_and_guards.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_in_place_compaction.py` | later | belongs to a module ported by a later task; re-bucket there |
-| `tests/agent/test_inline_session_search_profile.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_inline_session_search_profile.py` | dropped | cross-profile recall and inline @session links are not Stage 1 |
 | `tests/agent/test_insights.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_live_db_preview_locks.py` | later | belongs to a module ported by a later task; re-bucket there |
 | `tests/agent/test_message_reactions.py` | later | belongs to a module ported by a later task; re-bucket there |
@@ -1086,20 +1086,20 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_cross_profile_guard.py` | dropped | cross-profile guard for multiplexed profiles is not ported |
 | `tests/tools/test_plugin_skills.py` | dropped | plugin-namespaced skills are not ported (no plugin system in Stage 1) |
 | `tests/tools/test_skill_create_dir.py` | dropped | skills.create_dir tier is not ported |
-| `tests/tools/test_skill_env_passthrough.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
-| `tests/tools/test_skill_improvements.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_env_passthrough.py` | dropped | skill env passthrough to remote backends is not in Stage 1 |
+| `tests/tools/test_skill_improvements.py` | behaviour | TestPatchAndEdit (patch keeps frontmatter valid, edit keeps over-budget descriptions maintainable), TestCreateRejections |
 | `tests/tools/test_skill_ledger.py` | dropped | skill provenance ledger is not ported |
-| `tests/tools/test_skill_manage_batch.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
-| `tests/tools/test_skill_manage_schema_diet.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
-| `tests/tools/test_skill_manager_tool.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_manage_batch.py` | dropped | batch operations array is not ported: skill_manage takes one flat operation |
+| `tests/tools/test_skill_manage_schema_diet.py` | dropped | the operations-array schema is not ported (flat schema) |
+| `tests/tools/test_skill_manager_tool.py` | behaviour | TestCreateViewListRoundTrip, TestCreateRejections, TestCreateDuplicate, TestPatchAndEdit, TestSupportFiles, TestDeleteRemovesEmptyCategory, TestUnknownAction |
 | `tests/tools/test_skill_pending_diff_batch.py` | dropped | pending-diff review of skill edits is not ported |
-| `tests/tools/test_skill_size_limits.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
-| `tests/tools/test_skill_view_dedup.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
-| `tests/tools/test_skill_view_traversal.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skill_size_limits.py` | behaviour | TestCreateRejections (oversize, description budget) |
+| `tests/tools/test_skill_view_dedup.py` | dropped | repeat-view stub dedup is not ported |
+| `tests/tools/test_skill_view_traversal.py` | behaviour | TestSupportFiles (traversal and absolute paths refused for view and write), FuzzValidateFilePath |
 | `tests/tools/test_skills_sync.py` | dropped | bundled-skill sync into the profile is Python install machinery |
-| `tests/tools/test_skills_tool.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skills_tool.py` | behaviour | TestCreateViewListRoundTrip, TestDisabledSkillHiddenFromListButViewable, TestSupportFiles |
 | `tests/tools/test_skills_tool_discovery_cache.py` | dropped | skill discovery cache is not ported |
-| `tests/tools/test_skills_tool_profile_scope.py` | later | skill_view / skill_manage tools: re-bucket in task 3.4 |
+| `tests/tools/test_skills_tool_profile_scope.py` | dropped | profile scoping is the loader seam: skilltools.Loader takes the call home (TestCreateViewListRoundTrip) |
 | `tests/tui_gateway/test_command_description_fidelity.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
 | `tests/tui_gateway/test_human_input_hooks_tui.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
 | `tests/tui_gateway/test_plugin_skill_slash.py` | dropped | TUI/desktop backend: TypeScript frontends are out of scope |
@@ -1775,17 +1775,17 @@ Extra status `later`: the file was assigned to this group by import counting but
 | `tests/tools/test_video_analyze.py` | | |
 | `tests/tools/test_video_generation_dynamic_schema.py` | dropped | video generation is not in Stage 1 |
 | `tests/tools/test_watch_patterns.py` | dropped | background processes and PTYs are not in Stage 1 |
-| `tests/tools/test_web_backend_capability_isolation.py` | | |
-| `tests/tools/test_web_extract_robustness.py` | | |
-| `tests/tools/test_web_keyless_rescue.py` | | |
-| `tests/tools/test_web_providers_brave_free.py` | | |
-| `tests/tools/test_web_providers_ddgs.py` | | |
-| `tests/tools/test_web_providers_xai.py` | | |
-| `tests/tools/test_web_tools_config.py` | | |
-| `tests/tools/test_web_tools_dict_urls.py` | | |
-| `tests/tools/test_web_tools_perplexity.py` | | |
-| `tests/tools/test_web_tools_tavily.py` | | |
-| `tests/tools/test_web_tools_truncate.py` | | |
+| `tests/tools/test_web_backend_capability_isolation.py` | dropped | provider capability registry is not ported |
+| `tests/tools/test_web_extract_robustness.py` | behaviour | webtools: TestExtractPerURLFailuresDoNotSpoilTheRest, TestExtractCapsAtFiveURLsAndNeedsAny |
+| `tests/tools/test_web_keyless_rescue.py` | dropped | keyless rescue ring is not ported (Tavily keyless mode is used directly) |
+| `tests/tools/test_web_providers_brave_free.py` | dropped | Brave provider is not in Stage 1 |
+| `tests/tools/test_web_providers_ddgs.py` | dropped | DDGS provider is not in Stage 1 |
+| `tests/tools/test_web_providers_xai.py` | dropped | xAI provider is not in Stage 1 |
+| `tests/tools/test_web_tools_config.py` | dropped | web backend selection config is not ported |
+| `tests/tools/test_web_tools_dict_urls.py` | behaviour | TestExtractPerURLFailuresDoNotSpoilTheRest (non-string items become per-entry errors) |
+| `tests/tools/test_web_tools_perplexity.py` | dropped | Perplexity provider is not in Stage 1 |
+| `tests/tools/test_web_tools_tavily.py` | behaviour | webtools: TestSearchShapesAndAuth, TestSearchErrors |
+| `tests/tools/test_web_tools_truncate.py` | behaviour | webtools: TestTruncateMatchesPython, TestBase64MatchesPython, TestClampMatchesPython, TestStoreFullTextWritesCapAndReplacesSymlink |
 | `tests/tools/test_write_file_rewrite_hint.py` | dropped | the whole-file-rewrite cost hint is advisory text, not behaviour |
 | `tests/tools/test_write_file_syntax_gate.py` | behaviour | TestWriteRefusesReadOutputAndBadJSON (JSON only; YAML and TOML gates are not ported) |
 | `tests/tools/test_write_verification.py` | behaviour | TestWriteCreatesFilesAndParents (verified), patchReplace's post-write read-back |

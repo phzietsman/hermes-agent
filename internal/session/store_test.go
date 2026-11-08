@@ -230,3 +230,29 @@ func TestConcurrentAppendsAreAllStored(t *testing.T) {
 		t.Fatalf("count = %d, rows = %d, want 200", got.MessageCount, len(msgs))
 	}
 }
+
+func TestRecentSessionsNewestFirstSkipsExcludedAndEmpty(t *testing.T) {
+	ctx := context.Background()
+	st := open(t)
+	for _, id := range []string{"a", "b", "c", "empty"} {
+		if err := st.CreateSession(ctx, NewSession{ID: id, Source: "cli"}); err != nil {
+			t.Fatal(err)
+		}
+		if id != "empty" {
+			if _, err := st.AppendMessage(ctx, Message{SessionID: id, Role: "user", Content: "hi"}); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	got, err := st.RecentSessions(ctx, 10, "b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, s := range got {
+		ids = append(ids, s.ID)
+	}
+	if len(ids) != 2 || ids[0] != "c" || ids[1] != "a" {
+		t.Errorf("RecentSessions = %v, want [c a]", ids)
+	}
+}
