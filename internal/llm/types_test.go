@@ -115,3 +115,66 @@ func TestCacheControlMapIsFresh(t *testing.T) {
 		t.Fatalf("ttl must be omitted when empty: %v", got)
 	}
 }
+
+func TestCloneBlockIsDeep(t *testing.T) {
+	orig := Block{"type": "text", "nested": map[string]any{"a": []any{1, map[string]any{"b": 2}}}, "blocks": []Block{{"k": "v"}}}
+	c := CloneBlock(orig)
+	if !reflect.DeepEqual(orig, c) {
+		t.Fatalf("clone differs: %v vs %v", orig, c)
+	}
+	c["nested"].(map[string]any)["a"].([]any)[1].(map[string]any)["b"] = 99
+	c["blocks"].([]Block)[0]["k"] = "changed"
+	c["type"] = "other"
+	if orig["nested"].(map[string]any)["a"].([]any)[1].(map[string]any)["b"] != 2 || orig["blocks"].([]Block)[0]["k"] != "v" || orig["type"] != "text" {
+		t.Fatal("mutating the clone changed the original")
+	}
+	if CloneBlock(nil) != nil || CloneBlocks(nil) != nil {
+		t.Fatal("nil clones to nil")
+	}
+	if got := CloneBlocks([]Block{{"a": 1}}); len(got) != 1 || got[0]["a"] != 1 {
+		t.Fatalf("CloneBlocks = %v", got)
+	}
+}
+
+func TestMessageCloneIsDeep(t *testing.T) {
+	rc := "reasoning"
+	orig := Message{
+		Role: RoleAssistant, Content: Parts(Block{"type": "text", "text": "hi"}),
+		ToolCalls: []ToolCall{{ID: "1"}}, CacheControl: &CacheControl{Type: "ephemeral"}, ReasoningContent: &rc,
+		ReasoningDetails: []Block{{"type": "thinking"}}, ContentBlocks: []Block{{"type": "text"}}, StashedBlocks: []Block{{"type": "image"}},
+	}
+	c := orig.Clone()
+	c.Content.AsParts()[0]["text"] = "changed"
+	c.ToolCalls[0].ID = "2"
+	c.CacheControl.Type = "other"
+	*c.ReasoningContent = "x"
+	c.ReasoningDetails[0]["type"] = "x"
+	c.ContentBlocks[0]["type"] = "x"
+	c.StashedBlocks[0]["type"] = "x"
+	if orig.Content.AsParts()[0]["text"] != "hi" || orig.ToolCalls[0].ID != "1" || orig.CacheControl.Type != "ephemeral" || rc != "reasoning" ||
+		orig.ReasoningDetails[0]["type"] != "thinking" || orig.ContentBlocks[0]["type"] != "text" || orig.StashedBlocks[0]["type"] != "image" {
+		t.Fatal("mutating the clone changed the original")
+	}
+	mm := MultimodalContent(Multimodal{Parts: []Block{{"type": "text", "text": "a"}}, TextSummary: "s"})
+	cm := Message{Role: RoleTool, Content: mm}.Clone()
+	cm.Content.AsMultimodal().Parts[0]["text"] = "changed"
+	if mm.AsMultimodal().Parts[0]["text"] != "a" || cm.Content.AsMultimodal().TextSummary != "s" {
+		t.Fatal("multimodal content must clone deeply")
+	}
+	if got := (Message{Role: RoleUser, Content: Text("t")}).Clone(); got.Content.AsText() != "t" {
+		t.Fatal("text content survives a clone")
+	}
+}
+
+func TestToolDefCloneIsDeep(t *testing.T) {
+	orig := ToolDef{Name: "n", Parameters: Block{"properties": map[string]any{"a": 1}}, CacheControl: &CacheControl{Type: "ephemeral"}}
+	c := orig.Clone()
+	c.Parameters["properties"].(map[string]any)["a"] = 2
+	c.CacheControl.Type = "x"
+	if orig.Parameters["properties"].(map[string]any)["a"] != 1 || orig.CacheControl.Type != "ephemeral" {
+		t.Fatal("mutating the clone changed the original")
+	}
+	if (ToolDef{Name: "bare"}).Clone().CacheControl != nil {
+		t.Fatal("no marker stays no marker")
+	}
+}
