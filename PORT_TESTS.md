@@ -40,629 +40,630 @@ Test files that import none of the Stage 1 modules (other than `hermes_constants
 ## Ledger
 
 Columns: file | bucket (`behaviour` / `compiler` / `dropped`, empty = unresolved) | Go counterpart or reason.
+Extra status `later`: the file was assigned to this group by import counting but belongs to a module that is ported by a later task; that task re-buckets it. Behaviour rows that cover only part of a Python file say `subset`.
 
 ### config (618 files, floor 84.6%)
 
 | File | Bucket | Go counterpart / reason |
 |---|---|---|
-| `tests/acp_adapter/test_acp_commands.py` | | |
-| `tests/acp_adapter/test_acp_mcp_discovery.py` | | |
-| `tests/acp_adapter/test_named_provider_catalogs.py` | | |
-| `tests/acp_adapter/test_session.py` | | |
-| `tests/agent/lsp/test_broken_set.py` | | |
-| `tests/agent/lsp/test_install_and_lint_fixes.py` | | |
-| `tests/agent/lsp/test_root_policy.py` | | |
-| `tests/agent/test_actual_auxiliary_routing.py` | | |
-| `tests/agent/test_anthropic_adapter_extra_headers.py` | | |
-| `tests/agent/test_anthropic_prompt_cache_policy.py` | | |
-| `tests/agent/test_api_max_retries_config.py` | | |
-| `tests/agent/test_aux_progress_streaming.py` | | |
-| `tests/agent/test_auxiliary_client_azure_foundry.py` | | |
-| `tests/agent/test_auxiliary_client_ssl_verify.py` | | |
-| `tests/agent/test_background_review_cost_controls.py` | | |
-| `tests/agent/test_background_review_input_budget.py` | | |
-| `tests/agent/test_background_review_tool_call_guard.py` | | |
-| `tests/agent/test_background_review_toolset_restriction.py` | | |
-| `tests/agent/test_background_review_usage.py` | | |
-| `tests/agent/test_bitwarden_secrets.py` | | |
-| `tests/agent/test_cache_disabled_on_stubs.py` | | |
-| `tests/agent/test_codex_app_server_integration.py` | | |
-| `tests/agent/test_codex_gpt55_autoraise_notice.py` | | |
-| `tests/agent/test_command_secret_source.py` | | |
-| `tests/agent/test_command_token_source.py` | | |
-| `tests/agent/test_compression_config_defaults.py` | | |
-| `tests/agent/test_compression_max_attempts_config.py` | | |
-| `tests/agent/test_context_compressor.py` | | |
-| `tests/agent/test_credential_pool.py` | | |
-| `tests/agent/test_credential_pool_profile_oauth_fork.py` | | |
-| `tests/agent/test_credential_pool_seed_existing_env_sources.py` | | |
-| `tests/agent/test_credential_rotation_route_settings.py` | | |
-| `tests/agent/test_credits_notices_toggle.py` | | |
-| `tests/agent/test_curator.py` | | |
-| `tests/agent/test_custom_provider_ca_probes.py` | | |
-| `tests/agent/test_custom_provider_extra_headers_client.py` | | |
-| `tests/agent/test_deadline.py` | | |
-| `tests/agent/test_empty_response_guard.py` | | |
-| `tests/agent/test_env_loader_applied_homes.py` | | |
-| `tests/agent/test_env_loader_reload_restore.py` | | |
-| `tests/agent/test_env_loader_secret_sources.py` | | |
-| `tests/agent/test_fast_mode_auto.py` | | |
-| `tests/agent/test_file_mutation_verifier.py` | | |
-| `tests/agent/test_gemini_native_reservation.py` | | |
-| `tests/agent/test_glm_context_window_resolution.py` | | |
-| `tests/agent/test_image_generate_parallel.py` | | |
-| `tests/agent/test_invalid_context_length_warning.py` | | |
-| `tests/agent/test_iron_proxy.py` | | |
-| `tests/agent/test_malformed_tool_arguments.py` | | |
-| `tests/agent/test_memory_provider_init.py` | | |
-| `tests/agent/test_moa_cold_start_cache.py` | | |
-| `tests/agent/test_moa_reasoning_effort.py` | | |
-| `tests/agent/test_moa_trace_streamed_capture.py` | | |
-| `tests/agent/test_model_streaming_config.py` | | |
-| `tests/agent/test_models_dev.py` | | |
-| `tests/agent/test_nous_welcome_client_contract.py` | | |
-| `tests/agent/test_ollama_num_ctx.py` | | |
-| `tests/agent/test_openrouter_response_cache.py` | | |
-| `tests/agent/test_openrouter_silent_default_purge.py` | | |
-| `tests/agent/test_outbound_webhooks.py` | | |
-| `tests/agent/test_per_model_provider_routing.py` | | |
-| `tests/agent/test_per_model_threshold_init_ordering.py` | | |
-| `tests/agent/test_plugin_context_engine_init.py` | | |
-| `tests/agent/test_plugin_llm.py` | | |
-| `tests/agent/test_plugin_llm_task_routing.py` | | |
-| `tests/agent/test_plugin_stream_hooks.py` | | |
-| `tests/agent/test_preflight_compression_cap_e2e.py` | | |
-| `tests/agent/test_proactive_prune_config.py` | | |
-| `tests/agent/test_prompt_builder.py` | | |
-| `tests/agent/test_prompt_cache_ttl_propagation.py` | | |
-| `tests/agent/test_provider_attribution_headers.py` | | |
-| `tests/agent/test_provider_reset_cooldown.py` | | |
-| `tests/agent/test_reasoning_echo_resolver_e2e.py` | | |
-| `tests/agent/test_relay_session_segments.py` | | |
-| `tests/agent/test_review_engine.py` | | |
-| `tests/agent/test_sanitiser_escalation.py` | | |
-| `tests/agent/test_secret_scope.py` | | |
-| `tests/agent/test_secret_scope_env_cache.py` | | |
-| `tests/agent/test_serves_routed_profile_pin.py` | | |
-| `tests/agent/test_session_affinity_header.py` | | |
-| `tests/agent/test_soul_legacy_bot_protocol.py` | | |
-| `tests/agent/test_ssl_transport_contracts.py` | | |
-| `tests/agent/test_switch_model_context.py` | | |
-| `tests/agent/test_switch_model_reapplies_config_context_pin.py` | | |
-| `tests/agent/test_title_generator.py` | | |
-| `tests/agent/test_tool_call_guardrail_runtime.py` | | |
-| `tests/agent/test_turn_completion_explainer.py` | | |
-| `tests/agent/test_vision_aware_preprocessing.py` | | |
-| `tests/agent/test_vision_routing.py` | | |
-| `tests/computer_use/test_cua_no_overlay.py` | | |
-| `tests/computer_use/test_cua_perf_knobs.py` | | |
-| `tests/computer_use/test_cua_telemetry.py` | | |
-| `tests/computer_use/test_cua_wayland_env.py` | | |
-| `tests/conformance/test_profile_write_tripwire.py` | | |
-| `tests/cron/test_cron_manage_profile_scope.py` | | |
-| `tests/cron/test_file_permissions.py` | | |
-| `tests/e2e/core/upgrade/git/test_hostile_post.py` | | |
-| `tests/e2e/core/upgrade/test_config_roundtrip_properties.py` | | |
-| `tests/e2e/core/upgrade/test_fresh_process_entrypoints.py` | | |
-| `tests/gateway/test_agent_cache.py` | | |
-| `tests/gateway/test_api_server.py` | | |
-| `tests/gateway/test_api_server_multiplex_secret_scope.py` | | |
-| `tests/gateway/test_api_server_profile_prefix_misdelivery.py` | | |
-| `tests/gateway/test_api_server_responses_history_cap.py` | | |
-| `tests/gateway/test_browser_control_artifacts.py` | | |
-| `tests/gateway/test_config_env_bridge_authority.py` | | |
-| `tests/gateway/test_control_socket.py` | | |
-| `tests/gateway/test_cron_ticks_every_profile.py` | | |
-| `tests/gateway/test_discord_plugin_setup.py` | | |
-| `tests/gateway/test_discord_prompt_timeout_config.py` | | |
-| `tests/gateway/test_discord_roles_dm_scope.py` | | |
-| `tests/gateway/test_display_config.py` | | |
-| `tests/gateway/test_gateway_platform_event_hook.py` | | |
-| `tests/gateway/test_host_attach_lifecycle.py` | | |
-| `tests/gateway/test_host_attach_standalone.py` | | |
-| `tests/gateway/test_host_gateway_lock_refusal.py` | | |
-| `tests/gateway/test_host_gateway_profile_env.py` | | |
-| `tests/gateway/test_housekeeping_profile_scope.py` | | |
-| `tests/gateway/test_kanban_notifier_watcher_dispatch_gate.py` | | |
-| `tests/gateway/test_launch_profile_scope_fallback.py` | | |
-| `tests/gateway/test_multiplex_adapter_registry.py` | | |
-| `tests/gateway/test_multiplex_api_server_routing.py` | | |
-| `tests/gateway/test_multiplex_credential_isolation.py` | | |
-| `tests/gateway/test_multiplex_hot_serve.py` | | |
-| `tests/gateway/test_multiplex_http_routing.py` | | |
-| `tests/gateway/test_multiplex_pairing_stores.py` | | |
-| `tests/gateway/test_multiplex_process_memo_scope.py` | | |
-| `tests/gateway/test_multiplex_unserved_shared_ingress.py` | | |
-| `tests/gateway/test_persist_home_channel.py` | | |
-| `tests/gateway/test_platform_reconnect.py` | | |
-| `tests/gateway/test_profile_signature_during_connect.py` | | |
-| `tests/gateway/test_reasoning_config_per_model.py` | | |
-| `tests/gateway/test_retired_session_reset_notice.py` | | |
-| `tests/gateway/test_session_degraded_db_continuity.py` | | |
-| `tests/gateway/test_shared_ingress_profile_routing.py` | | |
-| `tests/gateway/test_shared_platform_boilerplate.py` | | |
-| `tests/gateway/test_slack_plugin_setup.py` | | |
-| `tests/gateway/test_startup_agent_budget_log.py` | | |
-| `tests/gateway/test_startup_launch_profile_hooks_scope.py` | | |
-| `tests/gateway/test_startup_model_context_warmup.py` | | |
-| `tests/gateway/test_status_strict_identity_live.py` | | |
-| `tests/gateway/test_webhook_adapter.py` | | |
-| `tests/gateway/test_webhook_cron_trigger.py` | | |
-| `tests/gateway/test_whatsapp_reply_prefix.py` | | |
-| `tests/hermes_cli/test_actual_provider.py` | | |
-| `tests/hermes_cli/test_anon_auth_core.py` | | |
-| `tests/hermes_cli/test_anon_picker.py` | | |
-| `tests/hermes_cli/test_anon_upgrade.py` | | |
-| `tests/hermes_cli/test_anthropic_model_flow_stale_oauth.py` | | |
-| `tests/hermes_cli/test_anthropic_oauth_flow.py` | | |
-| `tests/hermes_cli/test_anthropic_provider_persistence.py` | | |
-| `tests/hermes_cli/test_api_key_providers.py` | | |
-| `tests/hermes_cli/test_api_mode_aliases.py` | | |
-| `tests/hermes_cli/test_apply_model_switch_result_context.py` | | |
-| `tests/hermes_cli/test_aux_assignment_reasoning_effort.py` | | |
-| `tests/hermes_cli/test_aux_config.py` | | |
-| `tests/hermes_cli/test_azure_foundry_entra.py` | | |
-| `tests/hermes_cli/test_backup_all_profiles.py` | | |
-| `tests/hermes_cli/test_banner_distribution_label.py` | | |
-| `tests/hermes_cli/test_banner_release_channel.py` | | |
-| `tests/hermes_cli/test_bare_custom_picker_row.py` | | |
-| `tests/hermes_cli/test_boot_convergence.py` | | |
-| `tests/hermes_cli/test_busy_input_mode_command.py` | | |
-| `tests/hermes_cli/test_canonical_custom_identity.py` | | |
-| `tests/hermes_cli/test_clear_stale_base_url.py` | | |
-| `tests/hermes_cli/test_cli_custom_provider_vision.py` | | |
-| `tests/hermes_cli/test_cli_fallback_chain_hot_reload.py` | | |
-| `tests/hermes_cli/test_cli_first_message.py` | | |
-| `tests/hermes_cli/test_cli_first_run_setup.py` | | |
-| `tests/hermes_cli/test_cli_init.py` | | |
-| `tests/hermes_cli/test_cli_mcp_config_watch.py` | | |
-| `tests/hermes_cli/test_cli_partial_update_hint.py` | | |
-| `tests/hermes_cli/test_cli_pet_pane.py` | | |
-| `tests/hermes_cli/test_cli_provider_resolution.py` | | |
-| `tests/hermes_cli/test_cli_startup_model_cost_guard.py` | | |
-| `tests/hermes_cli/test_cli_tools_command.py` | | |
-| `tests/hermes_cli/test_cmd_update_docker.py` | | |
-| `tests/hermes_cli/test_codex_runtime_plugin_migration.py` | | |
-| `tests/hermes_cli/test_commit_build_updates.py` | | |
-| `tests/hermes_cli/test_completer_config_reads.py` | | |
-| `tests/hermes_cli/test_config.py` | | |
-| `tests/hermes_cli/test_config_backups.py` | | |
-| `tests/hermes_cli/test_config_cache_signature.py` | | |
-| `tests/hermes_cli/test_config_check_diagnostics.py` | | |
-| `tests/hermes_cli/test_config_display_language.py` | | |
-| `tests/hermes_cli/test_config_dotted_key_names.py` | | |
-| `tests/hermes_cli/test_config_edit_seed.py` | | |
-| `tests/hermes_cli/test_config_effective.py` | | |
-| `tests/hermes_cli/test_config_env_expansion.py` | | |
-| `tests/hermes_cli/test_config_env_ref_parity.py` | | |
-| `tests/hermes_cli/test_config_env_refs.py` | | |
-| `tests/hermes_cli/test_config_lkg_backup.py` | | |
-| `tests/hermes_cli/test_config_lock_free_cache_hit.py` | | |
-| `tests/hermes_cli/test_config_migration_45_connections.py` | | |
-| `tests/hermes_cli/test_config_migration_48_sandbox_image.py` | | |
-| `tests/hermes_cli/test_config_migration_49_vercel_image.py` | | |
-| `tests/hermes_cli/test_config_migration_50_tirith.py` | | |
-| `tests/hermes_cli/test_config_migration_nested_guards.py` | | |
-| `tests/hermes_cli/test_config_platform_env_routing.py` | | |
-| `tests/hermes_cli/test_config_provider_id_string.py` | | |
-| `tests/hermes_cli/test_config_read_guard.py` | | |
-| `tests/hermes_cli/test_config_rmw_lock.py` | | |
-| `tests/hermes_cli/test_config_save_integrity.py` | | |
-| `tests/hermes_cli/test_config_set_coercion.py` | | |
-| `tests/hermes_cli/test_config_set_list_values.py` | | |
-| `tests/hermes_cli/test_config_set_platforms_redirect.py` | | |
-| `tests/hermes_cli/test_config_unversioned_migration.py` | | |
-| `tests/hermes_cli/test_config_validation.py` | | |
-| `tests/hermes_cli/test_config_yaml_comment_preservation.py` | | |
-| `tests/hermes_cli/test_container_aware_cli.py` | | |
-| `tests/hermes_cli/test_context_cache_switch_guard.py` | | |
-| `tests/hermes_cli/test_credential_lifecycle.py` | | |
-| `tests/hermes_cli/test_cron_fire_dashboard.py` | | |
-| `tests/hermes_cli/test_cron_run_scheduler_ownership.py` | | |
-| `tests/hermes_cli/test_cross_profile_kill_refusal.py` | | |
-| `tests/hermes_cli/test_custom_provider_context_length.py` | | |
-| `tests/hermes_cli/test_custom_provider_extra_headers.py` | | |
-| `tests/hermes_cli/test_custom_provider_normalize_no_mutate.py` | | |
-| `tests/hermes_cli/test_custom_provider_tls.py` | | |
-| `tests/hermes_cli/test_dashboard_admin_endpoints.py` | | |
-| `tests/hermes_cli/test_dashboard_auth_prefix.py` | | |
-| `tests/hermes_cli/test_dashboard_register.py` | | |
-| `tests/hermes_cli/test_dashboard_unified_launch.py` | | |
-| `tests/hermes_cli/test_dashboard_web_dist_validation.py` | | |
-| `tests/hermes_cli/test_data_dir_suffix.py` | | |
-| `tests/hermes_cli/test_default_interface_resolution.py` | | |
-| `tests/hermes_cli/test_deleted_profile_tombstone.py` | | |
-| `tests/hermes_cli/test_deprecated_cwd_warning.py` | | |
-| `tests/hermes_cli/test_desktop_repo_discovery_config.py` | | |
-| `tests/hermes_cli/test_destructive_slash_confirm_gate.py` | | |
-| `tests/hermes_cli/test_doctor.py` | | |
-| `tests/hermes_cli/test_doctor_channel_hygiene.py` | | |
-| `tests/hermes_cli/test_doctor_live.py` | | |
-| `tests/hermes_cli/test_dump_env_visibility.py` | | |
-| `tests/hermes_cli/test_dump_terminal_backend.py` | | |
-| `tests/hermes_cli/test_ensure_hermes_home_memo.py` | | |
-| `tests/hermes_cli/test_ensure_hermes_home_uid.py` | | |
-| `tests/hermes_cli/test_env_custom_keys.py` | | |
-| `tests/hermes_cli/test_env_deprecation_truthtable.py` | | |
-| `tests/hermes_cli/test_env_export_line_lifecycle.py` | | |
-| `tests/hermes_cli/test_env_export_prefix.py` | | |
-| `tests/hermes_cli/test_env_load_cache.py` | | |
-| `tests/hermes_cli/test_env_loader.py` | | |
-| `tests/hermes_cli/test_env_loader_op_bootstrap.py` | | |
-| `tests/hermes_cli/test_env_loader_self_reference.py` | | |
-| `tests/hermes_cli/test_env_sanitize_on_load.py` | | |
-| `tests/hermes_cli/test_env_write_race.py` | | |
-| `tests/hermes_cli/test_exit_summary_resume_hint.py` | | |
-| `tests/hermes_cli/test_fallback_cmd.py` | | |
-| `tests/hermes_cli/test_fast_command.py` | | |
-| `tests/hermes_cli/test_fast_serve_launch.py` | | |
-| `tests/hermes_cli/test_fireworks_provider.py` | | |
-| `tests/hermes_cli/test_fleet_matrix_down_state.py` | | |
-| `tests/hermes_cli/test_fleet_matrix_self_restart_pending.py` | | |
-| `tests/hermes_cli/test_focus_view.py` | | |
-| `tests/hermes_cli/test_gateway.py` | | |
-| `tests/hermes_cli/test_gateway_migrate_multiplex.py` | | |
-| `tests/hermes_cli/test_gateway_multiplex_lifecycle.py` | | |
-| `tests/hermes_cli/test_gateway_multiplex_status.py` | | |
-| `tests/hermes_cli/test_gateway_served_guard_ownership.py` | | |
-| `tests/hermes_cli/test_gemini_free_tier_setup_block.py` | | |
-| `tests/hermes_cli/test_get_env_value_scope.py` | | |
-| `tests/hermes_cli/test_gmi_provider.py` | | |
-| `tests/hermes_cli/test_goal_judge_timeout_config.py` | | |
-| `tests/hermes_cli/test_gui_command.py` | | |
-| `tests/hermes_cli/test_history_commentary_display.py` | | |
-| `tests/hermes_cli/test_home_directory_diagnostics.py` | | |
-| `tests/hermes_cli/test_home_init_soul_symlink.py` | | |
-| `tests/hermes_cli/test_hooks_cli.py` | | |
-| `tests/hermes_cli/test_indicator_command.py` | | |
-| `tests/hermes_cli/test_install_bucket_separation.py` | | |
-| `tests/hermes_cli/test_inventory.py` | | |
-| `tests/hermes_cli/test_ipv6_url_authorities.py` | | |
-| `tests/hermes_cli/test_iron_proxy_cli.py` | | |
-| `tests/hermes_cli/test_kanban_cli_dispatch_passthrough.py` | | |
-| `tests/hermes_cli/test_kanban_core_functionality.py` | | |
-| `tests/hermes_cli/test_kanban_decompose.py` | | |
-| `tests/hermes_cli/test_kanban_dispatch_claim_allowlist.py` | | |
-| `tests/hermes_cli/test_kanban_dispatch_unknown_assignee_event.py` | | |
-| `tests/hermes_cli/test_kanban_host_cap.py` | | |
-| `tests/hermes_cli/test_kanban_review_lifecycle.py` | | |
-| `tests/hermes_cli/test_local_models_routes.py` | | |
-| `tests/hermes_cli/test_local_quickstart.py` | | |
-| `tests/hermes_cli/test_local_reasoning_default.py` | | |
-| `tests/hermes_cli/test_local_runtime.py` | | |
-| `tests/hermes_cli/test_local_server_lifecycle.py` | | |
-| `tests/hermes_cli/test_main_model_custom_provider_normalization.py` | | |
-| `tests/hermes_cli/test_managed_install_shapes.py` | | |
-| `tests/hermes_cli/test_managed_installs.py` | | |
-| `tests/hermes_cli/test_managed_scope_cli_config.py` | | |
-| `tests/hermes_cli/test_managed_scope_config.py` | | |
-| `tests/hermes_cli/test_managed_scope_env.py` | | |
-| `tests/hermes_cli/test_managed_scope_loaders.py` | | |
-| `tests/hermes_cli/test_managed_scope_regression.py` | | |
-| `tests/hermes_cli/test_managed_scope_surfacing.py` | | |
-| `tests/hermes_cli/test_managed_scope_writeguard.py` | | |
-| `tests/hermes_cli/test_mcp_catalog.py` | | |
-| `tests/hermes_cli/test_mcp_catalog_env_boundary.py` | | |
-| `tests/hermes_cli/test_mcp_config.py` | | |
-| `tests/hermes_cli/test_mcp_discovery_timing.py` | | |
-| `tests/hermes_cli/test_mcp_probe_redaction.py` | | |
-| `tests/hermes_cli/test_mcp_security.py` | | |
-| `tests/hermes_cli/test_mcp_startup.py` | | |
-| `tests/hermes_cli/test_mem_trim.py` | | |
-| `tests/hermes_cli/test_memory_setup.py` | | |
-| `tests/hermes_cli/test_memory_setup_env_denylist.py` | | |
-| `tests/hermes_cli/test_memory_status_env_hint.py` | | |
-| `tests/hermes_cli/test_meta_prompt_cache.py` | | |
-| `tests/hermes_cli/test_moa_preset_config_warnings.py` | | |
-| `tests/hermes_cli/test_moa_preset_deletion.py` | | |
-| `tests/hermes_cli/test_moa_set_models_preserves_extra_keys.py` | | |
-| `tests/hermes_cli/test_model_alias_credentials.py` | | |
-| `tests/hermes_cli/test_model_assignment_env_key_mirror.py` | | |
-| `tests/hermes_cli/test_model_catalog.py` | | |
-| `tests/hermes_cli/test_model_flow_pooled_credentials.py` | | |
-| `tests/hermes_cli/test_model_picker_secret_scope.py` | | |
-| `tests/hermes_cli/test_model_prefix_routing.py` | | |
-| `tests/hermes_cli/test_model_provider_persistence.py` | | |
-| `tests/hermes_cli/test_model_set_preserve_custom_endpoint.py` | | |
-| `tests/hermes_cli/test_model_set_secret_copy.py` | | |
-| `tests/hermes_cli/test_model_switch_configured_provider_routing.py` | | |
-| `tests/hermes_cli/test_model_switch_custom_providers.py` | | |
-| `tests/hermes_cli/test_model_switch_persist_default.py` | | |
-| `tests/hermes_cli/test_model_switch_user_provider_slug_verbatim.py` | | |
-| `tests/hermes_cli/test_model_validation.py` | | |
-| `tests/hermes_cli/test_models.py` | | |
-| `tests/hermes_cli/test_models_dev_preferred_merge.py` | | |
-| `tests/hermes_cli/test_models_relay_base_url.py` | | |
-| `tests/hermes_cli/test_non_ascii_credential.py` | | |
-| `tests/hermes_cli/test_noninteractive_config_guard.py` | | |
-| `tests/hermes_cli/test_normalize_main_model_assignment.py` | | |
-| `tests/hermes_cli/test_nous_subscription.py` | | |
-| `tests/hermes_cli/test_old_updater_shims.py` | | |
-| `tests/hermes_cli/test_ollama_cloud_auth.py` | | |
-| `tests/hermes_cli/test_oneshot_fallback.py` | | |
-| `tests/hermes_cli/test_oneshot_resume.py` | | |
-| `tests/hermes_cli/test_personality_none.py` | | |
-| `tests/hermes_cli/test_personality_single_owner.py` | | |
-| `tests/hermes_cli/test_picker_key_cmd_discovery.py` | | |
-| `tests/hermes_cli/test_pip_install_detection.py` | | |
-| `tests/hermes_cli/test_platform_plugin_env_injection.py` | | |
-| `tests/hermes_cli/test_plugin_api_hot_mount.py` | | |
-| `tests/hermes_cli/test_plugin_aux_tasks_dashboard.py` | | |
-| `tests/hermes_cli/test_plugin_auxiliary_tasks.py` | | |
-| `tests/hermes_cli/test_plugin_call_mcp.py` | | |
-| `tests/hermes_cli/test_plugin_historic_compat.py` | | |
-| `tests/hermes_cli/test_plugin_ownership_ledger.py` | | |
-| `tests/hermes_cli/test_plugin_packs.py` | | |
-| `tests/hermes_cli/test_plugin_provider_picker_residue.py` | | |
-| `tests/hermes_cli/test_plugins.py` | | |
-| `tests/hermes_cli/test_plugins_cmd.py` | | |
-| `tests/hermes_cli/test_plugins_cmd_activation_keys.py` | | |
-| `tests/hermes_cli/test_plugins_cmd_catalog.py` | | |
-| `tests/hermes_cli/test_plugins_hub_live_catalog.py` | | |
-| `tests/hermes_cli/test_plugins_hub_perf_guard.py` | | |
-| `tests/hermes_cli/test_pooled_served_profile_backend_unscoped.py` | | |
-| `tests/hermes_cli/test_post_setup_gating.py` | | |
-| `tests/hermes_cli/test_post_update.py` | | |
-| `tests/hermes_cli/test_post_update_expose_cli.py` | | |
-| `tests/hermes_cli/test_process_identity_canonical_matchers.py` | | |
-| `tests/hermes_cli/test_profile_clone_channels.py` | | |
-| `tests/hermes_cli/test_profile_delete_log_handlers.py` | | |
-| `tests/hermes_cli/test_profile_delete_service_name.py` | | |
-| `tests/hermes_cli/test_profile_describer.py` | | |
-| `tests/hermes_cli/test_profile_display_name.py` | | |
-| `tests/hermes_cli/test_profile_distribution.py` | | |
-| `tests/hermes_cli/test_profile_export_credentials.py` | | |
-| `tests/hermes_cli/test_profile_export_default_path.py` | | |
-| `tests/hermes_cli/test_profile_export_special_files.py` | | |
-| `tests/hermes_cli/test_profile_identity_purge_cmd.py` | | |
-| `tests/hermes_cli/test_profile_listing_cache.py` | | |
-| `tests/hermes_cli/test_profile_pm_portability.py` | | |
-| `tests/hermes_cli/test_profile_rename_checkpoints.py` | | |
-| `tests/hermes_cli/test_profile_rename_service.py` | | |
-| `tests/hermes_cli/test_profile_service_cleanup_scopes.py` | | |
-| `tests/hermes_cli/test_profiles.py` | | |
-| `tests/hermes_cli/test_profiles_s6_hooks.py` | | |
-| `tests/hermes_cli/test_profiles_sidebar_failed_load.py` | | |
-| `tests/hermes_cli/test_profiles_sidebar_scope.py` | | |
-| `tests/hermes_cli/test_prompt_api_key.py` | | |
-| `tests/hermes_cli/test_provider_config_validation.py` | | |
-| `tests/hermes_cli/test_provider_precedence.py` | | |
-| `tests/hermes_cli/test_read_raw_config_readonly.py` | | |
-| `tests/hermes_cli/test_relay_plugin_cutover.py` | | |
-| `tests/hermes_cli/test_resolve_ephemeral_system_prompt.py` | | |
-| `tests/hermes_cli/test_resolve_provider_corrupt_config.py` | | |
-| `tests/hermes_cli/test_resolve_turn_limit.py` | | |
-| `tests/hermes_cli/test_resource_limits.py` | | |
-| `tests/hermes_cli/test_runtime_provider_late_binding.py` | | |
-| `tests/hermes_cli/test_runtime_provider_resolution.py` | | |
-| `tests/hermes_cli/test_sandbox_image_switch.py` | | |
-| `tests/hermes_cli/test_secret_source_bootstrap.py` | | |
-| `tests/hermes_cli/test_security_advisories.py` | | |
-| `tests/hermes_cli/test_send_cmd.py` | | |
-| `tests/hermes_cli/test_session_vacuum_config.py` | | |
-| `tests/hermes_cli/test_sessions_export_backup_round_trip.py` | | |
-| `tests/hermes_cli/test_sessions_repair_profiles.py` | | |
-| `tests/hermes_cli/test_set_config_value.py` | | |
-| `tests/hermes_cli/test_setup.py` | | |
-| `tests/hermes_cli/test_setup_model_provider.py` | | |
-| `tests/hermes_cli/test_setup_noninteractive.py` | | |
-| `tests/hermes_cli/test_setup_profile_answers.py` | | |
-| `tests/hermes_cli/test_setup_profile_owner.py` | | |
-| `tests/hermes_cli/test_setup_profile_returning_user.py` | | |
-| `tests/hermes_cli/test_setup_provider_catalog.py` | | |
-| `tests/hermes_cli/test_setup_reconfigure.py` | | |
-| `tests/hermes_cli/test_setup_reset_backup.py` | | |
-| `tests/hermes_cli/test_setup_telemetry.py` | | |
-| `tests/hermes_cli/test_setup_terminal.py` | | |
-| `tests/hermes_cli/test_shared_metrics_efficiency.py` | | |
-| `tests/hermes_cli/test_shared_metrics_engagement.py` | | |
-| `tests/hermes_cli/test_shared_metrics_install_run.py` | | |
-| `tests/hermes_cli/test_shared_metrics_model.py` | | |
-| `tests/hermes_cli/test_shared_metrics_reliability.py` | | |
-| `tests/hermes_cli/test_shared_metrics_send_config.py` | | |
-| `tests/hermes_cli/test_shared_metrics_send_wiring.py` | | |
-| `tests/hermes_cli/test_shared_metrics_signals.py` | | |
-| `tests/hermes_cli/test_shared_metrics_update_stop_reasons.py` | | |
-| `tests/hermes_cli/test_sibling_config_migration.py` | | |
-| `tests/hermes_cli/test_source_channel_integration.py` | | |
-| `tests/hermes_cli/test_source_check.py` | | |
-| `tests/hermes_cli/test_source_launcher_publication.py` | | |
-| `tests/hermes_cli/test_stale_root_module_bridge.py` | | |
-| `tests/hermes_cli/test_startup_fast_guards.py` | | |
-| `tests/hermes_cli/test_startup_model_routing.py` | | |
-| `tests/hermes_cli/test_state_db_guard.py` | | |
-| `tests/hermes_cli/test_stepfun_picker_merge.py` | | |
-| `tests/hermes_cli/test_steward_detection.py` | | |
-| `tests/hermes_cli/test_terminal_breadcrumbs.py` | | |
-| `tests/hermes_cli/test_terminal_bridge_profile_scope.py` | | |
-| `tests/hermes_cli/test_terminal_menu_fallbacks.py` | | |
-| `tests/hermes_cli/test_timeouts.py` | | |
-| `tests/hermes_cli/test_tools_config.py` | | |
-| `tests/hermes_cli/test_tools_config_post_setup.py` | | |
-| `tests/hermes_cli/test_tui_resume_flow.py` | | |
-| `tests/hermes_cli/test_tui_terminal_reset_on_exit.py` | | |
-| `tests/hermes_cli/test_update_channel.py` | | |
-| `tests/hermes_cli/test_update_channel_stable.py` | | |
-| `tests/hermes_cli/test_update_command.py` | | |
-| `tests/hermes_cli/test_update_config_clears_custom_fields.py` | | |
-| `tests/hermes_cli/test_update_config_migration_on_current.py` | | |
-| `tests/hermes_cli/test_update_contract.py` | | |
-| `tests/hermes_cli/test_update_external_checkout.py` | | |
-| `tests/hermes_cli/test_update_finish.py` | | |
-| `tests/hermes_cli/test_update_hangup_protection.py` | | |
-| `tests/hermes_cli/test_update_import_guard.py` | | |
-| `tests/hermes_cli/test_update_inventory.py` | | |
-| `tests/hermes_cli/test_update_launchd_fleet_restart.py` | | |
-| `tests/hermes_cli/test_update_parked_branch_guard.py` | | |
-| `tests/hermes_cli/test_update_receipt.py` | | |
-| `tests/hermes_cli/test_update_receipt_truthfulness.py` | | |
-| `tests/hermes_cli/test_update_scoped_reconciliation.py` | | |
-| `tests/hermes_cli/test_update_secret_import_lock.py` | | |
-| `tests/hermes_cli/test_voice_wrapper.py` | | |
-| `tests/hermes_cli/test_wake_word_config_schema.py` | | |
-| `tests/hermes_cli/test_web_capability_gateway_route.py` | | |
-| `tests/hermes_cli/test_web_multi_profile_scope.py` | | |
-| `tests/hermes_cli/test_web_profile_delete_settlement.py` | | |
-| `tests/hermes_cli/test_web_profile_soul_writes.py` | | |
-| `tests/hermes_cli/test_web_profiles_model_scope.py` | | |
-| `tests/hermes_cli/test_web_profiles_off_loop.py` | | |
-| `tests/hermes_cli/test_web_read_coalescing.py` | | |
-| `tests/hermes_cli/test_web_recommended_default_profile.py` | | |
-| `tests/hermes_cli/test_web_routers_destructive_profile_scope.py` | | |
-| `tests/hermes_cli/test_web_server.py` | | |
-| `tests/hermes_cli/test_web_server_auto_archive_gateway_lock.py` | | |
-| `tests/hermes_cli/test_web_server_config_offloop.py` | | |
-| `tests/hermes_cli/test_web_server_cron_repeat.py` | | |
-| `tests/hermes_cli/test_web_server_executor_isolation.py` | | |
-| `tests/hermes_cli/test_web_server_gateway_topology.py` | | |
-| `tests/hermes_cli/test_web_server_messaging_posture.py` | | |
-| `tests/hermes_cli/test_web_server_messaging_profiles.py` | | |
-| `tests/hermes_cli/test_web_server_profile_unification.py` | | |
-| `tests/hermes_cli/test_web_server_session_search.py` | | |
-| `tests/hermes_cli/test_web_server_skill_editor.py` | | |
-| `tests/hermes_cli/test_web_server_skills_profiles.py` | | |
-| `tests/hermes_cli/test_web_server_stt_lease.py` | | |
-| `tests/hermes_cli/test_web_server_tts_lease.py` | | |
-| `tests/hermes_cli/test_whatsapp_onboarding.py` | | |
-| `tests/hermes_cli/test_xiaomi_provider.py` | | |
-| `tests/hermes_state/test_guest_durability_barriers.py` | | |
-| `tests/hermes_state/test_state_synchronous_pragma.py` | | |
-| `tests/monitoring/test_gateway_health_export.py` | | |
-| `tests/plugins/dashboard_auth/test_jwt_clock_skew_leeway.py` | | |
-| `tests/plugins/dashboard_auth/test_nous_provider.py` | | |
-| `tests/plugins/dashboard_auth/test_self_hosted_provider.py` | | |
-| `tests/plugins/image_gen/test_xai_provider.py` | | |
-| `tests/plugins/platforms/test_interactive_setup_reconfigure_gate.py` | | |
-| `tests/plugins/test_kanban_dashboard_plugin.py` | | |
-| `tests/plugins/test_plugins_manage_profile_scope.py` | | |
-| `tests/pm/test_lazy_install_policy.py` | | |
-| `tests/secret_sources/test_error_remediation.py` | | |
-| `tests/test_hermes_logging.py` | | |
-| `tests/test_load_yaml_file_readonly.py` | | |
-| `tests/test_scratch_dir.py` | | |
-| `tests/test_wal_reset_repair_hint.py` | | |
-| `tests/tools/test_approval_config_readonly.py` | | |
-| `tests/tools/test_approval_mode_parity.py` | | |
-| `tests/tools/test_bot_turn_lock.py` | | |
-| `tests/tools/test_browser_cdp_override.py` | | |
-| `tests/tools/test_browser_cloud_provider_cache.py` | | |
-| `tests/tools/test_browser_command_timeout_race.py` | | |
-| `tests/tools/test_browser_console.py` | | |
-| `tests/tools/test_browser_hardening.py` | | |
-| `tests/tools/test_browser_headed_mode.py` | | |
-| `tests/tools/test_browser_lightpanda.py` | | |
-| `tests/tools/test_browser_real_profile.py` | | |
-| `tests/tools/test_browser_snapshot_threshold.py` | | |
-| `tests/tools/test_browser_ssrf_local.py` | | |
-| `tests/tools/test_browser_use_cli.py` | | |
-| `tests/tools/test_browser_use_harness.py` | | |
-| `tests/tools/test_clarify_gateway.py` | | |
-| `tests/tools/test_computer_use_capture_routing.py` | | |
-| `tests/tools/test_connectors_catalog.py` | | |
-| `tests/tools/test_cron_approval_mode.py` | | |
-| `tests/tools/test_delegate_control_actions.py` | | |
-| `tests/tools/test_delegate_cron_sync_fallback.py` | | |
-| `tests/tools/test_discord_tool.py` | | |
-| `tests/tools/test_docker_config_migrate.py` | | |
-| `tests/tools/test_file_read_guards.py` | | |
-| `tests/tools/test_file_sync_back.py` | | |
-| `tests/tools/test_hook_output_spill.py` | | |
-| `tests/tools/test_image_generation.py` | | |
-| `tests/tools/test_kanban_persisted_identity.py` | | |
-| `tests/tools/test_kanban_tools.py` | | |
-| `tests/tools/test_kanban_toolset_opt_in.py` | | |
-| `tests/tools/test_local_env_blocklist.py` | | |
-| `tests/tools/test_managed_modal_environment.py` | | |
-| `tests/tools/test_mcp_config_whitespace_warning.py` | | |
-| `tests/tools/test_mcp_connect_secret_scope.py` | | |
-| `tests/tools/test_mcp_identity_header.py` | | |
-| `tests/tools/test_mcp_image_content.py` | | |
-| `tests/tools/test_mcp_multiplex_connection_keys.py` | | |
-| `tests/tools/test_mcp_stderr_lifecycle.py` | | |
-| `tests/tools/test_mcp_tool.py` | | |
-| `tests/tools/test_model_tools.py` | | |
-| `tests/tools/test_oneshot_completion_linger.py` | | |
-| `tests/tools/test_permanent_allowlist_reconcile.py` | | |
-| `tests/tools/test_process_registry.py` | | |
-| `tests/tools/test_read_file_schema_gating.py` | | |
-| `tests/tools/test_refresh_agent_mcp_tools.py` | | |
-| `tests/tools/test_removed_backend_migration.py` | | |
-| `tests/tools/test_session_search.py` | | |
-| `tests/tools/test_single_query_approval_mode.py` | | |
-| `tests/tools/test_skillevaluator_scan.py` | | |
-| `tests/tools/test_strict_provider_selection.py` | | |
-| `tests/tools/test_subprocess_home_isolation.py` | | |
-| `tests/tools/test_terminal_config_env_sync.py` | | |
-| `tests/tools/test_terminal_env_bridge.py` | | |
-| `tests/tools/test_tool_backend_helpers.py` | | |
-| `tests/tools/test_tool_output_limits.py` | | |
-| `tests/tools/test_tool_search.py` | | |
-| `tests/tools/test_tool_search_context_provider.py` | | |
-| `tests/tools/test_tool_search_multiquery.py` | | |
-| `tests/tools/test_transcription_dotenv_fallback.py` | | |
-| `tests/tools/test_tts_dotenv_fallback.py` | | |
-| `tests/tools/test_tts_macos_output.py` | | |
-| `tests/tools/test_tts_minimax_region.py` | | |
-| `tests/tools/test_tts_pythonpath_fallback.py` | | |
-| `tests/tools/test_tts_streaming.py` | | |
-| `tests/tools/test_tts_xai_speech_tags.py` | | |
-| `tests/tools/test_url_safety.py` | | |
-| `tests/tools/test_vercel_sandbox_environment.py` | | |
-| `tests/tools/test_video_generation_tool_surface_matrix.py` | | |
-| `tests/tools/test_vision_history_budget.py` | | |
-| `tests/tools/test_vision_native_fast_path.py` | | |
-| `tests/tools/test_vision_tools.py` | | |
-| `tests/tools/test_voice_cli_integration.py` | | |
-| `tests/tools/test_voice_client_config.py` | | |
-| `tests/tools/test_voice_credential_pool_resolution.py` | | |
-| `tests/tools/test_voice_mode.py` | | |
-| `tests/tools/test_voice_stop_phrase.py` | | |
-| `tests/tools/test_wake_word.py` | | |
-| `tests/tools/test_web_free_fast_search.py` | | |
-| `tests/tools/test_web_keyless_fallback.py` | | |
-| `tests/tools/test_web_managed_routing.py` | | |
-| `tests/tools/test_web_providers.py` | | |
-| `tests/tools/test_web_providers_searxng.py` | | |
-| `tests/tools/test_write_approval.py` | | |
-| `tests/tools/test_x_search_tool.py` | | |
-| `tests/tools/test_xai_http_credentials.py` | | |
-| `tests/tools/test_xai_http_storage.py` | | |
-| `tests/tui_gateway/test_change_watcher.py` | | |
-| `tests/tui_gateway/test_compaction_status.py` | | |
-| `tests/tui_gateway/test_compression_config_hot_reload.py` | | |
-| `tests/tui_gateway/test_compute_host_routed_secret_hydration.py` | | |
-| `tests/tui_gateway/test_eager_multiplex_activation.py` | | |
-| `tests/tui_gateway/test_external_process_picker.py` | | |
-| `tests/tui_gateway/test_free_tier_rpc.py` | | |
-| `tests/tui_gateway/test_free_tier_task_done.py` | | |
-| `tests/tui_gateway/test_goal_command.py` | | |
-| `tests/tui_gateway/test_gui_surface_toolsets.py` | | |
-| `tests/tui_gateway/test_heartbeat_tui_tick.py` | | |
-| `tests/tui_gateway/test_inline_rpc_gil_starvation.py` | | |
-| `tests/tui_gateway/test_kanban_resume_guard.py` | | |
-| `tests/tui_gateway/test_launch_db_home_override_race.py` | | |
-| `tests/tui_gateway/test_launch_profile_scope_plugin_hooks.py` | | |
-| `tests/tui_gateway/test_local_model_session_identity.py` | | |
-| `tests/tui_gateway/test_loop_command.py` | | |
-| `tests/tui_gateway/test_moa_reference_emit.py` | | |
-| `tests/tui_gateway/test_multi_profile_hosting_transitions.py` | | |
-| `tests/tui_gateway/test_plugins_manage_late_activation.py` | | |
-| `tests/tui_gateway/test_plugins_manage_settings.py` | | |
-| `tests/tui_gateway/test_profiles_configure.py` | | |
-| `tests/tui_gateway/test_profiles_describe_secret_scope.py` | | |
-| `tests/tui_gateway/test_projects_rpc.py` | | |
-| `tests/tui_gateway/test_reaper_flush_profile_scope.py` | | |
-| `tests/tui_gateway/test_review_summary_callback.py` | | |
-| `tests/tui_gateway/test_secret_capture_session.py` | | |
-| `tests/tui_gateway/test_session_agent_cwd.py` | | |
-| `tests/tui_gateway/test_session_control.py` | | |
-| `tests/tui_gateway/test_session_interrupt_cancels_background_review.py` | | |
-| `tests/tui_gateway/test_session_profile_db.py` | | |
-| `tests/tui_gateway/test_stale_provider_resume_live.py` | | |
-| `tests/tui_gateway/test_stranded_session_adoption.py` | | |
-| `tests/tui_gateway/test_subagent_child_mirror.py` | | |
-| `tests/tui_gateway/test_undo_command.py` | | |
-| `tests/tui_gateway/test_ws_keepalive_config.py` | | |
+| `tests/acp_adapter/test_acp_commands.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/acp_adapter/test_acp_mcp_discovery.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/acp_adapter/test_named_provider_catalogs.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/acp_adapter/test_session.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/agent/lsp/test_broken_set.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/lsp/test_install_and_lint_fixes.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/lsp/test_root_policy.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_actual_auxiliary_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_anthropic_adapter_extra_headers.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_anthropic_prompt_cache_policy.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_api_max_retries_config.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_aux_progress_streaming.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_auxiliary_client_azure_foundry.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_auxiliary_client_ssl_verify.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_cost_controls.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_input_budget.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_tool_call_guard.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_toolset_restriction.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_background_review_usage.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_bitwarden_secrets.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_cache_disabled_on_stubs.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_codex_app_server_integration.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_codex_gpt55_autoraise_notice.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_command_secret_source.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_command_token_source.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_config_defaults.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_compression_max_attempts_config.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_context_compressor.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_credential_pool.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_credential_pool_profile_oauth_fork.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_credential_pool_seed_existing_env_sources.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_credential_rotation_route_settings.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_credits_notices_toggle.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_curator.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_custom_provider_ca_probes.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_custom_provider_extra_headers_client.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_deadline.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_empty_response_guard.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_env_loader_applied_homes.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_env_loader_reload_restore.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_env_loader_secret_sources.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_fast_mode_auto.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_file_mutation_verifier.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_gemini_native_reservation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_glm_context_window_resolution.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_image_generate_parallel.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_invalid_context_length_warning.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_iron_proxy.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_malformed_tool_arguments.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_memory_provider_init.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_moa_cold_start_cache.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_moa_reasoning_effort.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_moa_trace_streamed_capture.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_model_streaming_config.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_models_dev.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_nous_welcome_client_contract.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_ollama_num_ctx.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_openrouter_response_cache.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_openrouter_silent_default_purge.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_outbound_webhooks.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_per_model_provider_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_per_model_threshold_init_ordering.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_plugin_context_engine_init.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_plugin_llm.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_plugin_llm_task_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_plugin_stream_hooks.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_preflight_compression_cap_e2e.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_proactive_prune_config.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_prompt_builder.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_prompt_cache_ttl_propagation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_provider_attribution_headers.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_provider_reset_cooldown.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_reasoning_echo_resolver_e2e.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_relay_session_segments.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_review_engine.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_sanitiser_escalation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_secret_scope.py` | behaviour | subset: `internal/config` TestParseEnv (quotes, escapes, inline comments), TestParseEnvBOMDoesNotMangleFirstKey. Profile-scope and multiplex cases dropped |
+| `tests/agent/test_secret_scope_env_cache.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_serves_routed_profile_pin.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_session_affinity_header.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_soul_legacy_bot_protocol.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_ssl_transport_contracts.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_switch_model_context.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_switch_model_reapplies_config_context_pin.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_title_generator.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_tool_call_guardrail_runtime.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_turn_completion_explainer.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_vision_aware_preprocessing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/agent/test_vision_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/computer_use/test_cua_no_overlay.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/computer_use/test_cua_perf_knobs.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/computer_use/test_cua_telemetry.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/computer_use/test_cua_wayland_env.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/conformance/test_profile_write_tripwire.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/cron/test_cron_manage_profile_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/cron/test_file_permissions.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/e2e/core/upgrade/git/test_hostile_post.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/e2e/core/upgrade/test_config_roundtrip_properties.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/e2e/core/upgrade/test_fresh_process_entrypoints.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/gateway/test_agent_cache.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_server.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_server_multiplex_secret_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_server_profile_prefix_misdelivery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_api_server_responses_history_cap.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_browser_control_artifacts.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_config_env_bridge_authority.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_control_socket.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_cron_ticks_every_profile.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_discord_plugin_setup.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_discord_prompt_timeout_config.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_discord_roles_dm_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_display_config.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_gateway_platform_event_hook.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_host_attach_lifecycle.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_host_attach_standalone.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_host_gateway_lock_refusal.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_host_gateway_profile_env.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_housekeeping_profile_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_kanban_notifier_watcher_dispatch_gate.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_launch_profile_scope_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_adapter_registry.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_api_server_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_credential_isolation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_hot_serve.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_http_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_pairing_stores.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_process_memo_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_multiplex_unserved_shared_ingress.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_persist_home_channel.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_platform_reconnect.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_profile_signature_during_connect.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_reasoning_config_per_model.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_retired_session_reset_notice.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_session_degraded_db_continuity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_shared_ingress_profile_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_shared_platform_boilerplate.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_slack_plugin_setup.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_startup_agent_budget_log.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_startup_launch_profile_hooks_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_startup_model_context_warmup.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_status_strict_identity_live.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_webhook_adapter.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_webhook_cron_trigger.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/gateway/test_whatsapp_reply_prefix.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/hermes_cli/test_actual_provider.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_anon_auth_core.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_anon_picker.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_anon_upgrade.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_anthropic_model_flow_stale_oauth.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_anthropic_oauth_flow.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_anthropic_provider_persistence.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_api_key_providers.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_api_mode_aliases.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_apply_model_switch_result_context.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_aux_assignment_reasoning_effort.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_aux_config.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_azure_foundry_entra.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_backup_all_profiles.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_banner_distribution_label.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_banner_release_channel.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_bare_custom_picker_row.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_boot_convergence.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_busy_input_mode_command.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_canonical_custom_identity.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_clear_stale_base_url.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_custom_provider_vision.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_fallback_chain_hot_reload.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_first_message.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_first_run_setup.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_init.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_mcp_config_watch.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_partial_update_hint.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_pet_pane.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_provider_resolution.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_startup_model_cost_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cli_tools_command.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cmd_update_docker.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_codex_runtime_plugin_migration.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_commit_build_updates.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_completer_config_reads.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_config.py` | behaviour | subset: `internal/config` TestLoadOverridesDefaults, TestDeepMerge, TestLoadMissingAndEmptyYieldDefaults, TestLoadRejectsBadRoots. Migration, save and validation cases dropped |
+| `tests/hermes_cli/test_config_backups.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_cache_signature.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_check_diagnostics.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_display_language.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_dotted_key_names.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_edit_seed.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_effective.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_env_expansion.py` | behaviour | subset: `internal/config` TestEnvExpansion, TestEnvExpansionLateEnvIsSeen. Cache-staleness cases dropped: Go Load has no cache |
+| `tests/hermes_cli/test_config_env_ref_parity.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_env_refs.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_lkg_backup.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_lock_free_cache_hit.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_migration_45_connections.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_migration_48_sandbox_image.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_migration_49_vercel_image.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_migration_50_tirith.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_migration_nested_guards.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_platform_env_routing.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_provider_id_string.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_read_guard.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_rmw_lock.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_save_integrity.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_set_coercion.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_set_list_values.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_set_platforms_redirect.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_unversioned_migration.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_validation.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_config_yaml_comment_preservation.py` | dropped | config writer, migrations, diagnostics or caches: Stage 1 only reads config.yaml |
+| `tests/hermes_cli/test_container_aware_cli.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_context_cache_switch_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_credential_lifecycle.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_cron_fire_dashboard.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_cron_run_scheduler_ownership.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_cross_profile_kill_refusal.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_custom_provider_context_length.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_custom_provider_extra_headers.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_custom_provider_normalize_no_mutate.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_custom_provider_tls.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_dashboard_admin_endpoints.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_dashboard_auth_prefix.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_dashboard_register.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_dashboard_unified_launch.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_dashboard_web_dist_validation.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_data_dir_suffix.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_default_interface_resolution.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_deleted_profile_tombstone.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_deprecated_cwd_warning.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_desktop_repo_discovery_config.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_destructive_slash_confirm_gate.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_doctor.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_doctor_channel_hygiene.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_doctor_live.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_dump_env_visibility.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_dump_terminal_backend.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_ensure_hermes_home_memo.py` | dropped | ensure_hermes_home memo is a Python perf memo; Go Init is idempotent and cheap |
+| `tests/hermes_cli/test_ensure_hermes_home_uid.py` | dropped | uid/gid chown for managed containers is not ported |
+| `tests/hermes_cli/test_env_custom_keys.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_deprecation_truthtable.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_export_line_lifecycle.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_export_prefix.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_load_cache.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_loader.py` | behaviour | subset: `internal/config` TestParseEnvBOMDoesNotMangleFirstKey, TestParseEnvLatin1Fallback, TestSecretsPrecedence, TestParseEnv (export, empty assignment). UTF-16/32 handling and managed/external-source cases not ported |
+| `tests/hermes_cli/test_env_loader_op_bootstrap.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_loader_self_reference.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_sanitize_on_load.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_env_write_race.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_exit_summary_resume_hint.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_fallback_cmd.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_fast_command.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_fast_serve_launch.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_fireworks_provider.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_fleet_matrix_down_state.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_fleet_matrix_self_restart_pending.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_focus_view.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_gateway.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_gateway_migrate_multiplex.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_gateway_multiplex_lifecycle.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_gateway_multiplex_status.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_gateway_served_guard_ownership.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_gemini_free_tier_setup_block.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_get_env_value_scope.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_gmi_provider.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_goal_judge_timeout_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_gui_command.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_history_commentary_display.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_home_directory_diagnostics.py` | behaviour | `internal/config` TestInitDiagnosesDanglingLinksWithoutCreatingTargets, TestInitLeavesOperatorOwnedLinkModes |
+| `tests/hermes_cli/test_home_init_soul_symlink.py` | dropped | SOUL.md seeding is not in config; decided in the prompt-builder task 2.2 |
+| `tests/hermes_cli/test_hooks_cli.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_indicator_command.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_install_bucket_separation.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_inventory.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_ipv6_url_authorities.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_iron_proxy_cli.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_kanban_cli_dispatch_passthrough.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_kanban_core_functionality.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_kanban_decompose.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_kanban_dispatch_claim_allowlist.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_kanban_dispatch_unknown_assignee_event.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_kanban_host_cap.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_kanban_review_lifecycle.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_local_models_routes.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_local_quickstart.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_local_reasoning_default.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_local_runtime.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_local_server_lifecycle.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_main_model_custom_provider_normalization.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_install_shapes.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_installs.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_scope_cli_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_scope_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_scope_env.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_scope_loaders.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_scope_regression.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_scope_surfacing.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_managed_scope_writeguard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mcp_catalog.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mcp_catalog_env_boundary.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mcp_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mcp_discovery_timing.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mcp_probe_redaction.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mcp_security.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mcp_startup.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_mem_trim.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_memory_setup.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_memory_setup_env_denylist.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_memory_status_env_hint.py` | later | CLI command for a later task (4.1 chat, 5.2 agent_memory, 6.1 cron, 7.1 gateway) |
+| `tests/hermes_cli/test_meta_prompt_cache.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_moa_preset_config_warnings.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_moa_preset_deletion.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_moa_set_models_preserves_extra_keys.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_alias_credentials.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_assignment_env_key_mirror.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_catalog.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_flow_pooled_credentials.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_picker_secret_scope.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_prefix_routing.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_provider_persistence.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_set_preserve_custom_endpoint.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_set_secret_copy.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_switch_configured_provider_routing.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_switch_custom_providers.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_switch_persist_default.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_switch_user_provider_slug_verbatim.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_model_validation.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_models.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_models_dev_preferred_merge.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_models_relay_base_url.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_non_ascii_credential.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_noninteractive_config_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_normalize_main_model_assignment.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_nous_subscription.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_old_updater_shims.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_ollama_cloud_auth.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_oneshot_fallback.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_oneshot_resume.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_personality_none.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_personality_single_owner.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_picker_key_cmd_discovery.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_pip_install_detection.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_platform_plugin_env_injection.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugin_api_hot_mount.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugin_aux_tasks_dashboard.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_plugin_auxiliary_tasks.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugin_call_mcp.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugin_historic_compat.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugin_ownership_ledger.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugin_packs.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugin_provider_picker_residue.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugins.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugins_cmd.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugins_cmd_activation_keys.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugins_cmd_catalog.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugins_hub_live_catalog.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_plugins_hub_perf_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_pooled_served_profile_backend_unscoped.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_post_setup_gating.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_post_update.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_post_update_expose_cli.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_process_identity_canonical_matchers.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_profile_clone_channels.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_delete_log_handlers.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_delete_service_name.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_describer.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_display_name.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_distribution.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_export_credentials.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_export_default_path.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_export_special_files.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_identity_purge_cmd.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_listing_cache.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_pm_portability.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_rename_checkpoints.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_rename_service.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profile_service_cleanup_scopes.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profiles.py` | behaviour | subset: `internal/config` TestNormalizeProfileName, TestValidateProfileName, TestProfileHome, TestProfileName. Create/delete/rename/export/alias/service cases dropped |
+| `tests/hermes_cli/test_profiles_s6_hooks.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profiles_sidebar_failed_load.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_profiles_sidebar_scope.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_prompt_api_key.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_provider_config_validation.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_provider_precedence.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_read_raw_config_readonly.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_relay_plugin_cutover.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_resolve_ephemeral_system_prompt.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_resolve_provider_corrupt_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_resolve_turn_limit.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_resource_limits.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_runtime_provider_late_binding.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_runtime_provider_resolution.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_sandbox_image_switch.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_secret_source_bootstrap.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_security_advisories.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_send_cmd.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_session_vacuum_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_sessions_export_backup_round_trip.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_sessions_repair_profiles.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_set_config_value.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup_model_provider.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup_noninteractive.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup_profile_answers.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_setup_profile_owner.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_setup_profile_returning_user.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_setup_provider_catalog.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup_reconfigure.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup_reset_backup.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup_telemetry.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_setup_terminal.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_efficiency.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_engagement.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_install_run.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_model.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_reliability.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_send_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_send_wiring.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_signals.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_shared_metrics_update_stop_reasons.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_sibling_config_migration.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_source_channel_integration.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_source_check.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_source_launcher_publication.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_stale_root_module_bridge.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_startup_fast_guards.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_startup_model_routing.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_state_db_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_stepfun_picker_merge.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_steward_detection.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_terminal_breadcrumbs.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_terminal_bridge_profile_scope.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_terminal_menu_fallbacks.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_timeouts.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_tools_config.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_tools_config_post_setup.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_tui_resume_flow.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_tui_terminal_reset_on_exit.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_update_channel.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_channel_stable.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_command.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_config_clears_custom_fields.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_config_migration_on_current.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_contract.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_external_checkout.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_finish.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_hangup_protection.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_import_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_inventory.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_launchd_fleet_restart.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_parked_branch_guard.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_receipt.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_receipt_truthfulness.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_scoped_reconciliation.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_update_secret_import_lock.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_voice_wrapper.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_wake_word_config_schema.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_web_capability_gateway_route.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_multi_profile_scope.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_profile_delete_settlement.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_profile_soul_writes.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_profiles_model_scope.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_profiles_off_loop.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_read_coalescing.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_recommended_default_profile.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_routers_destructive_profile_scope.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_server.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_auto_archive_gateway_lock.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_config_offloop.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_cron_repeat.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_executor_isolation.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_gateway_topology.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_messaging_posture.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_messaging_profiles.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_server_profile_unification.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_server_session_search.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_skill_editor.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_skills_profiles.py` | dropped | profile management, services or multiplex: Stage 1 resolves one profile per process |
+| `tests/hermes_cli/test_web_server_stt_lease.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_web_server_tts_lease.py` | dropped | dashboard, desktop or TUI backend: TypeScript frontends are out of scope |
+| `tests/hermes_cli/test_whatsapp_onboarding.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_cli/test_xiaomi_provider.py` | dropped | hermes_cli feature outside Stage 1 (setup wizard, model picker, update, kanban, plugins, doctor, ...) |
+| `tests/hermes_state/test_guest_durability_barriers.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/hermes_state/test_state_synchronous_pragma.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/monitoring/test_gateway_health_export.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/plugins/dashboard_auth/test_jwt_clock_skew_leeway.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/plugins/dashboard_auth/test_nous_provider.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/plugins/dashboard_auth/test_self_hosted_provider.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/plugins/image_gen/test_xai_provider.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/plugins/platforms/test_interactive_setup_reconfigure_gate.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/plugins/test_kanban_dashboard_plugin.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/plugins/test_plugins_manage_profile_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/pm/test_lazy_install_policy.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/secret_sources/test_error_remediation.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/test_hermes_logging.py` | dropped | Python logging setup; Go uses log/slog configured in cmd/hermes (task 4.1) |
+| `tests/test_load_yaml_file_readonly.py` | behaviour | subset: `internal/config` TestLoadRejectsBadRoots, TestLoadMissingAndEmptyYieldDefaults |
+| `tests/test_scratch_dir.py` | dropped | scratch-dir pruning is not config; not in Stage 1 |
+| `tests/test_wal_reset_repair_hint.py` | dropped | SQLite WAL repair hints are not ported (D: modernc sqlite, no repair machinery) |
+| `tests/tools/test_approval_config_readonly.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_approval_mode_parity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_bot_turn_lock.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_cdp_override.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_cloud_provider_cache.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_command_timeout_race.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_console.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_hardening.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_headed_mode.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_lightpanda.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_real_profile.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_snapshot_threshold.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_ssrf_local.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_use_cli.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_browser_use_harness.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_clarify_gateway.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_computer_use_capture_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_connectors_catalog.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_cron_approval_mode.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_delegate_control_actions.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_delegate_cron_sync_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_discord_tool.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_docker_config_migrate.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_file_read_guards.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_file_sync_back.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_hook_output_spill.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_image_generation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_kanban_persisted_identity.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_kanban_tools.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_kanban_toolset_opt_in.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_local_env_blocklist.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_managed_modal_environment.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_mcp_config_whitespace_warning.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_mcp_connect_secret_scope.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_mcp_identity_header.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_mcp_image_content.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_mcp_multiplex_connection_keys.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_mcp_stderr_lifecycle.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_mcp_tool.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_model_tools.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_oneshot_completion_linger.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_permanent_allowlist_reconcile.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_process_registry.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_read_file_schema_gating.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_refresh_agent_mcp_tools.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_removed_backend_migration.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_session_search.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_single_query_approval_mode.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_skillevaluator_scan.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_strict_provider_selection.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_subprocess_home_isolation.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_terminal_config_env_sync.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_terminal_env_bridge.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tool_backend_helpers.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tool_output_limits.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tool_search.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tool_search_context_provider.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tool_search_multiquery.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_transcription_dotenv_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tts_dotenv_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tts_macos_output.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tts_minimax_region.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tts_pythonpath_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tts_streaming.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_tts_xai_speech_tags.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_url_safety.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_vercel_sandbox_environment.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_video_generation_tool_surface_matrix.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_vision_history_budget.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_vision_native_fast_path.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_vision_tools.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_voice_cli_integration.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_voice_client_config.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_voice_credential_pool_resolution.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_voice_mode.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_voice_stop_phrase.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_wake_word.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_web_free_fast_search.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_web_keyless_fallback.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_web_managed_routing.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_web_providers.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_web_providers_searxng.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_write_approval.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_x_search_tool.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_xai_http_credentials.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tools/test_xai_http_storage.py` | later | belongs to a module ported by a later task; re-bucket there |
+| `tests/tui_gateway/test_change_watcher.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_compaction_status.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_compression_config_hot_reload.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_compute_host_routed_secret_hydration.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_eager_multiplex_activation.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_external_process_picker.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_free_tier_rpc.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_free_tier_task_done.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_goal_command.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_gui_surface_toolsets.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_heartbeat_tui_tick.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_inline_rpc_gil_starvation.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_kanban_resume_guard.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_launch_db_home_override_race.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_launch_profile_scope_plugin_hooks.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_local_model_session_identity.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_loop_command.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_moa_reference_emit.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_multi_profile_hosting_transitions.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_plugins_manage_late_activation.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_plugins_manage_settings.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_profiles_configure.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_profiles_describe_secret_scope.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_projects_rpc.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_reaper_flush_profile_scope.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_review_summary_callback.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_secret_capture_session.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_session_agent_cwd.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_session_control.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_session_interrupt_cancels_background_review.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_session_profile_db.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_stale_provider_resume_live.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_stranded_session_adoption.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_subagent_child_mirror.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_undo_command.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
+| `tests/tui_gateway/test_ws_keepalive_config.py` | dropped | TUI/desktop backend, ACP, computer use, PM, monitoring or conformance tooling: not in Stage 1 |
 
 ### session (375 files, floor 87.3%)
 
