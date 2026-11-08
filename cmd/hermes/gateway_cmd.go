@@ -11,7 +11,14 @@ import (
 	"github.com/phzietsman/hermes-agent/internal/app"
 	"github.com/phzietsman/hermes-agent/internal/config"
 	"github.com/phzietsman/hermes-agent/internal/gateway"
+	"github.com/phzietsman/hermes-agent/internal/gateway/telegram"
 )
+
+// registerPlatforms makes the supported platforms known to the gateway. Registration is explicit, at the command,
+// never at import time.
+func registerPlatforms() {
+	gateway.Register("telegram", telegram.New)
+}
 
 // buildAdapters creates the adapters of every enabled platform. A variable so tests can supply a fake platform.
 var buildAdapters = gateway.Build
@@ -39,6 +46,7 @@ func gatewayCmd(ctx context.Context, args []string, io stdio, opts app.Options) 
 		return fatal(io.err, err)
 	}
 	defer rt.Close()
+	registerPlatforms()
 	adapters, err := buildAdapters(rt.Config, rt.Secrets)
 	if err != nil {
 		return fatal(io.err, err)

@@ -155,3 +155,14 @@ func TestPairingCommands(t *testing.T) {
 func gatewayRequest(home, platform, user, name string) (string, bool, error) {
 	return gateway.NewPairing(home).Request(platform, user, name)
 }
+
+func TestTelegramIsAKnownPlatformAndNeedsItsToken(t *testing.T) {
+	ctx, home := env(t)
+	t.Setenv("TELEGRAM_BOT_TOKEN", "")
+	os.WriteFile(filepath.Join(home, "config.yaml"), []byte("gateway:\n  platforms:\n    telegram:\n      enabled: true\n"), 0o644)
+	var o, e bytes.Buffer
+	code := run(ctx, []string{"gateway", "run"}, stdio{in: strings.NewReader(""), out: &o, err: &e}, app.Options{Provider: &script{}})
+	if code != 1 || !strings.Contains(e.String(), "telegram") || !strings.Contains(e.String(), "TELEGRAM_BOT_TOKEN") {
+		t.Errorf("%d %s", code, e.String())
+	}
+}
