@@ -28,11 +28,11 @@ var instances = func() map[string]json.RawMessage {
 }()
 
 // load decodes the exported instance for key into out. A missing key means that seed or size was not exported:
-// rerun scripts/port/gen_eval_scenarios.py with it added.
+// rerun legacy/python/scripts/port/gen_eval_scenarios.py with it added.
 func load(key string, out any) error {
 	raw, ok := instances[key]
 	if !ok {
-		return fmt.Errorf("scenario instance %q was not exported (see scripts/port/gen_eval_scenarios.py)", key)
+		return fmt.Errorf("scenario instance %q was not exported (see legacy/python/scripts/port/gen_eval_scenarios.py)", key)
 	}
 	return json.Unmarshal(raw, out)
 }

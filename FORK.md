@@ -23,7 +23,8 @@ not the commit count.
 - **Never merging back.** The fork is permanently divergent and will not go upstream (see D27 in `DECISIONS.md`; the repo is to be made private). Upstream's contribution rubric (no third-party products in core, narrow core waist, etc.) does **not** apply here. Don't spend effort keeping changes upstream-mergeable.
 - **Lock-in is accepted.** I pick specific tools and models and optimise for them rather than for portability.
 - **Upstream is a source to cherry-pick from, not to track.** Take upstream fixes by hand. Expect conflicts in `agent/`, `gateway/`, `plugins/memory/` and `hermes_cli/`.
-- Upstream `AGENTS.md` is still the working guide for code layout, caching invariants and tests. Prompt-cache safety in particular is kept (see D28).
+- `AGENTS.md` (Go) is the working guide; upstream's Python guide is `legacy/python/AGENTS.md`. Prompt-cache safety is kept (see D28) and listed first among the Go invariants.
+- **The implementation is Go since 2026-11-08** (branch `go-port`, see the changelog). The sections below describe the Python fork it was ported from; paths such as `agent/` and `plugins/memory/` now live under `legacy/python/`.
 
 ## What is different from Hermes
 
@@ -56,6 +57,13 @@ Fork-only docs:
 ## Changelog
 
 Newest first. Dates are commit dates. `!` marks a breaking change.
+
+### 2026-11-08 — Go port: the agent is rewritten in Go (branch `go-port`, not merged)
+- Added!: a Go module (`github.com/phzietsman/hermes-agent`, Go 1.26, pure-Go SQLite) that replaces the Python agent: `cmd/hermes` (`chat`, `gateway run`, `cron`, `pairing`, `agent_memory`) and `cmd/hermes-eval`. The design, decisions (G1 to G35) and what is blocked on live credentials are in `PORT.md`; the test ledger and coverage floors are in `PORT_TESTS.md`.
+- Ported with Python goldens: Anthropic message and request conversion `b7f4d17eb8`, `9436af7b88`; streaming and the HTTP client `ec2e92faea`; OAuth and Keychain `21fa784269`; error classification `47ddb5aacd`; prompt cache planner `d475d3e8d2`; prompt assembly `b7a8cf36e7`, `8e39f42ad7`, `e02b1e6d25`; turn loop `5764aed16b`; compaction `51b2ab49c6`; tool registry `39e5d646be`; approval detection (1,486-command corpus) `afc374da09`; file, patch and terminal tools `3d24e58a96`; web, session and skill tools `7454c55029`; cron schedules and DST-aware next runs `ee9168a652`.
+- Added: config, sessions with FTS5 `5e26523496`, `868e882e56`; skills `586c5c819d`; delegation `5a4c1e112a`; the CLI `3f4ba2cfa8`; SAM client with outbox and breaker `09e9a06246`; memory in the loop and `hermes agent_memory` `770cd92d56`; the learning loop with a cache-sharing review fork `791a5698eb`; the Go eval harness `455869f3b4`; cron `ee9168a652`; gateway core `5db2e6a4b5`; Telegram `64dbf05e7d`; Discord `282c23c8d7`; acceptance `c2260a3c58`.
+- Changed!: all Python (agent, tools, gateway, cron, hermes_cli, plugins, pm, tests, evals, build and packaging files) moved to `legacy/python/` (task 8.2); it is a frozen behavioural reference, not a runtime. The TypeScript frontends (`ui-tui/`, `apps/`, `web/`, `website/`) are untouched and have no backend: they no longer work.
+- Removed!: not carried over to Go in Stage 1: other model providers and credential pools, the other platforms, browser/computer-use/code-execution/image/video/TTS tools, MCP, kanban, MoA, the TUI, setup wizards, `hermes update`, background processes, multiplexed profiles.
 
 ### 2026-11-06 — SAM becomes the sole memory layer
 - Added: SAM provider merged to `main` (#3), phases 1–6 of `surrealdb.plan.md`. Gates: recall and supersession no worse than loop-fix only, write landing 100%, scenario 7 zero writes lost, scenarios 4 and 5 met; 2.5 s prefetch ceiling accepted (D47). `932f598d2f`, `749e044768`

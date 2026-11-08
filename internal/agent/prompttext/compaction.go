@@ -18,7 +18,7 @@ type SectionInstructions struct {
 }
 
 // CompactionTexts are the compaction prompt texts, extracted verbatim from Python by
-// scripts/port/gen_compaction_golden.py. The summary prefix and the summarizer template change what the model
+// legacy/python/scripts/port/gen_compaction_golden.py. The summary prefix and the summarizer template change what the model
 // does after a compaction, so they are data, never retyped.
 type CompactionTexts struct {
 	SummaryPrefix             string                         `json:"summary_prefix"`

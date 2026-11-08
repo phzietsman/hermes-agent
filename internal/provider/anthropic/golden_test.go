@@ -11,7 +11,7 @@ import (
 	"github.com/phzietsman/hermes-agent/internal/llm"
 )
 
-// The fixtures in testdata/ are produced by scripts/port/gen_anthropic_golden.py, which runs the
+// The fixtures in testdata/ are produced by legacy/python/scripts/port/gen_anthropic_golden.py, which runs the
 // Python converter over each scenario: the Go port is compared with what Python actually emitted.
 
 func readJSON(t *testing.T, path string, v any) {

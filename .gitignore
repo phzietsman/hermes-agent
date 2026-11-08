@@ -330,3 +330,7 @@ apps/desktop/.dist-build*
 /bin/
 *.test
 coverage.out
+
+# Go build output
+/bin/
+/hermes-eval

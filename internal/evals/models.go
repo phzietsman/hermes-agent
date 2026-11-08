@@ -1,6 +1,6 @@
 // Package evals is the memory eval harness: seeded scenarios driven against a real agent, scored by the Jev
 // judge, written in the ScenarioResult shape the Python harness used (so results compare directly with
-// evals/memory/*.json). Scenario instances are exported from the Python harness (scripts/port/gen_eval_scenarios.py)
+// evals/memory/*.json). Scenario instances are exported from the Python harness (legacy/python/scripts/port/gen_eval_scenarios.py)
 // and embedded, so the wording a model sees is the wording that was tuned.
 package evals
 

@@ -1,5 +1,5 @@
 // Package prompttext holds the review prompts, generated verbatim from the Python source
-// (scripts/port/gen_review_prompts.py) so the text the model sees is the text that was tuned.
+// (legacy/python/scripts/port/gen_review_prompts.py) so the text the model sees is the text that was tuned.
 package prompttext
 
 import (

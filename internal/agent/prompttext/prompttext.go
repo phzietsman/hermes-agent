@@ -1,5 +1,5 @@
 // Package prompttext holds the system-prompt texts. They are extracted verbatim from the Python source by
-// scripts/port/gen_prompt_texts.py into texts.json and embedded, so the wording the model sees is
+// legacy/python/scripts/port/gen_prompt_texts.py into texts.json and embedded, so the wording the model sees is
 // byte-identical to what Hermes has always sent and a prompt edit is a data change reviewed as text.
 package prompttext
 
