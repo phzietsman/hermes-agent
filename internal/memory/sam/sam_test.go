@@ -15,6 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/surrealdb/surrealdb.go/memory"
 )
 
 type goldens struct {
@@ -64,27 +66,11 @@ func TestFormatProfileMatchesPython(t *testing.T) {
 	}
 }
 
-func TestEntryTextMatchesPythonForFreeText(t *testing.T) {
-	for i, c := range load(t).Flat {
-		_, hasKey := c.Entry["key"]
-		_, hasValue := c.Entry["value"]
-		_, hasDesc := c.Entry["description"]
-		_, hasText := c.Entry["text"]
-		switch {
-		case hasKey && hasValue && !hasDesc && !hasText:
-			continue // Python flattens these as SDK objects ("key: value"); covered by TestEntryTextKeyValue
-		case len(c.Entry) == 1 && c.Entry["other"] != nil:
-			continue // Python prints a dict repr
-		}
-		raw, _ := json.Marshal(c.Entry)
-		if got := entryText(raw); got != c.Text {
-			t.Errorf("case %d: %q, want %q", i, got, c.Text)
-		}
-	}
-}
-
 func TestEntryTextKeyValue(t *testing.T) {
-	if got := entryText(json.RawMessage(`{"key":"tz","value":"UTC"}`)); got != "tz: UTC" {
+	if got := entryText(memory.ProfileEntry{Key: "tz", Value: "UTC"}); got != "tz: UTC" {
+		t.Errorf("%q", got)
+	}
+	if got := entryText(memory.ProfileEntry{Value: "bare"}); got != "bare" {
 		t.Errorf("%q", got)
 	}
 }
@@ -114,27 +100,24 @@ func newSrv(t *testing.T, h func(w http.ResponseWriter, r *http.Request, n int))
 	return s
 }
 
-func (s *srv) client(retries int) (*Client, *[]time.Duration) {
-	var slept []time.Duration
-	return &Client{Endpoint: s.URL + "/", Context: "my ctx/1", APIKey: "k-secret", Timeout: 2 * time.Second, MaxRetries: retries,
-		Sleep: func(_ context.Context, d time.Duration) error { slept = append(slept, d); return nil },
-		Now:   func() time.Time { return time.Unix(1_700_000_010, 0) }}, &slept
+func (s *srv) client(retries int) *Client {
+	return &Client{Endpoint: s.URL + "/", Context: "my ctx/1", APIKey: "k-secret", Timeout: 2 * time.Second, MaxRetries: retries}
 }
 
 func TestRequestShapeAndHeaders(t *testing.T) {
 	s := newSrv(t, func(w http.ResponseWriter, r *http.Request, n int) {
-		io.WriteString(w, `{"mode":"x","session_id":"s1"}`)
+		io.WriteString(w, `{"mode":"full","sessionId":"s1"}`)
 	})
-	c, _ := s.client(2)
+	c := s.client(2)
 	out, err := c.Remember(context.Background(), "likes tea", RememberOptions{Labels: []string{"session=1"}, Category: "identity", Scopes: "user/p", SessionID: "sid"})
-	if err != nil || out["session_id"] != "s1" {
+	if err != nil || out["sessionId"] != "s1" {
 		t.Fatalf("%v %v", out, err)
 	}
 	r := s.reqs[0]
 	if r.URL.EscapedPath() != "/api/v1/my%20ctx%2F1/facts" || r.Method != "POST" {
 		t.Errorf("%s %s", r.Method, r.URL.EscapedPath())
 	}
-	if r.Header.Get("Authorization") != "Bearer k-secret" || r.Header.Get("Accept") != "application/json" || r.Header.Get("Content-Type") != "application/json" {
+	if r.Header.Get("Authorization") != "Bearer k-secret" || r.Header.Get("Content-Type") != "application/json" || r.Header.Get("User-Agent") != userAgent {
 		t.Errorf("headers %v", r.Header)
 	}
 	if k := r.Header.Get("Idempotency-Key"); len(k) != 64 {
@@ -150,25 +133,13 @@ func TestRequestShapeAndHeaders(t *testing.T) {
 	s2 := newSrv(t, func(w http.ResponseWriter, r *http.Request, n int) {
 		io.WriteString(w, `{"hits":[{"id":"1","score":0.5,"source":"s","text":"hit"}]}`)
 	})
-	c2, _ := s2.client(2)
+	c2 := s2.client(2)
 	hits, err := c2.Recall(context.Background(), "q", 3, []string{"recent"})
 	if err != nil || len(hits) != 1 || hits[0].Text != "hit" {
 		t.Fatalf("%v %v", hits, err)
 	}
-	if s2.reqs[0].Header.Get("Idempotency-Key") != "" || !strings.Contains(s2.bodies[0], `"k":3`) || !strings.Contains(s2.bodies[0], `"lens":["recent"]`) {
+	if s2.reqs[0].Header.Get("Idempotency-Key") != "" || !strings.Contains(s2.bodies[0], `"k":3`) || !strings.Contains(s2.bodies[0], `"lens":[["recent"]]`) {
 		t.Errorf("recall request %v %s", s2.reqs[0].Header, s2.bodies[0])
-	}
-}
-
-func TestIdempotencyKeyIsStableWithinABucketAndChangesAcrossThem(t *testing.T) {
-	b := []byte(`{"text":"x"}`)
-	t0 := time.Unix(1_700_000_010, 0)
-	k := idempotencyKey("POST", "/p", b, t0)
-	if k != idempotencyKey("POST", "/p", b, t0.Add(5*time.Second)) {
-		t.Error("key changed inside the 30 s bucket")
-	}
-	if k == idempotencyKey("POST", "/p", b, t0.Add(31*time.Second)) || k == idempotencyKey("POST", "/p", []byte(`{"text":"y"}`), t0) {
-		t.Error("key must change across buckets and bodies")
 	}
 }
 
@@ -183,7 +154,7 @@ func TestErrorClassification(t *testing.T) {
 		{403, `{"title":"scope"}`, Rejected, "scope"},
 		{404, `{"error":"nope"}`, Rejected, "nope"},
 		{422, `plain text`, Rejected, "plain text"},
-		{408, ``, Unavailable, "Memory request failed"},
+		{408, ``, Unavailable, "request failed"},
 		{429, `{"message":"slow down"}`, Unavailable, "slow down"},
 		{503, `{"message":"down"}`, Unavailable, "down"},
 		{500, `{"message":"upstream timed out"}`, Timeout, "upstream timed out"},
@@ -194,7 +165,7 @@ func TestErrorClassification(t *testing.T) {
 			w.WriteHeader(c.status)
 			io.WriteString(w, c.body)
 		})
-		cl, _ := s.client(0)
+		cl := s.client(0)
 		_, err := cl.Recall(context.Background(), "q", 1, nil)
 		var e *Error
 		if !errors.As(err, &e) || e.Kind != c.kind || e.Message != c.msg || e.Status != c.status || e.TraceID != "tr1" {
@@ -213,14 +184,11 @@ func TestRetryPolicy(t *testing.T) {
 			io.WriteString(w, `{}`)
 		}
 	}
-	// Idempotent write: retried with the 0.25 s, 0.5 s schedule, then succeeds.
+	// Idempotent write: MaxRetries reaches the SDK, which retries on its own schedule, then succeeds.
 	s := newSrv(t, flaky(2))
-	c, slept := s.client(2)
+	c := s.client(2)
 	if _, err := c.Remember(context.Background(), "x", RememberOptions{}); err != nil || len(s.reqs) != 3 {
 		t.Fatalf("err=%v reqs=%d", err, len(s.reqs))
-	}
-	if len(*slept) != 2 || (*slept)[0] != 250*time.Millisecond || (*slept)[1] != 500*time.Millisecond {
-		t.Errorf("backoff %v", *slept)
 	}
 	// Same body each time, same idempotency key (a retry must dedupe).
 	if s.reqs[0].Header.Get("Idempotency-Key") != s.reqs[2].Header.Get("Idempotency-Key") {
@@ -228,24 +196,24 @@ func TestRetryPolicy(t *testing.T) {
 	}
 	// Retries are capped.
 	s = newSrv(t, flaky(100))
-	c, _ = s.client(1)
+	c = s.client(1)
 	if _, err := c.Remember(context.Background(), "x", RememberOptions{}); err == nil || len(s.reqs) != 2 {
 		t.Errorf("err=%v reqs=%d", err, len(s.reqs))
 	}
 	// A GET is retried; a recall (non-idempotent POST) is not.
 	s = newSrv(t, flaky(1))
-	c, _ = s.client(2)
+	c = s.client(2)
 	if _, err := c.Whoami(context.Background()); err != nil || len(s.reqs) != 2 {
 		t.Errorf("GET: err=%v reqs=%d", err, len(s.reqs))
 	}
 	s = newSrv(t, flaky(1))
-	c, _ = s.client(2)
+	c = s.client(2)
 	if _, err := c.Recall(context.Background(), "q", 1, nil); err == nil || len(s.reqs) != 1 {
 		t.Errorf("recall: err=%v reqs=%d", err, len(s.reqs))
 	}
 	// 4xx is never retried.
 	s = newSrv(t, func(w http.ResponseWriter, r *http.Request, n int) { http.Error(w, `{}`, 400) })
-	c, _ = s.client(3)
+	c = s.client(3)
 	c.Remember(context.Background(), "x", RememberOptions{})
 	if len(s.reqs) != 1 {
 		t.Errorf("4xx retried: %d", len(s.reqs))
@@ -254,15 +222,15 @@ func TestRetryPolicy(t *testing.T) {
 
 func TestTransportFailuresAndTimeouts(t *testing.T) {
 	s := newSrv(t, func(w http.ResponseWriter, r *http.Request, n int) {})
-	c, _ := s.client(0)
+	c := s.client(0)
 	s.Close()
 	_, err := c.Recall(context.Background(), "q", 1, nil)
 	var e *Error
-	if !errors.As(err, &e) || e.Kind != Unavailable || e.Status != 0 || !strings.HasPrefix(e.Message, "Connection failed") {
+	if !errors.As(err, &e) || e.Kind != Unavailable || e.Status != 0 || !strings.HasPrefix(strings.ToLower(e.Message), "connection failed") {
 		t.Errorf("%v", err)
 	}
 	slow := newSrv(t, func(w http.ResponseWriter, r *http.Request, n int) { time.Sleep(300 * time.Millisecond) })
-	c, _ = slow.client(0)
+	c = slow.client(0)
 	c.Timeout = 50 * time.Millisecond
 	if _, err := c.Recall(context.Background(), "q", 1, nil); !IsTimeout(err) {
 		t.Errorf("slow answer should be a timeout: %v", err)
@@ -270,7 +238,7 @@ func TestTransportFailuresAndTimeouts(t *testing.T) {
 	// A cancelled caller context is not a SAM failure.
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	c, _ = slow.client(0)
+	c = slow.client(0)
 	if _, err := c.Recall(ctx, "q", 1, nil); err == nil || errors.As(err, &e) {
 		t.Errorf("cancellation reported as a service error: %v", err)
 	}
@@ -289,14 +257,14 @@ func TestProfileHealthAndOtherCalls(t *testing.T) {
 			io.WriteString(w, `{"deleted":2}`)
 		}
 	})
-	c, _ := s.client(0)
+	c := s.client(0)
 	ctx := context.Background()
 	p, err := c.Profile(ctx)
 	if err != nil || p.Instructions[0] != "Be brief" || p.Preferences[0] != "drink: tea" || p.Static[0] != "city: Cape Town" {
 		t.Fatalf("%+v %v", p, err)
 	}
-	if h, err := c.Health(ctx); err != nil || h["status"] != "ok" || s.reqs[1].URL.Path != "/api/v1/health" {
-		t.Errorf("%v %v %s", h, err, s.reqs[1].URL.Path)
+	if err := c.Health(ctx); err != nil || s.reqs[1].URL.Path != "/api/v1/health" {
+		t.Errorf("%v %s", err, s.reqs[1].URL.Path)
 	}
 	if got, _ := c.QueryContext(ctx, "q", 5, nil); got != "synth" {
 		t.Errorf("%q", got)
@@ -484,7 +452,7 @@ func TestReplayStopsAtFirstFailureKeepsTheRestAndDropsRejected(t *testing.T) {
 
 func TestApplyReplaysEachOpThroughTheClient(t *testing.T) {
 	s := newSrv(t, func(w http.ResponseWriter, r *http.Request, n int) { io.WriteString(w, `{}`) })
-	c, _ := s.client(0)
+	c := s.client(0)
 	ctx := context.Background()
 	for _, e := range []Entry{
 		{Op: OpRemember, Payload: map[string]any{"text": "t", "labels": []any{"a=b"}, "category": "identity", "scopes": "user/x", "session_id": "s"}},
@@ -523,7 +491,7 @@ func TestOutageLosesNoWrites(t *testing.T) {
 		mu.Unlock()
 		io.WriteString(w, `{}`)
 	})
-	c, _ := s.client(0)
+	c := s.client(0)
 	o := NewOutbox(filepath.Join(t.TempDir(), "o.jsonl"))
 	br := NewBreaker(3)
 	ctx := context.Background()
@@ -604,36 +572,6 @@ func TestErrorTextAndKindOf(t *testing.T) {
 	}
 }
 
-func TestDefaultsAndRealSleep(t *testing.T) {
-	c := &Client{}
-	if c.timeout() != 20*time.Second || c.now().IsZero() {
-		t.Error("defaults")
-	}
-	if err := c.sleep(context.Background(), time.Millisecond); err != nil {
-		t.Error(err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	if err := c.sleep(ctx, time.Hour); err == nil {
-		t.Error("a cancelled sleep must return")
-	}
-}
-
-func TestEntryTextShapes(t *testing.T) {
-	for in, want := range map[string]string{
-		`"plain"`:               "plain",
-		`{"content":"c"}`:       "c",
-		`{"value":"v"}`:         "v",
-		`{"other":1}`:           `{"other":1}`,
-		`42`:                    "42",
-		`{"key":"k","value":3}`: "k: 3",
-	} {
-		if got := entryText(json.RawMessage(in)); got != want {
-			t.Errorf("%s: %q, want %q", in, got, want)
-		}
-	}
-}
-
 func TestPyJSONTypesAndFloats(t *testing.T) {
 	got := pyJSON(map[string]any{"b": []string{"x", "é"}, "a": 1, "c": int64(2), "d": 2.5, "e": 100.0, "f": []map[string]string{{"k": "v"}},
 		"g": struct{ N int }{3}, "h": "😀"})
@@ -650,7 +588,7 @@ func TestPyJSONTypesAndFloats(t *testing.T) {
 
 func TestRememberManyAndContextOptions(t *testing.T) {
 	s := newSrv(t, func(w http.ResponseWriter, r *http.Request, n int) { io.WriteString(w, `{}`) })
-	c, _ := s.client(0)
+	c := s.client(0)
 	c.RememberMany(context.Background(), []Message{{"user", "hi"}}, "sid", "user/x", []string{"a=b"})
 	for _, want := range []string{`"session_id":"sid"`, `"scopes":[["user/x"]]`, `"labels":["a=b"]`, `"messages":[{"role":"user","content":"hi"}]`} {
 		if !strings.Contains(s.bodies[0], want) {
@@ -658,7 +596,7 @@ func TestRememberManyAndContextOptions(t *testing.T) {
 		}
 	}
 	c.QueryContext(context.Background(), "q", 2, []string{"recent"})
-	if !strings.Contains(s.bodies[1], `"lens":["recent"]`) {
+	if !strings.Contains(s.bodies[1], `"lens":[["recent"]]`) {
 		t.Error(s.bodies[1])
 	}
 }
@@ -687,15 +625,5 @@ func TestReplayHonoursCancellation(t *testing.T) {
 	}
 	if p, _ := o.Pending(); len(p) != 1 {
 		t.Error("a cancelled replay must keep every entry")
-	}
-}
-
-func TestHitIDMayBeANumber(t *testing.T) {
-	var h []Hit
-	if err := json.Unmarshal([]byte(`[{"id":"a","text":"t","score":0.5},{"id":7,"text":"u","score":1},{"text":"v"}]`), &h); err != nil {
-		t.Fatal(err)
-	}
-	if h[0].ID != "a" || h[1].ID != "7" || h[2].ID != "" || h[1].Text != "u" || h[1].Score != 1 {
-		t.Errorf("%+v", h)
 	}
 }

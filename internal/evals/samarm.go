@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -35,8 +34,10 @@ type SAMArm struct {
 	rt   *app.Runtime
 	rec  *Recorder
 	home string
-	sess *app.Session
-	sel  tools.Selection
+	// stopProxy shuts down the recording proxy in front of the memory service.
+	stopProxy func()
+	sess      *app.Session
+	sel       tools.Selection
 	// ReviewWait bounds the wait for a background review at each session end.
 	ReviewWait time.Duration
 
@@ -88,13 +89,18 @@ func NewSAMArm(ctx context.Context, dir string, env Env, extra app.Options) (*SA
 	if env.Provider != nil {
 		extra.Provider = env.Provider
 	}
-	extra.SAM = &sam.Client{HTTP: &http.Client{Transport: rec}}
-	extra.LongRunning = true // a session end starts its review at once: the arm waits for it
-	rt, err := app.Open(config.WithHome(ctx, home), home, extra)
+	base, stopProxy, err := rec.Serve(s.Endpoint)
 	if err != nil {
 		return nil, err
 	}
-	return &SAMArm{rt: rt, rec: rec, home: home, ReviewWait: 5 * time.Minute, Scope: scope,
+	extra.SAM = &sam.Client{Endpoint: base}
+	extra.LongRunning = true // a session end starts its review at once: the arm waits for it
+	rt, err := app.Open(config.WithHome(ctx, home), home, extra)
+	if err != nil {
+		stopProxy()
+		return nil, err
+	}
+	return &SAMArm{rt: rt, rec: rec, home: home, stopProxy: stopProxy, ReviewWait: 5 * time.Minute, Scope: scope,
 		sel: tools.Selection{Toolsets: []string{"memory", "skills"}}, AskTools: map[string]int{}, TellTools: map[string]int{}}, nil
 }
 
@@ -104,7 +110,11 @@ func (a *SAMArm) UseTools(toolsets ...string) { a.sel = tools.Selection{Toolsets
 // Close ends the current session and releases the runtime.
 func (a *SAMArm) Close() error {
 	_ = a.StartSession(context.Background())
-	return a.rt.Close()
+	err := a.rt.Close()
+	if a.stopProxy != nil {
+		a.stopProxy()
+	}
+	return err
 }
 
 func (a *SAMArm) session(ctx context.Context, cwd string) (*app.Session, error) {

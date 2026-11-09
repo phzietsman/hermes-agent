@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"sync"
 )
@@ -20,6 +23,27 @@ type Recorder struct {
 	writes []Write
 	tags   []string
 	served int
+}
+
+// Serve starts a local reverse proxy in front of target that passes every request through the recorder, and
+// returns its base URL. The official SDK owns its HTTP client, so the recorder sits on the wire instead of in
+// the client. stop shuts the proxy down.
+func (r *Recorder) Serve(target string) (base string, stop func(), err error) {
+	u, err := url.Parse(strings.TrimRight(target, "/"))
+	if err != nil {
+		return "", nil, err
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", nil, err
+	}
+	rp := &httputil.ReverseProxy{
+		Rewrite:   func(pr *httputil.ProxyRequest) { pr.SetURL(u); pr.Out.Host = u.Host },
+		Transport: r,
+	}
+	srv := &http.Server{Handler: rp}
+	go srv.Serve(ln)
+	return "http://" + ln.Addr().String(), func() { srv.Close() }, nil
 }
 
 // Write is one accepted write.

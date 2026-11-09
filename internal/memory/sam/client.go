@@ -1,18 +1,15 @@
 package sam
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
+
+	"github.com/surrealdb/surrealdb.go/memory"
 )
 
 // Kind classifies a failure the way Hermes reacts to it (CONTRACT.md, "Errors").
@@ -67,27 +64,20 @@ func IsAuth(err error) bool { k, ok := KindOf(err); return ok && k == AuthFailed
 // IsTimeout reports a slow answer (as opposed to a down service).
 func IsTimeout(err error) bool { k, ok := KindOf(err); return ok && k == Timeout }
 
-// Client talks to one SAM context over HTTP/JSON. It is safe for concurrent use.
+// Client talks to one SAM context through the official SurrealDB SDK (surrealdb.go/memory), which owns the wire
+// protocol: paths, headers, idempotency keys and the retry schedule. This type adds Hermes's failure
+// classification (Kind) and a few flattened result shapes. It holds only configuration, so it is cheap to copy.
 type Client struct {
 	Endpoint string
 	Context  string
 	APIKey   string
-	// Timeout bounds one attempt (default 20s). MaxRetries is the number of retries of a retryable call
-	// (default 2; the schedule is 0.25s, 0.5s, 1s, truncated).
+	// Timeout bounds one attempt (default 20s). MaxRetries is the number of retries of a retryable call (the
+	// SDK retries idempotent writes and reads on transport errors and 5xx, on its 0.25s, 0.5s, 1s schedule).
 	Timeout    time.Duration
 	MaxRetries int
-	HTTP       *http.Client
-	// Sleep waits between retries; nil uses a context-aware timer.
-	Sleep func(ctx context.Context, d time.Duration) error
-	// Now is the clock for idempotency buckets; nil means time.Now.
-	Now func() time.Time
 }
 
-var backoff = []time.Duration{250 * time.Millisecond, 500 * time.Millisecond, time.Second}
-
-func (c *Client) base() string {
-	return strings.TrimRight(c.Endpoint, "/") + c.path("")
-}
+const userAgent = "hermes-agent-go/1.0"
 
 func (c *Client) timeout() time.Duration {
 	if c.Timeout > 0 {
@@ -96,139 +86,36 @@ func (c *Client) timeout() time.Duration {
 	return 20 * time.Second
 }
 
-func (c *Client) now() time.Time {
-	if c.Now != nil {
-		return c.Now()
+func (c *Client) sdk() (*memory.Client, error) {
+	m, err := memory.New(c.Context, c.Endpoint, c.APIKey,
+		memory.WithTimeout(c.timeout()), memory.WithMaxRetries(max(0, c.MaxRetries)), memory.WithUserAgent(userAgent))
+	if err != nil {
+		return nil, &Error{Kind: Rejected, Message: err.Error()}
 	}
-	return time.Now()
+	return m, nil
 }
 
-func (c *Client) sleep(ctx context.Context, d time.Duration) error {
-	if c.Sleep != nil {
-		return c.Sleep(ctx, d)
-	}
-	t := time.NewTimer(d)
-	defer t.Stop()
-	select {
-	case <-t.C:
+// classify turns an SDK error into Hermes's Error (CONTRACT.md, "Errors"). A cancelled caller context is
+// returned as is: it is the caller's decision, not the service's failure.
+func classify(ctx context.Context, err error) error {
+	if err == nil {
 		return nil
-	case <-ctx.Done():
+	}
+	if ctx.Err() != nil {
 		return ctx.Err()
 	}
-}
-
-// idempotencyKey is sha256 over METHOD \0 path \0 body \0 bucket, with a 30 s bucket, so a retry of the same
-// write inside the window dedupes server-side. The body bytes are this client's own encoding: only repeats from
-// this client need to match.
-func idempotencyKey(method, path string, body []byte, now time.Time) string {
-	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%s\x00%s\x00%d", method, path, body, now.Unix()/30)
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-// do sends one request (with the retry policy) and decodes a 2xx JSON body into out (nil to discard).
-func (c *Client) do(ctx context.Context, method, url, path string, body any, idempotent bool, out any) error {
-	var raw []byte
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return &Error{Kind: Rejected, Message: "cannot encode request: " + err.Error()}
-		}
-		raw = b
-	}
-	limit := min(c.maxRetries(), len(backoff))
-	var last error
-	for attempt := 0; ; attempt++ {
-		err := c.once(ctx, method, url, path, raw, idempotent, out)
-		if err == nil {
-			return nil
-		}
-		last = err
-		var e *Error
-		retryable := errors.As(err, &e) && (e.Status >= 500 || e.Status == 0) && (method == http.MethodGet || idempotent)
-		if !retryable || attempt >= limit || ctx.Err() != nil {
-			return last
-		}
-		if err := c.sleep(ctx, backoff[attempt]); err != nil {
-			return last
-		}
-	}
-}
-
-func (c *Client) maxRetries() int { return max(0, c.MaxRetries) }
-
-func (c *Client) once(ctx context.Context, method, url, path string, raw []byte, idempotent bool, out any) error {
-	rctx, cancel := context.WithTimeout(ctx, c.timeout())
-	defer cancel()
-	var rd io.Reader
-	if raw != nil {
-		rd = bytes.NewReader(raw)
-	}
-	req, err := http.NewRequestWithContext(rctx, method, url, rd)
-	if err != nil {
+	var ae *memory.APIError
+	if !errors.As(err, &ae) {
 		return &Error{Kind: Rejected, Message: err.Error()}
 	}
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "hermes-agent-go/1.0")
-	if raw != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if idempotent {
-		req.Header.Set("Idempotency-Key", idempotencyKey(method, path, raw, c.now()))
-	}
-	hc := c.HTTP
-	if hc == nil {
-		hc = http.DefaultClient
-	}
-	resp, err := hc.Do(req)
-	if err != nil {
-		kind := Unavailable
-		if errors.Is(err, context.DeadlineExceeded) || strings.Contains(strings.ToLower(err.Error()), "timed out") || strings.Contains(strings.ToLower(err.Error()), "deadline exceeded") {
-			kind = Timeout
-		}
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		return &Error{Kind: kind, Message: "Connection failed: " + err.Error()}
-	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
-	if resp.StatusCode >= 400 {
-		return httpError(resp, data)
-	}
-	if out == nil || len(bytes.TrimSpace(data)) == 0 {
-		return nil
-	}
-	if err := json.Unmarshal(data, out); err != nil {
-		return &Error{Kind: Unavailable, Status: resp.StatusCode, Message: "unreadable response: " + err.Error()}
-	}
-	return nil
-}
-
-func httpError(resp *http.Response, data []byte) *Error {
-	e := &Error{Status: resp.StatusCode, TraceID: resp.Header.Get("X-Trace-Id")}
-	var body map[string]any
-	if json.Unmarshal(data, &body) == nil {
-		for _, k := range []string{"message", "title", "error"} {
-			if s, ok := body[k].(string); ok && s != "" {
-				e.Message = s
-				break
-			}
-		}
-	}
-	if e.Message == "" {
-		e.Message = strings.TrimSpace(string(data))
-	}
-	if e.Message == "" {
-		e.Message = "Memory request failed"
-	}
-	switch s := resp.StatusCode; {
+	e := &Error{Status: ae.StatusCode, Message: ae.Message, TraceID: ae.TraceID}
+	low := strings.ToLower(ae.Message)
+	switch s := ae.StatusCode; {
 	case s == http.StatusUnauthorized:
 		e.Kind = AuthFailed
 	case s >= 400 && s < 500 && s != http.StatusRequestTimeout && s != http.StatusTooManyRequests:
 		e.Kind = Rejected
-	case strings.Contains(strings.ToLower(e.Message), "timed out"):
+	case strings.Contains(low, "timed out") || strings.Contains(low, "deadline exceeded"):
 		e.Kind = Timeout
 	default:
 		e.Kind = Unavailable
@@ -236,41 +123,43 @@ func httpError(resp *http.Response, data []byte) *Error {
 	return e
 }
 
+// asMap flattens a typed SDK response into the loose shape callers print or ignore.
+func asMap(v any) map[string]any {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil
+	}
+	var m map[string]any
+	_ = json.Unmarshal(b, &m)
+	return m
+}
+
 // Scopes encodes a scope as the DNF the service takes: a bare path is one clause of one path. An empty path
 // yields nil (the field is omitted: the server's default write region).
-func Scopes(path string) [][]string {
+func Scopes(path string) memory.ScopeSets {
 	path = strings.TrimSpace(path)
 	if path == "" {
 		return nil
 	}
-	return [][]string{{path}}
+	return memory.ScopeSets{{path}}
 }
 
-// ---- operations ----
+// lensSets turns lens paths into DNF: each path is its own clause, so several lenses widen the view (OR).
+func lensSets(lens []string) memory.ScopeSets {
+	var out memory.ScopeSets
+	for _, l := range lens {
+		if l = strings.TrimSpace(l); l != "" {
+			out = append(out, []string{l})
+		}
+	}
+	return out
+}
 
 // Hit is one recalled memory.
 type Hit struct {
 	ID    string  `json:"id"`
 	Text  string  `json:"text"`
 	Score float64 `json:"score"`
-}
-
-// UnmarshalJSON accepts an id given as a string or a number (Python stringified whatever it got).
-func (h *Hit) UnmarshalJSON(b []byte) error {
-	var aux struct {
-		ID    json.RawMessage `json:"id"`
-		Text  string          `json:"text"`
-		Score float64         `json:"score"`
-	}
-	if err := json.Unmarshal(b, &aux); err != nil {
-		return err
-	}
-	h.Text, h.Score = aux.Text, aux.Score
-	h.ID = strings.Trim(string(aux.ID), `"`)
-	if h.ID == "null" {
-		h.ID = ""
-	}
-	return nil
 }
 
 // RememberOptions are the optional fields of a single write.
@@ -281,23 +170,22 @@ type RememberOptions struct {
 	SessionID string
 }
 
-// Remember stores one fact. It is idempotent: a retry within 30 s does not duplicate it.
+// Remember stores one fact. The SDK marks it idempotent: a retry within 30 s does not duplicate it.
 func (c *Client) Remember(ctx context.Context, text string, o RememberOptions) (map[string]any, error) {
-	body := map[string]any{"text": text}
-	if len(o.Labels) > 0 {
-		body["labels"] = o.Labels
+	m, err := c.sdk()
+	if err != nil {
+		return nil, err
 	}
+	req := &memory.RememberRequest{Text: text, Labels: o.Labels, SessionID: o.SessionID, Scopes: Scopes(o.Scopes)}
 	if o.Category != "" {
-		body["memory_category"] = o.Category
+		cat := memory.MemoryCategory(o.Category)
+		req.MemoryCategory = &cat
 	}
-	if s := Scopes(o.Scopes); s != nil {
-		body["scopes"] = s
+	out, err := m.Remember(ctx, req)
+	if err != nil {
+		return nil, classify(ctx, err)
 	}
-	if o.SessionID != "" {
-		body["session_id"] = o.SessionID
-	}
-	var out map[string]any
-	return out, c.do(ctx, http.MethodPost, c.base()+"/facts", c.path("/facts"), body, true, &out)
+	return asMap(out), nil
 }
 
 // Message is one turn of a conversation for RememberMany.
@@ -308,72 +196,92 @@ type Message struct {
 
 // RememberMany stores a batch of messages. Idempotent.
 func (c *Client) RememberMany(ctx context.Context, items []Message, sessionID, scopes string, labels []string) (map[string]any, error) {
-	body := map[string]any{"messages": items}
-	if sessionID != "" {
-		body["session_id"] = sessionID
+	m, err := c.sdk()
+	if err != nil {
+		return nil, err
 	}
-	if s := Scopes(scopes); s != nil {
-		body["scopes"] = s
+	req := &memory.RememberManyRequest{SessionID: sessionID, Scopes: Scopes(scopes), Labels: labels}
+	for _, it := range items {
+		req.Messages = append(req.Messages, memory.BatchMessage{Role: memory.TurnRole(it.Role), Content: it.Content})
 	}
-	if len(labels) > 0 {
-		body["labels"] = labels
+	out, err := m.RememberMany(ctx, req)
+	if err != nil {
+		return nil, classify(ctx, err)
 	}
-	var out map[string]any
-	return out, c.do(ctx, http.MethodPost, c.base()+"/facts/batch", c.path("/facts/batch"), body, true, &out)
+	return asMap(out), nil
 }
 
 // Recall searches memory. Not retried: a slow recall must not stack up.
 func (c *Client) Recall(ctx context.Context, query string, k int, lens []string) ([]Hit, error) {
-	body := map[string]any{"query": query, "k": k}
-	if len(lens) > 0 {
-		body["lens"] = lens
-	}
-	var out struct {
-		Hits []Hit `json:"hits"`
-	}
-	if err := c.do(ctx, http.MethodPost, c.base()+"/query", c.path("/query"), body, false, &out); err != nil {
+	m, err := c.sdk()
+	if err != nil {
 		return nil, err
 	}
-	return out.Hits, nil
+	out, err := m.Recall(ctx, &memory.RecallRequest{Query: query, K: k, Lens: lensSets(lens)})
+	if err != nil {
+		return nil, classify(ctx, err)
+	}
+	hits := make([]Hit, 0, len(out.Hits))
+	for _, h := range out.Hits {
+		hits = append(hits, Hit{ID: h.ID, Text: h.Text, Score: h.Score})
+	}
+	return hits, nil
 }
 
 // QueryContext asks the service for synthesised context text.
 func (c *Client) QueryContext(ctx context.Context, query string, k int, lens []string) (string, error) {
-	body := map[string]any{"query": query, "k": k}
-	if len(lens) > 0 {
-		body["lens"] = lens
+	m, err := c.sdk()
+	if err != nil {
+		return "", err
 	}
-	var out struct {
-		Context string `json:"context"`
+	out, err := m.QueryContext(ctx, &memory.ContextQueryRequest{Query: query, K: k, Lens: lensSets(lens)})
+	if err != nil {
+		return "", classify(ctx, err)
 	}
-	err := c.do(ctx, http.MethodPost, c.base()+"/context", c.path("/context"), body, false, &out)
-	return out.Context, err
+	return out.Context, nil
 }
 
 // Forget deletes memories matching query (purge removes them for good).
 func (c *Client) Forget(ctx context.Context, query string, purge bool) (map[string]any, error) {
-	body := map[string]any{"query": query}
-	if purge {
-		body["purge"] = true
+	m, err := c.sdk()
+	if err != nil {
+		return nil, err
 	}
-	var out map[string]any
-	return out, c.do(ctx, http.MethodPost, c.base()+"/forget", c.path("/forget"), body, false, &out)
+	var opts []memory.ForgetOption
+	if purge {
+		opts = append(opts, memory.WithPurge())
+	}
+	out, err := m.Forget(ctx, query, opts...)
+	if err != nil {
+		return nil, classify(ctx, err)
+	}
+	return asMap(out), nil
 }
 
 // Consolidate folds facts into observations.
 func (c *Client) Consolidate(ctx context.Context) (map[string]any, error) {
-	var out map[string]any
-	return out, c.do(ctx, http.MethodPost, c.base()+"/consolidate", c.path("/consolidate"), nil, false, &out)
+	m, err := c.sdk()
+	if err != nil {
+		return nil, err
+	}
+	out, err := m.Consolidate(ctx, memory.ConsolidateRequest{})
+	if err != nil {
+		return nil, classify(ctx, err)
+	}
+	return asMap(out), nil
 }
 
 // Reflect asks the service to reason over memory (persist stores what it concludes).
 func (c *Client) Reflect(ctx context.Context, query string, persist bool) (map[string]any, error) {
-	body := map[string]any{"query": query}
-	if persist {
-		body["persist"] = true
+	m, err := c.sdk()
+	if err != nil {
+		return nil, err
 	}
-	var out map[string]any
-	return out, c.do(ctx, http.MethodPost, c.base()+"/reflect", c.path("/reflect"), body, false, &out)
+	out, err := m.Reflect(ctx, memory.ReflectRequest{Query: query, Persist: persist})
+	if err != nil {
+		return nil, classify(ctx, err)
+	}
+	return asMap(out), nil
 }
 
 // Profile is the standing facts about the user, flattened to text.
@@ -381,81 +289,65 @@ type Profile struct {
 	Instructions, Preferences, Static []string
 }
 
-// Profile reads the user's standing profile.
+// Profile reads the user's standing profile: instructions as their description, preferences and static facts
+// as "key: value".
 func (c *Client) Profile(ctx context.Context) (Profile, error) {
-	var raw struct {
-		Instructions []json.RawMessage `json:"instructions"`
-		Preferences  []json.RawMessage `json:"preferences"`
-		Static       []json.RawMessage `json:"static"`
-	}
-	if err := c.do(ctx, http.MethodGet, c.base()+"/profile", c.path("/profile"), nil, false, &raw); err != nil {
+	m, err := c.sdk()
+	if err != nil {
 		return Profile{}, err
 	}
-	return Profile{Instructions: entryTexts(raw.Instructions), Preferences: entryTexts(raw.Preferences), Static: entryTexts(raw.Static)}, nil
+	out, err := m.Profile(ctx)
+	if err != nil {
+		return Profile{}, classify(ctx, err)
+	}
+	p := Profile{Instructions: []string{}, Preferences: []string{}, Static: []string{}}
+	for _, i := range out.Instructions {
+		p.Instructions = append(p.Instructions, i.Description)
+	}
+	for _, e := range out.Preferences {
+		p.Preferences = append(p.Preferences, entryText(e))
+	}
+	for _, e := range out.Static {
+		p.Static = append(p.Static, entryText(e))
+	}
+	return p, nil
 }
 
-// entryText flattens a profile entry. Free-text objects (instructions) use the first string of description,
-// text; key/value entries (preferences, static facts) read "key: value"; otherwise value or content.
-func entryText(raw json.RawMessage) string {
-	var m map[string]any
-	if json.Unmarshal(raw, &m) != nil {
-		var s string
-		if json.Unmarshal(raw, &s) == nil {
-			return s
-		}
-		return string(raw)
+func entryText(e memory.ProfileEntry) string {
+	if e.Key == "" {
+		return e.Value
 	}
-	for _, k := range []string{"description", "text"} {
-		if s, ok := m[k].(string); ok {
-			return s
-		}
-	}
-	if name, ok := m["key"]; ok {
-		if v, ok := m["value"]; ok {
-			return fmt.Sprintf("%v: %v", name, v)
-		}
-	}
-	for _, k := range []string{"value", "content"} {
-		if s, ok := m[k].(string); ok {
-			return s
-		}
-	}
-	b, _ := json.Marshal(m)
-	return string(b)
-}
-
-func entryTexts(rs []json.RawMessage) []string {
-	out := make([]string, 0, len(rs))
-	for _, r := range rs {
-		out = append(out, entryText(r))
-	}
-	return out
+	return fmt.Sprintf("%s: %s", e.Key, e.Value)
 }
 
 // RegisterScope makes a scope path exist.
 func (c *Client) RegisterScope(ctx context.Context, path string) error {
-	return c.do(ctx, http.MethodPost, c.base()+"/scopes", c.path("/scopes"), map[string]any{"path": path}, false, nil)
+	m, err := c.sdk()
+	if err != nil {
+		return err
+	}
+	_, err = m.Scopes().Register(ctx, memory.RegisterScopeRequest{Path: path})
+	return classify(ctx, err)
 }
 
 // Whoami reads the caller's principal.
 func (c *Client) Whoami(ctx context.Context) (map[string]any, error) {
-	var out map[string]any
-	return out, c.do(ctx, http.MethodGet, c.base()+"/me", c.path("/me"), nil, false, &out)
+	m, err := c.sdk()
+	if err != nil {
+		return nil, err
+	}
+	out, err := m.Whoami(ctx)
+	if err != nil {
+		return nil, classify(ctx, err)
+	}
+	return asMap(out), nil
 }
 
 // Health checks the service (not context-scoped).
-func (c *Client) Health(ctx context.Context) (map[string]any, error) {
-	var out map[string]any
-	u := strings.TrimRight(c.Endpoint, "/") + "/api/v1/health"
-	return out, c.do(ctx, http.MethodGet, u, "/api/v1/health", nil, false, &out)
-}
-
-func (c *Client) path(suffix string) string {
-	return "/api/v1/" + escapeContext(c.Context) + suffix
-}
-
-// escapeContext percent-encodes everything but unreserved characters (Python's quote(value, safe="")), so a
-// "/" in a context id stays inside one path segment.
-func escapeContext(s string) string {
-	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+func (c *Client) Health(ctx context.Context) error {
+	m, err := c.sdk()
+	if err != nil {
+		return err
+	}
+	return classify(ctx, m.Health(ctx))
 }

@@ -147,7 +147,12 @@ func TestSAMArmAbstainsOnWhatWasNeverTold(t *testing.T) {
 func TestRecorderRecordsAcceptedWritesAndFiltersTheProfile(t *testing.T) {
 	svc := newService(t)
 	rec := &Recorder{}
-	c := &sam.Client{Endpoint: svc.URL, Context: "ctx", APIKey: "k", Timeout: 5 * time.Second, HTTP: &http.Client{Transport: rec}}
+	base, stop, err := rec.Serve(svc.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stop()
+	c := &sam.Client{Endpoint: base, Context: "ctx", APIKey: "k", Timeout: 5 * time.Second}
 	if _, err := c.Remember(ctx, "my staging cluster is teal-111", sam.RememberOptions{Labels: []string{"kind=fact", "origin=assistant_tool"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +175,12 @@ func TestRecorderRecordsAcceptedWritesAndFiltersTheProfile(t *testing.T) {
 	bad := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, `{"message":"no"}`, http.StatusForbidden) }))
 	defer bad.Close()
 	rec2 := &Recorder{}
-	c2 := &sam.Client{Endpoint: bad.URL, Context: "ctx", APIKey: "k", Timeout: time.Second, HTTP: &http.Client{Transport: rec2}}
+	base2, stop2, err := rec2.Serve(bad.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stop2()
+	c2 := &sam.Client{Endpoint: base2, Context: "ctx", APIKey: "k", Timeout: time.Second}
 	c2.Remember(ctx, "x", sam.RememberOptions{Labels: []string{"origin=turn"}})
 	if len(rec2.Writes()) != 0 {
 		t.Error("a write the service refused was recorded as accepted")

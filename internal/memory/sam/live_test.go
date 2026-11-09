@@ -4,6 +4,7 @@ package sam
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -29,7 +30,7 @@ func TestLiveWhoamiHealthProfile(t *testing.T) {
 	if me, err := c.Whoami(ctx); err != nil || me["principalId"] == nil {
 		t.Fatalf("whoami: %v %v", me, err)
 	}
-	if _, err := c.Health(ctx); err != nil {
+	if err := c.Health(ctx); err != nil {
 		t.Errorf("health: %v", err)
 	}
 	if _, err := c.Profile(ctx); err != nil {
@@ -39,5 +40,18 @@ func TestLiveWhoamiHealthProfile(t *testing.T) {
 	bad.APIKey = "wrong"
 	if _, err := bad.Whoami(ctx); !IsAuth(err) {
 		t.Errorf("a wrong key should be an auth failure: %v", err)
+	}
+}
+
+// A recall with a scope lens in the SDK's DNF form is accepted by the real service.
+func TestLiveRecallWithLens(t *testing.T) {
+	c := liveClient(t)
+	_, err := c.Recall(context.Background(), "what does the user like", 3, []string{"user/live-probe"})
+	var e *Error
+	if errors.As(err, &e) && e.Status >= 500 {
+		t.Skipf("the service is failing every recall (%v), so the lens shape cannot be judged", err)
+	}
+	if err != nil {
+		t.Fatalf("recall: %v", err)
 	}
 }

@@ -4,6 +4,11 @@ Derived by reading `surrealdb-memory==1.0.0b1` (the wheel behind `surrealdb.memo
 live read-only `GET .../me` (200, camelCase JSON). The Python reference client is
 `plugins/memory/agent_memory/client.py`, a thin adapter over this SDK. A Go client talks plain HTTP/JSON.
 
+> **Transport (2026-11-09):** `internal/memory/sam` now sits on the official SDK, `github.com/surrealdb/surrealdb.go/memory`
+> (v1.8.0). The SDK owns the paths, headers, idempotency key and retry schedule described below; this file stays as the
+> wire reference and as the source of the Hermes failure mapping, which `classify` in `client.go` implements. The SDK's
+> `lens` is a DNF scope set (`[["user/x"]]`); the earlier hand-rolled client sent a flat list.
+
 ## Base
 - Endpoint: `AGENT_MEMORY_ENDPOINT` / `endpoint` in `agent-memory.json`, trailing `/` trimmed.
 - Context id: `context` in config, URL-escaped with `quote(value, safe="")` (everything escaped, including `/`).

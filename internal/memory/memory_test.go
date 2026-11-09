@@ -419,7 +419,7 @@ func TestToolsRecallRememberForgetReflect(t *testing.T) {
 	if r["success"] != true || len(hits) != 1 || hits[0].(map[string]any)["text"] != "likes tea" {
 		t.Fatalf("recall %v", r)
 	}
-	if !strings.Contains(f.requests[len(f.requests)-1], `"k":2`) || !strings.Contains(f.requests[len(f.requests)-1], `"lens":["user/default"]`) {
+	if !strings.Contains(f.requests[len(f.requests)-1], `"k":2`) || !strings.Contains(f.requests[len(f.requests)-1], `"lens":[["user/default"]]`) {
 		t.Errorf("recall request %s", f.requests[len(f.requests)-1])
 	}
 
