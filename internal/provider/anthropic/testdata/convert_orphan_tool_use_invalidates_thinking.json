@@ -1,0 +1,92 @@
+{
+ "expected_messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "deep thought",
+     "type": "text"
+    },
+    {
+     "text": "x",
+     "type": "text"
+    },
+    {
+     "id": "c1",
+     "input": {},
+     "name": "t",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": "only one result",
+     "tool_use_id": "c1",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "after",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": "x",
+   "reasoning_details": [
+    {
+     "signature": "sig-abc",
+     "thinking": "deep thought",
+     "type": "thinking"
+    }
+   ],
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "t"
+     },
+     "id": "c1",
+     "type": "function"
+    },
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "t"
+     },
+     "id": "c2",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": "only one result",
+   "role": "tool",
+   "tool_call_id": "c1"
+  },
+  {
+   "content": "after",
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

@@ -1,0 +1,54 @@
+{
+ "expected_messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "data": "opaque",
+     "type": "redacted_thinking"
+    },
+    {
+     "data": "upper",
+     "type": "REDACTED_THINKING"
+    },
+    {
+     "text": "a",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": "a",
+   "reasoning_details": [
+    {
+     "data": "opaque",
+     "type": "redacted_thinking"
+    },
+    {
+     "type": "redacted_thinking"
+    },
+    {
+     "data": "upper",
+     "type": "REDACTED_THINKING"
+    },
+    {
+     "text": "not thinking",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

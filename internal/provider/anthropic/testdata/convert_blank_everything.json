@@ -1,0 +1,84 @@
+{
+ "expected_messages": [
+  {
+   "content": "(empty message)",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "(empty)",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "text": "(empty message)",
+     "type": "text"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "text": "(empty)",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": "(empty message)",
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "",
+   "role": "user"
+  },
+  {
+   "content": "",
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "text": "  ",
+     "type": "text"
+    },
+    {
+     "text": "",
+     "type": "text"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "cache_control": {
+    "type": "ephemeral"
+   },
+   "content": null,
+   "role": "assistant"
+  },
+  {
+   "content": "   ",
+   "role": "user"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

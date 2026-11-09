@@ -1,0 +1,75 @@
+{
+ "expected_messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c1",
+     "input": {},
+     "name": "t",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": "r",
+     "tool_use_id": "c1",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "plain reasoning",
+     "type": "text"
+    },
+    {
+     "text": "a",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": null,
+   "reasoning_content": "",
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "t"
+     },
+     "id": "c1",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": "r",
+   "role": "tool",
+   "tool_call_id": "c1"
+  },
+  {
+   "content": "a",
+   "reasoning_content": "plain reasoning",
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

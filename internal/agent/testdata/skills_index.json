@@ -1,0 +1,738 @@
+[
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "",
+  "files": {},
+  "name": "empty",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  alpha:\n    - alpha: Does alpha things\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/alpha/SKILL.md": "---\nname: alpha\ndescription: Does alpha things\n---\nBody text.\n"
+  },
+  "name": "one_flat_skill",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  dev: Developer tools\n    - git: Git workflows\n    - lint: Linting\n  ops:\n    - deploy: Deploy things\n  solo:\n    - solo: Top-level solo skill\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/DESCRIPTION.md": "---\ndescription: general stuff\n---\n",
+   "home/skills/dev/DESCRIPTION.md": "---\ndescription: 'Developer tools'\n---\n",
+   "home/skills/dev/git/SKILL.md": "---\nname: git\ndescription: Git workflows\n---\nBody text.\n",
+   "home/skills/dev/lint/SKILL.md": "---\nname: lint\ndescription: Linting\n---\nBody text.\n",
+   "home/skills/ops/deploy/SKILL.md": "---\nname: deploy\ndescription: Deploy things\n---\nBody text.\n",
+   "home/skills/solo/SKILL.md": "---\nname: solo\ndescription: Top-level solo skill\n---\nBody text.\n"
+  },
+  "name": "categories_and_descriptions",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  a:\n    - x: shallow\n  a/b: AB group\n    - c: deep\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/a/b/DESCRIPTION.md": "---\ndescription: AB group\n---\n",
+   "home/skills/a/b/c/SKILL.md": "---\nname: c\ndescription: deep\n---\nBody text.\n",
+   "home/skills/a/x/SKILL.md": "---\nname: x\ndescription: shallow\n---\nBody text.\n"
+  },
+  "name": "nested_categories",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  general:\n    - rootskill: At the root\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/SKILL.md": "---\nname: rootskill\ndescription: At the root\n---\nBody text.\n"
+  },
+  "name": "skill_at_root",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - one: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/one/SKILL.md": "---\nname: one\ndescription: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n---\nBody text.\n"
+  },
+  "name": "long_description_truncated",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - q: quoted desc\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/q/SKILL.md": "---\nname: q\ndescription: \"quoted desc\"\n---\nBody text.\n"
+  },
+  "name": "quoted_description",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - nd\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/nd/SKILL.md": "---\nname: nd\n---\nBody text.\n"
+  },
+  "name": "no_description",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - u: \u65e5\u672c\u8a9e\u306e\u8aac\u660e \u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9...\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/u/SKILL.md": "---\nname: u\ndescription: \u65e5\u672c\u8a9e\u306e\u8aac\u660e \u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\n---\nBody text.\n"
+  },
+  "name": "unicode_description",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  m:\n    - c: c\n  z:\n    - a: a\n    - b: b\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/m/c/SKILL.md": "---\nname: c\ndescription: c\n---\nBody text.\n",
+   "home/skills/z/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n",
+   "home/skills/z/b/SKILL.md": "---\nname: b\ndescription: b\n---\nBody text.\n"
+  },
+  "name": "sorted_and_deduped",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - declared-name: d\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/dirname/SKILL.md": "---\nname: declared-name\ndescription: d\n---\nBody text.\n"
+  },
+  "name": "name_differs_from_dir",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "disabled": [
+     "a"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - b: b\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n",
+   "home/skills/t/b/SKILL.md": "---\nname: b\ndescription: b\n---\nBody text.\n"
+  },
+  "name": "disabled_by_name",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "platform_disabled": {
+     "telegram": [
+      "b"
+     ]
+    }
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - a: a\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n",
+   "home/skills/t/b/SKILL.md": "---\nname: b\ndescription: b\n---\nBody text.\n"
+  },
+  "name": "disabled_by_platform",
+  "platform": "telegram",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "platform_disabled": {
+     "telegram": [
+      "b"
+     ]
+    }
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - a: a\n    - b: b\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n",
+   "home/skills/t/b/SKILL.md": "---\nname: b\ndescription: b\n---\nBody text.\n"
+  },
+  "name": "disabled_other_platform_not_applied",
+  "platform": "discord",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "disabled": [
+     "a"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "",
+  "files": {
+   "home/skills/t/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n"
+  },
+  "name": "disabled_all_leaves_empty",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - plain: plain\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/ddg/SKILL.md": "---\nname: ddg\ndescription: fallback\nmetadata:\n  hermes:\n    fallback_for_tools: [web_search]\n---\nBody text.\n",
+   "home/skills/t/plain/SKILL.md": "---\nname: plain\ndescription: plain\n---\nBody text.\n"
+  },
+  "name": "conditions_fallback_for_tool",
+  "platform": "",
+  "repo": false,
+  "tools": [
+   "web_search"
+  ],
+  "toolsets": [
+   "web"
+  ]
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - ddg: fallback\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/ddg/SKILL.md": "---\nname: ddg\ndescription: fallback\nmetadata:\n  hermes:\n    fallback_for_tools: [web_search]\n---\nBody text.\n"
+  },
+  "name": "conditions_fallback_shown_when_primary_missing",
+  "platform": "",
+  "repo": false,
+  "tools": [
+   "terminal"
+  ],
+  "toolsets": [
+   "terminal"
+  ]
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - other: o\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/needs/SKILL.md": "---\nname: needs\ndescription: needs terminal\nmetadata:\n  hermes:\n    requires_tools: [terminal]\n---\nBody text.\n",
+   "home/skills/t/other/SKILL.md": "---\nname: other\ndescription: o\n---\nBody text.\n"
+  },
+  "name": "conditions_requires_tool",
+  "platform": "",
+  "repo": false,
+  "tools": [
+   "web_search"
+  ],
+  "toolsets": [
+   "web"
+  ]
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - needs: needs toolset\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/needs/SKILL.md": "---\nname: needs\ndescription: needs toolset\nmetadata:\n  hermes:\n    requires_toolsets: [browser]\n---\nBody text.\n"
+  },
+  "name": "conditions_requires_toolset",
+  "platform": "",
+  "repo": false,
+  "tools": [
+   "x"
+  ],
+  "toolsets": [
+   "browser"
+  ]
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "",
+  "files": {
+   "home/skills/t/fb/SKILL.md": "---\nname: fb\ndescription: fb\nmetadata:\n  hermes:\n    fallback_for_toolsets: [browser]\n---\nBody text.\n"
+  },
+  "name": "conditions_fallback_toolset",
+  "platform": "",
+  "repo": false,
+  "tools": [
+   "x"
+  ],
+  "toolsets": [
+   "browser"
+  ]
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - needs: needs\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/needs/SKILL.md": "---\nname: needs\ndescription: needs\nmetadata:\n  hermes:\n    requires_tools: [terminal]\n---\nBody text.\n"
+  },
+  "name": "conditions_ignored_without_tool_info",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "",
+  "files": {
+   "home/skills/t/needs/SKILL.md": "---\nname: needs\ndescription: needs\nmetadata:\n  hermes:\n    requires_tools: [terminal]\n---\nBody text.\n"
+  },
+  "name": "conditions_empty_sets_hide_requires",
+  "platform": "",
+  "repo": false,
+  "tools": [],
+  "toolsets": []
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - tg: tg only\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/tg/SKILL.md": "---\nname: tg\ndescription: tg only\nmetadata:\n  hermes:\n    session_platforms: [Telegram]\n---\nBody text.\n"
+  },
+  "name": "session_platform_match",
+  "platform": "telegram",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - any: any\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/any/SKILL.md": "---\nname: any\ndescription: any\n---\nBody text.\n",
+   "home/skills/t/tg/SKILL.md": "---\nname: tg\ndescription: tg only\nmetadata:\n  hermes:\n    session_platforms: [telegram]\n---\nBody text.\n"
+  },
+  "name": "session_platform_mismatch",
+  "platform": "discord",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - tg: tg only\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/tg/SKILL.md": "---\nname: tg\ndescription: tg only\nmetadata:\n  hermes:\n    session_platforms: [telegram]\n---\nBody text.\n"
+  },
+  "name": "session_platform_unknown_fails_open",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - mac: mac only\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/lin/SKILL.md": "---\nname: lin\ndescription: linux only\nplatforms: [linux]\n---\nBody text.\n",
+   "home/skills/t/mac/SKILL.md": "---\nname: mac\ndescription: mac only\nplatforms: [macos]\n---\nBody text.\n",
+   "home/skills/t/win/SKILL.md": "---\nname: win\ndescription: windows only\nplatforms: [windows]\n---\nBody text.\n"
+  },
+  "name": "os_gate_hides",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "",
+  "files": {
+   "home/skills/t/app/SKILL.md": "---\nname: app\ndescription: needs app\nrequires_apps: [nonexistent-app-xyz]\n---\nBody text.\n"
+  },
+  "name": "requires_apps_hides",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - a: a\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n"
+  },
+  "name": "no_web_tools_note",
+  "platform": "",
+  "repo": false,
+  "tools": [
+   "terminal"
+  ],
+  "toolsets": [
+   "terminal"
+  ]
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - a: a\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n"
+  },
+  "name": "web_tools_note",
+  "platform": "",
+  "repo": false,
+  "tools": [
+   "terminal",
+   "web_search"
+  ],
+  "toolsets": [
+   "web"
+  ]
+ },
+ {
+  "cfg": {},
+  "compact": [
+   "dev"
+  ],
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  dev [names only]: git, lint\n  dev/sub [names only]: inner\n  ops:\n    - deploy: deploy\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.\n(Categories marked [names only] are outside the current coding context, so their descriptions are omitted \u2014 the skills work normally and load with skill_view(name) as usual.)",
+  "files": {
+   "home/skills/dev/git/SKILL.md": "---\nname: git\ndescription: git\n---\nBody text.\n",
+   "home/skills/dev/lint/SKILL.md": "---\nname: lint\ndescription: lint\n---\nBody text.\n",
+   "home/skills/dev/sub/inner/SKILL.md": "---\nname: inner\ndescription: inner\n---\nBody text.\n",
+   "home/skills/ops/deploy/SKILL.md": "---\nname: deploy\ndescription: deploy\n---\nBody text.\n"
+  },
+  "name": "compact_categories",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": [
+   "dev"
+  ],
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  dev/a [names only]: b\n  other:\n    - c: c\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.\n(Categories marked [names only] are outside the current coding context, so their descriptions are omitted \u2014 the skills work normally and load with skill_view(name) as usual.)",
+  "files": {
+   "home/skills/dev/a/b/SKILL.md": "---\nname: b\ndescription: b\n---\nBody text.\n",
+   "home/skills/other/c/SKILL.md": "---\nname: c\ndescription: c\n---\nBody text.\n"
+  },
+  "name": "compact_nested_follows_parent",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "external_dirs": [
+     "{BASE}/ext1"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - local: local\n  x:\n    - ext: external\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "ext1/x/ext/SKILL.md": "---\nname: ext\ndescription: external\n---\nBody text.\n",
+   "home/skills/t/local/SKILL.md": "---\nname: local\ndescription: local\n---\nBody text.\n"
+  },
+  "name": "external_dir",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "external_dirs": [
+     "{BASE}/ext1"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - same: local wins\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "ext1/x/same/SKILL.md": "---\nname: same\ndescription: external loses\n---\nBody text.\n",
+   "home/skills/t/same/SKILL.md": "---\nname: same\ndescription: local wins\n---\nBody text.\n"
+  },
+  "name": "external_shadowed_by_local",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "external_dirs": [
+     "{BASE}/ext1"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  x: from local\n    - e: e\n    - l: l\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "ext1/x/DESCRIPTION.md": "---\ndescription: from external\n---\n",
+   "ext1/x/e/SKILL.md": "---\nname: e\ndescription: e\n---\nBody text.\n",
+   "home/skills/x/DESCRIPTION.md": "---\ndescription: from local\n---\n",
+   "home/skills/x/l/SKILL.md": "---\nname: l\ndescription: l\n---\nBody text.\n"
+  },
+  "name": "external_category_description",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "external_dirs": [
+     "{BASE}/ext1"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  x:\n    - e: e\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "ext1/x/e/SKILL.md": "---\nname: e\ndescription: e\n---\nBody text.\n"
+  },
+  "name": "external_only_no_local_dir",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "external_dirs": [
+     "{BASE}/ext1",
+     "{BASE}/ext2"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  x: first\n    - a: a\n    - b: b\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "ext1/x/DESCRIPTION.md": "---\ndescription: first\n---\n",
+   "ext1/x/a/SKILL.md": "---\nname: a\ndescription: a\n---\nBody text.\n",
+   "ext2/x/DESCRIPTION.md": "---\ndescription: second\n---\n",
+   "ext2/x/b/SKILL.md": "---\nname: b\ndescription: b\n---\nBody text.\n"
+  },
+  "name": "two_external_first_wins_description",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {
+   "skills": {
+    "external_dirs": [
+     "{BASE}/ext1",
+     "{BASE}/ext2"
+    ]
+   }
+  },
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  x:\n    - x/dup: one\n  y:\n    - y/dup: two\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "ext1/x/dup/SKILL.md": "---\nname: dup\ndescription: one\n---\nBody text.\n",
+   "ext2/y/dup/SKILL.md": "---\nname: dup\ndescription: two\n---\nBody text.\n"
+  },
+  "name": "same_tier_duplicate_ambiguous",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  a:\n    - a/same: s\n  b:\n    - b/same: s\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/a/same/SKILL.md": "---\nname: same\ndescription: s\n---\nBody text.\n",
+   "home/skills/b/same/SKILL.md": "---\nname: same\ndescription: s\n---\nBody text.\n"
+  },
+  "name": "identical_copies_dedup",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  a:\n    - a/same: one\n  b:\n    - b/same: two\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/a/same/SKILL.md": "---\nname: same\ndescription: one\n---\nBody text.\n",
+   "home/skills/b/same/SKILL.md": "---\nname: same\ndescription: two\n---\nBody text.\n"
+  },
+  "name": "different_same_name_local_ambiguous",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - pkg: pkg\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/pkg/SKILL.md": "---\nname: pkg\ndescription: pkg\n---\nBody text.\n",
+   "home/skills/t/pkg/references/SKILL.md": "---\nname: ref\ndescription: hidden\n---\nBody text.\n",
+   "home/skills/t/pkg/scripts/inner/SKILL.md": "---\nname: inner\ndescription: hidden\n---\nBody text.\n"
+  },
+  "name": "support_dirs_not_scanned",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - ok: ok\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/.git/x/SKILL.md": "---\nname: git-x\ndescription: hidden\n---\nBody text.\n",
+   "home/skills/node_modules/y/SKILL.md": "---\nname: nm\ndescription: hidden\n---\nBody text.\n",
+   "home/skills/t/ok/SKILL.md": "---\nname: ok\ndescription: ok\n---\nBody text.\n"
+  },
+  "name": "excluded_dirs_not_scanned",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - b: bom ok\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/b/SKILL.md": "\ufeff---\nname: b\ndescription: bom ok\n---\nBody text.\n"
+  },
+  "name": "bom_skill",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - nofm\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/nofm/SKILL.md": "Just prose, no frontmatter.\n"
+  },
+  "name": "frontmatter_missing",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  t:\n    - bs: folded text here\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {
+   "home/skills/t/bs/SKILL.md": "---\nname: bs\ndescription: >\n  folded text\n  here\n---\nB\n"
+  },
+  "name": "description_block_scalar",
+  "platform": "",
+  "repo": false,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": null,
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like web_search or terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  apple:\n    - apple-notes: Manage Apple Notes via memo CLI: create, search, edit.\n    - apple-reminders: Apple Reminders via remindctl: add, list, complete.\n    - findmy: Track Apple devices/AirTags via FindMy.app on macOS.\n  autonomous-ai-agents: Skills for spawning and orchestrating autonomous AI coding agents and multi-agent workflows \u2014 running independent agent processes, delegating tasks, and coordinating parallel workstreams.\n    - agent-merge-conflict-arbiter: Neutral arbiter for merge conflicts between two agents.\n    - antigravity-cli: Operate the Antigravity CLI (agy): plugins, auth, sandbox.\n    - blackbox: Delegate coding tasks to the Blackbox AI multi-model CLI.\n    - claude-code: Delegate coding to Claude Code CLI (features, PRs).\n    - codex: Delegate coding to OpenAI Codex CLI (features, PRs).\n    - computer-use: Drive the desktop background-first; escalate on signal.\n    - dynamic-workflow: Plan-in-code fan-outs, adversarial verification, waves.\n    - grok: Delegate coding to xAI Grok Build CLI (features, PRs).\n    - hermes-agent: Use, configure, theme, extend, and orchestrate Hermes Agent.\n    - opencode: Delegate coding to OpenCode CLI (features, PR review).\n    - openhands: Delegate coding to OpenHands CLI (model-agnostic, LiteLLM).\n  blockchain:\n    - evm: Read-only EVM client: wallets, tokens, gas across 8 chains.\n    - hyperliquid: Hyperliquid market data, account history, trade review.\n    - solana: Query Solana wallets, tokens, txs, and NFTs in USD.\n  communication:\n    - one-three-one-rule: 1-3-1 decision briefs: problem, three options, one pick.\n  creative: Creative content generation \u2014 ASCII art, hand-drawn style diagrams, and visual design tools.\n    - ai-presenter-video: Make a verified AI presenter video from script + image.\n    - archify: Validated interactive HTML diagrams, upstream-maintained.\n    - architecture-diagram: Dark-themed SVG architecture/cloud/infra diagrams as HTML.\n    - ascii-art: ASCII art: pyfiglet, cowsay, boxes, image-to-ascii.\n    - ascii-video: ASCII video: convert video/audio to colored ASCII MP4/GIF.\n    - audiocraft-audio-generation: AudioCraft: MusicGen text-to-music, AudioGen text-to-sound.\n    - auteur: Design and build cinematic, award-level web pages.\n    - baoyu-article-illustrator: Article illustrations: type \u00d7 style \u00d7 palette consistency.\n    - baoyu-comic: Knowledge comics (\u77e5\u8bc6\u6f2b\u753b): educational, biography, tutorial.\n    - baoyu-infographic: Infographics: 21 layouts x 21 styles (\u4fe1\u606f\u56fe, \u53ef\u89c6\u5316).\n    - brag: Project launch video via Hyperframes, upstream-maintained.\n    - brag-slim: Launch video from a project or URL, upstream-maintained.\n    - claude-design: Design one-off HTML artifacts (landing, deck, prototype).\n    - comfyui: Generate images, video, and audio via diffusion workflows.\n    - concept-diagrams: Generate flat, minimal educational SVG visuals as HTML.\n    - creative-ideation: Generate ideas via named methods from creative practice.\n    - design-md: Author/validate/export Google's DESIGN.md token spec files.\n    - draw-your-font: Turn a handwriting photo into an installable TTF font.\n    - dream-loop: Build stunning 3D scenes via a concept-art fidelity loop.\n    - excalidraw: Hand-drawn Excalidraw JSON diagrams (arch, flow, seq).\n    - heartmula: HeartMuLa: Suno-like song generation from lyrics + tags.\n    - humanizer: Humanize text: strip AI-isms and add real voice.\n    - hyperframes: Render MP4/WebM videos from HTML compositions.\n    - impeccable: Frontend design guidance, upstream-maintained (impeccable).\n    - ip-as-logo: Design minimal cute IP mascot marks readable at 32px.\n    - kanban-video-orchestrator: Plan and run multi-agent video production pipelines.\n    - manim-video: Manim CE animations: 3Blue1Brown math/algo videos.\n    - meme-generation: Create meme PNGs from templates with Pillow text overlay.\n    - mono-color: Generate one- or two-ink editorial print poster images.\n    - p5js: p5.js sketches: gen art, shaders, interactive, 3D.\n    - pixel-art: Pixel art w/ era palettes (NES, Game Boy, PICO-8).\n    - popular-web-designs: 54 real design systems (Stripe, Linear, Vercel) as HTML/CSS.\n    - pretext: Build creative browser demos with DOM-free text layout.\n    - simple-english: Rewrite text to ASD-STE100 Simplified Technical English.\n    - sketch: Throwaway HTML mockups: 2-3 design variants to compare.\n    - social-media-content-calendar: Plan multi-platform social campaigns: briefs to posting.\n    - songwriting-and-ai-music: Songwriting craft and Suno AI music prompts.\n    - system-atlas: Build explorable isometric architecture atlases as HTML.\n    - tldraw-offline: Drive and script tldraw offline canvases with an agent.\n    - unreal-mcp: Automate Unreal Engine editor scenes, actors, and renders.\n  data-science: Skills for data science workflows \u2014 interactive exploration, Jupyter notebooks, data analysis, and visualization.\n    - jupyter-notebook: Iterative Python via live Jupyter kernel (hamelnb).\n  devops:\n    - actual-setup: Set up Actual Computer (actual.inc) inference in Hermes.\n    - docker-management: Manage Docker containers, images, volumes, and Compose.\n    - inference-sh-cli: Run 150+ AI apps (image, video, LLM) via inference.sh CLI.\n    - pinggy-tunnel: Zero-install localhost tunnels over SSH via Pinggy.\n    - setup-wizard-generator: Generate a bash wizard guiding a human through manual setup.\n    - watchers: Poll RSS, JSON APIs, and GitHub with watermark dedup.\n  dogfood:\n    - adversarial-ux-test: Roleplay a hostile user to find and triage UX pain points.\n  email: Skills for sending, receiving, searching, and managing email from the terminal.\n    - agentmail: Use when an agent needs AgentMail CLI email inboxes.\n    - email-inbox-triage: Triage an inbox: prioritize threads, draft replies safely.\n    - himalaya: Himalaya CLI: IMAP/SMTP email from terminal.\n  finance:\n    - 3-statement-model: Build integrated IS/BS/CF financial workbooks in Excel.\n    - comps-analysis: Build comparable-company valuation workbooks in Excel.\n    - dcf-model: Build discounted cash flow valuation workbooks in Excel.\n    - excel-author: Build auditable financial workbooks headless via openpyxl.\n    - lbo-model: Build leveraged buyout workbooks with IRR/MOIC in Excel.\n    - merger-model: Build M&A accretion/dilution workbooks in Excel.\n    - polymarket: Query Polymarket: markets, prices, orderbooks, history.\n    - pptx-author: Build PowerPoint decks headless with python-pptx.\n    - stocks: Stock quotes, history, search, compare, crypto via Yahoo.\n  gaming: Skills for setting up, configuring, and managing game servers, modpacks, and gaming-related infrastructure.\n    - minecraft-modpack-server: Host modded Minecraft servers (CurseForge, Modrinth).\n    - pokemon-player: Play Pokemon via headless emulator + RAM reads.\n  health:\n    - fitness-nutrition: Workout planning, macros, and body metrics via wger/USDA.\n    - neuroskill-bci: Use live BCI cognitive and mood state from NeuroSkill.\n  mcp:\n    - fastmcp: Build, test, and deploy Python MCP servers.\n    - mcp-oauth-remote-gateway: Manual OAuth for remote MCP servers on headless gateways.\n    - mcporter: List, auth, and call MCP servers/tools from the terminal.\n  media: Skills for working with media content \u2014 YouTube transcripts, GIF search, music generation, and audio visualization.\n    - gif-search: Search/download GIFs from Tenor via curl + jq.\n    - songsee: Audio spectrograms/features (mel, chroma, MFCC) via CLI.\n    - youtube-content: YouTube transcripts to summaries, threads, blogs.\n  migration:\n    - openclaw-migration: Import an OpenClaw setup (memories, skills) into Hermes.\n  mlops:\n    - accelerate: Run PyTorch training across GPUs with minimal changes.\n    - chroma: Embedding database for RAG and semantic search.\n    - clip: Zero-shot image classification and image-text search.\n    - faiss: Fast vector similarity search at billion scale.\n    - flash-attention: Speed up long-sequence transformer training and inference.\n    - guidance: Constrain LLM output with grammars; guarantee valid JSON.\n    - huggingface-tokenizers: Fast BPE/WordPiece tokenization and custom vocab training.\n    - instructor: Structured LLM outputs validated with Pydantic.\n    - lambda-labs: On-demand GPU cloud instances for ML training.\n    - llava: Vision-language chat: VQA, captioning, image dialogue.\n    - modal: Serverless GPU cloud for ML jobs and model APIs.\n    - nemo-curator: Curate LLM training data: dedupe, filter, PII redaction.\n    - obliteratus: OBLITERATUS: abliterate LLM refusals (diff-in-means).\n    - peft: Fine-tune large LLMs with LoRA on limited GPU memory.\n    - pinecone: Managed vector DB for production RAG and search.\n    - pytorch-fsdp: Fully sharded data-parallel training for large models.\n    - pytorch-lightning: Clean training loops with built-in distributed support.\n    - qdrant: Vector search engine for production RAG systems.\n    - saelens: Train sparse autoencoders to interpret model features.\n    - simpo: Reference-free preference alignment, simpler than DPO.\n    - slime: RL post-training for LLMs with Megatron and SGLang.\n    - stable-diffusion: Text-to-image generation, inpainting, and img2img.\n    - torchtitan: Pretrain LLMs at scale with PyTorch 4D parallelism.\n    - whisper: Transcribe and translate speech in 99 languages.\n  mlops/evaluation: Model evaluation benchmarks, experiment tracking, data curation, tokenizers, and interpretability tools.\n    - evaluating-llms-harness: lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.).\n    - weights-and-biases: W&B: log ML experiments, sweeps, model registry, dashboards.\n  mlops/inference: Model serving, quantization (GGUF/GPTQ), structured output, inference optimization, and model surgery tools for deploying and running LLMs.\n    - llama-cpp: llama.cpp local GGUF inference + HF Hub model discovery.\n    - outlines: Outlines: structured JSON/regex/Pydantic LLM generation.\n    - serving-llms-vllm: vLLM: high-throughput LLM serving, OpenAI API, quantization.\n  mlops/models: Specific model architectures and tools \u2014 image segmentation (Segment Anything / SAM) and audio generation (AudioCraft / MusicGen). Additional model skills (CLIP, Stable Diffusion, Whisper, LLaVA) are available as optional skills.\n    - huggingface-hub: HuggingFace hf CLI: search/download/upload models, datasets.\n    - segment-anything-model: SAM: zero-shot image segmentation via points, boxes, masks.\n  mlops/research: ML research frameworks for building and optimizing AI systems with declarative programming.\n    - dspy: DSPy: declarative LM programs, auto-optimize prompts, RAG.\n  mlops/training:\n    - axolotl: Axolotl: YAML LLM fine-tuning (LoRA, DPO, GRPO).\n    - trl-fine-tuning: TRL: SFT, DPO, GRPO, RLOO reward modeling for LLM RLHF.\n    - unsloth: Unsloth: 2-5x faster LoRA/QLoRA fine-tuning, less VRAM.\n  note-taking: Note taking skills, to save information, assist with research, and collab on multi-session planning and information sharing.\n    - obsidian: Read, search, create, and edit notes in the Obsidian vault.\n  payments:\n    - mpp-agent: Pay HTTP 402 APIs via Machine Payments Protocol (MPP).\n    - stripe-link-cli: Agent payments via Stripe Link \u2014 cards, SPT, approvals.\n    - stripe-projects: Provision SaaS services + sync creds via Stripe Projects.\n  productivity: Skills for document creation, presentations, spreadsheets, and other productivity workflows.\n    - airtable: Airtable REST API via curl. Records CRUD, filters, upserts.\n    - box: Box manages cloud files, sharing, search, and metadata.\n    - canvas: Fetch Canvas LMS courses and assignments via API token.\n    - decision-questionnaire: Turn an unanswerable decision into a questionnaire doc.\n    - document-to-action-items: Extract cited obligations, deadlines, tasks from documents.\n    - docx: Create, read, edit, template, and review Word .docx files.\n    - first-task: Run the first task chat that setup hands off.\n    - google-workspace: Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python.\n    - here-now: Publish sites to {slug}.here.now and store files in Drives.\n    - initiate-setup: Run the first-run setup chat in the Hermes desktop app.\n    - live-dashboard: Build self-updating dashboards from live sources.\n    - maps: Geocode, POIs, routes, timezones via OpenStreetMap/OSRM.\n    - meeting-action-items: Turn meeting notes into cited decisions, owners, tickets.\n    - memento-flashcards: Spaced-repetition flashcards: create, review, quiz, export.\n    - notion: Notion API + ntn CLI: pages, databases, markdown, Workers.\n    - pdf: PDF files: create, read, merge, fill, OCR, edit text.\n    - powerpoint: Create, read, edit .pptx decks with python-pptx.\n    - product-price-monitor: Watch product, flight, or listing prices; alert on target.\n    - property-listings: Present property and rental listings as desktop cards.\n    - shop: Shop catalog search, checkout, order tracking, returns.\n    - shopify: Query Shopify Admin/Storefront GraphQL APIs via curl.\n    - siyuan: Query and edit a SiYuan knowledge base via its API.\n    - teams-meeting-pipeline: Teams meeting summaries, job replay, Graph subscriptions.\n    - weekly-review-planning: Weekly reset: commitments, stalled work, next-week plan.\n    - xlsx: Create, read, edit Excel .xlsx workbooks and CSVs.\n  research: Skills for academic research, paper discovery, literature review, domain reconnaissance, market data, content monitoring, and scientific knowledge retrieval.\n    - arxiv: Search arXiv papers by keyword, author, category, or ID.\n    - bioinformatics: Gateway to 400+ genomics and computational biology skills.\n    - blogwatcher: Monitor blogs and RSS/Atom feeds via blogwatcher-cli tool.\n    - competitor-news-monitor: Watch named companies for material news; cited digests.\n    - darwinian-evolver: Evolve prompts/regex/SQL/code with Imbue's evolution loop.\n    - domain-intel: Passive recon of subdomains, SSL certs, WHOIS, and DNS.\n    - drug-discovery: Drug discovery: ChEMBL search, drug-likeness, interactions.\n    - duckduckgo-search: Free keyless web, news, and image search via ddgs.\n    - gitnexus-explorer: Serve an interactive codebase knowledge graph web UI.\n    - grounded-citations: Ground answers and documents in cited, verifiable sources.\n    - llm-wiki: Karpathy's LLM Wiki: build/query interlinked markdown KB.\n    - osint-investigation: Follow the money via public records and sanctions data.\n    - parallel-cli: Agent-native web search, deep research, and enrichment.\n    - pinecone-research: Agent RAG and long-term memory with Pinecone.\n    - qmd: Hybrid local search over notes, docs, and transcripts.\n    - research-paper-writing: Write ML papers for NeurIPS/ICML/ICLR: design\u2192submit.\n    - rss-feeds: Read RSS, Atom, JSON feeds; discover feeds behind a page.\n    - scrapling: Scrape sites with stealth browsing and Cloudflare bypass.\n    - searxng-search: Free keyless meta-search aggregating 70+ engines.\n  security:\n    - 1password: Set up op CLI, sign in, and read or inject secrets.\n    - godmode: Jailbreak LLMs: Parseltongue, GODMODE, ULTRAPLINIAN.\n    - oss-forensics: GitHub supply-chain forensics: recovery, IOCs, reporting.\n    - sherlock: Find accounts for a username across 400+ platforms.\n    - unbroker: Autonomously remove your info from data-broker sites.\n    - web-pentest: Authorized web pentest: recon, proof-based exploits, report.\n  smart-home: Skills for controlling smart home devices \u2014 lights, switches, sensors, and home automation systems.\n    - openhue: Control Philips Hue lights, scenes, rooms via OpenHue CLI.\n  social-media: Skills for interacting with social platforms and social-media workflows \u2014 posting, reading, monitoring, and account operations.\n    - reddit-reading: Read Reddit: subreddits, search, threads, users. No browser.\n    - xurl: X/Twitter via xurl CLI: raw post search, posting, DM, media.\n  software-development:\n    - ast-grep: AST-aware structural code search and rewrite via ast-grep.\n    - code-wiki: Generate wiki docs + Mermaid diagrams for any codebase.\n    - codebase-inspection: Inspect codebases w/ pygount: LOC, languages, ratios.\n    - dogfood: Exploratory QA of web apps: find bugs, evidence, reports.\n    - github: GitHub via gh CLI: PRs, issues, reviews, repos, auth.\n    - grill-me: Adversarial plan interview before implementation.\n    - hermes-agent-skill-authoring: Author in-repo SKILL.md files: frontmatter and structure.\n    - inspecting-hermes-desktop-dom: Read the live Hermes desktop DOM/CSS over CDP.\n    - node-inspect-debugger: Debug Node.js via --inspect + Chrome DevTools Protocol CLI.\n    - pr-lens: Draw code changes as animated architecture/data-flow SVGs.\n    - python-debugpy: Debug Python: pdb REPL + debugpy remote (DAP).\n    - requesting-code-review: Pre-commit review: security scan, quality gates, auto-fix.\n    - rest-graphql-debug: Debug REST/GraphQL APIs: status codes, auth, schemas, repro.\n    - simplify-code: Parallel 4-agent cleanup of recent code changes.\n    - spike: Throwaway experiments to validate an idea before build.\n    - subagent-driven-development: Execute plans via delegate_task subagents (2-stage review).\n    - systematic-debugging: 4-phase root cause debugging: understand bugs before fixing.\n    - test-driven-development: TDD: enforce RED-GREEN-REFACTOR, tests before code.\n  web: Skills for reaching web content when direct access fails \u2014 blocked, paywalled, rate-limited, or bot-walled pages.\n    - blocked-page-recovery: Use when a fetch fails: 403/429, paywall, WAF, bot wall.\n  web-development:\n    - cloudflare-temporary-deploy: Deploy a Worker live, no account, via wrangler --temporary.\n    - har-derived-api-client: Record a site's XHR into a HAR, derive an HTTP client.\n    - page-agent: Embed an in-page natural-language GUI copilot in web apps.\n    - publish-site: Versioned site deploys to GitHub/Cloudflare/Netlify Pages.\n    - scrollcraft: Premium scroll-driven landing pages; scroll = timeline.\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.",
+  "files": {},
+  "name": "repo_skills",
+  "platform": "",
+  "repo": true,
+  "tools": null,
+  "toolsets": null
+ },
+ {
+  "cfg": {},
+  "compact": [
+   "github",
+   "mlops"
+  ],
+  "expected": "## Skills\nBefore replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions. Err on the side of loading \u2014 it is always better to have context you don't need than to miss critical steps, pitfalls, or established workflows. Skills contain specialized knowledge \u2014 API endpoints, tool-specific commands, and proven workflows that outperform general-purpose approaches. Load the skill even if you think you could handle the task with basic tools like terminal. Skills also encode the user's preferred approach, conventions, and quality standards for tasks like code review, planning, and testing \u2014 load them even for tasks you already know how to do, because the skill defines how it should be done here.\nIf a skill has issues, fix it with skill_manage(action='patch').\nAfter difficult/iterative tasks, offer to save as a skill. If a skill you loaded was missing steps, had wrong commands, or needed pitfalls you discovered, update it before finishing.\n\n<available_skills>\n  apple:\n    - apple-notes: Manage Apple Notes via memo CLI: create, search, edit.\n    - apple-reminders: Apple Reminders via remindctl: add, list, complete.\n    - findmy: Track Apple devices/AirTags via FindMy.app on macOS.\n  autonomous-ai-agents: Skills for spawning and orchestrating autonomous AI coding agents and multi-agent workflows \u2014 running independent agent processes, delegating tasks, and coordinating parallel workstreams.\n    - agent-merge-conflict-arbiter: Neutral arbiter for merge conflicts between two agents.\n    - antigravity-cli: Operate the Antigravity CLI (agy): plugins, auth, sandbox.\n    - blackbox: Delegate coding tasks to the Blackbox AI multi-model CLI.\n    - claude-code: Delegate coding to Claude Code CLI (features, PRs).\n    - codex: Delegate coding to OpenAI Codex CLI (features, PRs).\n    - computer-use: Drive the desktop background-first; escalate on signal.\n    - dynamic-workflow: Plan-in-code fan-outs, adversarial verification, waves.\n    - grok: Delegate coding to xAI Grok Build CLI (features, PRs).\n    - hermes-agent: Use, configure, theme, extend, and orchestrate Hermes Agent.\n    - opencode: Delegate coding to OpenCode CLI (features, PR review).\n    - openhands: Delegate coding to OpenHands CLI (model-agnostic, LiteLLM).\n  blockchain:\n    - evm: Read-only EVM client: wallets, tokens, gas across 8 chains.\n    - hyperliquid: Hyperliquid market data, account history, trade review.\n    - solana: Query Solana wallets, tokens, txs, and NFTs in USD.\n  communication:\n    - one-three-one-rule: 1-3-1 decision briefs: problem, three options, one pick.\n  creative: Creative content generation \u2014 ASCII art, hand-drawn style diagrams, and visual design tools.\n    - ai-presenter-video: Make a verified AI presenter video from script + image.\n    - archify: Validated interactive HTML diagrams, upstream-maintained.\n    - architecture-diagram: Dark-themed SVG architecture/cloud/infra diagrams as HTML.\n    - ascii-art: ASCII art: pyfiglet, cowsay, boxes, image-to-ascii.\n    - ascii-video: ASCII video: convert video/audio to colored ASCII MP4/GIF.\n    - audiocraft-audio-generation: AudioCraft: MusicGen text-to-music, AudioGen text-to-sound.\n    - auteur: Design and build cinematic, award-level web pages.\n    - baoyu-article-illustrator: Article illustrations: type \u00d7 style \u00d7 palette consistency.\n    - baoyu-comic: Knowledge comics (\u77e5\u8bc6\u6f2b\u753b): educational, biography, tutorial.\n    - baoyu-infographic: Infographics: 21 layouts x 21 styles (\u4fe1\u606f\u56fe, \u53ef\u89c6\u5316).\n    - brag: Project launch video via Hyperframes, upstream-maintained.\n    - brag-slim: Launch video from a project or URL, upstream-maintained.\n    - claude-design: Design one-off HTML artifacts (landing, deck, prototype).\n    - comfyui: Generate images, video, and audio via diffusion workflows.\n    - concept-diagrams: Generate flat, minimal educational SVG visuals as HTML.\n    - creative-ideation: Generate ideas via named methods from creative practice.\n    - design-md: Author/validate/export Google's DESIGN.md token spec files.\n    - draw-your-font: Turn a handwriting photo into an installable TTF font.\n    - dream-loop: Build stunning 3D scenes via a concept-art fidelity loop.\n    - excalidraw: Hand-drawn Excalidraw JSON diagrams (arch, flow, seq).\n    - heartmula: HeartMuLa: Suno-like song generation from lyrics + tags.\n    - humanizer: Humanize text: strip AI-isms and add real voice.\n    - hyperframes: Render MP4/WebM videos from HTML compositions.\n    - impeccable: Frontend design guidance, upstream-maintained (impeccable).\n    - ip-as-logo: Design minimal cute IP mascot marks readable at 32px.\n    - kanban-video-orchestrator: Plan and run multi-agent video production pipelines.\n    - manim-video: Manim CE animations: 3Blue1Brown math/algo videos.\n    - meme-generation: Create meme PNGs from templates with Pillow text overlay.\n    - mono-color: Generate one- or two-ink editorial print poster images.\n    - p5js: p5.js sketches: gen art, shaders, interactive, 3D.\n    - pixel-art: Pixel art w/ era palettes (NES, Game Boy, PICO-8).\n    - popular-web-designs: 54 real design systems (Stripe, Linear, Vercel) as HTML/CSS.\n    - pretext: Build creative browser demos with DOM-free text layout.\n    - simple-english: Rewrite text to ASD-STE100 Simplified Technical English.\n    - sketch: Throwaway HTML mockups: 2-3 design variants to compare.\n    - social-media-content-calendar: Plan multi-platform social campaigns: briefs to posting.\n    - songwriting-and-ai-music: Songwriting craft and Suno AI music prompts.\n    - system-atlas: Build explorable isometric architecture atlases as HTML.\n    - tldraw-offline: Drive and script tldraw offline canvases with an agent.\n    - unreal-mcp: Automate Unreal Engine editor scenes, actors, and renders.\n  data-science: Skills for data science workflows \u2014 interactive exploration, Jupyter notebooks, data analysis, and visualization.\n    - jupyter-notebook: Iterative Python via live Jupyter kernel (hamelnb).\n  devops:\n    - actual-setup: Set up Actual Computer (actual.inc) inference in Hermes.\n    - docker-management: Manage Docker containers, images, volumes, and Compose.\n    - inference-sh-cli: Run 150+ AI apps (image, video, LLM) via inference.sh CLI.\n    - pinggy-tunnel: Zero-install localhost tunnels over SSH via Pinggy.\n    - setup-wizard-generator: Generate a bash wizard guiding a human through manual setup.\n    - watchers: Poll RSS, JSON APIs, and GitHub with watermark dedup.\n  dogfood:\n    - adversarial-ux-test: Roleplay a hostile user to find and triage UX pain points.\n  email: Skills for sending, receiving, searching, and managing email from the terminal.\n    - agentmail: Use when an agent needs AgentMail CLI email inboxes.\n    - email-inbox-triage: Triage an inbox: prioritize threads, draft replies safely.\n    - himalaya: Himalaya CLI: IMAP/SMTP email from terminal.\n  finance:\n    - 3-statement-model: Build integrated IS/BS/CF financial workbooks in Excel.\n    - comps-analysis: Build comparable-company valuation workbooks in Excel.\n    - dcf-model: Build discounted cash flow valuation workbooks in Excel.\n    - excel-author: Build auditable financial workbooks headless via openpyxl.\n    - lbo-model: Build leveraged buyout workbooks with IRR/MOIC in Excel.\n    - merger-model: Build M&A accretion/dilution workbooks in Excel.\n    - polymarket: Query Polymarket: markets, prices, orderbooks, history.\n    - pptx-author: Build PowerPoint decks headless with python-pptx.\n    - stocks: Stock quotes, history, search, compare, crypto via Yahoo.\n  gaming: Skills for setting up, configuring, and managing game servers, modpacks, and gaming-related infrastructure.\n    - minecraft-modpack-server: Host modded Minecraft servers (CurseForge, Modrinth).\n    - pokemon-player: Play Pokemon via headless emulator + RAM reads.\n  health:\n    - fitness-nutrition: Workout planning, macros, and body metrics via wger/USDA.\n    - neuroskill-bci: Use live BCI cognitive and mood state from NeuroSkill.\n  mcp:\n    - fastmcp: Build, test, and deploy Python MCP servers.\n    - mcp-oauth-remote-gateway: Manual OAuth for remote MCP servers on headless gateways.\n    - mcporter: List, auth, and call MCP servers/tools from the terminal.\n  media: Skills for working with media content \u2014 YouTube transcripts, GIF search, music generation, and audio visualization.\n    - gif-search: Search/download GIFs from Tenor via curl + jq.\n    - songsee: Audio spectrograms/features (mel, chroma, MFCC) via CLI.\n    - youtube-content: YouTube transcripts to summaries, threads, blogs.\n  migration:\n    - openclaw-migration: Import an OpenClaw setup (memories, skills) into Hermes.\n  mlops [names only]: accelerate, chroma, clip, faiss, flash-attention, guidance, huggingface-tokenizers, instructor, lambda-labs, llava, modal, nemo-curator, obliteratus, peft, pinecone, pytorch-fsdp, pytorch-lightning, qdrant, saelens, simpo, slime, stable-diffusion, torchtitan, whisper\n  mlops/evaluation [names only]: evaluating-llms-harness, weights-and-biases\n  mlops/inference [names only]: llama-cpp, outlines, serving-llms-vllm\n  mlops/models [names only]: huggingface-hub, segment-anything-model\n  mlops/research [names only]: dspy\n  mlops/training [names only]: axolotl, trl-fine-tuning, unsloth\n  note-taking: Note taking skills, to save information, assist with research, and collab on multi-session planning and information sharing.\n    - obsidian: Read, search, create, and edit notes in the Obsidian vault.\n  payments:\n    - mpp-agent: Pay HTTP 402 APIs via Machine Payments Protocol (MPP).\n    - stripe-link-cli: Agent payments via Stripe Link \u2014 cards, SPT, approvals.\n    - stripe-projects: Provision SaaS services + sync creds via Stripe Projects.\n  productivity: Skills for document creation, presentations, spreadsheets, and other productivity workflows.\n    - airtable: Airtable REST API via curl. Records CRUD, filters, upserts.\n    - box: Box manages cloud files, sharing, search, and metadata.\n    - canvas: Fetch Canvas LMS courses and assignments via API token.\n    - decision-questionnaire: Turn an unanswerable decision into a questionnaire doc.\n    - document-to-action-items: Extract cited obligations, deadlines, tasks from documents.\n    - docx: Create, read, edit, template, and review Word .docx files.\n    - first-task: Run the first task chat that setup hands off.\n    - google-workspace: Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python.\n    - here-now: Publish sites to {slug}.here.now and store files in Drives.\n    - initiate-setup: Run the first-run setup chat in the Hermes desktop app.\n    - live-dashboard: Build self-updating dashboards from live sources.\n    - maps: Geocode, POIs, routes, timezones via OpenStreetMap/OSRM.\n    - meeting-action-items: Turn meeting notes into cited decisions, owners, tickets.\n    - memento-flashcards: Spaced-repetition flashcards: create, review, quiz, export.\n    - notion: Notion API + ntn CLI: pages, databases, markdown, Workers.\n    - pdf: PDF files: create, read, merge, fill, OCR, edit text.\n    - powerpoint: Create, read, edit .pptx decks with python-pptx.\n    - product-price-monitor: Watch product, flight, or listing prices; alert on target.\n    - property-listings: Present property and rental listings as desktop cards.\n    - shop: Shop catalog search, checkout, order tracking, returns.\n    - shopify: Query Shopify Admin/Storefront GraphQL APIs via curl.\n    - siyuan: Query and edit a SiYuan knowledge base via its API.\n    - weekly-review-planning: Weekly reset: commitments, stalled work, next-week plan.\n    - xlsx: Create, read, edit Excel .xlsx workbooks and CSVs.\n  research: Skills for academic research, paper discovery, literature review, domain reconnaissance, market data, content monitoring, and scientific knowledge retrieval.\n    - arxiv: Search arXiv papers by keyword, author, category, or ID.\n    - bioinformatics: Gateway to 400+ genomics and computational biology skills.\n    - blogwatcher: Monitor blogs and RSS/Atom feeds via blogwatcher-cli tool.\n    - competitor-news-monitor: Watch named companies for material news; cited digests.\n    - darwinian-evolver: Evolve prompts/regex/SQL/code with Imbue's evolution loop.\n    - domain-intel: Passive recon of subdomains, SSL certs, WHOIS, and DNS.\n    - drug-discovery: Drug discovery: ChEMBL search, drug-likeness, interactions.\n    - duckduckgo-search: Free keyless web, news, and image search via ddgs.\n    - gitnexus-explorer: Serve an interactive codebase knowledge graph web UI.\n    - grounded-citations: Ground answers and documents in cited, verifiable sources.\n    - llm-wiki: Karpathy's LLM Wiki: build/query interlinked markdown KB.\n    - osint-investigation: Follow the money via public records and sanctions data.\n    - parallel-cli: Agent-native web search, deep research, and enrichment.\n    - pinecone-research: Agent RAG and long-term memory with Pinecone.\n    - qmd: Hybrid local search over notes, docs, and transcripts.\n    - rss-feeds: Read RSS, Atom, JSON feeds; discover feeds behind a page.\n    - scrapling: Scrape sites with stealth browsing and Cloudflare bypass.\n    - searxng-search: Free keyless meta-search aggregating 70+ engines.\n  security:\n    - 1password: Set up op CLI, sign in, and read or inject secrets.\n    - godmode: Jailbreak LLMs: Parseltongue, GODMODE, ULTRAPLINIAN.\n    - oss-forensics: GitHub supply-chain forensics: recovery, IOCs, reporting.\n    - sherlock: Find accounts for a username across 400+ platforms.\n    - unbroker: Autonomously remove your info from data-broker sites.\n    - web-pentest: Authorized web pentest: recon, proof-based exploits, report.\n  smart-home: Skills for controlling smart home devices \u2014 lights, switches, sensors, and home automation systems.\n    - openhue: Control Philips Hue lights, scenes, rooms via OpenHue CLI.\n  social-media: Skills for interacting with social platforms and social-media workflows \u2014 posting, reading, monitoring, and account operations.\n    - reddit-reading: Read Reddit: subreddits, search, threads, users. No browser.\n    - xurl: X/Twitter via xurl CLI: raw post search, posting, DM, media.\n  software-development:\n    - ast-grep: AST-aware structural code search and rewrite via ast-grep.\n    - code-wiki: Generate wiki docs + Mermaid diagrams for any codebase.\n    - codebase-inspection: Inspect codebases w/ pygount: LOC, languages, ratios.\n    - dogfood: Exploratory QA of web apps: find bugs, evidence, reports.\n    - github: GitHub via gh CLI: PRs, issues, reviews, repos, auth.\n    - grill-me: Adversarial plan interview before implementation.\n    - hermes-agent-skill-authoring: Author in-repo SKILL.md files: frontmatter and structure.\n    - inspecting-hermes-desktop-dom: Read the live Hermes desktop DOM/CSS over CDP.\n    - node-inspect-debugger: Debug Node.js via --inspect + Chrome DevTools Protocol CLI.\n    - pr-lens: Draw code changes as animated architecture/data-flow SVGs.\n    - python-debugpy: Debug Python: pdb REPL + debugpy remote (DAP).\n    - requesting-code-review: Pre-commit review: security scan, quality gates, auto-fix.\n    - rest-graphql-debug: Debug REST/GraphQL APIs: status codes, auth, schemas, repro.\n    - simplify-code: Parallel 4-agent cleanup of recent code changes.\n    - spike: Throwaway experiments to validate an idea before build.\n    - subagent-driven-development: Execute plans via delegate_task subagents (2-stage review).\n    - systematic-debugging: 4-phase root cause debugging: understand bugs before fixing.\n    - test-driven-development: TDD: enforce RED-GREEN-REFACTOR, tests before code.\n  web: Skills for reaching web content when direct access fails \u2014 blocked, paywalled, rate-limited, or bot-walled pages.\n    - blocked-page-recovery: Use when a fetch fails: 403/429, paywall, WAF, bot wall.\n  web-development:\n    - cloudflare-temporary-deploy: Deploy a Worker live, no account, via wrangler --temporary.\n    - har-derived-api-client: Record a site's XHR into a HAR, derive an HTTP client.\n    - page-agent: Embed an in-page natural-language GUI copilot in web apps.\n    - publish-site: Versioned site deploys to GitHub/Cloudflare/Netlify Pages.\n    - scrollcraft: Premium scroll-driven landing pages; scroll = timeline.\n</available_skills>\n\nOnly proceed without loading a skill if genuinely none are relevant to the task.\n(Categories marked [names only] are outside the current coding context, so their descriptions are omitted \u2014 the skills work normally and load with skill_view(name) as usual.)",
+  "files": {},
+  "name": "repo_skills_telegram_compact",
+  "platform": "telegram",
+  "repo": true,
+  "tools": [
+   "terminal",
+   "read_file"
+  ],
+  "toolsets": [
+   "terminal",
+   "file"
+  ]
+ }
+]

@@ -1,0 +1,56 @@
+{
+ "expected": [
+  {
+   "cache_control": {
+    "type": "ephemeral"
+   },
+   "description": "first",
+   "input_schema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "a"
+  },
+  {
+   "description": "",
+   "input_schema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "b"
+  }
+ ],
+ "tools": [
+  {
+   "cache_control": {
+    "type": "ephemeral"
+   },
+   "function": {
+    "description": "first",
+    "name": "a",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "description": "second",
+    "name": "a",
+    "parameters": {
+     "properties": {},
+     "type": "object"
+    }
+   },
+   "type": "function"
+  },
+  {
+   "function": {
+    "name": "b"
+   },
+   "type": "function"
+  }
+ ]
+}

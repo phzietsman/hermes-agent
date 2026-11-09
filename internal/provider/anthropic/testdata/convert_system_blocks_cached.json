@@ -1,0 +1,54 @@
+{
+ "expected_messages": [
+  {
+   "content": "hi",
+   "role": "user"
+  }
+ ],
+ "expected_system": [
+  {
+   "cache_control": {
+    "ttl": "1h",
+    "type": "ephemeral"
+   },
+   "text": "stable prefix",
+   "type": "text"
+  },
+  {
+   "text": "(empty)",
+   "type": "text"
+  },
+  {
+   "text": "tail",
+   "type": "text"
+  }
+ ],
+ "messages": [
+  {
+   "content": [
+    {
+     "cache_control": {
+      "ttl": "1h",
+      "type": "ephemeral"
+     },
+     "text": "stable prefix",
+     "type": "text"
+    },
+    {
+     "text": "   ",
+     "type": "text"
+    },
+    {
+     "text": "tail",
+     "type": "text"
+    }
+   ],
+   "role": "system"
+  },
+  {
+   "content": "hi",
+   "role": "user"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

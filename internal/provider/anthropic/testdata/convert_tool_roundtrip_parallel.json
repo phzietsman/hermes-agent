@@ -1,0 +1,101 @@
+{
+ "expected_messages": [
+  {
+   "content": "do two things",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "on it",
+     "type": "text"
+    },
+    {
+     "id": "call_1",
+     "input": {
+      "path": "a"
+     },
+     "name": "read_file",
+     "type": "tool_use"
+    },
+    {
+     "id": "call_2",
+     "input": {
+      "cmd": "ls"
+     },
+     "name": "terminal",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": "file a",
+     "tool_use_id": "call_1",
+     "type": "tool_result"
+    },
+    {
+     "content": "x y z",
+     "tool_use_id": "call_2",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "done",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "do two things",
+   "role": "user"
+  },
+  {
+   "content": "on it",
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{\"path\":\"a\"}",
+      "name": "read_file"
+     },
+     "id": "call_1",
+     "type": "function"
+    },
+    {
+     "function": {
+      "arguments": "{\"cmd\":\"ls\"}",
+      "name": "terminal"
+     },
+     "id": "call_2",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": "file a",
+   "role": "tool",
+   "tool_call_id": "call_1"
+  },
+  {
+   "content": "x y z",
+   "role": "tool",
+   "tool_call_id": "call_2"
+  },
+  {
+   "content": "done",
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

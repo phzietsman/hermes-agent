@@ -1,0 +1,44 @@
+{
+ "expected_messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "signature": "sig-abc",
+     "thinking": "t",
+     "type": "thinking"
+    },
+    {
+     "text": "a",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": "a",
+   "reasoning_details": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "signature": "sig-abc",
+     "thinking": "t",
+     "type": "thinking"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

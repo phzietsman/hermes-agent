@@ -1,0 +1,37 @@
+{
+ "expected_messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "fallback text",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q",
+   "role": "user"
+  },
+  {
+   "anthropic_content_blocks": [
+    {
+     "type": "mystery"
+    },
+    {
+     "type": "redacted_thinking"
+    }
+   ],
+   "content": "fallback text",
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

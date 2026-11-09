@@ -1,0 +1,79 @@
+{
+ "expected_messages": [
+  {
+   "content": "x",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "c1",
+     "input": {},
+     "name": "view",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": [
+      {
+       "text": "text part",
+       "type": "text"
+      },
+      {
+       "source": {
+        "data": "AAAA",
+        "media_type": "image/png",
+        "type": "base64"
+       },
+       "type": "image"
+      }
+     ],
+     "tool_use_id": "c1",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "x",
+   "role": "user"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "view"
+     },
+     "id": "c1",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "_anthropic_content_blocks": [
+    {
+     "source": {
+      "data": "AAAA",
+      "media_type": "image/png",
+      "type": "base64"
+     },
+     "type": "image"
+    }
+   ],
+   "content": "text part",
+   "role": "tool",
+   "tool_call_id": "c1"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

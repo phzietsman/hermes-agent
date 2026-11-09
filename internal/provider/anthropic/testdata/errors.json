@@ -1,0 +1,4980 @@
+{
+ "cases": [
+  {
+   "body": {
+    "error": {
+     "message": "prompt is too long: 250000 tokens > 200000 maximum",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "prompt is too long: 250000 tokens > 200000 maximum",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_prompt_too_long",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "prompt is too long: 250000 tokens > 200000 maximum",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "prompt is too long: 250000 tokens > 200000 maximum",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_prompt_too_long_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "max_tokens: 100000 > 64000, which is the maximum allowed number of output tokens for claude-opus-4-5",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "max_tokens: 100000 > 64000, which is the maximum allowed number of output tokens for claude-opus-4-5",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_max_tokens_too_big",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "max_tokens: 100000 > 64000, which is the maximum allowed number of output tokens for claude-opus-4-5",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "max_tokens: 100000 > 64000, which is the maximum allowed number of output tokens for claude-opus-4-5",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_max_tokens_too_big_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "input length and `max_tokens` exceed context limit: 190000 + 20000 > 200000",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "input length and `max_tokens` exceed context limit: 190000 + 20000 > 200000",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_context_window",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "input length and `max_tokens` exceed context limit: 190000 + 20000 > 200000",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "input length and `max_tokens` exceed context limit: 190000 + 20000 > 200000",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_context_window_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.3: `tool_use` ids were found without `tool_result` blocks immediately after: toolu_01",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.3: `tool_use` ids were found without `tool_result` blocks immediately after: toolu_01",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_tool_result_missing",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.3: `tool_use` ids were found without `tool_result` blocks immediately after: toolu_01",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.3: `tool_use` ids were found without `tool_result` blocks immediately after: toolu_01",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_tool_result_missing_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.2: text content blocks must be non-empty",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.2: text content blocks must be non-empty",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_blank_text",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.2: text content blocks must be non-empty",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.2: text content blocks must be non-empty",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_blank_text_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages: text content blocks must contain non-whitespace text",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages: text content blocks must contain non-whitespace text",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_blank_text_ws",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages: text content blocks must contain non-whitespace text",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages: text content blocks must contain non-whitespace text",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_blank_text_ws_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "image exceeds 5 MB maximum: 7340032 bytes > 5242880 bytes",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "image exceeds 5 MB maximum: 7340032 bytes > 5242880 bytes",
+    "reason": "image_too_large",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_image_big",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "image exceeds 5 MB maximum: 7340032 bytes > 5242880 bytes",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "image exceeds 5 MB maximum: 7340032 bytes > 5242880 bytes",
+    "reason": "image_too_large",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_image_big_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "image dimensions exceed max allowed size: 8000 pixels",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "image dimensions exceed max allowed size: 8000 pixels",
+    "reason": "image_too_large",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_image_dims",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "image dimensions exceed max allowed size: 8000 pixels",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "image dimensions exceed max allowed size: 8000 pixels",
+    "reason": "image_too_large",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_image_dims_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Could not process image",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Could not process image",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_image_invalid",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Could not process image",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Could not process image",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_image_invalid_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "invalid png image data",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid png image data",
+    "reason": "image_corrupt",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_invalid_png",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "invalid png image data",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid png image data",
+    "reason": "image_corrupt",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_invalid_png_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_credit_low",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_credit_low_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "You're out of extra usage. Add more at claude.ai/settings/usage and keep going.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": true,
+    "message": "You're out of extra usage. Add more at claude.ai/settings/usage and keep going.",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_extra_usage",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "You're out of extra usage. Add more at claude.ai/settings/usage and keep going.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": true,
+    "message": "You're out of extra usage. Add more at claude.ai/settings/usage and keep going.",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_extra_usage_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "The long context beta is not yet available for this subscription.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "The long context beta is not yet available for this subscription.",
+    "reason": "oauth_long_context_beta_forbidden",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_long_ctx_beta",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "The long context beta is not yet available for this subscription.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "The long context beta is not yet available for this subscription.",
+    "reason": "oauth_long_context_beta_forbidden",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_long_ctx_beta_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages: roles must alternate between \"user\" and \"assistant\", but found multiple \"user\" roles in a row",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages: roles must alternate between \"user\" and \"assistant\", but found multiple \"user\" roles in a row",
+    "reason": "role_alternation",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_role_alt",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages: roles must alternate between \"user\" and \"assistant\", but found multiple \"user\" roles in a row",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages: roles must alternate between \"user\" and \"assistant\", but found multiple \"user\" roles in a row",
+    "reason": "role_alternation",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_role_alt_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "temperature: Unsupported parameter for this model",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "temperature: Unsupported parameter for this model",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_bad_param",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "temperature: Unsupported parameter for this model",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "temperature: Unsupported parameter for this model",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_bad_param_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.0.content.0: Unknown parameter: 'foo'",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.0.content.0: Unknown parameter: 'foo'",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_unknown_field",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.0.content.0: Unknown parameter: 'foo'",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.0.content.0: Unknown parameter: 'foo'",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_unknown_field_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "tools.0.input_schema: extra inputs are not permitted",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "tools.0.input_schema: extra inputs are not permitted",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_extra_inputs",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "tools.0.input_schema: extra inputs are not permitted",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "tools.0.input_schema: extra inputs are not permitted",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_extra_inputs_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "model: claude-opus-9 is not a valid model",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "model: claude-opus-9 is not a valid model",
+    "reason": "model_not_found",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_model_bad",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "model: claude-opus-9 is not a valid model",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "model: claude-opus-9 is not a valid model",
+    "reason": "model_not_found",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_model_bad_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "The model `claude-x` does not exist",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "The model `claude-x` does not exist",
+    "reason": "model_not_found",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_model_dne",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "The model `claude-x` does not exist",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "The model `claude-x` does not exist",
+    "reason": "model_not_found",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_model_dne_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "This request would exceed your organization's rate limit of 30,000 input tokens per minute",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "This request would exceed your organization's rate limit of 30,000 input tokens per minute",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_rate_in_400",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "This request would exceed your organization's rate limit of 30,000 input tokens per minute",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "This request would exceed your organization's rate limit of 30,000 input tokens per minute",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_rate_in_400_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "The service is temporarily overloaded",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "The service is temporarily overloaded",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_overloaded_in_400",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "The service is temporarily overloaded",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "The service is temporarily overloaded",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_overloaded_in_400_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.1.content.0: Invalid `signature` in `thinking` block",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.1.content.0: Invalid `signature` in `thinking` block",
+    "reason": "thinking_signature",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_thinking_sig",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.1.content.0: Invalid `signature` in `thinking` block",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.1.content.0: Invalid `signature` in `thinking` block",
+    "reason": "thinking_signature",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_thinking_sig_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.1.content.0: `thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.1.content.0: `thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response.",
+    "reason": "thinking_signature",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_thinking_modified",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.1.content.0: `thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.1.content.0: `thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response.",
+    "reason": "thinking_signature",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_thinking_modified_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "thinking.enabled.budget_tokens: Input should be greater than or equal to 1024",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "thinking.enabled.budget_tokens: Input should be greater than or equal to 1024",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_thinking_enabled_budget",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "thinking.enabled.budget_tokens: Input should be greater than or equal to 1024",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "thinking.enabled.budget_tokens: Input should be greater than or equal to 1024",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_thinking_enabled_budget_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Reasoning is mandatory for this endpoint and cannot be disabled",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Reasoning is mandatory for this endpoint and cannot be disabled",
+    "reason": "reasoning_mandatory",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_reasoning_mandatory",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Reasoning is mandatory for this endpoint and cannot be disabled",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Reasoning is mandatory for this endpoint and cannot be disabled",
+    "reason": "reasoning_mandatory",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_reasoning_mandatory_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "thinking is not supported for this model",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "thinking is not supported for this model",
+    "reason": "reasoning_mandatory",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_thinking_unsupported",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "thinking is not supported for this model",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "thinking is not supported for this model",
+    "reason": "reasoning_mandatory",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_thinking_unsupported_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Unrecognized request argument supplied: reasoning_effort",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Unrecognized request argument supplied: reasoning_effort",
+    "reason": "reasoning_mandatory",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_reasoning_effort_unsupported",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Unrecognized request argument supplied: reasoning_effort",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Unrecognized request argument supplied: reasoning_effort",
+    "reason": "reasoning_mandatory",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_reasoning_effort_unsupported_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Your request was flagged by our safety systems",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Your request was flagged by our safety systems",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_safety_block",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Your request was flagged by our safety systems",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Your request was flagged by our safety systems",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_safety_block_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "This request was flagged for possible cybersecurity risk",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "This request was flagged for possible cybersecurity risk",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_cyber",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "This request was flagged for possible cybersecurity risk",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "This request was flagged for possible cybersecurity risk",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_cyber_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "content_filter triggered",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "content_filter triggered",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_content_filter",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "content_filter triggered",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "content_filter triggered",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_content_filter_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "out of memory while allocating prefill",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "out of memory while allocating prefill",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_memory",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "out of memory while allocating prefill",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "out of memory while allocating prefill",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_memory_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "invalid tool call arguments",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid tool call arguments",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_invalid_tool_args",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "invalid tool call arguments",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid tool call arguments",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_invalid_tool_args_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_bare_error",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_bare_error_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Bad request",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Bad request",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_bare_short",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Bad request",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Bad request",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_bare_short_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "prompt_cache_retention is not supported",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "prompt_cache_retention is not supported",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_prompt_cache_retention",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "prompt_cache_retention is not supported",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "prompt_cache_retention is not supported",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_prompt_cache_retention_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.5.content: this is a long and descriptive rejection message that is not generic",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.5.content: this is a long and descriptive rejection message that is not generic",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_descriptive_long",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "messages.5.content: this is a long and descriptive rejection message that is not generic",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "messages.5.content: this is a long and descriptive rejection message that is not generic",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_descriptive_long_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': ''}}",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_empty",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': ''}}",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 120,
+   "name": "400_empty_large",
+   "status": 400,
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "message": "flat message prompt is too long"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "flat message prompt is too long",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_no_type_body",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "detail": "request validation failed: invalid"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "request validation failed: invalid",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_detail_string",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "<html><body>Bad Request</body></html>",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_html",
+   "status": 400,
+   "text": "<html><body>Bad Request</body></html>",
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error code: 400",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_empty_body",
+   "status": 400,
+   "text": "",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 10,
+   "name": "400_bare_json_generic_large",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "x",
+     "type": "invalid_request_error"
+    }
+   },
+   "ctx": 128000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "x",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 100,
+   "name": "400_bare_small_ctx",
+   "status": 400,
+   "tokens": 70000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "x",
+     "type": "invalid_request_error"
+    }
+   },
+   "ctx": 128000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "x",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 3,
+   "name": "400_bare_small_ctx_tokens",
+   "status": 400,
+   "tokens": 90000
+  },
+  {
+   "body": {
+    "error": {
+     "code": "unsupported_parameter",
+     "message": "bad",
+     "type": "invalid_request_error"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "bad",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_code_param",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "code": "unknown_parameter",
+     "message": "bad thing"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "bad thing",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_code_unknown_param",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "",
+     "param": "reasoning.effort",
+     "type": "invalid_request_error"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error code: 400 - {'error': {'type': 'invalid_request_error', 'message': '', 'param': 'reasoning.effort'}}",
+    "reason": "reasoning_mandatory",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_param_reasoning",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "code": "invalid_request_body",
+     "message": "boom"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "boom",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_invalid_request_body_code",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "code": "prefill_memory_exceeded",
+     "message": "no"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "no",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_memory_code",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "{\"code\": \"insufficient_quota\"}",
+     "type": "400"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "{\"code\": \"insufficient_quota\"}",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_nested_code",
+   "status": 400,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "invalid x-api-key",
+     "type": "authentication_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid x-api-key",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 401
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "401",
+   "status": 401,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "OAuth token has been revoked.",
+     "type": "authentication_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "OAuth token has been revoked.",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 401
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "401_oauth_revoked",
+   "status": 401,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error code: 401",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 401
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "401_no_body",
+   "status": 401,
+   "text": "",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Payment required",
+     "type": "billing_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Payment required",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 402
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "402",
+   "status": 402,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Usage limit reached. Try again in 5 minutes.",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Usage limit reached. Try again in 5 minutes.",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 402
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "402_usage_limit_transient",
+   "status": 402,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Quota exceeded for this key",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Quota exceeded for this key",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 402
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "402_quota_plain",
+   "status": 402,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Request not allowed",
+     "type": "permission_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Request not allowed",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 403
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "403",
+   "status": 403,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "<html>Attention Required! | Cloudflare</html>",
+    "reason": "upstream_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 403
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "403_cf",
+   "status": 403,
+   "text": "<html>Attention Required! | Cloudflare</html>",
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Sorry, you have been blocked",
+    "reason": "upstream_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 403
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "403_blocked",
+   "status": 403,
+   "text": "Sorry, you have been blocked",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Your credit balance is too low",
+     "type": "permission_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Your credit balance is too low",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 403
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "403_billing",
+   "status": 403,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "key limit exceeded (monthly)",
+     "type": "permission_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "key limit exceeded (monthly)",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 403
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "403_key_limit",
+   "status": 403,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "code": "upstream_unavailable",
+     "message": "later"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "later",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 403
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "403_upstream_unavailable",
+   "status": 403,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "forbidden by policy",
+     "type": "permission_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "forbidden by policy",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 403
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "403_forbidden_word",
+   "status": 403,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "model: claude-opus-9",
+     "type": "not_found_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "model: claude-opus-9",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 404
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "404",
+   "status": 404,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "The model claude-x does not exist",
+     "type": "not_found_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "The model claude-x does not exist",
+    "reason": "model_not_found",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 404
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "404_does_not_exist",
+   "status": 404,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "code": "insufficient_credits_for_paid_model",
+     "message": "gone"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "gone",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 404
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "404_billing_code",
+   "status": 404,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Not Found",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 404
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "404_plain",
+   "status": 404,
+   "text": "Not Found",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "credit balance is too low",
+     "type": "not_found_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "credit balance is too low",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 404
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "404_credit",
+   "status": 404,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Request timeout",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Request timeout",
+    "reason": "timeout",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 408
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "408",
+   "status": 408,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Request exceeds the maximum allowed number of bytes.",
+     "type": "request_too_large"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Request exceeds the maximum allowed number of bytes.",
+    "reason": "payload_too_large",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 413
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "413",
+   "status": 413,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Request Entity Too Large",
+    "reason": "payload_too_large",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 413
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "413_text",
+   "status": 413,
+   "text": "Request Entity Too Large",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "detail": [
+     {
+      "input": "y",
+      "loc": [
+       "body",
+       "messages",
+       1,
+       "content",
+       "str"
+      ],
+      "msg": "x",
+      "type": "string_type"
+     }
+    ]
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error code: 422 - {'detail': [{'type': 'string_type', 'loc': ['body', 'messages', 1, 'content', 'str'], 'msg': 'x', 'input': 'y'}]}",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 422
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "422_image",
+   "status": 422,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "unprocessable",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "unprocessable",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 422
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "422_plain",
+   "status": 422,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "invalid jpeg image",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid jpeg image",
+    "reason": "image_corrupt",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 422
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "422_image_corrupt",
+   "status": 422,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "This request would exceed your organization's rate limit",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "This request would exceed your organization's rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Rate limit hit",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Rate limit hit",
+    "reason": "rate_limit",
+    "reset_after": 17.0,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {
+    "retry-after": "17"
+   },
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_retry_after_hdr",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Rate limit hit",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Rate limit hit",
+    "reason": "rate_limit",
+    "reset_after": 100000.0,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {
+    "retry-after": "100000"
+   },
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_retry_after_big",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Rate limit hit",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Rate limit hit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {
+    "retry-after": "0"
+   },
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_retry_after_zero",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Rate limit exceeded, retry after 12 seconds",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Rate limit exceeded, retry after 12 seconds",
+    "reason": "rate_limit",
+    "reset_after": 12.0,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_msg_reset",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Weekly limit reached. Resets in 4hr 5min",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Weekly limit reached. Resets in 4hr 5min",
+    "reason": "rate_limit",
+    "reset_after": 14700.0,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_msg_resets_in",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "slow",
+     "resets_in_seconds": 90,
+     "type": "rate_limit_error"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "slow",
+    "reason": "rate_limit",
+    "reset_after": 90.0,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_resets_in_field",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "slow",
+     "retry_after": 33,
+     "type": "rate_limit_error"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "slow",
+    "reason": "rate_limit",
+    "reset_after": 33.0,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_body_retry_after",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "You have exceeded your usage limit",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "You have exceeded your usage limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_quota_wall",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "insufficient_quota",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "insufficient_quota",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_quota_wall_billing",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Usage limit reached, try again later",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Usage limit reached, try again later",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_quota_wall_with_signal",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Usage limit reached",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Usage limit reached",
+    "reason": "rate_limit",
+    "reset_after": 60.0,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {
+    "retry-after": "60"
+   },
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_quota_wall_hdr",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "code": "usage_limit_reached",
+     "message": "no more",
+     "type": "rate_limit_error"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "no more",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_usage_limit_reached_code",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Service is temporarily overloaded",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Service is temporarily overloaded",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_overloaded_words",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Long context requests require extra usage, which is not enabled",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Long context requests require extra usage, which is not enabled",
+    "reason": "long_context_tier",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_long_context",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "code": "terminal_quota_exhausted",
+     "message": "hard cap"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "hard cap",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_billing_code",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "You are out of extra usage",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "You are out of extra usage",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_extra_usage_only",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Rate limit exceeded: limit exceeded for the quota",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Rate limit exceeded: limit exceeded for the quota",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_explicit_and_quota",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Usage limit",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Usage limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {
+    "x-ratelimit-reset": "30"
+   },
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_x_ratelimit_reset_hdr",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "slow down quotaResetDelay: 1500ms",
+     "type": "rate_limit_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "slow down quotaResetDelay: 1500ms",
+    "reason": "rate_limit",
+    "reset_after": 1.5,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_quota_reset_delay",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Internal server error",
+     "type": "api_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Internal server error",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 500
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "500",
+   "status": 500,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "context window exceeded",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "context window exceeded",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 500
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "500_overflow",
+   "status": 500,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "returned an empty response",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "returned an empty response",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 500
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "500_empty_resp",
+   "status": 500,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "unknown parameter foo",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "unknown parameter foo",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 500
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "500_validation",
+   "status": 500,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "bad",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "bad",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 500
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "500_invalid_request",
+   "status": 500,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "memory guard tripped",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "memory guard tripped",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 500
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "500_memory",
+   "status": 500,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "<html>502 Bad Gateway</html>",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 502
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "502",
+   "status": 502,
+   "text": "<html>502 Bad Gateway</html>",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Service unavailable",
+     "type": "api_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Service unavailable",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 503
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "503",
+   "status": 503,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "prompt is too long",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "prompt is too long",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 503
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "503_overflow",
+   "status": 503,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Gateway Timeout",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 504
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "504",
+   "status": 504,
+   "text": "Gateway Timeout",
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "error code: 520",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 520
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "520_cf",
+   "status": 520,
+   "text": "error code: 520",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Overloaded",
+     "type": "overloaded_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Overloaded",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 529
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "529",
+   "status": 529,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Overloaded",
+     "type": "overloaded_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Overloaded",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 529
+   },
+   "headers": {
+    "retry-after": "7"
+   },
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "529_retry_after",
+   "status": 529,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "max_tokens exceeds",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "max_tokens exceeds",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 529
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "529_overflow",
+   "status": 529,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "weird",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 599
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "599",
+   "status": 599,
+   "text": "weird",
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "teapot",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 418
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "418",
+   "status": 418,
+   "text": "teapot",
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "unavailable for legal reasons",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "unavailable for legal reasons",
+    "reason": "format_error",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 451
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "451",
+   "status": 451,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "x",
+     "retry_after": 12,
+     "type": "api_error"
+    }
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "x",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 500
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "500_body_only_retry_after",
+   "status": 500,
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Overloaded",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_overloaded",
+   "status": null,
+   "stream": {
+    "message": "Overloaded",
+    "type": "overloaded_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Overloaded",
+    "reason": "overloaded",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_overloaded_large",
+   "status": null,
+   "stream": {
+    "message": "Overloaded",
+    "type": "overloaded_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Internal server error",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_api_error",
+   "status": null,
+   "stream": {
+    "message": "Internal server error",
+    "type": "api_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Internal server error",
+    "reason": "server_error",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_api_error_large",
+   "status": null,
+   "stream": {
+    "message": "Internal server error",
+    "type": "api_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Number of request tokens has exceeded your per-minute rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_rate_limit",
+   "status": null,
+   "stream": {
+    "message": "Number of request tokens has exceeded your per-minute rate limit",
+    "type": "rate_limit_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Number of request tokens has exceeded your per-minute rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_rate_limit_large",
+   "status": null,
+   "stream": {
+    "message": "Number of request tokens has exceeded your per-minute rate limit",
+    "type": "rate_limit_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "prompt is too long: 250000 tokens > 200000 maximum",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_invalid_request",
+   "status": null,
+   "stream": {
+    "message": "prompt is too long: 250000 tokens > 200000 maximum",
+    "type": "invalid_request_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "prompt is too long: 250000 tokens > 200000 maximum",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_invalid_request_large",
+   "status": null,
+   "stream": {
+    "message": "prompt is too long: 250000 tokens > 200000 maximum",
+    "type": "invalid_request_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid x-api-key",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_authentication",
+   "status": null,
+   "stream": {
+    "message": "invalid x-api-key",
+    "type": "authentication_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "invalid x-api-key",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_authentication_large",
+   "status": null,
+   "stream": {
+    "message": "invalid x-api-key",
+    "type": "authentication_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "forbidden",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_permission",
+   "status": null,
+   "stream": {
+    "message": "forbidden",
+    "type": "permission_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "forbidden",
+    "reason": "auth",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_permission_large",
+   "status": null,
+   "stream": {
+    "message": "forbidden",
+    "type": "permission_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "model: claude-x",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_not_found",
+   "status": null,
+   "stream": {
+    "message": "model: claude-x",
+    "type": "not_found_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "model: claude-x",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_not_found_large",
+   "status": null,
+   "stream": {
+    "message": "model: claude-x",
+    "type": "not_found_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "something odd",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_unknown_type",
+   "status": null,
+   "stream": {
+    "message": "something odd",
+    "type": "weird_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "something odd",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_unknown_type_large",
+   "status": null,
+   "stream": {
+    "message": "something odd",
+    "type": "weird_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "disconnected",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_no_type",
+   "status": null,
+   "stream": {
+    "message": "disconnected"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "disconnected",
+    "reason": "unknown",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_no_type_large",
+   "status": null,
+   "stream": {
+    "message": "disconnected"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Your credit balance is too low",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_billing_msg",
+   "status": null,
+   "stream": {
+    "message": "Your credit balance is too low",
+    "type": "invalid_request_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Your credit balance is too low",
+    "reason": "billing",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_billing_msg_large",
+   "status": null,
+   "stream": {
+    "message": "Your credit balance is too low",
+    "type": "invalid_request_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "content_filter blocked it",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "stream_error_content",
+   "status": null,
+   "stream": {
+    "message": "content_filter blocked it",
+    "type": "invalid_request_error"
+   },
+   "tokens": 0
+  },
+  {
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "content_filter blocked it",
+    "reason": "content_policy_blocked",
+    "reset_after": null,
+    "retryable": false,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": false,
+    "status_code": 200
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 250,
+   "name": "stream_error_content_large",
+   "status": null,
+   "stream": {
+    "message": "content_filter blocked it",
+    "type": "invalid_request_error"
+   },
+   "tokens": 150000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "400_model_claude-opus-4-5",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "rate limit",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-4-5",
+   "msgs": 0,
+   "name": "429_model_claude-opus-4-5",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-haiku-4-5",
+   "msgs": 0,
+   "name": "400_model_claude-haiku-4-5",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "rate limit",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-haiku-4-5",
+   "msgs": 0,
+   "name": "429_model_claude-haiku-4-5",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-sonnet-4-6",
+   "msgs": 0,
+   "name": "400_model_claude-sonnet-4-6",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "rate limit",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-sonnet-4-6",
+   "msgs": 0,
+   "name": "429_model_claude-sonnet-4-6",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-fable-5-1",
+   "msgs": 0,
+   "name": "400_model_claude-fable-5-1",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "rate limit",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-fable-5-1",
+   "msgs": 0,
+   "name": "429_model_claude-fable-5-1",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-opus-5-5",
+   "msgs": 0,
+   "name": "400_model_claude-opus-5-5",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "rate limit",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-opus-5-5",
+   "msgs": 0,
+   "name": "429_model_claude-opus-5-5",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "anthropic/claude-sonnet-5-5",
+   "msgs": 0,
+   "name": "400_model_anthropic_claude-sonnet-5-5",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "rate limit",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "anthropic/claude-sonnet-5-5",
+   "msgs": 0,
+   "name": "429_model_anthropic_claude-sonnet-5-5",
+   "status": 429,
+   "tokens": 0
+  },
+  {
+   "body": {
+    "error": {
+     "message": "Error",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "Error",
+    "reason": "context_overflow",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": true,
+    "should_fallback": false,
+    "should_rotate_credential": false,
+    "status_code": 400
+   },
+   "headers": {},
+   "model": "claude-3-5-sonnet",
+   "msgs": 0,
+   "name": "400_model_claude-3-5-sonnet",
+   "status": 400,
+   "tokens": 170000
+  },
+  {
+   "body": {
+    "error": {
+     "message": "rate limit",
+     "type": "invalid_request_error"
+    },
+    "type": "error"
+   },
+   "ctx": 200000,
+   "expected": {
+    "billing_unverified": false,
+    "message": "rate limit",
+    "reason": "rate_limit",
+    "reset_after": null,
+    "retryable": true,
+    "should_compress": false,
+    "should_fallback": true,
+    "should_rotate_credential": true,
+    "status_code": 429
+   },
+   "headers": {},
+   "model": "claude-3-5-sonnet",
+   "msgs": 0,
+   "name": "429_model_claude-3-5-sonnet",
+   "status": 429,
+   "tokens": 0
+  }
+ ],
+ "retry": {
+  "messages": [
+   {
+    "in": "retry after 12 seconds",
+    "want": 12.0
+   },
+   {
+    "in": "Retry 5s",
+    "want": 5.0
+   },
+   {
+    "in": "retry after 2.5 sec",
+    "want": 2.5
+   },
+   {
+    "in": "resets in 4hr 5min",
+    "want": 14700.0
+   },
+   {
+    "in": "resets in 2 hours 5 minutes",
+    "want": 7500.0
+   },
+   {
+    "in": "reset in 30s",
+    "want": 30.0
+   },
+   {
+    "in": "resets in 90 seconds",
+    "want": 90.0
+   },
+   {
+    "in": "quotaResetDelay: 1500ms",
+    "want": 1.5
+   },
+   {
+    "in": "quotaResetDelay\":\"3s\"",
+    "want": 3.0
+   },
+   {
+    "in": "resets_in_seconds: 30995",
+    "want": 30995.0
+   },
+   {
+    "in": "'resets_in_seconds': 12",
+    "want": 12.0
+   },
+   {
+    "in": "retry after 10 seconds, resets in 5hr",
+    "want": 10.0
+   },
+   {
+    "in": "no hint here",
+    "want": null
+   },
+   {
+    "in": "resets in soon",
+    "want": null
+   },
+   {
+    "in": "RETRY AFTER 8 SECS",
+    "want": 8.0
+   },
+   {
+    "in": "resets in 1 hour",
+    "want": 3600.0
+   },
+   {
+    "in": "resets in 7m",
+    "want": 420.0
+   },
+   {
+    "in": "resets in 45",
+    "want": null
+   },
+   {
+    "in": "please retry 3s later",
+    "want": 3.0
+   }
+  ],
+  "retry_after": [
+   {
+    "in": "0",
+    "want": 0.0
+   },
+   {
+    "in": "5",
+    "want": 5.0
+   },
+   {
+    "in": "17.5",
+    "want": 17.5
+   },
+   {
+    "in": " 30 ",
+    "want": 30.0
+   },
+   {
+    "in": "-4",
+    "want": 0.0
+   },
+   {
+    "in": "abc",
+    "want": null
+   },
+   {
+    "in": "",
+    "want": null
+   },
+   {
+    "in": "1e2",
+    "want": 100.0
+   },
+   {
+    "in": "100000",
+    "want": 100000.0
+   }
+  ]
+ }
+}

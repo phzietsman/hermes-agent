@@ -1,0 +1,254 @@
+{
+ "entry_ids": [
+  {
+   "id": "00f51fc4bc13aa29aa747944",
+   "op": "remember",
+   "payload": {
+    "category": "identity",
+    "labels": [
+     "session=1"
+    ],
+    "scopes": "user/p",
+    "session_id": null,
+    "text": "likes tea"
+   }
+  },
+  {
+   "id": "b3ffeb26a98eb0c00ddb8cb8",
+   "op": "remember",
+   "payload": {
+    "text": "café ☕ 日本語 😀 \"quoted\" back\\slash\nnewline\ttab \u0001 ctrl  del"
+   }
+  },
+  {
+   "id": "11b8ee0f22bb90d51830ab8d",
+   "op": "remember_many",
+   "payload": {
+    "items": [
+     {
+      "content": "hi",
+      "role": "user"
+     },
+     {
+      "content": "yo",
+      "role": "assistant"
+     }
+    ],
+    "labels": [],
+    "session_id": "s"
+   }
+  },
+  {
+   "id": "3db3bc4f68c7ede20b7ec62c",
+   "op": "forget",
+   "payload": {
+    "purge": true,
+    "query": "x"
+   }
+  },
+  {
+   "id": "d11b2b4ee0ea1e982e37b853",
+   "op": "forget",
+   "payload": {
+    "purge": false,
+    "query": "x"
+   }
+  },
+  {
+   "id": "d71dfbfabac4ee4c9be391fb",
+   "op": "remember",
+   "payload": {
+    "a": [
+     1,
+     2.5,
+     true,
+     null,
+     {
+      "a": 2,
+      "b": 1
+     }
+    ],
+    "n": -3,
+    "z": 1
+   }
+  },
+  {
+   "id": "2b40d7b98d1be4a127be4bc1",
+   "op": "remember",
+   "payload": {
+    "text": ""
+   }
+  },
+  {
+   "id": "c84cbfe26a1b9fcdd1947d14",
+   "op": "remember",
+   "payload": {}
+  }
+ ],
+ "flat": [
+  {
+   "entry": {
+    "description": "Always answer in English",
+    "key": "k"
+   },
+   "text": "Always answer in English"
+  },
+  {
+   "entry": {
+    "text": "t",
+    "value": "v"
+   },
+   "text": "t"
+  },
+  {
+   "entry": {
+    "value": "only value"
+   },
+   "text": "only value"
+  },
+  {
+   "entry": {
+    "key": "tz",
+    "value": "UTC"
+   },
+   "text": "UTC"
+  },
+  {
+   "entry": {
+    "content": "c"
+   },
+   "text": "c"
+  },
+  {
+   "entry": {
+    "other": 1
+   },
+   "text": "{'other': 1}"
+  },
+  {
+   "entry": {
+    "description": 5,
+    "text": "falls through"
+   },
+   "text": "falls through"
+  }
+ ],
+ "profiles": [
+  {
+   "instructions": [],
+   "max": 1500,
+   "out": "",
+   "preferences": [],
+   "static": []
+  },
+  {
+   "instructions": [
+    "Be brief."
+   ],
+   "max": 1500,
+   "out": "## About the user / standing instructions\n- Be brief.\n- tea\n- lives in Cape Town",
+   "preferences": [
+    "tea"
+   ],
+   "static": [
+    "lives in Cape Town"
+   ]
+  },
+  {
+   "instructions": [
+    "  padded  "
+   ],
+   "max": 120,
+   "out": "## About the user / standing instructions\n- padded",
+   "preferences": [],
+   "static": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ]
+  },
+  {
+   "instructions": [
+    "instruction 0",
+    "instruction 1",
+    "instruction 2",
+    "instruction 3",
+    "instruction 4",
+    "instruction 5",
+    "instruction 6",
+    "instruction 7",
+    "instruction 8",
+    "instruction 9",
+    "instruction 10",
+    "instruction 11",
+    "instruction 12",
+    "instruction 13",
+    "instruction 14",
+    "instruction 15",
+    "instruction 16",
+    "instruction 17",
+    "instruction 18",
+    "instruction 19",
+    "instruction 20",
+    "instruction 21",
+    "instruction 22",
+    "instruction 23",
+    "instruction 24",
+    "instruction 25",
+    "instruction 26",
+    "instruction 27",
+    "instruction 28",
+    "instruction 29",
+    "instruction 30",
+    "instruction 31",
+    "instruction 32",
+    "instruction 33",
+    "instruction 34",
+    "instruction 35",
+    "instruction 36",
+    "instruction 37",
+    "instruction 38",
+    "instruction 39",
+    "instruction 40",
+    "instruction 41",
+    "instruction 42",
+    "instruction 43",
+    "instruction 44",
+    "instruction 45",
+    "instruction 46",
+    "instruction 47",
+    "instruction 48",
+    "instruction 49"
+   ],
+   "max": 400,
+   "out": "## About the user / standing instructions\n- instruction 0\n- instruction 1\n- instruction 2\n- instruction 3\n- instruction 4\n- instruction 5\n- instruction 6\n- instruction 7\n- instruction 8\n- instruction 9\n- instruction 10\n- instruction 11\n- instruction 12\n- instruction 13\n- instruction 14\n- instruction 15\n- instruction 16\n- instruction 17\n- instruction 18\n- instruction 19\n- instruction 20",
+   "preferences": [],
+   "static": []
+  },
+  {
+   "instructions": [],
+   "max": 200,
+   "out": "## About the user / standing instructions\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト\n- 日本語のテキスト",
+   "preferences": [],
+   "static": [
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト",
+    "日本語のテキスト"
+   ]
+  },
+  {
+   "instructions": [],
+   "max": 10,
+   "out": "",
+   "preferences": [],
+   "static": [
+    "a"
+   ]
+  }
+ ]
+}

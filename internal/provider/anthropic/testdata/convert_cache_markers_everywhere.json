@@ -1,0 +1,123 @@
+{
+ "expected_messages": [
+  {
+   "content": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "text": "u",
+     "type": "text"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "a",
+     "type": "text"
+    },
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "text": "b",
+     "type": "text"
+    },
+    {
+     "id": "c1",
+     "input": {},
+     "name": "t",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "content": "r",
+     "tool_use_id": "c1",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "expected_system": [
+  {
+   "cache_control": {
+    "ttl": "1h",
+    "type": "ephemeral"
+   },
+   "text": "sys",
+   "type": "text"
+  }
+ ],
+ "messages": [
+  {
+   "content": [
+    {
+     "cache_control": {
+      "ttl": "1h",
+      "type": "ephemeral"
+     },
+     "text": "sys",
+     "type": "text"
+    }
+   ],
+   "role": "system"
+  },
+  {
+   "content": [
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "text": "u",
+     "type": "text"
+    }
+   ],
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "text": "a",
+     "type": "text"
+    },
+    {
+     "cache_control": {
+      "type": "ephemeral"
+     },
+     "text": "b",
+     "type": "text"
+    }
+   ],
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{}",
+      "name": "t"
+     },
+     "id": "c1",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "cache_control": {
+    "type": "ephemeral"
+   },
+   "content": "r",
+   "role": "tool",
+   "tool_call_id": "c1"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

@@ -1,0 +1,120 @@
+{
+ "expected_messages": [
+  {
+   "content": [
+    {
+     "text": "see these",
+     "type": "text"
+    },
+    {
+     "source": {
+      "data": "/9j/4AAQ",
+      "media_type": "image/jpeg",
+      "type": "base64"
+     },
+     "type": "image"
+    },
+    {
+     "text": "[image omitted: image/svg+xml is not a supported image format]",
+     "type": "text"
+    },
+    {
+     "source": {
+      "type": "url",
+      "url": "https://example.com/x.png"
+     },
+     "type": "image"
+    },
+    {
+     "source": {
+      "data": "AAAA",
+      "media_type": "image/jpeg",
+      "type": "base64"
+     },
+     "type": "image"
+    },
+    {
+     "citations": [
+      {
+       "type": "char_location"
+      }
+     ],
+     "text": "cited",
+     "type": "text"
+    },
+    {
+     "text": "empty cites",
+     "type": "text"
+    },
+    {
+     "payload": {
+      "a": [
+       1,
+       2
+      ]
+     },
+     "type": "custom_block"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": [
+    {
+     "text": "see these",
+     "type": "input_text"
+    },
+    {
+     "image_url": {
+      "url": "data:image/jpg;base64,/9j/4AAQ"
+     },
+     "type": "image_url"
+    },
+    {
+     "image_url": {
+      "url": "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="
+     },
+     "type": "image_url"
+    },
+    {
+     "image_url": "https://example.com/x.png",
+     "type": "input_image"
+    },
+    {
+     "image_url": {
+      "url": "data:application/pdf;base64,AAAA"
+     },
+     "type": "image_url"
+    },
+    {
+     "citations": [
+      {
+       "type": "char_location"
+      }
+     ],
+     "text": "cited",
+     "type": "text"
+    },
+    {
+     "citations": [],
+     "text": "empty cites",
+     "type": "text"
+    },
+    {
+     "payload": {
+      "a": [
+       1,
+       2
+      ]
+     },
+     "type": "custom_block"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

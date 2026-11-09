@@ -1,0 +1,80 @@
+{
+ "expected_messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "id": "call_1_x_y",
+     "input": {},
+     "name": "t",
+     "type": "tool_use"
+    },
+    {
+     "id": "tool_0",
+     "input": {},
+     "name": "u",
+     "type": "tool_use"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": [
+    {
+     "content": "r1",
+     "tool_use_id": "call_1_x_y",
+     "type": "tool_result"
+    },
+    {
+     "content": "(no output)",
+     "tool_use_id": "tool_0",
+     "type": "tool_result"
+    }
+   ],
+   "role": "user"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "go",
+   "role": "user"
+  },
+  {
+   "content": null,
+   "role": "assistant",
+   "tool_calls": [
+    {
+     "function": {
+      "arguments": "{not json",
+      "name": "t"
+     },
+     "id": "call:1/x y",
+     "type": "function"
+    },
+    {
+     "function": {
+      "arguments": "",
+      "name": "u"
+     },
+     "id": "",
+     "type": "function"
+    }
+   ]
+  },
+  {
+   "content": "r1",
+   "role": "tool",
+   "tool_call_id": "call:1/x y"
+  },
+  {
+   "content": "",
+   "role": "tool",
+   "tool_call_id": ""
+  }
+ ],
+ "model": "claude-opus-4-5"
+}

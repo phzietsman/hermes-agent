@@ -1,0 +1,74 @@
+{
+ "expected_messages": [
+  {
+   "content": "q1",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "signature": "s1",
+     "thinking": "first",
+     "type": "thinking"
+    },
+    {
+     "text": "a1",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": "q2",
+   "role": "user"
+  },
+  {
+   "content": [
+    {
+     "signature": "s2",
+     "thinking": "second",
+     "type": "thinking"
+    },
+    {
+     "text": "a2",
+     "type": "text"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "expected_system": null,
+ "messages": [
+  {
+   "content": "q1",
+   "role": "user"
+  },
+  {
+   "content": "a1",
+   "reasoning_details": [
+    {
+     "signature": "s1",
+     "thinking": "first",
+     "type": "thinking"
+    }
+   ],
+   "role": "assistant"
+  },
+  {
+   "content": "q2",
+   "role": "user"
+  },
+  {
+   "content": "a2",
+   "reasoning_details": [
+    {
+     "signature": "s2",
+     "thinking": "second",
+     "type": "thinking"
+    }
+   ],
+   "role": "assistant"
+  }
+ ],
+ "model": "claude-opus-4-5"
+}
